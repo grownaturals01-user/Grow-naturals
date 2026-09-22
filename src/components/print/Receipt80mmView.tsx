@@ -162,10 +162,12 @@ export const Receipt80mmView: React.FC<Receipt80mmViewProps> = ({ invoice }) => 
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>{isTaxable ? 'GST Tax:' : 'GST Tax (0%):'}</span>
-            <span>Rs. {Number(invoice.tax_amount || 0).toFixed(2)}</span>
-          </div>
+          {isTaxable && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>GST Tax:</span>
+              <span>Rs. {Number(invoice.tax_amount || 0).toFixed(2)}</span>
+            </div>
+          )}
 
           <div className="receipt-divider" />
 

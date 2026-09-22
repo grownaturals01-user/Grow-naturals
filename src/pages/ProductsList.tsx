@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useBusiness } from '../context/BusinessContext';
+import { useInventoryModules } from '../context/InventoryModulesContext';
 import { api } from '../services/api';
 import type { Product } from '../types';
 import { EmptyState } from '../components/common/EmptyState';
@@ -22,6 +23,7 @@ import {
 
 export const ProductsList: React.FC = () => {
   const { businessId, business, isTaxable } = useBusiness();
+  const { modules } = useInventoryModules();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -108,15 +110,21 @@ export const ProductsList: React.FC = () => {
   }, [products, stockFilter, sortBy, sortOrder]);
 
   const categoryCounts = useMemo(() => {
-    const counts = { all: products.length, plants: 0, pots: 0, fertilizers: 0, flowers: 0 };
+    const counts: Record<string, number> = { all: products.length, plants: 0, cactus: 0, pots: 0, fertilizers: 0, flowers: 0 };
+    for (const m of modules) {
+      counts[m.slug] = 0;
+    }
     for (const p of products) {
-      if (p.type === 'plants') counts.plants++;
+      if (counts[p.type] !== undefined) {
+        counts[p.type]++;
+      } else if (p.type === 'plants') counts.plants++;
+      else if (p.type === 'cactus') counts.cactus++;
       else if (p.type === 'pots') counts.pots++;
       else if (p.type === 'fertilizers') counts.fertilizers++;
       else if (p.type === 'flowers') counts.flowers++;
     }
     return counts;
-  }, [products]);
+  }, [products, modules]);
 
   const handleSort = (field: 'name' | 'stock' | 'price') => {
     if (sortBy === field) {
@@ -167,7 +175,28 @@ export const ProductsList: React.FC = () => {
           </p>
         </div>
 
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link
+            to="/inventory/new"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              backgroundColor: '#f1f5f9',
+              color: '#0f172a',
+              border: '1px solid #cbd5e1',
+              borderRadius: '7px',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              textDecoration: 'none',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e2e8f0')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+          >
+            <Plus size={15} /> Add Inventory
+          </Link>
           <Link
             to="/products/new"
             style={{
@@ -541,9 +570,15 @@ export const ProductsList: React.FC = () => {
           {[
             { id: 'all', label: 'All', count: categoryCounts.all },
             { id: 'plants', label: 'Plants & Trees', count: categoryCounts.plants },
+            { id: 'cactus', label: 'Cactus & Succulents', count: categoryCounts.cactus },
             { id: 'pots', label: 'Pots & Planters', count: categoryCounts.pots },
             { id: 'fertilizers', label: 'Fertilizers & Care', count: categoryCounts.fertilizers },
             { id: 'flowers', label: 'Flowers & Decor', count: categoryCounts.flowers },
+            ...modules.map((m) => ({
+              id: m.slug,
+              label: `${m.icon ? m.icon + ' ' : ''}${m.name}`,
+              count: categoryCounts[m.slug] || 0,
+            })),
           ].map((cat) => {
             const isActive = selectedType === cat.id;
             return (

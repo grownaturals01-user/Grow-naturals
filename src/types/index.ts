@@ -56,6 +56,7 @@ export interface Customer {
   email: string;
   address: string;
   gstin: string;
+  customer_type?: 'customer' | 'wholesaler' | string;
   invoice_count?: number;
   total_spent?: number;
   created_at?: string;
@@ -76,7 +77,19 @@ export interface Supplier {
   created_at?: string;
 }
 
-export type CategoryType = 'plants' | 'pots' | 'fertilizers' | 'flowers' | 'general';
+export type CategoryType = 'plants' | 'pots' | 'fertilizers' | 'flowers' | 'cactus' | 'general' | (string & {});
+
+export interface InventoryModule {
+  id: string;
+  business_id: string;
+  name: string;
+  slug: string;
+  caption?: string;
+  icon?: string;
+  image_url?: string;
+  sort_order?: number;
+  created_at?: string;
+}
 
 export interface Category {
   id: string;
@@ -91,6 +104,14 @@ export interface Category {
 export interface PlantAttributes {
   pot_size?: string;
   height?: string;
+  sunlight?: string;
+  watering?: string;
+  difficulty?: string;
+}
+
+export interface CactusAttributes {
+  pot_size?: string;
+  variety_type?: string;
   sunlight?: string;
   watering?: string;
   difficulty?: string;
@@ -135,6 +156,8 @@ export interface Product {
   supplier_id?: string | null;
   supplier_name?: string;
   image_url?: string;
+  discount_pieces?: number;
+  discount_percent?: number;
   attributes: Record<string, any>;
   created_at?: string;
   updated_at?: string;
@@ -221,6 +244,8 @@ export interface Quotation {
   customer_id?: string | null;
   customer_name: string;
   customer_phone: string;
+  customer_gstin?: string;
+  customer_address?: string;
   valid_until?: string | null;
   subtotal: number;
   discount: number;
@@ -355,6 +380,7 @@ export interface Expense {
   recipient: string;
   reference_no: string;
   notes: string;
+  image_url?: string;
   created_at?: string;
 }
 
@@ -429,6 +455,8 @@ export interface POSCartItem {
   discount: number;
   gst_rate: number;
   stock_quantity: number;
+  discount_pieces?: number;
+  discount_percent?: number;
 }
 
 export interface OfflineSaleQueueItem {

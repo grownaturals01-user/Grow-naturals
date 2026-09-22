@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
 import type { Product, QuotationItem } from '../types';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Save, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, FileSpreadsheet, Search, CheckCircle2, AlertCircle, Loader2, Sparkles, Building2 } from 'lucide-react';
 import { ProductSearchSelect } from '../components/common/ProductSearchSelect';
 
 export const QuotationNew: React.FC = () => {
@@ -11,8 +11,13 @@ export const QuotationNew: React.FC = () => {
   const navigate = useNavigate();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [customerGstin, setCustomerGstin] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerAddress, setCustomerAddress] = useState<string>('');
+  const [isFetchingGst, setIsFetchingGst] = useState<boolean>(false);
+  const [gstFeedback, setGstFeedback] = useState<{ status: 'idle' | 'success' | 'warning' | 'error'; message: string; state?: string } | null>(null);
+
   const [validUntil, setValidUntil] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
@@ -37,6 +42,74 @@ export const QuotationNew: React.FC = () => {
   useEffect(() => {
     api.get('/products', { business_id: businessId }).then(setProducts).catch(console.warn);
   }, [businessId]);
+
+  // GST Number Auto Fetch Details Handler
+  const handleFetchGstDetails = async (inputGstin?: string) => {
+    const cleanGst = (inputGstin !== undefined ? inputGstin : customerGstin).trim().toUpperCase();
+    if (!cleanGst) return;
+
+    if (cleanGst.length !== 15) {
+      setGstFeedback({
+        status: 'warning',
+        message: `GSTIN must be exactly 15 characters (currently ${cleanGst.length}/15)`,
+      });
+      return;
+    }
+
+    setIsFetchingGst(true);
+    setGstFeedback(null);
+
+    try {
+      const res: any = await api.get(`/gst/lookup/${cleanGst}`);
+      if (res && res.success) {
+        if (res.customer_name || res.trade_name || res.legal_name) {
+          const fetchedName = res.trade_name || res.legal_name || res.customer_name;
+          setCustomerName(fetchedName);
+          if (res.phone && !customerPhone) setCustomerPhone(res.phone);
+          if (res.address) setCustomerAddress(res.address);
+
+          setGstFeedback({
+            status: 'success',
+            message: `Verified: ${fetchedName} (${res.state || 'Registered'})`,
+            state: res.state,
+          });
+        } else {
+          setGstFeedback({
+            status: 'success',
+            message: `Valid Indian GSTIN Structure • State: ${res.state || 'India'} (${res.entity_type || 'Business'})`,
+            state: res.state,
+          });
+        }
+      } else {
+        setGstFeedback({
+          status: 'error',
+          message: res.error || 'Could not verify GSTIN details.',
+        });
+      }
+    } catch (err: any) {
+      setGstFeedback({
+        status: 'error',
+        message: err.message || 'Error looking up GSTIN.',
+      });
+    } finally {
+      setIsFetchingGst(false);
+    }
+  };
+
+  // Debounced auto-fetch on typing 15 characters
+  const debounceTimerRef = useRef<any>(null);
+  const handleGstinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 15);
+    setCustomerGstin(val);
+    setGstFeedback(null);
+
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (val.length === 15) {
+      debounceTimerRef.current = setTimeout(() => {
+        handleFetchGstDetails(val);
+      }, 350);
+    }
+  };
 
   const handleAddItem = () => {
     setItems((prev) => [
@@ -104,6 +177,8 @@ export const QuotationNew: React.FC = () => {
         business_id: businessId,
         customer_name: customerName.trim(),
         customer_phone: customerPhone.trim(),
+        customer_gstin: customerGstin.trim().toUpperCase(),
+        customer_address: customerAddress.trim(),
         valid_until: validUntil || null,
         items: validItems,
         discount: Number(discount) || 0,
@@ -139,40 +214,128 @@ export const QuotationNew: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="card">
         <div className="card-body">
-          {/* Customer & Validity */}
-          <div className="form-grid-3">
-            <div className="form-group">
-              <label className="form-label">Customer / Client Name <span className="required">*</span></label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. Oberoi Luxury Resorts, Anita Sharma"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                required
-                autoFocus
-              />
+          {/* Client Details Section */}
+          <div style={{ marginBottom: '16px' }}>
+            <h3 style={{ fontSize: 'var(--font-md)', fontWeight: 700, color: 'var(--module-sell-accent)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Building2 size={16} /> Client / Customer Information
+            </h3>
+
+            {/* Row 1: GST Number & Auto-Fetch */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '14px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>
+                    Client GST Number (GSTIN)
+                  </label>
+                  {customerGstin.length > 0 && (
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                      {customerGstin.length}/15 chars
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="form-input tabular"
+                    placeholder="e.g. 33AABCT1332L1ZV"
+                    value={customerGstin}
+                    onChange={handleGstinChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleFetchGstDetails();
+                      }
+                    }}
+                    maxLength={15}
+                    style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handleFetchGstDetails()}
+                    disabled={isFetchingGst || customerGstin.length < 15}
+                    title="Auto-fetch registered company name and details from GSTIN"
+                    style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0 12px' }}
+                  >
+                    {isFetchingGst ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" /> Fetching...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={14} color="#0284c7" /> Auto Fetch
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* GST Verification Feedback Pill */}
+                {gstFeedback && (
+                  <div
+                    style={{
+                      marginTop: '6px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      color:
+                        gstFeedback.status === 'success'
+                          ? '#15803d'
+                          : gstFeedback.status === 'warning'
+                          ? '#b45309'
+                          : '#dc2626',
+                    }}
+                  >
+                    {gstFeedback.status === 'success' ? (
+                      <CheckCircle2 size={13} color="#16a34a" />
+                    ) : (
+                      <AlertCircle size={13} />
+                    )}
+                    <span>{gstFeedback.message}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Customer / Client Name */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">
+                  Customer / Client Name <span className="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Oberoi Luxury Resorts, Anita Sharma"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Phone Number</label>
-              <input
-                type="text"
-                className="form-input tabular"
-                placeholder="+91 98220 12345"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-              />
-            </div>
+            {/* Row 2: Phone Number & Validity */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Phone Number</label>
+                <input
+                  type="text"
+                  className="form-input tabular"
+                  placeholder="+91 98220 12345"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Proposal Valid Until</label>
-              <input
-                type="date"
-                className="form-input tabular"
-                value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
-              />
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Proposal Valid Until</label>
+                <input
+                  type="date"
+                  className="form-input tabular"
+                  value={validUntil}
+                  onChange={(e) => setValidUntil(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
@@ -288,10 +451,12 @@ export const QuotationNew: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-sm)' }}>
-                <span>{isTaxable ? 'GST Tax Total:' : 'GST Tax (0%):'}</span>
-                <span className="tabular">₹{taxAmount.toFixed(2)}</span>
-              </div>
+              {isTaxable && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-sm)' }}>
+                  <span>GST Tax Total:</span>
+                  <span className="tabular">₹{taxAmount.toFixed(2)}</span>
+                </div>
+              )}
 
               <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-lg)', fontWeight: 800 }}>
                 <span>Estimated Total:</span>

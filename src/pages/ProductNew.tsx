@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
 import type { Category, Supplier, CategoryType } from '../types';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useInventoryModules } from '../context/InventoryModulesContext';
 import { ProductImageUploader } from '../components/common/ProductImageUploader';
 import {
   ArrowLeft,
@@ -19,12 +20,16 @@ import {
   SlidersHorizontal,
   CheckCircle2,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  BadgePercent,
+  Percent
 } from 'lucide-react';
 
 export const ProductNew: React.FC = () => {
   const { businessId, business, isTaxable } = useBusiness();
+  const { modules } = useInventoryModules();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -46,6 +51,10 @@ export const ProductNew: React.FC = () => {
   const [lowStockThreshold, setLowStockThreshold] = useState<string>('5');
   const [supplierId, setSupplierId] = useState<string>('');
 
+  // Volume / Bulk Discount (Optional)
+  const [discountPieces, setDiscountPieces] = useState<string>('');
+  const [discountPercent, setDiscountPercent] = useState<string>('');
+
   // Specialized Attributes per Category
   const [plantAttributes, setPlantAttributes] = useState({
     pot_size: '8 inch',
@@ -53,6 +62,14 @@ export const ProductNew: React.FC = () => {
     sunlight: 'Bright indirect',
     watering: '2x weekly',
     difficulty: 'Easy',
+  });
+
+  const [cactusAttributes, setCactusAttributes] = useState({
+    pot_size: '4 inch',
+    variety_type: 'Desert Spiny',
+    sunlight: 'Direct sun',
+    watering: '1x every 2-3 weeks',
+    difficulty: 'Very Easy',
   });
 
   const [potAttributes, setPotAttributes] = useState({
@@ -76,6 +93,21 @@ export const ProductNew: React.FC = () => {
     vase_included: 'Yes',
   });
 
+  const [customAttributes, setCustomAttributes] = useState({
+    specification: '',
+    size_or_dimension: '',
+    material_or_origin: '',
+    notes: '',
+  });
+
+  // Preselect from URL query param if present
+  useEffect(() => {
+    const typeParam = searchParams.get('type');
+    if (typeParam) {
+      handleCategoryTypeChange(typeParam as CategoryType);
+    }
+  }, [searchParams]);
+
   // Load categories & suppliers
   useEffect(() => {
     api.get('/categories', { business_id: businessId }).then(setCategories).catch(console.warn);
@@ -94,7 +126,7 @@ export const ProductNew: React.FC = () => {
 
   const handleCategoryTypeChange = (newType: CategoryType) => {
     setType(newType);
-    if (newType === 'plants') setHsnCode('0602');
+    if (newType === 'plants' || newType === 'cactus') setHsnCode('0602');
     else if (newType === 'pots') setHsnCode('6913');
     else if (newType === 'fertilizers') setHsnCode('3101');
     else if (newType === 'flowers') setHsnCode('0603');
@@ -116,9 +148,11 @@ export const ProductNew: React.FC = () => {
 
     let attributes: any = {};
     if (type === 'plants') attributes = plantAttributes;
+    else if (type === 'cactus') attributes = cactusAttributes;
     else if (type === 'pots') attributes = potAttributes;
     else if (type === 'fertilizers') attributes = fertilizerAttributes;
     else if (type === 'flowers') attributes = flowerAttributes;
+    else attributes = customAttributes;
 
     const payload = {
       business_id: businessId,
@@ -135,7 +169,13 @@ export const ProductNew: React.FC = () => {
       stock_quantity: Number(stockQuantity) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 5,
       supplier_id: supplierId || null,
-      attributes,
+      discount_pieces: Number(discountPieces) || 0,
+      discount_percent: Number(discountPercent) || 0,
+      attributes: {
+        ...attributes,
+        discount_pieces: Number(discountPieces) || 0,
+        discount_percent: Number(discountPercent) || 0,
+      },
     };
 
     try {
@@ -150,9 +190,16 @@ export const ProductNew: React.FC = () => {
 
   const categoryOptions = [
     { type: 'plants' as CategoryType, icon: '🌱', label: 'Plants & Trees', desc: 'Live botanical stock' },
+    { type: 'cactus' as CategoryType, icon: '🌵', label: 'Cactus & Succulents', desc: 'Desert flora, low water' },
     { type: 'pots' as CategoryType, icon: '🪴', label: 'Pots & Planters', desc: 'Ceramic, fiber, clay' },
     { type: 'fertilizers' as CategoryType, icon: '🧪', label: 'Fertilizers', desc: 'Nutrients, pest care' },
     { type: 'flowers' as CategoryType, icon: '💐', label: 'Flowers & Decor', desc: 'Bouquets, fresh cuts' },
+    ...modules.map((m) => ({
+      type: m.slug as CategoryType,
+      icon: m.icon || '📦',
+      label: m.name,
+      desc: m.caption || 'Custom inventory workflow',
+    })),
   ];
 
   return (
@@ -398,7 +445,7 @@ export const ProductNew: React.FC = () => {
               <IndianRupee size={14} style={{ color: 'var(--module-inv-accent)' }} /> Pricing & Taxation
             </h3>
 
-            <div className="form-grid-4" style={{ gap: '12px 16px' }}>
+            <div className={isTaxable ? "form-grid-4" : "form-grid-3"} style={{ gap: '12px 16px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Cost Price</label>
                 <div className="input-addon-group">
@@ -432,11 +479,11 @@ export const ProductNew: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  GST Rate {isTaxable ? '(%)' : ''}
-                </label>
-                {isTaxable ? (
+              {isTaxable && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">
+                    GST Rate (%)
+                  </label>
                   <div className="input-addon-group">
                     <span className="input-addon-prefix">%</span>
                     <input
@@ -448,16 +495,8 @@ export const ProductNew: React.FC = () => {
                       placeholder="0, 5, 12, 18"
                     />
                   </div>
-                ) : (
-                  <input
-                    type="text"
-                    className="form-input tabular"
-                    value="0% (Tax Exempt)"
-                    disabled
-                    style={{ fontWeight: 600 }}
-                  />
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">HSN Code</label>
@@ -517,9 +556,11 @@ export const ProductNew: React.FC = () => {
               </div>
               <span className="form-section-badge" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
                 {type === 'plants' && '🌱 Live Botany'}
+                {type === 'cactus' && '🌵 Desert Flora & Succulents'}
                 {type === 'pots' && '🪴 Container Specs'}
                 {type === 'fertilizers' && '🧪 Chemical Profile'}
                 {type === 'flowers' && '💐 Floral Freshness'}
+                {!['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(type) && '📦 Custom Category Specs'}
               </span>
             </div>
 
@@ -583,6 +624,69 @@ export const ProductNew: React.FC = () => {
                     <option value="Easy">Easy</option>
                     <option value="Moderate">Moderate</option>
                     <option value="Expert">Expert / Delicate</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {type === 'cactus' && (
+              <div className="form-grid-3" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Pot / Container Size</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={cactusAttributes.pot_size}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, pot_size: e.target.value })}
+                    placeholder="e.g. 3 inch terracotta, 4 inch pot"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Cactus Variety / Spine Type</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={cactusAttributes.variety_type}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, variety_type: e.target.value })}
+                    placeholder="e.g. Desert Spiny, Haworthia, Echeveria"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Sunlight Requirement</label>
+                  <select
+                    className="form-select"
+                    value={cactusAttributes.sunlight}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, sunlight: e.target.value })}
+                  >
+                    <option value="Direct sun">Full / Direct Sunlight</option>
+                    <option value="Bright indirect">Bright Indirect Sun</option>
+                    <option value="Partial shade">Partial Shade</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Watering Frequency</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={cactusAttributes.watering}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, watering: e.target.value })}
+                    placeholder="e.g. 1x every 2-3 weeks, When completely dry"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Maintenance Difficulty</label>
+                  <select
+                    className="form-select"
+                    value={cactusAttributes.difficulty}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, difficulty: e.target.value })}
+                  >
+                    <option value="Very Easy">Very Easy / Hardy</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Moderate">Moderate</option>
                   </select>
                 </div>
               </div>
@@ -677,13 +781,13 @@ export const ProductNew: React.FC = () => {
             {type === 'flowers' && (
               <div className="form-grid-2" style={{ gap: '12px 16px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Occasion / Purpose</label>
+                  <label className="form-label">Occasion / Theme</label>
                   <input
                     type="text"
                     className="form-input"
                     value={flowerAttributes.occasion}
                     onChange={(e) => setFlowerAttributes({ ...flowerAttributes, occasion: e.target.value })}
-                    placeholder="e.g. Corporate Gifting, Mandir / Pooja, Event Decor"
+                    placeholder="e.g. Anniversary, Celebration, Sympathy"
                   />
                 </div>
 
@@ -694,23 +798,12 @@ export const ProductNew: React.FC = () => {
                     className="form-input"
                     value={flowerAttributes.arrangement_style}
                     onChange={(e) => setFlowerAttributes({ ...flowerAttributes, arrangement_style: e.target.value })}
-                    placeholder="e.g. Hand-tied bouquet, Vase arrangement"
+                    placeholder="e.g. Hand-tied bouquet, Glass vase, Basket"
                   />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Shelf Life / Freshness Window</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={flowerAttributes.shelf_life}
-                    onChange={(e) => setFlowerAttributes({ ...flowerAttributes, shelf_life: e.target.value })}
-                    placeholder="e.g. 5-7 days, 2 days"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Vase Included</label>
+                  <label className="form-label">Vase Included?</label>
                   <select
                     className="form-select"
                     value={flowerAttributes.vase_included}
@@ -720,6 +813,73 @@ export const ProductNew: React.FC = () => {
                     <option value="No">No (Bouquet / Stems only)</option>
                   </select>
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 7: Add Discount / Volume Discount (Optional) */}
+          <div className="form-section-card" style={{ padding: '14px 18px', marginTop: '2px', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+            <div className="form-section-header" style={{ marginBottom: '12px', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="form-section-title" style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: '#1e293b' }}>
+                <BadgePercent size={16} style={{ color: '#059669' }} />
+                <span>Add Discount / Bulk Tier (Optional)</span>
+              </div>
+              <span className="form-section-badge" style={{ fontSize: '0.72rem', padding: '2px 8px', background: '#ecfdf5', color: '#065f46', borderRadius: '12px', fontWeight: 500 }}>
+                🏷️ POS Auto Discount
+              </span>
+            </div>
+
+            <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  No. of Pieces
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 400 }}>(Threshold)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="form-input tabular"
+                  value={discountPieces}
+                  onChange={(e) => setDiscountPieces(e.target.value)}
+                  placeholder="e.g. 5"
+                />
+                <span className="form-helper" style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  Minimum quantity in cart to trigger discount
+                </span>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Discount (%)
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 400 }}>(Percentage)</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    className="form-input tabular"
+                    style={{ paddingRight: '28px' }}
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(e.target.value)}
+                    placeholder="e.g. 10"
+                  />
+                  <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>%</span>
+                </div>
+                <span className="form-helper" style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  Percentage to reduce from total product amount
+                </span>
+              </div>
+            </div>
+
+            {Number(discountPieces) > 0 && Number(discountPercent) > 0 && (
+              <div style={{ marginTop: '10px', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '0.75rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={14} style={{ color: '#16a34a' }} />
+                <span>
+                  <strong>Rule Active:</strong> When <strong>{discountPieces} or more pieces</strong> are taken in POS, <strong>{discountPercent}%</strong> will be deducted from the product total.
+                </span>
               </div>
             )}
           </div>

@@ -4,6 +4,7 @@ import { ArrowLeft, Save, DollarSign, Calendar, Tag, Briefcase, FileText } from 
 import { api } from '../services/api';
 import { useBusiness } from '../context/BusinessContext';
 import { ExpenseCategory, Project } from '../types';
+import { ReceiptImageUploader } from '../components/common/ReceiptImageUploader';
 
 export const ExpenseNew: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export const ExpenseNew: React.FC = () => {
   const [recipient, setRecipient] = useState('');
   const [referenceNo, setReferenceNo] = useState('');
   const [notes, setNotes] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
 
   useEffect(() => {
     const loadPrerequisites = async () => {
@@ -66,7 +68,8 @@ export const ExpenseNew: React.FC = () => {
         date,
         recipient,
         reference_no: referenceNo,
-        notes
+        notes,
+        image_url: imageUrl
       });
 
       navigate('/expenses');
@@ -230,6 +233,14 @@ export const ExpenseNew: React.FC = () => {
                 onChange={e => setNotes(e.target.value)}
               />
             </div>
+
+            {/* Receipt Image Uploader */}
+            <ReceiptImageUploader
+              value={imageUrl}
+              onChange={setImageUrl}
+              label="Receipt / Voucher Photo (Optional)"
+              helperText="Upload an invoice, receipt scan, or UPI payment screenshot. You will be able to click and view this full-size anytime in the expenses list."
+            />
           </div>
         </div>
 

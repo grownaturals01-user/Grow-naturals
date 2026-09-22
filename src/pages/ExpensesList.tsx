@@ -9,7 +9,10 @@ import {
   DollarSign,
   Calendar,
   Briefcase,
-  Layers
+  Layers,
+  Eye,
+  Receipt,
+  Image as ImageIcon
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Expense, ExpenseCategory, Project } from '../types';
@@ -17,6 +20,7 @@ import { useBusiness } from '../context/BusinessContext';
 import { EmptyState } from '../components/common/EmptyState';
 import { Badge } from '../components/common/Badge';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { ExpenseReceiptModal } from '../components/common/ExpenseReceiptModal';
 
 export const ExpensesList: React.FC = () => {
   const { activeBusiness } = useBusiness();
@@ -36,6 +40,9 @@ export const ExpensesList: React.FC = () => {
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Receipt Preview Modal
+  const [viewingReceiptExpense, setViewingReceiptExpense] = useState<Expense | null>(null);
 
   const fetchData = async () => {
     try {
@@ -222,6 +229,7 @@ export const ExpensesList: React.FC = () => {
                   <th>Date</th>
                   <th>Category</th>
                   <th>Recipient / Payee</th>
+                  <th>Receipt / Bill</th>
                   <th>Project Tag</th>
                   <th>Payment Method</th>
                   <th style={{ textAlign: 'right' }}>Amount (₹)</th>
@@ -252,6 +260,56 @@ export const ExpensesList: React.FC = () => {
                         <div className="text-secondary text-truncate" style={{ fontSize: 'var(--font-xs)', maxWidth: '200px' }}>
                           {exp.notes}
                         </div>
+                      )}
+                    </td>
+                    <td>
+                      {exp.image_url ? (
+                        <button
+                          type="button"
+                          onClick={() => setViewingReceiptExpense(exp)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            padding: '4px 8px',
+                            borderRadius: '8px',
+                            background: '#f0f9ff',
+                            border: '1px solid #bae6fd',
+                            textAlign: 'left',
+                            transition: 'all 0.15s ease',
+                          }}
+                          className="receipt-thumbnail-btn"
+                          title="Click to view full receipt / invoice proof"
+                        >
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                              border: '1px solid #93c5fd',
+                              background: '#ffffff',
+                            }}
+                          >
+                            <img
+                              src={exp.image_url}
+                              alt="Receipt Thumbnail"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0284c7', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <Eye size={12} /> View Proof
+                            </span>
+                            <span style={{ fontSize: '0.65rem', color: '#64748b' }}>Full Preview</span>
+                          </div>
+                        </button>
+                      ) : (
+                        <span className="text-secondary" style={{ fontSize: 'var(--font-xs)', color: '#94a3b8' }}>
+                          —
+                        </span>
                       )}
                     </td>
                     <td>
@@ -298,6 +356,12 @@ export const ExpensesList: React.FC = () => {
         loading={deleting}
         onConfirm={handleDelete}
         onClose={() => setDeleteTarget(null)}
+      />
+
+      {/* Full Receipt Popup Modal */}
+      <ExpenseReceiptModal
+        expense={viewingReceiptExpense}
+        onClose={() => setViewingReceiptExpense(null)}
       />
     </div>
   );

@@ -66,6 +66,7 @@ export const ProductSearchSelect: React.FC<ProductSearchSelectProps> = ({
   const getCategoryIcon = (type: string) => {
     switch (type) {
       case 'plants': return '🌱';
+      case 'cactus': return '🌵';
       case 'pots': return '🪴';
       case 'fertilizers': return '🧪';
       case 'flowers': return '💐';

@@ -89,19 +89,25 @@ export const InvoicesList: React.FC = () => {
           <div className="stat-value tabular-nums" style={{ color: 'var(--color-success)' }}>
             ₹{totalRevenue.toFixed(2)}
           </div>
-          <div className="stat-helper">Gross total including taxes</div>
+          <div className="stat-helper">{activeBusiness.id === 'grow-naturals' ? 'Gross total including taxes' : 'Total sales value'}</div>
         </div>
-        <div className="card stat-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-          <div className="stat-label">
-            {activeBusiness.id === 'grow-naturals' ? 'GST Collected' : 'Tax (Non-Taxable)'}
+        {activeBusiness.id === 'grow-naturals' ? (
+          <div className="card stat-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
+            <div className="stat-label">GST Collected</div>
+            <div className="stat-value tabular-nums" style={{ color: '#7c3aed' }}>
+              ₹{totalTax.toFixed(2)}
+            </div>
+            <div className="stat-helper">CGST + SGST total</div>
           </div>
-          <div className="stat-value tabular-nums" style={{ color: '#7c3aed' }}>
-            ₹{totalTax.toFixed(2)}
+        ) : (
+          <div className="card stat-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
+            <div className="stat-label">Avg Order Value</div>
+            <div className="stat-value tabular-nums" style={{ color: '#7c3aed' }}>
+              ₹{(invoices.length > 0 ? totalRevenue / invoices.length : 0).toFixed(2)}
+            </div>
+            <div className="stat-helper">Average bill size</div>
           </div>
-          <div className="stat-helper">
-            {activeBusiness.id === 'grow-naturals' ? 'CGST + SGST total' : '₹0.00 non-taxable'}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Search & Date Filter Bar */}
@@ -179,7 +185,7 @@ export const InvoicesList: React.FC = () => {
                   <th>Customer</th>
                   <th>Payment</th>
                   <th style={{ textAlign: 'right' }}>Items</th>
-                  <th style={{ textAlign: 'right' }}>Tax (₹)</th>
+                  {activeBusiness.id === 'grow-naturals' && <th style={{ textAlign: 'right' }}>Tax (₹)</th>}
                   <th style={{ textAlign: 'right' }}>Total (₹)</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -222,9 +228,11 @@ export const InvoicesList: React.FC = () => {
                     <td style={{ textAlign: 'right' }} className="tabular-nums">
                       {inv.item_count || 1}
                     </td>
-                    <td style={{ textAlign: 'right' }} className="tabular-nums">
-                      ₹{Number(inv.tax_amount || 0).toFixed(2)}
-                    </td>
+                    {activeBusiness.id === 'grow-naturals' && (
+                      <td style={{ textAlign: 'right' }} className="tabular-nums">
+                        ₹{Number(inv.tax_amount || 0).toFixed(2)}
+                      </td>
+                    )}
                     <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 'var(--font-base)' }} className="tabular-nums">
                       ₹{Number(inv.total_amount).toFixed(2)}
                     </td>

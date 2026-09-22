@@ -150,7 +150,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const businessId = req.body.business_id || getBusinessId(req);
-    const { category_id, project_id, amount, payment_method, date, recipient, reference_no, notes } = req.body;
+    const { category_id, project_id, amount, payment_method, date, recipient, reference_no, notes, image_url } = req.body;
 
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       return res.status(400).json({ error: 'Valid expense amount is required' });
@@ -161,8 +161,8 @@ router.post('/', async (req: Request, res: Response) => {
 
     const result = await db.query(
       `INSERT INTO expenses (
-        id, business_id, category_id, project_id, amount, payment_method, date, recipient, reference_no, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        id, business_id, category_id, project_id, amount, payment_method, date, recipient, reference_no, notes, image_url
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
         id,
@@ -174,7 +174,8 @@ router.post('/', async (req: Request, res: Response) => {
         date || new Date().toISOString().split('T')[0],
         recipient || '',
         reference_no || '',
-        notes || ''
+        notes || '',
+        image_url || ''
       ]
     );
 

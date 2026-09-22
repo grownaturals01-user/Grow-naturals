@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS customers (
   email VARCHAR(128) DEFAULT '',
   address TEXT DEFAULT '',
   gstin VARCHAR(32) DEFAULT '',
+  customer_type VARCHAR(32) DEFAULT 'customer',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -83,6 +84,8 @@ CREATE TABLE IF NOT EXISTS products (
   low_stock_threshold INTEGER DEFAULT 5,
   supplier_id VARCHAR(64) REFERENCES suppliers(id) ON DELETE SET NULL,
   image_url TEXT DEFAULT '',
+  discount_pieces INTEGER DEFAULT 0,
+  discount_percent NUMERIC(5,2) DEFAULT 0.00,
   attributes JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -176,6 +179,8 @@ CREATE TABLE IF NOT EXISTS quotations (
   customer_id VARCHAR(64) REFERENCES customers(id) ON DELETE SET NULL,
   customer_name VARCHAR(255) NOT NULL,
   customer_phone VARCHAR(32) DEFAULT '',
+  customer_gstin VARCHAR(32) DEFAULT '',
+  customer_address TEXT DEFAULT '',
   valid_until DATE,
   subtotal NUMERIC(12,2) NOT NULL DEFAULT 0.00,
   discount NUMERIC(12,2) DEFAULT 0.00,
@@ -258,6 +263,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   recipient VARCHAR(255) DEFAULT '',
   reference_no VARCHAR(64) DEFAULT '',
   notes TEXT DEFAULT '',
+  image_url TEXT DEFAULT '',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -318,6 +324,19 @@ CREATE TABLE IF NOT EXISTS refund_items (
   total NUMERIC(12,2) NOT NULL
 );
 
+-- 22. Custom Inventory Modules
+CREATE TABLE IF NOT EXISTS inventory_modules (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+  name VARCHAR(128) NOT NULL,
+  slug VARCHAR(64) NOT NULL,
+  caption TEXT DEFAULT '',
+  icon VARCHAR(64) DEFAULT '📦',
+  image_url TEXT DEFAULT '',
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_products_business ON products(business_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
@@ -333,3 +352,5 @@ CREATE INDEX IF NOT EXISTS idx_challans_business ON delivery_challans(business_i
 CREATE INDEX IF NOT EXISTS idx_pos_business ON purchase_orders(business_id);
 CREATE INDEX IF NOT EXISTS idx_refunds_business ON refunds(business_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_prod ON stock_movements(product_id);
+CREATE INDEX IF NOT EXISTS idx_inv_modules_biz ON inventory_modules(business_id);
+CREATE INDEX IF NOT EXISTS idx_inv_modules_slug ON inventory_modules(slug);

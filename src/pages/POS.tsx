@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useBusiness } from '../context/BusinessContext';
 import { useAuth } from '../context/AuthContext';
 import { usePosSync } from '../context/PosSyncContext';
+import { useInventoryModules } from '../context/InventoryModulesContext';
 import { api } from '../services/api';
 import { posQueueService } from '../services/posQueue';
 import { barcodeService } from '../services/barcodeService';
@@ -42,7 +43,8 @@ import {
 export const POS: React.FC = () => {
   const { businessId, business, isTaxable } = useBusiness();
   const { user } = useAuth();
-  const { isOnline, queueOfflineSale } = usePosSync();
+  const { modules } = useInventoryModules();
+  const { queueOfflineSale, isOnline } = usePosSync();
 
   // Products and Categories
   const [products, setProducts] = useState<Product[]>([]);
@@ -140,18 +142,26 @@ export const POS: React.FC = () => {
     setFilteredProducts(result);
   }, [products, selectedCategory, searchQuery]);
 
-  // Category counts
-  const categoryCounts = {
+  // Category counts (including custom modules)
+  const categoryCounts: Record<string, number> = {
     all: products.length,
     plants: products.filter((p) => p.type === 'plants').length,
+    cactus: products.filter((p) => p.type === 'cactus').length,
     pots: products.filter((p) => p.type === 'pots').length,
     fertilizers: products.filter((p) => p.type === 'fertilizers').length,
     flowers: products.filter((p) => p.type === 'flowers').length,
+    ...modules.reduce((acc, m) => {
+      acc[m.slug] = products.filter((p) => p.type === m.slug).length;
+      return acc;
+    }, {} as Record<string, number>),
   };
 
   // Add product to cart (Immutable state update)
   const addToCart = (product: Product) => {
     if (product.stock_quantity <= 0) return;
+
+    const discPieces = Number(product.discount_pieces) || Number(product.attributes?.discount_pieces) || 0;
+    const discPercent = Number(product.discount_percent) || Number(product.attributes?.discount_percent) || 0;
 
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex((item) => item.product_id === product.id);
@@ -164,6 +174,8 @@ export const POS: React.FC = () => {
         updated[existingIndex] = {
           ...item,
           quantity: item.quantity + 1,
+          discount_pieces: discPieces,
+          discount_percent: discPercent,
         };
         return updated;
       } else {
@@ -179,6 +191,8 @@ export const POS: React.FC = () => {
             discount: 0,
             gst_rate: isTaxable ? Number(product.gst_rate || 0) : 0,
             stock_quantity: product.stock_quantity,
+            discount_pieces: discPieces,
+            discount_percent: discPercent,
           },
         ];
       }
@@ -221,18 +235,59 @@ export const POS: React.FC = () => {
     return removeListener;
   }, [products]);
 
+  // Volume discount calculation per item
+  const getItemDiscount = (item: POSCartItem) => {
+    if (
+      item.discount_pieces &&
+      item.discount_pieces > 0 &&
+      item.discount_percent &&
+      item.discount_percent > 0 &&
+      item.quantity >= item.discount_pieces
+    ) {
+      return (item.quantity * item.unit_price * item.discount_percent) / 100;
+    }
+    return item.discount || 0;
+  };
+
+  const autoDiscountTotal = cart.reduce((acc, item) => acc + getItemDiscount(item), 0);
+
+  // Identify qualifying products for bulk discount
+  const qualifyingItems = cart.filter(
+    (item) =>
+      item.discount_pieces &&
+      item.discount_pieces > 0 &&
+      item.discount_percent &&
+      item.discount_percent > 0 &&
+      item.quantity >= item.discount_pieces
+  );
+
+  let discountBadgeLabel = '';
+  if (qualifyingItems.length === 1) {
+    discountBadgeLabel = `${qualifyingItems[0].discount_percent}%`;
+  } else if (qualifyingItems.length > 1) {
+    const rawSubtotal = cart.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+    const avgPct = rawSubtotal > 0 ? (autoDiscountTotal / rawSubtotal) * 100 : 0;
+    discountBadgeLabel = `${avgPct.toFixed(0)}%`;
+  }
+
+  // Combined discount: auto volume discount + manual discount
+  const totalDiscount = Number((autoDiscountTotal + Number(discountAmount || 0)).toFixed(2));
+
   // Calculations
-  const subtotal = cart.reduce((acc, i) => acc + i.quantity * i.unit_price - i.discount, 0);
+  const rawSubtotal = cart.reduce((acc, i) => acc + i.quantity * i.unit_price, 0);
+  const subtotal = rawSubtotal;
+
   const taxAmount = isTaxable
     ? cart.reduce((acc, i) => {
-        const lineSubtotal = i.quantity * i.unit_price - i.discount;
+        const itemDisc = getItemDiscount(i);
+        const lineSubtotal = Math.max(0, i.quantity * i.unit_price - itemDisc);
         return acc + (lineSubtotal * i.gst_rate) / 100;
       }, 0)
     : 0;
 
   const cgstAmount = isTaxable ? Number((taxAmount / 2).toFixed(2)) : 0;
   const sgstAmount = isTaxable ? Number((taxAmount / 2).toFixed(2)) : 0;
-  const grandTotal = Math.max(0, Number((subtotal + taxAmount - Number(discountAmount)).toFixed(2)));
+  const grandTotal = Math.max(0, Number((subtotal - totalDiscount + taxAmount).toFixed(2)));
 
   // Hold Bill
   const handleHoldBill = async () => {
@@ -245,7 +300,7 @@ export const POS: React.FC = () => {
       customer_name: selectedCustomer.name,
       customer_phone: selectedCustomer.phone,
       items: cart,
-      discount_amount: discountAmount,
+      discount_amount: totalDiscount,
       saved_at: new Date().toISOString(),
     };
 
@@ -278,17 +333,20 @@ export const POS: React.FC = () => {
       customer_id: selectedCustomer.id,
       customer_name: selectedCustomer.name || 'Walk-in Customer',
       customer_phone: selectedCustomer.phone || '',
-      items: cart.map((i) => ({
-        product_id: i.product_id,
-        product_name: i.product_name,
-        sku: i.sku,
-        hsn_code: i.hsn_code,
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-        discount: i.discount,
-        gst_rate: i.gst_rate,
-      })),
-      discount_amount: Number(discountAmount) || 0,
+      items: cart.map((i) => {
+        const itemDisc = getItemDiscount(i);
+        return {
+          product_id: i.product_id,
+          product_name: i.product_name,
+          sku: i.sku,
+          hsn_code: i.hsn_code,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          discount: itemDisc,
+          gst_rate: i.gst_rate,
+        };
+      }),
+      discount_amount: totalDiscount,
       payment_method: method,
       notes: notes || '',
       created_by: user?.id,
@@ -312,7 +370,7 @@ export const POS: React.FC = () => {
           customer_name: selectedCustomer.name || 'Walk-in Customer',
           customer_phone: selectedCustomer.phone || '',
           subtotal,
-          discount_amount: discountAmount,
+          discount_amount: totalDiscount,
           tax_amount: taxAmount,
           cgst_amount: cgstAmount,
           sgst_amount: sgstAmount,
@@ -321,10 +379,14 @@ export const POS: React.FC = () => {
           notes: 'Offline Queued Bill',
           created_by: user?.id,
           created_at: new Date().toISOString(),
-          items: cart.map((i) => ({
-            ...i,
-            total: (i.quantity * i.unit_price - i.discount) * (1 + i.gst_rate / 100),
-          })),
+          items: cart.map((i) => {
+            const itemDisc = getItemDiscount(i);
+            return {
+              ...i,
+              discount: itemDisc,
+              total: (i.quantity * i.unit_price - itemDisc) * (1 + i.gst_rate / 100),
+            };
+          }),
         };
 
         await queueOfflineSale(offlineInvoice);
@@ -440,6 +502,14 @@ export const POS: React.FC = () => {
               </button>
               <button
                 type="button"
+                className={`category-pill ${selectedCategory === 'cactus' ? 'active' : ''}`}
+                onClick={() => setSelectedCategory('cactus')}
+              >
+                🌵 Cactus
+                <span className="pill-count">{categoryCounts.cactus}</span>
+              </button>
+              <button
+                type="button"
                 className={`category-pill ${selectedCategory === 'pots' ? 'active' : ''}`}
                 onClick={() => setSelectedCategory('pots')}
               >
@@ -462,6 +532,19 @@ export const POS: React.FC = () => {
                 🌸 Flowers & Decor
                 <span className="pill-count">{categoryCounts.flowers}</span>
               </button>
+
+              {/* Dynamic Custom Modules */}
+              {modules.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className={`category-pill ${selectedCategory === m.slug ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(m.slug)}
+                >
+                  <span>{m.icon || '📦'}</span> {m.name}
+                  <span className="pill-count">{categoryCounts[m.slug] || 0}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -490,37 +573,70 @@ export const POS: React.FC = () => {
                     className={`pos-product-card ${isOutOfStock ? 'out-of-stock' : ''} ${cartMatch ? 'in-cart' : ''}`}
                     onClick={() => !isOutOfStock && addToCart(p)}
                   >
-                    <div>
-                      <div className="pos-prod-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {p.image_url ? (
-                            <img
-                              src={p.image_url}
-                              alt={p.name}
-                              style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover', border: '1px solid rgba(0,0,0,0.08)' }}
-                            />
-                          ) : null}
-                          <span className={`pos-prod-badge ${p.type}`}>
-                            {!p.image_url && p.type === 'plants' && '🌿 '}
-                            {!p.image_url && p.type === 'pots' && '🪴 '}
-                            {!p.image_url && p.type === 'fertilizers' && '🧪 '}
-                            {!p.image_url && p.type === 'flowers' && '🌸 '}
-                            {p.type}
-                          </span>
-                        </div>
-                        {cartMatch && (
-                          <span className="pos-in-cart-pill">
-                            {cartMatch.quantity} in cart
-                          </span>
-                        )}
+                    {/* Dedicated High-Visibility Image Preview Container */}
+                    <div className="pos-prod-image-container">
+                      {p.image_url ? (
+                        <img
+                          src={p.image_url}
+                          alt={p.name}
+                          className="pos-prod-img"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                            const parent = (e.target as HTMLElement).parentElement;
+                            if (parent) {
+                              const fallback = parent.querySelector('.pos-prod-fallback') as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      
+                      <div
+                        className="pos-prod-fallback"
+                        style={{ display: p.image_url ? 'none' : 'flex' }}
+                      >
+                        <span className="pos-prod-fallback-icon">
+                          {p.type === 'plants' && '🌿'}
+                          {p.type === 'cactus' && '🌵'}
+                          {p.type === 'pots' && '🪴'}
+                          {p.type === 'fertilizers' && '🧪'}
+                          {p.type === 'flowers' && '🌸'}
+                          {!['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(p.type) && (
+                            modules.find((m) => m.slug === p.type)?.icon || '🌱'
+                          )}
+                        </span>
                       </div>
 
+                      {/* Overlay Category Badge */}
+                      <span className={`pos-prod-badge-overlay ${p.type}`}>
+                        {p.type}
+                      </span>
+
+                      {/* Overlay In-Cart Counter Pill */}
+                      {cartMatch && (
+                        <span className="pos-in-cart-pill-overlay">
+                          {cartMatch.quantity} in cart
+                        </span>
+                      )}
+
+                      {/* Overlay Out-of-Stock Indicator */}
+                      {isOutOfStock && (
+                        <div className="pos-out-of-stock-overlay">
+                          <span>Out of Stock</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Product Details */}
+                    <div className="pos-prod-body">
                       <h4 className="pos-prod-name" title={p.name}>
                         {p.name}
                       </h4>
                       <div className="pos-prod-sku">SKU: {p.sku}</div>
                     </div>
 
+                    {/* Product Footer: Price & Live Stock */}
                     <div className="pos-prod-footer">
                       <span className="pos-prod-price tabular">₹{Number(p.sale_price).toFixed(2)}</span>
                       <span className={`pos-prod-stock tabular ${isOutOfStock ? 'out' : isLowStock ? 'low' : ''}`}>
@@ -714,49 +830,72 @@ export const POS: React.FC = () => {
                 </div>
               </div>
             ) : (
-              cart.map((item) => (
-                <div key={item.product_id} className="pos-cart-item">
-                  <div className="cart-item-info">
-                    <div className="cart-item-name" title={item.product_name}>{item.product_name}</div>
-                    <div className="cart-item-price-desc">
-                      ₹{item.unit_price.toFixed(2)} / unit {isTaxable && item.gst_rate > 0 && `&bull; ${item.gst_rate}% GST`}
+              cart.map((item) => {
+                const itemDisc = getItemDiscount(item);
+                const isDiscounted = itemDisc > 0;
+                const needsMorePieces = !isDiscounted && item.discount_pieces && item.discount_pieces > 0 && item.discount_percent && item.discount_percent > 0;
+
+                return (
+                  <div key={item.product_id} className="pos-cart-item">
+                    <div className="cart-item-info">
+                      <div className="cart-item-name" title={item.product_name} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                        <span>{item.product_name}</span>
+                        {isDiscounted && (
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '1px 5px', background: '#ecfdf5', color: '#047857', borderRadius: '4px', border: '1px solid #a7f3d0' }}>
+                            🏷️ {item.discount_percent}% off ({item.discount_pieces}+ pcs)
+                          </span>
+                        )}
+                      </div>
+                      <div className="cart-item-price-desc">
+                        ₹{item.unit_price.toFixed(2)} / unit {isTaxable && item.gst_rate > 0 && `&bull; ${item.gst_rate}% GST`}
+                        {needsMorePieces && (
+                          <span style={{ marginLeft: '4px', color: '#059669', fontSize: '0.7rem', fontWeight: 600 }}>
+                            (Add {item.discount_pieces! - item.quantity} more for {item.discount_percent}% off)
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="cart-qty-controls">
+                    <div className="cart-qty-controls">
+                      <button
+                        type="button"
+                        className="cart-qty-btn"
+                        onClick={() => updateQuantity(item.product_id, -1)}
+                        title="Decrease"
+                      >
+                        <Minus size={11} />
+                      </button>
+                      <span className="cart-qty-val tabular">{item.quantity}</span>
+                      <button
+                        type="button"
+                        className="cart-qty-btn"
+                        onClick={() => updateQuantity(item.product_id, 1)}
+                        title="Increase"
+                      >
+                        <Plus size={11} />
+                      </button>
+                    </div>
+
+                    <div className="cart-item-total tabular" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                      <span style={{ fontWeight: 700 }}>₹{(item.quantity * item.unit_price - itemDisc).toFixed(2)}</span>
+                      {isDiscounted && (
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                          ₹{(item.quantity * item.unit_price).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+
                     <button
                       type="button"
-                      className="cart-qty-btn"
-                      onClick={() => updateQuantity(item.product_id, -1)}
-                      title="Decrease"
+                      className="cart-item-delete"
+                      onClick={() => removeFromCart(item.product_id)}
+                      title="Remove item"
                     >
-                      <Minus size={11} />
-                    </button>
-                    <span className="cart-qty-val tabular">{item.quantity}</span>
-                    <button
-                      type="button"
-                      className="cart-qty-btn"
-                      onClick={() => updateQuantity(item.product_id, 1)}
-                      title="Increase"
-                    >
-                      <Plus size={11} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
-
-                  <div className="cart-item-total tabular">
-                    ₹{(item.quantity * item.unit_price).toFixed(2)}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="cart-item-delete"
-                    onClick={() => removeFromCart(item.product_id)}
-                    title="Remove item"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -767,27 +906,56 @@ export const POS: React.FC = () => {
               <span className="tabular" style={{ fontWeight: 600, color: '#0f172a' }}>₹{subtotal.toFixed(2)}</span>
             </div>
 
-            <div className="summary-row">
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Bill Discount (₹)
-              </span>
-              <input
-                type="number"
-                min="0"
-                className="pos-customer-input"
-                style={{ width: '85px', padding: '3px 8px', textAlign: 'right', fontSize: '0.8125rem', height: '28px' }}
-                value={discountAmount || ''}
-                onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
-                placeholder="0.00"
-              />
+            <div className="summary-row" style={{ alignItems: 'flex-start', padding: '4px 0' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 600 }}>Bill Discount</span>
+                  {discountBadgeLabel && (
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      background: '#ecfdf5',
+                      color: '#065f46',
+                      borderRadius: '4px',
+                      border: '1px solid #a7f3d0'
+                    }}>
+                      {discountBadgeLabel} OFF
+                    </span>
+                  )}
+                </div>
+                {autoDiscountTotal > 0 && (
+                  <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
+                    Reduced: -₹{autoDiscountTotal.toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {totalDiscount > 0 && (
+                  <span className="tabular" style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#059669' }}>
+                    -₹{totalDiscount.toFixed(2)}
+                  </span>
+                )}
+                <input
+                  type="number"
+                  min="0"
+                  className="pos-customer-input"
+                  style={{ width: '70px', padding: '3px 6px', textAlign: 'right', fontSize: '0.8125rem', height: '28px' }}
+                  value={discountAmount || ''}
+                  onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
+                  placeholder="+ Extra ₹"
+                  title="Add extra manual bill discount if needed"
+                />
+              </div>
             </div>
 
-            <div className="summary-row">
-              <span>
-                {isTaxable ? 'GST Tax (Included/Applied)' : 'GST Tax (0% Non-Taxable)'}
-              </span>
-              <span className="tabular" style={{ fontWeight: 600, color: '#0f172a' }}>₹{taxAmount.toFixed(2)}</span>
-            </div>
+            {isTaxable && (
+              <div className="summary-row">
+                <span>GST Tax (Included/Applied)</span>
+                <span className="tabular" style={{ fontWeight: 600, color: '#0f172a' }}>₹{taxAmount.toFixed(2)}</span>
+              </div>
+            )}
 
             <div className="summary-row total-row">
               <span>Grand Total</span>

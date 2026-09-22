@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useInventoryModules } from '../../context/InventoryModulesContext';
 import gnLogo from '../../assets/grownaturalslogo.jpeg';
 import {
   LayoutDashboard,
@@ -24,7 +25,11 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeft,
-  Leaf
+  Leaf,
+  Sun,
+  Sprout,
+  Plus,
+  PlusCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +39,25 @@ interface SidebarProps {
   onCloseMobile: () => void;
 }
 
+const Cactus: React.FC<{ className?: string; size?: number }> = ({ className = 'nav-icon', size = 18 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M12 2v20" />
+    <path d="M7 11V8a2 2 0 0 1 4 0v13" />
+    <path d="M17 14v-3a2 2 0 0 0-4 0v10" />
+    <path d="M5 22h14" />
+  </svg>
+);
+
 export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   onToggleCollapse,
@@ -41,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile
 }) => {
   const { canAccess } = useAuth();
+  const { modules } = useInventoryModules();
 
   const handleLinkClick = () => {
     if (window.innerWidth <= 768) {
@@ -77,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Nav List */}
       <nav className="sidebar-nav">
         {/* Section: SELL (Amber accent) */}
-        {(canAccess('dashboard') || canAccess('pos') || canAccess('quotations') || canAccess('delivery_challans')) && (
+        {(canAccess('dashboard') || canAccess('pos') || canAccess('invoices') || canAccess('quotations') || canAccess('delivery_challans')) && (
           <div className="nav-section section-sell">
             {!collapsed && (
               <div className="nav-section-title">
@@ -95,6 +120,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <NavLink to="/pos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="POS Counter">
                 <ShoppingCart className="nav-icon" />
                 {!collapsed && <span>POS Counter</span>}
+              </NavLink>
+            )}
+            {canAccess('invoices') && (
+              <NavLink to="/invoices" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Past Invoices">
+                <ReceiptText className="nav-icon" />
+                {!collapsed && <span>Past Invoices</span>}
               </NavLink>
             )}
             <NavLink to="/customers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Customers">
@@ -126,9 +157,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {canAccess('inventory') && (
           <div className="nav-section section-inv">
             {!collapsed && (
-              <div className="nav-section-title">
-                <span className="nav-section-dot" />
-                <span>Inventory</span>
+              <div className="nav-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="nav-section-dot" />
+                  <span>Inventory</span>
+                </div>
+                <NavLink
+                  to="/inventory/new"
+                  onClick={handleLinkClick}
+                  title="Add New Inventory Module"
+                  style={{
+                    fontSize: '0.7rem',
+                    color: '#34d399',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(52, 211, 153, 0.15)',
+                    border: '1px solid rgba(52, 211, 153, 0.3)',
+                  }}
+                >
+                  <Plus size={11} /> Add
+                </NavLink>
               </div>
             )}
             <NavLink to="/products" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="All Products">
@@ -143,6 +196,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Trees className="nav-icon" />
               {!collapsed && <span>Plant Inventory</span>}
             </NavLink>
+            <NavLink to="/inventory/cactus" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Cactus Inventory">
+              <Cactus className="nav-icon" />
+              {!collapsed && <span>Cactus Inventory</span>}
+            </NavLink>
             <NavLink to="/inventory/pots" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Pots & Planters">
               <Box className="nav-icon" />
               {!collapsed && <span>Pots Inventory</span>}
@@ -154,6 +211,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <NavLink to="/inventory/flowers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Flowers & Arrangements">
               <Flower2 className="nav-icon" />
               {!collapsed && <span>Flowers & Decor</span>}
+            </NavLink>
+
+            {/* Dynamic Custom Inventory Modules */}
+            {(modules || []).map((m) => (
+              <NavLink
+                key={m.id}
+                to={`/inventory/custom/${m.slug}`}
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                onClick={handleLinkClick}
+                title={`${m.name} Inventory`}
+              >
+                <span className="nav-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.05rem' }}>
+                  {m.icon || '📦'}
+                </span>
+                {!collapsed && <span>{m.name} Inventory</span>}
+              </NavLink>
+            ))}
+
+            {/* Add New Inventory Module Button */}
+            <NavLink
+              to="/inventory/new"
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onClick={handleLinkClick}
+              title="Add New Inventory Module"
+              style={{
+                color: '#34d399',
+                fontWeight: 700,
+                marginTop: '4px',
+                background: 'rgba(52, 211, 153, 0.12)',
+                border: '1px dashed rgba(52, 211, 153, 0.4)',
+                borderRadius: '8px',
+              }}
+            >
+              <PlusCircle className="nav-icon" style={{ color: '#34d399' }} />
+              {!collapsed && <span>+ Add Inventory</span>}
             </NavLink>
           </div>
         )}
@@ -209,7 +301,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Section: SALES OPS (Rose accent) */}
-        {(canAccess('refunds') || canAccess('invoices')) && (
+        {canAccess('refunds') && (
           <div className="nav-section section-ops">
             {!collapsed && (
               <div className="nav-section-title">
@@ -217,18 +309,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>Sales Ops</span>
               </div>
             )}
-            {canAccess('refunds') && (
-              <NavLink to="/refunds" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Refunds">
-                <RotateCcw className="nav-icon" />
-                {!collapsed && <span>Refunds</span>}
-              </NavLink>
-            )}
-            {canAccess('invoices') && (
-              <NavLink to="/invoices" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Past Invoices">
-                <ReceiptText className="nav-icon" />
-                {!collapsed && <span>Past Invoices</span>}
-              </NavLink>
-            )}
+            <NavLink to="/refunds" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Refunds">
+              <RotateCcw className="nav-icon" />
+              {!collapsed && <span>Refunds</span>}
+            </NavLink>
           </div>
         )}
 

@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import type { Project } from '../types';
 import { StatCard } from '../components/common/StatCard';
 import { Badge } from '../components/common/Badge';
+import { ExpenseReceiptModal } from '../components/common/ExpenseReceiptModal';
+import type { Expense } from '../types';
 import {
   ArrowLeft,
   IndianRupee,
@@ -18,7 +20,8 @@ import {
   Plus,
   Send,
   Building,
-  Truck
+  Truck,
+  Eye
 } from 'lucide-react';
 
 export const ProjectDetail: React.FC = () => {
@@ -28,6 +31,7 @@ export const ProjectDetail: React.FC = () => {
 
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [viewingReceiptExpense, setViewingReceiptExpense] = useState<Expense | null>(null);
 
   // Quick progress update form
   const [updateNotes, setUpdateNotes] = useState<string>('');
@@ -223,6 +227,7 @@ export const ProjectDetail: React.FC = () => {
                     <th>Date</th>
                     <th>Category</th>
                     <th>Paid To / Recipient</th>
+                    <th>Receipt</th>
                     <th>Payment Mode</th>
                     <th style={{ textAlign: 'right' }}>Amount</th>
                   </tr>
@@ -230,7 +235,7 @@ export const ProjectDetail: React.FC = () => {
                 <tbody>
                   {(project.expenses || []).length === 0 ? (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)' }}>
                         No expenses tagged to this project yet.
                       </td>
                     </tr>
@@ -246,6 +251,32 @@ export const ProjectDetail: React.FC = () => {
                         <td style={{ fontSize: 'var(--font-sm)' }}>
                           {exp.recipient || '—'}
                           {exp.reference_no && <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Ref: {exp.reference_no}</span>}
+                        </td>
+                        <td>
+                          {exp.image_url ? (
+                            <button
+                              type="button"
+                              onClick={() => setViewingReceiptExpense(exp)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '3px 6px',
+                                borderRadius: '4px',
+                                background: '#f0f9ff',
+                                border: '1px solid #bae6fd',
+                                color: '#0284c7',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                              title="View Expense Proof"
+                            >
+                              <Eye size={12} /> View Proof
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>—</span>
+                          )}
                         </td>
                         <td>
                           <span style={{ textTransform: 'uppercase', fontSize: '11px', fontWeight: 600 }}>
@@ -374,6 +405,11 @@ export const ProjectDetail: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Full Receipt Popup Modal */}
+      <ExpenseReceiptModal
+        expense={viewingReceiptExpense}
+        onClose={() => setViewingReceiptExpense(null)}
+      />
     </div>
   );
 };

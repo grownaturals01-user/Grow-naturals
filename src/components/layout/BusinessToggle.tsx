@@ -22,11 +22,11 @@ export const BusinessToggle: React.FC = () => {
         type="button"
         className={`biz-pill biz-pill-nn ${businessId === 'nikhlesh-nursery' ? 'active' : ''}`}
         onClick={() => switchBusiness('nikhlesh-nursery')}
-        title="Switch to Nikhlesh Nursery (Non-Taxable, 0% GST)"
+        title="Switch to Nikhlesh Nursery"
       >
         <Sprout size={14} />
         <span>Nikhlesh Nursery</span>
-        <span className="biz-tag">0% TAX</span>
+        <span className="biz-tag">NURSERY</span>
       </button>
     </div>
   );

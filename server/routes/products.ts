@@ -108,7 +108,7 @@ router.post('/', async (req: Request, res: Response) => {
     const {
       name, sku, barcode, category_id, type, cost_price, sale_price,
       gst_rate, hsn_code, stock_quantity, low_stock_threshold,
-      supplier_id, image_url, attributes
+      supplier_id, image_url, attributes, discount_pieces, discount_percent
     } = req.body;
 
     if (!name || !sku) {
@@ -125,8 +125,8 @@ router.post('/', async (req: Request, res: Response) => {
       `INSERT INTO products (
         id, business_id, category_id, type, name, sku, barcode, cost_price,
         sale_price, gst_rate, hsn_code, stock_quantity, low_stock_threshold,
-        supplier_id, image_url, attributes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        supplier_id, image_url, attributes, discount_pieces, discount_percent
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *`,
       [
         id,
@@ -144,7 +144,9 @@ router.post('/', async (req: Request, res: Response) => {
         Number(low_stock_threshold) || 5,
         supplier_id || null,
         image_url || '',
-        typeof attributes === 'object' ? JSON.stringify(attributes) : (attributes || '{}')
+        typeof attributes === 'object' ? JSON.stringify(attributes) : (attributes || '{}'),
+        Number(discount_pieces) || 0,
+        Number(discount_percent) || 0.00
       ]
     );
 
@@ -173,7 +175,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     const {
       name, sku, barcode, category_id, type, cost_price, sale_price,
       gst_rate, hsn_code, stock_quantity, low_stock_threshold,
-      supplier_id, image_url, attributes, user_id
+      supplier_id, image_url, attributes, user_id,
+      discount_pieces, discount_percent
     } = req.body;
 
     const db = await getDb();
@@ -203,8 +206,10 @@ router.put('/:id', async (req: Request, res: Response) => {
         supplier_id = $12,
         image_url = COALESCE($13, image_url),
         attributes = COALESCE($14, attributes),
+        discount_pieces = COALESCE($15, discount_pieces),
+        discount_percent = COALESCE($16, discount_percent),
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $15
+       WHERE id = $17
        RETURNING *`,
       [
         name,
@@ -221,6 +226,8 @@ router.put('/:id', async (req: Request, res: Response) => {
         supplier_id !== undefined ? supplier_id : oldProduct.supplier_id,
         image_url !== undefined ? image_url : undefined,
         attributes !== undefined ? (typeof attributes === 'object' ? JSON.stringify(attributes) : attributes) : undefined,
+        discount_pieces !== undefined ? Number(discount_pieces) : undefined,
+        discount_percent !== undefined ? Number(discount_percent) : undefined,
         id
       ]
     );

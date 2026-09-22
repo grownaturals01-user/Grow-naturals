@@ -107,7 +107,7 @@ export const ShopSettings: React.FC = () => {
           className={`btn ${activeTab === 'nikhlesh-nursery' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setActiveTab('nikhlesh-nursery')}
         >
-          <Building size={16} /> Nikhlesh Nursery (Non-Taxable)
+          <Building size={16} /> Nikhlesh Nursery
         </button>
         <button
           className={`btn ${activeTab === 'hardware' ? 'btn-primary' : 'btn-ghost'}`}
@@ -235,10 +235,10 @@ export const ShopSettings: React.FC = () => {
           <div className="card-header">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 className="card-title">Nikhlesh Nursery — Non-Taxable Business</h2>
-                <p className="card-subtitle">Agricultural and sapling sales; bills show ₹0.00 tax rows for layout uniformity</p>
+                <h2 className="card-title">Nikhlesh Nursery</h2>
+                <p className="card-subtitle">Botanical live stock, garden inventory, and nursery retail</p>
               </div>
-              <Badge variant="secondary">0.00% TAX (NON-TAXABLE)</Badge>
+              <Badge variant="secondary">NURSERY STORE</Badge>
             </div>
           </div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

@@ -650,14 +650,25 @@ export const QuotationDetail: React.FC = () => {
             <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
               {quotation.customer_name}
             </div>
+            {quotation.customer_gstin && (
+              <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 700, marginTop: '2px' }}>
+                GSTIN: {quotation.customer_gstin}
+              </div>
+            )}
             {quotation.customer_phone && (
               <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Phone size={11} /> {quotation.customer_phone}
               </div>
             )}
-            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-              Location: Madurai & Surrounding Site Installations
-            </div>
+            {quotation.customer_address ? (
+              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                {quotation.customer_address}
+              </div>
+            ) : (
+              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                Location: Madurai & Surrounding Site Installations
+              </div>
+            )}
           </div>
 
           <div style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '16px' }}>
@@ -796,7 +807,7 @@ export const QuotationDetail: React.FC = () => {
                   </tr>
                 )}
 
-                {isTaxable ? (
+                {isTaxable && (
                   <>
                     <tr>
                       <td style={{ padding: '4px 0', color: '#64748b' }}>CGST (9%):</td>
@@ -811,13 +822,6 @@ export const QuotationDetail: React.FC = () => {
                       </td>
                     </tr>
                   </>
-                ) : (
-                  <tr>
-                    <td style={{ padding: '4px 0', color: '#64748b' }}>Tax Status:</td>
-                    <td style={{ padding: '4px 0', textAlign: 'right', fontSize: '11px', color: '#059669', fontWeight: 700 }}>
-                      0.00% Tax Exempt
-                    </td>
-                  </tr>
                 )}
 
                 <tr style={{ borderTop: '2px solid #cbd5e1' }}>

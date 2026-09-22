@@ -179,7 +179,7 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
               {isTaxable ? 'TAX INVOICE' : 'RETAIL INVOICE'}
             </h2>
             <div className="invoice-tax-badge">
-              {isTaxable ? 'GST Registered Entity' : 'Non-Taxable Agricultural Nursery'}
+              {isTaxable ? 'GST Registered Entity' : 'Retail Nursery Invoice'}
             </div>
             <p style={{ fontSize: '14px', fontWeight: 700, marginTop: '8px' }}>
               Invoice #: <span className="tabular">{invoice.invoice_number}</span>
@@ -216,8 +216,8 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
               <th>HSN</th>
               <th className="text-right">Qty</th>
               <th className="text-right">Rate (₹)</th>
-              <th className="text-right">GST %</th>
-              <th className="text-right">Tax (₹)</th>
+              {isTaxable && <th className="text-right">GST %</th>}
+              {isTaxable && <th className="text-right">Tax (₹)</th>}
               <th className="text-right">Amount (₹)</th>
             </tr>
           </thead>
@@ -232,8 +232,8 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
                 <td className="tabular">{item.hsn_code || (isTaxable ? '0602' : '-')}</td>
                 <td className="text-right tabular">{item.quantity}</td>
                 <td className="text-right tabular">{Number(item.unit_price).toFixed(2)}</td>
-                <td className="text-right tabular">{Number(item.gst_rate || 0).toFixed(2)}%</td>
-                <td className="text-right tabular">{Number(item.tax_amount || 0).toFixed(2)}</td>
+                {isTaxable && <td className="text-right tabular">{Number(item.gst_rate || 0).toFixed(2)}%</td>}
+                {isTaxable && <td className="text-right tabular">{Number(item.tax_amount || 0).toFixed(2)}</td>}
                 <td className="text-right tabular" style={{ fontWeight: 700 }}>{Number(item.total).toFixed(2)}</td>
               </tr>
             ))}
@@ -254,19 +254,22 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
                   <td className="text-right tabular" style={{ color: '#dc2626' }}>-₹{Number(invoice.discount_amount).toFixed(2)}</td>
                 </tr>
               )}
-              {/* For Nikhlesh Nursery: tax is displayed at ₹0.00 for template shape consistency */}
-              <tr>
-                <td style={{ color: '#64748b' }}>CGST:</td>
-                <td className="text-right tabular">₹{Number(invoice.cgst_amount || 0).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td style={{ color: '#64748b' }}>SGST:</td>
-                <td className="text-right tabular">₹{Number(invoice.sgst_amount || 0).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td style={{ color: '#64748b' }}>Total GST Tax:</td>
-                <td className="text-right tabular">₹{Number(invoice.tax_amount || 0).toFixed(2)}</td>
-              </tr>
+              {isTaxable && (
+                <>
+                  <tr>
+                    <td style={{ color: '#64748b' }}>CGST:</td>
+                    <td className="text-right tabular">₹{Number(invoice.cgst_amount || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: '#64748b' }}>SGST:</td>
+                    <td className="text-right tabular">₹{Number(invoice.sgst_amount || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: '#64748b' }}>Total GST Tax:</td>
+                    <td className="text-right tabular">₹{Number(invoice.tax_amount || 0).toFixed(2)}</td>
+                  </tr>
+                </>
+              )}
               <tr className="invoice-grand-total">
                 <td style={{ fontWeight: 800 }}>Grand Total:</td>
                 <td className="text-right tabular" style={{ fontWeight: 800, color: '#166534' }}>

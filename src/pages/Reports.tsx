@@ -32,17 +32,26 @@ import { Link } from 'react-router-dom';
 
 interface DashboardReportData {
   business_id: string;
+  is_combined?: boolean;
   range: string;
   metrics: {
     today_sales: number;
     today_bills: number;
     period_sales: number;
     period_tax: number;
+    period_cgst?: number;
+    period_sgst?: number;
     period_bills: number;
     low_stock_count: number;
     active_projects: number;
     supplier_dues: number;
   };
+  business_breakdown?: Array<{
+    business_id: string;
+    total_sales: number;
+    total_tax: number;
+    total_bills: number;
+  }>;
   top_products: Array<{ product_name: string; total_qty: number; total_revenue: number }>;
   payment_breakdown: Array<{ payment_method: string; count: number; total: number }>;
   recent_invoices: Array<{
@@ -53,6 +62,8 @@ interface DashboardReportData {
     payment_method: string;
     payment_status: string;
     created_at: string;
+    business_id?: string;
+    business_name?: string;
   }>;
   low_stock_items: Array<{
     id: string;
@@ -61,6 +72,8 @@ interface DashboardReportData {
     stock_quantity: number;
     low_stock_threshold: number;
     type?: string;
+    business_id?: string;
+    business_name?: string;
   }>;
   sales_trend: Array<{ day: string; total: number; count: number }>;
 }
@@ -70,6 +83,7 @@ type ViewTab = 'overview' | 'sales' | 'payments' | 'products' | 'inventory' | 'a
 export const Reports: React.FC = () => {
   const { activeBusiness, business } = useBusiness();
 
+  const [isCombined, setIsCombined] = useState(false);
   const [range, setRange] = useState<'today' | '7days' | 'month' | 'year'>('month');
   const [activeTab, setActiveTab] = useState<ViewTab>('overview');
   const [data, setData] = useState<DashboardReportData | null>(null);
@@ -80,7 +94,11 @@ export const Reports: React.FC = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const res = await api.get<DashboardReportData>('/reports/dashboard', { range });
+      const params: Record<string, any> = { range };
+      if (isCombined) {
+        params.business_id = 'combined';
+      }
+      const res = await api.get<DashboardReportData>('/reports/dashboard', params);
       setData(res);
     } catch (err: any) {
       console.error('Failed to fetch reports:', err);
@@ -91,7 +109,7 @@ export const Reports: React.FC = () => {
 
   useEffect(() => {
     fetchReports();
-  }, [activeBusiness.id, range]);
+  }, [activeBusiness.id, range, isCombined]);
 
   const handlePrint = () => {
     window.print();
@@ -99,20 +117,45 @@ export const Reports: React.FC = () => {
 
   const handleCopySummary = () => {
     if (!data) return;
-    const bizName = business?.name || activeBusiness.name;
     const rangeLabel = range === 'today' ? 'Today' : range === '7days' ? 'Last 7 Days' : range === 'month' ? 'Last 30 Days' : 'This Year';
-    const text = [
-      `📊 Business Report — ${bizName} (${rangeLabel})`,
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `• Total Sales Revenue: ₹${Number(data.metrics.period_sales).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      `• Total Invoices: ${data.metrics.period_bills} bills issued`,
-      `• GST Tax Collected: ₹${Number(data.metrics.period_tax).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      `• Pending Supplier Dues: ₹${Number(data.metrics.supplier_dues).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      `• Active Site Projects: ${data.metrics.active_projects}`,
-      `• Critical Low Stock Items: ${data.metrics.low_stock_count}`,
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `Generated from GrowNaturals Dual POS & ERP on ${new Date().toLocaleDateString('en-IN')}`
-    ].join('\n');
+    
+    let text = '';
+    if (isCombined) {
+      const gnStats = data.business_breakdown?.find(b => b.business_id === 'grow-naturals');
+      const nnStats = data.business_breakdown?.find(b => b.business_id === 'nikhlesh-nursery');
+
+      text = [
+        `📊 COMBINED BUSINESS REPORT (Both Shops) — ${rangeLabel}`,
+        `🏢 Grow Naturals (GST) + Nikhlesh Nursery`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `• Total Combined Sales: ₹${Number(data.metrics.period_sales).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `• Total Invoices: ${data.metrics.period_bills} bills issued`,
+        `• Total GST Tax Collected: ₹${Number(data.metrics.period_tax).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `• Pending Supplier Payables: ₹${Number(data.metrics.supplier_dues).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `• Active Site Projects: ${data.metrics.active_projects}`,
+        `• Critical Low Stock Items: ${data.metrics.low_stock_count}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `📈 INDIVIDUAL SHOP BREAKDOWN:`,
+        `• Grow Naturals: ₹${Number(gnStats?.total_sales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${gnStats?.total_bills || 0} bills, GST: ₹${Number(gnStats?.total_tax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })})`,
+        `• Nikhlesh Nursery: ₹${Number(nnStats?.total_sales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${nnStats?.total_bills || 0} bills)`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `Generated from GrowNaturals Dual POS & ERP on ${new Date().toLocaleDateString('en-IN')}`
+      ].join('\n');
+    } else {
+      const bizName = business?.name || activeBusiness.name;
+      text = [
+        `📊 Business Report — ${bizName} (${rangeLabel})`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `• Total Sales Revenue: ₹${Number(data.metrics.period_sales).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `• Total Invoices: ${data.metrics.period_bills} bills issued`,
+        ...(isGrowNaturals ? [`• GST Tax Collected: ₹${Number(data.metrics.period_tax).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`] : []),
+        `• Pending Supplier Dues: ₹${Number(data.metrics.supplier_dues).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `• Active Site Projects: ${data.metrics.active_projects}`,
+        `• Critical Low Stock Items: ${data.metrics.low_stock_count}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `Generated from GrowNaturals Dual POS & ERP on ${new Date().toLocaleDateString('en-IN')}`
+      ].join('\n');
+    }
 
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -165,6 +208,24 @@ export const Reports: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', paddingBottom: '48px' }}>
+      {/* Print-Only Header */}
+      <div className="print-only" style={{ marginBottom: '24px', borderBottom: '2px solid #0f172a', paddingBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#166534', letterSpacing: '-0.02em' }}>
+              {isCombined ? 'Grow Naturals & Nikhlesh Nursery — Combined Business Report' : `${business?.name || activeBusiness.name} — Business Report`}
+            </h1>
+            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#475569' }}>
+              {isCombined ? 'Consolidated executive financial performance and tax liabilities across both retail units' : (business?.legal_name || activeBusiness.legal_name)}
+            </p>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '11px', color: '#475569', lineHeight: 1.5 }}>
+            <div><strong>Period:</strong> {range === 'today' ? 'Today' : range === '7days' ? 'Last 7 Days' : range === 'month' ? 'Last 30 Days' : 'This Year'}</div>
+            <div><strong>Generated:</strong> {new Date().toLocaleDateString('en-IN')}</div>
+          </div>
+        </div>
+      </div>
+
       {/* 1. Page Header & Actions */}
       <div
         className="page-header no-print"
@@ -180,31 +241,99 @@ export const Reports: React.FC = () => {
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
             <h1 className="page-title" style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <BarChart3 size={24} style={{ color: 'var(--color-botanical-600)' }} /> Business Analytics & Reports
             </h1>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '999px',
-                backgroundColor: isGrowNaturals ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                color: isGrowNaturals ? '#059669' : '#d97706',
-                border: `1px solid ${isGrowNaturals ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`
-              }}
-            >
-              {business?.name || activeBusiness.name}
-            </span>
+            {isCombined ? (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  padding: '4px 12px',
+                  borderRadius: '999px',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%)',
+                  color: '#065f46',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                Combined: Grow Naturals + Nikhlesh Nursery
+              </span>
+            ) : (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '999px',
+                  backgroundColor: isGrowNaturals ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                  color: isGrowNaturals ? '#059669' : '#d97706',
+                  border: `1px solid ${isGrowNaturals ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`
+                }}
+              >
+                {business?.name || activeBusiness.name}
+              </span>
+            )}
           </div>
           <p className="page-subtitle" style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-            Real-time financial performance, tax liabilities, top sellers, and revenue velocity for <strong>{business?.name || activeBusiness.name}</strong>.
+            {isCombined ? (
+              <>
+                Real-time combined financial performance, tax liabilities, top sellers, and revenue velocity aggregated for <strong>Grow Naturals</strong> &amp; <strong>Nikhlesh Nursery</strong>.
+              </>
+            ) : (
+              <>
+                Real-time financial performance, tax liabilities, top sellers, and revenue velocity for <strong>{business?.name || activeBusiness.name}</strong>.
+              </>
+            )}
           </p>
         </div>
 
-        {/* Action Controls: Time Selector + Export + Print */}
+        {/* Action Controls: Combined Reports Button + Time Selector + Export + Print */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          
+          {/* Combined Reports Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsCombined(!isCombined)}
+            className={`btn ${isCombined ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              fontSize: '0.78rem',
+              padding: '6px 14px',
+              gap: '6px',
+              fontWeight: 700,
+              backgroundColor: isCombined ? '#065f46' : 'var(--color-bg-surface-subtle)',
+              color: isCombined ? '#ffffff' : 'var(--color-text-primary)',
+              borderColor: isCombined ? '#047857' : 'var(--color-border)',
+              boxShadow: isCombined ? '0 2px 8px rgba(5, 150, 105, 0.25)' : 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              borderRadius: 'var(--radius-md)',
+              transition: 'all 0.18s ease'
+            }}
+            title={isCombined ? 'Click to view individual shop report' : 'Click to combine reports for both Grow Naturals & Nikhlesh Nursery'}
+          >
+            <Layers size={14} style={{ color: isCombined ? '#6ee7b7' : 'var(--color-botanical-600)' }} />
+            <span>Combined Reports</span>
+            {isCombined && (
+              <span
+                style={{
+                  backgroundColor: '#10b981',
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                  fontWeight: 800
+                }}
+              >
+                Both Shops
+              </span>
+            )}
+          </button>
+
           {/* Time Range Selector */}
           <div
             style={{
@@ -379,7 +508,7 @@ export const Reports: React.FC = () => {
               
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
-                  Total Sales Revenue
+                  {isCombined ? 'Total Sales Revenue (Combined)' : 'Total Sales Revenue'}
                 </span>
                 <div
                   style={{
@@ -413,11 +542,16 @@ export const Reports: React.FC = () => {
                       color: '#059669'
                     }}
                   >
-                    {data.metrics.period_bills} {data.metrics.period_bills === 1 ? 'bill' : 'bills'} issued
+                    {data.metrics.period_bills} {data.metrics.period_bills === 1 ? 'bill' : 'bills'} issued {isCombined ? '(Both Shops)' : ''}
                   </span>
-                  {data.metrics.period_bills > 0 && (
+                  {data.metrics.period_bills > 0 && !isCombined && (
                     <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>
                       Avg {formatCurrency(Number(data.metrics.period_sales) / (data.metrics.period_bills || 1))}/bill
+                    </span>
+                  )}
+                  {isCombined && data.business_breakdown && data.business_breakdown.length > 0 && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>
+                      GN: {formatCurrency(data.business_breakdown.find(b => b.business_id === 'grow-naturals')?.total_sales || 0)} • NN: {formatCurrency(data.business_breakdown.find(b => b.business_id === 'nikhlesh-nursery')?.total_sales || 0)}
                     </span>
                   )}
                 </div>
@@ -443,7 +577,7 @@ export const Reports: React.FC = () => {
               
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
-                  {isGrowNaturals ? 'GST Tax Collected' : 'Tax Status'}
+                  {isCombined ? 'GST Tax Collected (Combined)' : isGrowNaturals ? 'GST Tax Collected' : 'Total Bills Issued'}
                 </span>
                 <div
                   style={{
@@ -463,7 +597,7 @@ export const Reports: React.FC = () => {
 
               <div>
                 <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#7c3aed', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>
-                  {formatCurrency(data.metrics.period_tax)}
+                  {isGrowNaturals || isCombined ? formatCurrency(data.metrics.period_tax) : `${data.metrics.period_bills} Bills`}
                 </div>
 
                 <div style={{ marginTop: '8px' }}>
@@ -478,10 +612,14 @@ export const Reports: React.FC = () => {
                       display: 'inline-block'
                     }}
                   >
-                    {isGrowNaturals ? (
+                    {isCombined ? (
+                      <>
+                        CGST 9% ({formatCurrency(data.metrics.period_cgst || Number(data.metrics.period_tax) / 2)}) + SGST 9% ({formatCurrency(data.metrics.period_sgst || Number(data.metrics.period_tax) / 2)})
+                      </>
+                    ) : isGrowNaturals ? (
                       <>CGST 9% ({formatCurrency(Number(data.metrics.period_tax) / 2)}) + SGST 9% ({formatCurrency(Number(data.metrics.period_tax) / 2)})</>
                     ) : (
-                      '0.00% Tax Exempt / Composite'
+                      'Nursery Completed Bills'
                     )}
                   </span>
                 </div>
@@ -516,7 +654,7 @@ export const Reports: React.FC = () => {
               
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
-                  Supplier Payables
+                  {isCombined ? 'Supplier Payables (Both Shops)' : 'Supplier Payables'}
                 </span>
                 <div
                   style={{
@@ -562,10 +700,10 @@ export const Reports: React.FC = () => {
                     }}
                   >
                     {Number(data.metrics.supplier_dues) > 0 ? (
-                      'Pending payables to suppliers'
+                      isCombined ? 'Pending payables across both shops' : 'Pending payables to suppliers'
                     ) : (
                       <>
-                        <CheckCircle2 size={12} /> All supplier bills cleared
+                        <CheckCircle2 size={12} /> {isCombined ? 'All supplier bills cleared across both shops' : 'All supplier bills cleared'}
                       </>
                     )}
                   </span>
@@ -592,7 +730,7 @@ export const Reports: React.FC = () => {
               
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
-                  Active Site Projects
+                  {isCombined ? 'Active Site Projects (Both Shops)' : 'Active Site Projects'}
                 </span>
                 <div
                   style={{
@@ -627,7 +765,7 @@ export const Reports: React.FC = () => {
                       display: 'inline-block'
                     }}
                   >
-                    In-progress client installations
+                    {isCombined ? 'In-progress client installations across both businesses' : 'In-progress client installations'}
                   </span>
                 </div>
               </div>
@@ -1246,7 +1384,24 @@ export const Reports: React.FC = () => {
                           {data.low_stock_items.map((item, idx) => (
                             <tr key={idx}>
                               <td style={{ padding: '12px 16px' }}>
-                                <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{item.name}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{item.name}</span>
+                                  {isCombined && (
+                                    <span
+                                      style={{
+                                        fontSize: '0.65rem',
+                                        fontWeight: 700,
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        backgroundColor: item.business_id === 'grow-naturals' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                        color: item.business_id === 'grow-naturals' ? '#059669' : '#d97706',
+                                        border: `1px solid ${item.business_id === 'grow-naturals' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`
+                                      }}
+                                    >
+                                      {item.business_id === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery'}
+                                    </span>
+                                  )}
+                                </div>
                                 {item.sku && (
                                   <div style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>
                                     SKU: {item.sku}
@@ -1293,7 +1448,9 @@ export const Reports: React.FC = () => {
                           All inventory levels are healthy!
                         </div>
                         <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                          No items are currently below their minimum reorder thresholds.
+                          {isCombined
+                            ? 'No items across both Grow Naturals & Nikhlesh Nursery are currently below minimum thresholds.'
+                            : 'No items are currently below their minimum reorder thresholds.'}
                         </p>
                       </div>
                     )}
@@ -1341,7 +1498,7 @@ export const Reports: React.FC = () => {
                   </div>
                   <div>
                     <h2 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                      Recent Invoices & Transactions
+                      {isCombined ? 'Recent Invoices (Grow Naturals & Nikhlesh Nursery)' : 'Recent Invoices & Transactions'}
                     </h2>
                   </div>
                 </div>
@@ -1367,6 +1524,7 @@ export const Reports: React.FC = () => {
                   <thead>
                     <tr style={{ backgroundColor: 'transparent' }}>
                       <th style={{ padding: '12px 18px' }}>Invoice #</th>
+                      {isCombined && <th style={{ padding: '12px 14px' }}>Shop</th>}
                       <th style={{ padding: '12px 18px' }}>Customer / Consignee</th>
                       <th style={{ padding: '12px 14px' }}>Date</th>
                       <th style={{ padding: '12px 14px' }}>Mode</th>
@@ -1384,6 +1542,24 @@ export const Reports: React.FC = () => {
                               {inv.invoice_number}
                             </Link>
                           </td>
+                          {isCombined && (
+                            <td style={{ padding: '12px 14px' }}>
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  padding: '2px 7px',
+                                  borderRadius: '4px',
+                                  backgroundColor: inv.business_id === 'grow-naturals' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                  color: inv.business_id === 'grow-naturals' ? '#059669' : '#d97706',
+                                  border: `1px solid ${inv.business_id === 'grow-naturals' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {inv.business_id === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery'}
+                              </span>
+                            </td>
+                          )}
                           <td style={{ padding: '12px 18px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                             {inv.customer_name}
                           </td>
@@ -1439,8 +1615,8 @@ export const Reports: React.FC = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--color-text-muted)' }}>
-                          No recent invoices recorded in this business profile.
+                        <td colSpan={isCombined ? 8 : 7} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--color-text-muted)' }}>
+                          {isCombined ? 'No recent invoices recorded across either business.' : 'No recent invoices recorded in this business profile.'}
                         </td>
                       </tr>
                     )}

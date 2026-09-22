@@ -25,6 +25,16 @@ const PRESET_IMAGES: { label: string; url: string; category: string }[] = [
     url: 'https://images.unsplash.com/photo-1599598425947-5202edd564c5?w=500&auto=format&fit=crop&q=60',
   },
   {
+    label: 'Golden Barrel Cactus',
+    category: 'cactus',
+    url: 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=500&auto=format&fit=crop&q=60',
+  },
+  {
+    label: 'Mini Succulent Rosette',
+    category: 'cactus',
+    url: 'https://images.unsplash.com/photo-1509223197845-458d87318791?w=500&auto=format&fit=crop&q=60',
+  },
+  {
     label: 'Ceramic Glazed Planter',
     category: 'pots',
     url: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=500&auto=format&fit=crop&q=60',
