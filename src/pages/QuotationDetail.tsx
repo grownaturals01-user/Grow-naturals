@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useBusiness } from '../context/BusinessContext';
-import type { Quotation } from '../types';
+import type { Quotation, CustomerQuotationHistory } from '../types';
+import { CustomerQuotationIntelligence } from '../components/quotations/CustomerQuotationIntelligence';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import gnLogo from '../assets/grownaturalslogo.jpeg';
@@ -104,6 +105,10 @@ export const QuotationDetail: React.FC = () => {
   const [whatsappMessage, setWhatsappMessage] = useState('');
   const [copiedText, setCopiedText] = useState(false);
 
+  // Customer conversion history intelligence state
+  const [customerHistory, setCustomerHistory] = useState<CustomerQuotationHistory | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
+
   const fetchQuotation = () => {
     setIsLoading(true);
     api
@@ -122,6 +127,27 @@ export const QuotationDetail: React.FC = () => {
   useEffect(() => {
     fetchQuotation();
   }, [id]);
+
+  useEffect(() => {
+    if (quotation) {
+      const cleanPhone = (quotation.customer_phone || '').replace(/\D/g, '');
+      const cleanName = (quotation.customer_name || '').trim();
+      const cleanGst = (quotation.customer_gstin || '').trim();
+
+      if (cleanPhone.length >= 7 || cleanName.length >= 3 || cleanGst.length >= 10) {
+        setIsLoadingHistory(true);
+        api
+          .get('/quotations/customer-history', {
+            phone: cleanPhone || undefined,
+            name: cleanName || undefined,
+            gstin: cleanGst || undefined,
+          })
+          .then((hist) => setCustomerHistory(hist))
+          .catch(console.warn)
+          .finally(() => setIsLoadingHistory(false));
+      }
+    }
+  }, [quotation?.customer_phone, quotation?.customer_name, quotation?.customer_gstin]);
 
   const handleOpenConvertModal = (targetType: 'invoice' | 'delivery_challan') => {
     setConvertTargetType(targetType);
@@ -513,6 +539,11 @@ export const QuotationDetail: React.FC = () => {
           </span>
         </div>
       )}
+
+      {/* Customer Conversion Intelligence Banner */}
+      <div className="no-print" style={{ marginBottom: '20px' }}>
+        <CustomerQuotationIntelligence history={customerHistory} isLoading={isLoadingHistory} />
+      </div>
 
       {/* 2. Professional High-End Printable Sheet */}
       <div

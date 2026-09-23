@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS customers (
   address TEXT DEFAULT '',
   gstin VARCHAR(32) DEFAULT '',
   customer_type VARCHAR(32) DEFAULT 'customer',
+  credit_limit NUMERIC(12,2) DEFAULT 0.00,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -274,6 +275,14 @@ CREATE TABLE IF NOT EXISTS delivery_challans (
   payment_date TIMESTAMP,
   payment_notes TEXT DEFAULT '',
   invoice_id VARCHAR(64) DEFAULT '',
+  approval_status VARCHAR(32) DEFAULT 'approved', -- 'approved', 'pending_approval', 'rejected'
+  approved_by VARCHAR(64) DEFAULT '',
+  approved_at TIMESTAMP,
+  approval_reason TEXT DEFAULT '',
+  credit_limit_at_creation NUMERIC(12,2) DEFAULT 0.00,
+  credit_exceeded_amount NUMERIC(12,2) DEFAULT 0.00,
+  due_date DATE,
+  reminder_notes TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

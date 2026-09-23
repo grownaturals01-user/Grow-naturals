@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, User, Phone, Mail, MapPin, Sparkles, Loader2, CheckCircle2, AlertCircle, Building2, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Save, User, Phone, Mail, MapPin, Sparkles, Loader2, CheckCircle2, AlertCircle, Building2, ShoppingBag, IndianRupee } from 'lucide-react';
 import { api } from '../services/api';
 
 export const CustomerNew: React.FC = () => {
@@ -12,6 +12,7 @@ export const CustomerNew: React.FC = () => {
   const [address, setAddress] = useState('');
   const [gstin, setGstin] = useState('');
   const [customerType, setCustomerType] = useState<'customer' | 'wholesaler'>('customer');
+  const [creditLimit, setCreditLimit] = useState<string>('0');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,6 +109,7 @@ export const CustomerNew: React.FC = () => {
         address: address.trim(),
         gstin: gstin.trim().toUpperCase(),
         customer_type: customerType,
+        credit_limit: Number(creditLimit) || 0,
       });
 
       navigate(`/customers/${res.id}`);
@@ -338,6 +340,28 @@ export const CustomerNew: React.FC = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Delivery Challan Credit Limit (₹)</span>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>0 = No Credit Limit (Unlimited / Auto-approved)</span>
+              </label>
+              <div className="input-icon-wrapper">
+                <IndianRupee size={16} className="input-icon" />
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  className="form-input tabular"
+                  placeholder="e.g. 25000"
+                  value={creditLimit}
+                  onChange={e => setCreditLimit(e.target.value)}
+                />
+              </div>
+              <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>
+                If this customer's total unpaid Delivery Challan balance exceeds this amount, any new Delivery Challan will require Manager Approval before dispatch.
+              </p>
             </div>
 
             <div className="form-group">

@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Package
 } from 'lucide-react';
+import { DeleteModuleModal } from '../components/common/DeleteModuleModal';
 
 interface MainCategoryItem {
   id: string;
@@ -93,6 +94,10 @@ export const CategoriesManager: React.FC = () => {
   const [subMainCategorySlug, setSubMainCategorySlug] = useState<string>('plants');
   const [subSort, setSubSort] = useState<string>('0');
   const [subDesc, setSubDesc] = useState<string>('');
+
+  // Delete Module Modal State
+  const [moduleToDelete, setModuleToDelete] = useState<MainCategoryItem | null>(null);
+  const [isDeletingModule, setIsDeletingModule] = useState<boolean>(false);
 
   // Load Subcategories and Products for product count calculation
   const fetchData = async () => {
@@ -200,20 +205,26 @@ export const CategoriesManager: React.FC = () => {
   };
 
   // Handler: Delete Custom Category
-  const handleDeleteCategory = async (item: MainCategoryItem) => {
+  const handleDeleteCategory = (item: MainCategoryItem) => {
     if (item.is_builtin) {
       alert('Built-in system categories (Plants, Cactus, Pots, Fertilizers, Flowers) cannot be deleted.');
       return;
     }
-    if (!window.confirm(`Delete category "${item.name}"? Products in this category will become unassigned.`)) {
-      return;
-    }
+    setModuleToDelete(item);
+  };
+
+  const handleConfirmDeleteModule = async () => {
+    if (!moduleToDelete) return;
+    setIsDeletingModule(true);
     try {
-      await deleteModule(item.id);
+      await deleteModule(moduleToDelete.id);
       await refreshModules();
       await fetchData();
+      setModuleToDelete(null);
     } catch (err: any) {
       alert(`Failed to delete category: ${err.message}`);
+    } finally {
+      setIsDeletingModule(false);
     }
   };
 
@@ -854,6 +865,16 @@ export const CategoriesManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Custom Category / Module Confirmation Popup Modal */}
+      <DeleteModuleModal
+        isOpen={!!moduleToDelete}
+        moduleName={moduleToDelete?.name || ''}
+        moduleSlug={moduleToDelete?.slug}
+        isDeleting={isDeletingModule}
+        onClose={() => setModuleToDelete(null)}
+        onConfirm={handleConfirmDeleteModule}
+      />
     </div>
   );
 };

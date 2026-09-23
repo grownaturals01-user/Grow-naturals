@@ -5,6 +5,7 @@ import type { Quotation } from '../types';
 import { SearchBar } from '../components/common/SearchBar';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
+import { CustomerConversionBadge } from '../components/quotations/CustomerQuotationIntelligence';
 import { Link } from 'react-router-dom';
 import { FileSpreadsheet, Plus, ArrowRight, Lock } from 'lucide-react';
 
@@ -126,6 +127,10 @@ export const QuotationsList: React.FC = () => {
                           {q.customer_phone}
                         </div>
                       )}
+                      <CustomerConversionBadge
+                        totalQuotes={q.customer_total_quotes}
+                        convertedQuotes={q.customer_converted_quotes}
+                      />
                     </td>
 
                     <td style={{ fontSize: 'var(--font-xs)' }}>

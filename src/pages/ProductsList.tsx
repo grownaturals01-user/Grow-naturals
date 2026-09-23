@@ -20,6 +20,7 @@ import {
   Sparkles,
   ArrowUpDown
 } from 'lucide-react';
+import { renderModuleIcon } from '../components/common/CategoryIcons';
 
 export const ProductsList: React.FC = () => {
   const { businessId, business, isTaxable } = useBusiness();
@@ -569,14 +570,15 @@ export const ProductsList: React.FC = () => {
         >
           {[
             { id: 'all', label: 'All', count: categoryCounts.all },
-            { id: 'plants', label: 'Plants & Trees', count: categoryCounts.plants },
-            { id: 'cactus', label: 'Cactus & Succulents', count: categoryCounts.cactus },
-            { id: 'pots', label: 'Pots & Planters', count: categoryCounts.pots },
-            { id: 'fertilizers', label: 'Fertilizers & Care', count: categoryCounts.fertilizers },
-            { id: 'flowers', label: 'Flowers & Decor', count: categoryCounts.flowers },
+            { id: 'plants', label: 'Plants & Trees', count: categoryCounts.plants, icon: 'plants' },
+            { id: 'cactus', label: 'Cactus & Succulents', count: categoryCounts.cactus, icon: 'cactus' },
+            { id: 'pots', label: 'Pots & Planters', count: categoryCounts.pots, icon: 'pots' },
+            { id: 'fertilizers', label: 'Fertilizers & Care', count: categoryCounts.fertilizers, icon: 'fertilizers' },
+            { id: 'flowers', label: 'Flowers & Decor', count: categoryCounts.flowers, icon: 'flowers' },
             ...modules.map((m) => ({
               id: m.slug,
-              label: `${m.icon ? m.icon + ' ' : ''}${m.name}`,
+              label: m.name,
+              icon: m.icon,
               count: categoryCounts[m.slug] || 0,
             })),
           ].map((cat) => {
@@ -587,23 +589,29 @@ export const ProductsList: React.FC = () => {
                 type="button"
                 onClick={() => setSelectedType(cat.id)}
                 style={{
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   borderRadius: '6px',
                   fontSize: '0.78rem',
                   fontWeight: 500,
                   border: '1px solid',
-                  borderColor: isActive ? '#0f172a' : '#e2e8f0',
-                  background: isActive ? '#0f172a' : '#ffffff',
-                  color: isActive ? '#ffffff' : '#475569',
+                  borderColor: isActive ? 'var(--color-botanical-600)' : 'var(--color-border)',
+                  background: isActive ? 'var(--color-botanical-50)' : 'var(--color-bg-surface)',
+                  color: isActive ? 'var(--color-botanical-800)' : 'var(--color-text-primary)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '6px',
+                  transition: 'all var(--transition-fast)'
                 }}
               >
+                {'icon' in cat && (cat as any).icon && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', color: isActive ? 'var(--color-botanical-700)' : 'inherit' }}>
+                    {renderModuleIcon((cat as any).icon, 13)}
+                  </span>
+                )}
                 <span>{cat.label}</span>
-                <span style={{ fontSize: '0.7rem', opacity: isActive ? 0.8 : 0.6 }}>({cat.count})</span>
+                <span style={{ fontSize: '0.7rem', opacity: isActive ? 0.9 : 0.6, fontWeight: isActive ? 700 : 400 }}>({cat.count})</span>
               </button>
             );
           })}

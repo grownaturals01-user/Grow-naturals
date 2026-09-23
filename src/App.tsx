@@ -70,6 +70,7 @@ import { ExpenseCategoriesManager } from './pages/ExpenseCategoriesManager';
 
 // Sales Ops: Invoices & Refunds
 import { InvoicesList } from './pages/InvoicesList';
+import { CreateSalesInvoice } from './pages/CreateSalesInvoice';
 import { InvoiceDetail } from './pages/InvoiceDetail';
 import { RefundsList } from './pages/RefundsList';
 import { RefundNew } from './pages/RefundNew';
@@ -174,6 +175,7 @@ export const App: React.FC = () => {
 
                   {/* Sales Ops: Invoices & Refunds */}
                   <Route path="invoices" element={<InvoicesList />} />
+                  <Route path="invoices/create" element={<CreateSalesInvoice />} />
                   <Route path="invoices/:id" element={<InvoiceDetail />} />
                   <Route path="refunds" element={<RefundsList />} />
                   <Route path="refunds/new" element={<RefundNew />} />

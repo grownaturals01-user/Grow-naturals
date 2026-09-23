@@ -73,7 +73,8 @@ router.post('/checkout', async (req: Request, res: Response) => {
         discount: disc,
         gst_rate: gstRate,
         tax_amount: lineTax,
-        total: lineTotal
+        total: lineTotal,
+        stock_source: item.stock_source || 'shop'
       });
     }
 
@@ -133,35 +134,79 @@ router.post('/checkout', async (req: Request, res: Response) => {
         ]
       );
 
-      // Decrement product inventory if linked
+      // Decrement inventory/warehouse stock or shop stock based on item.stock_source
       if (item.product_id) {
-        const prodRes = await db.query(`SELECT stock_quantity FROM products WHERE id = $1`, [item.product_id]);
-        if (prodRes.rows.length > 0) {
-          const currentStock = prodRes.rows[0].stock_quantity;
+        if (item.stock_source === 'inventory') {
+          // Deduct from Main Warehouse / Inventory stock
+          const wsRes = await db.query(
+            `SELECT stock_quantity FROM warehouse_stocks WHERE business_id = $1 AND product_id = $2`,
+            [bizId, item.product_id]
+          );
+          const currentStock = wsRes.rows.length > 0 ? Number(wsRes.rows[0].stock_quantity) : 0;
           const newStock = Math.max(0, currentStock - item.quantity);
 
-          await db.query(
-            `UPDATE products SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-            [newStock, item.product_id]
-          );
+          if (wsRes.rows.length > 0) {
+            await db.query(
+              `UPDATE warehouse_stocks SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE business_id = $2 AND product_id = $3`,
+              [newStock, bizId, item.product_id]
+            );
+          } else {
+            await db.query(
+              `INSERT INTO warehouse_stocks (id, business_id, product_id, stock_quantity) VALUES ($1, $2, $3, $4)`,
+              [`ws-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`, bizId, item.product_id, newStock]
+            );
+          }
 
+          // Record in warehouse_transactions
           await db.query(
-            `INSERT INTO stock_movements (
-              id, business_id, product_id, type, quantity_change, previous_quantity, new_quantity,
-              reference_type, reference_id, notes, user_id
-            ) VALUES ($1, $2, $3, 'sale', $4, $5, $6, 'invoice', $7, $8, $9)`,
+            `INSERT INTO warehouse_transactions (
+              id, business_id, product_id, type, quantity, previous_stock, new_stock,
+              unit_price, total_amount, buyer_name, reference_no, notes, transaction_date
+            ) VALUES ($1, $2, $3, 'sale', $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_DATE)`,
             [
-              `sm-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+              `wt-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
               bizId,
               item.product_id,
-              -item.quantity,
+              item.quantity,
               currentStock,
               newStock,
+              item.unit_price,
+              item.total,
+              customer_name || 'Walk-in Customer',
               invoiceNumber,
-              `POS Sale #${invoiceNumber}`,
-              created_by || null
+              `POS Sale from Main Inventory #${invoiceNumber}`
             ]
           );
+        } else {
+          // Default: Deduct from Shop Counter stock (products table)
+          const prodRes = await db.query(`SELECT stock_quantity FROM products WHERE id = $1`, [item.product_id]);
+          if (prodRes.rows.length > 0) {
+            const currentStock = prodRes.rows[0].stock_quantity;
+            const newStock = Math.max(0, currentStock - item.quantity);
+
+            await db.query(
+              `UPDATE products SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+              [newStock, item.product_id]
+            );
+
+            await db.query(
+              `INSERT INTO stock_movements (
+                id, business_id, product_id, type, quantity_change, previous_quantity, new_quantity,
+                reference_type, reference_id, notes, user_id
+              ) VALUES ($1, $2, $3, 'sale', $4, $5, $6, 'invoice', $7, $8, $9)`,
+              [
+                `sm-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+                bizId,
+                item.product_id,
+                -item.quantity,
+                currentStock,
+                newStock,
+                invoiceNumber,
+                `POS Sale #${invoiceNumber}`,
+                created_by || null
+              ]
+            );
+          }
         }
       }
     }
@@ -271,29 +316,68 @@ router.post('/sync', async (req: Request, res: Response) => {
         );
 
         if (item.product_id) {
-          const prodRes = await db.query(`SELECT stock_quantity FROM products WHERE id = $1`, [item.product_id]);
-          if (prodRes.rows.length > 0) {
-            const currentStock = prodRes.rows[0].stock_quantity;
-            const newStock = Math.max(0, currentStock - item.quantity);
-            await db.query(
-              `UPDATE products SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-              [newStock, item.product_id]
+          if (item.stock_source === 'inventory') {
+            const wsRes = await db.query(
+              `SELECT stock_quantity FROM warehouse_stocks WHERE business_id = $1 AND product_id = $2`,
+              [bizId, item.product_id]
             );
+            const currentStock = wsRes.rows.length > 0 ? Number(wsRes.rows[0].stock_quantity) : 0;
+            const newStock = Math.max(0, currentStock - item.quantity);
+
+            if (wsRes.rows.length > 0) {
+              await db.query(
+                `UPDATE warehouse_stocks SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE business_id = $2 AND product_id = $3`,
+                [newStock, bizId, item.product_id]
+              );
+            } else {
+              await db.query(
+                `INSERT INTO warehouse_stocks (id, business_id, product_id, stock_quantity) VALUES ($1, $2, $3, $4)`,
+                [`ws-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`, bizId, item.product_id, newStock]
+              );
+            }
+
             await db.query(
-              `INSERT INTO stock_movements (
-                id, business_id, product_id, type, quantity_change, previous_quantity, new_quantity,
-                reference_type, reference_id, notes
-              ) VALUES ($1, $2, $3, 'sale', $4, $5, $6, 'invoice', $7, 'Offline Synced POS Sale')`,
+              `INSERT INTO warehouse_transactions (
+                id, business_id, product_id, type, quantity, previous_stock, new_stock,
+                unit_price, total_amount, reference_no, notes, transaction_date
+              ) VALUES ($1, $2, $3, 'sale', $4, $5, $6, $7, $8, $9, 'Offline Synced POS Sale from Main Inventory', CURRENT_DATE)`,
               [
-                `sm-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+                `wt-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
                 bizId,
                 item.product_id,
-                -item.quantity,
+                item.quantity,
                 currentStock,
                 newStock,
+                item.unit_price,
+                item.total,
                 invoiceNumber
               ]
             );
+          } else {
+            const prodRes = await db.query(`SELECT stock_quantity FROM products WHERE id = $1`, [item.product_id]);
+            if (prodRes.rows.length > 0) {
+              const currentStock = prodRes.rows[0].stock_quantity;
+              const newStock = Math.max(0, currentStock - item.quantity);
+              await db.query(
+                `UPDATE products SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+                [newStock, item.product_id]
+              );
+              await db.query(
+                `INSERT INTO stock_movements (
+                  id, business_id, product_id, type, quantity_change, previous_quantity, new_quantity,
+                  reference_type, reference_id, notes
+                ) VALUES ($1, $2, $3, 'sale', $4, $5, $6, 'invoice', $7, 'Offline Synced POS Sale')`,
+                [
+                  `sm-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+                  bizId,
+                  item.product_id,
+                  -item.quantity,
+                  currentStock,
+                  newStock,
+                  invoiceNumber
+                ]
+              );
+            }
           }
         }
       }

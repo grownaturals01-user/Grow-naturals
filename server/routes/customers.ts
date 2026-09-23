@@ -66,7 +66,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/customers
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, phone, email, address, gstin, customer_type } = req.body;
+    const { name, phone, email, address, gstin, customer_type, credit_limit } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Customer name is required' });
@@ -76,10 +76,19 @@ router.post('/', async (req: Request, res: Response) => {
     const id = `cust-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     const result = await db.query(
-      `INSERT INTO customers (id, name, phone, email, address, gstin, customer_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO customers (id, name, phone, email, address, gstin, customer_type, credit_limit)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [id, name, phone || '', email || '', address || '', gstin || '', customer_type || 'customer']
+      [
+        id,
+        name,
+        phone || '',
+        email || '',
+        address || '',
+        gstin || '',
+        customer_type || 'customer',
+        Number(credit_limit) || 0.00
+      ]
     );
 
     res.status(201).json(result.rows[0]);
@@ -92,7 +101,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, phone, email, address, gstin, customer_type } = req.body;
+    const { name, phone, email, address, gstin, customer_type, credit_limit } = req.body;
 
     const db = await getDb();
     const result = await db.query(
@@ -102,10 +111,20 @@ router.put('/:id', async (req: Request, res: Response) => {
         email = COALESCE($3, email),
         address = COALESCE($4, address),
         gstin = COALESCE($5, gstin),
-        customer_type = COALESCE($6, customer_type)
-       WHERE id = $7
+        customer_type = COALESCE($6, customer_type),
+        credit_limit = COALESCE($7, credit_limit)
+       WHERE id = $8
        RETURNING *`,
-      [name, phone, email, address, gstin, customer_type, id]
+      [
+        name,
+        phone,
+        email,
+        address,
+        gstin,
+        customer_type,
+        credit_limit !== undefined ? Number(credit_limit) : null,
+        id
+      ]
     );
 
     if (result.rows.length === 0) {

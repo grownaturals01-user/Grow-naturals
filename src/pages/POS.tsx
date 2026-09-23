@@ -37,8 +37,12 @@ import {
   HandCoins,
   ArrowRight,
   Phone,
-  UserCheck
+  UserCheck,
+  FlaskConical,
+  Flower2,
+  Trees
 } from 'lucide-react';
+import { CactusIcon, PlanterIcon, getCategoryIcon, renderModuleIcon } from '../components/common/CategoryIcons';
 
 export const POS: React.FC = () => {
   const { businessId, business, activeBusiness, isTaxable } = useBusiness();
@@ -60,6 +64,7 @@ export const POS: React.FC = () => {
   // Cart State
   const [cart, setCart] = useState<POSCartItem[]>([]);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [defaultStockSource, setDefaultStockSource] = useState<'shop' | 'inventory'>('shop');
   const [selectedCustomer, setSelectedCustomer] = useState<{ id?: string; name: string; phone: string }>({
     name: 'Walk-in Customer',
     phone: '',
@@ -156,18 +161,39 @@ export const POS: React.FC = () => {
     }, {} as Record<string, number>),
   };
 
-  // Add product to cart (Immutable state update)
-  const addToCart = (product: Product) => {
-    if (product.stock_quantity <= 0) return;
+  // Add product to cart (Supports Shop Counter vs Main Inventory selection)
+  const addToCart = (product: Product, forcedSource?: 'shop' | 'inventory') => {
+    const shopStock = Number(product.shop_stock !== undefined ? product.shop_stock : product.stock_quantity) || 0;
+    const warehouseStock = Number(product.warehouse_stock) || 0;
+    const totalStock = shopStock + warehouseStock;
+
+    if (totalStock <= 0) return;
+
+    // Pick source: forcedSource > defaultStockSource (if has stock) > shop (if has stock) > inventory
+    let chosenSource: 'shop' | 'inventory' = 'shop';
+    if (forcedSource) {
+      chosenSource = forcedSource;
+    } else if (defaultStockSource === 'inventory' && warehouseStock > 0) {
+      chosenSource = 'inventory';
+    } else if (shopStock > 0) {
+      chosenSource = 'shop';
+    } else if (warehouseStock > 0) {
+      chosenSource = 'inventory';
+    }
+
+    const availableStock = chosenSource === 'shop' ? shopStock : warehouseStock;
+    if (availableStock <= 0) return;
 
     const discPieces = Number(product.discount_pieces) || Number(product.attributes?.discount_pieces) || 0;
     const discPercent = Number(product.discount_percent) || Number(product.attributes?.discount_percent) || 0;
 
     setCart((prevCart) => {
-      const existingIndex = prevCart.findIndex((item) => item.product_id === product.id);
+      const existingIndex = prevCart.findIndex(
+        (item) => item.product_id === product.id && (item.stock_source || 'shop') === chosenSource
+      );
       if (existingIndex > -1) {
         const item = prevCart[existingIndex];
-        if (item.quantity >= product.stock_quantity) {
+        if (item.quantity >= availableStock) {
           return prevCart;
         }
         const updated = [...prevCart];
@@ -190,7 +216,10 @@ export const POS: React.FC = () => {
             unit_price: Number(product.sale_price),
             discount: 0,
             gst_rate: isTaxable ? Number(product.gst_rate || 0) : 0,
-            stock_quantity: product.stock_quantity,
+            stock_quantity: availableStock,
+            stock_source: chosenSource,
+            shop_stock: shopStock,
+            warehouse_stock: warehouseStock,
             discount_pieces: discPieces,
             discount_percent: discPercent,
           },
@@ -199,12 +228,63 @@ export const POS: React.FC = () => {
     });
   };
 
-  // Update item quantity
-  const updateQuantity = (productId: string, delta: number) => {
+  // Switch cart item source between Shop and Inventory
+  const switchCartItemSource = (productId: string, currentSource: 'shop' | 'inventory', targetSource: 'shop' | 'inventory') => {
+    if (currentSource === targetSource) return;
+
+    setCart((prev) => {
+      const itemIndex = prev.findIndex(
+        (it) => it.product_id === productId && (it.stock_source || 'shop') === currentSource
+      );
+      if (itemIndex === -1) return prev;
+
+      const item = prev[itemIndex];
+      const targetAvailStock = targetSource === 'shop' ? (item.shop_stock || 0) : (item.warehouse_stock || 0);
+
+      if (targetAvailStock <= 0) {
+        alert(`Cannot switch to ${targetSource === 'shop' ? 'Shop' : 'Inventory'}: 0 units available.`);
+        return prev;
+      }
+
+      // Check if an item already exists with targetSource
+      const existingTargetIndex = prev.findIndex(
+        (it, idx) => idx !== itemIndex && it.product_id === productId && (it.stock_source || 'shop') === targetSource
+      );
+
+      if (existingTargetIndex > -1) {
+        // Merge into existing target item
+        const existingTarget = prev[existingTargetIndex];
+        const newMergedQty = Math.min(existingTarget.quantity + item.quantity, targetAvailStock);
+        const updated = prev.filter((_, idx) => idx !== itemIndex);
+        const targetNewIndex = updated.findIndex(
+          (it) => it.product_id === productId && (it.stock_source || 'shop') === targetSource
+        );
+        updated[targetNewIndex] = {
+          ...existingTarget,
+          quantity: newMergedQty,
+          stock_quantity: targetAvailStock,
+        };
+        return updated;
+      } else {
+        // Update source on this item
+        const updated = [...prev];
+        updated[itemIndex] = {
+          ...item,
+          stock_source: targetSource,
+          stock_quantity: targetAvailStock,
+          quantity: Math.min(item.quantity, targetAvailStock),
+        };
+        return updated;
+      }
+    });
+  };
+
+  // Update item quantity (respects specific stock_source)
+  const updateQuantity = (productId: string, delta: number, source: 'shop' | 'inventory' = 'shop') => {
     setCart((prev) =>
       prev
         .map((item) => {
-          if (item.product_id === productId) {
+          if (item.product_id === productId && (item.stock_source || 'shop') === source) {
             const newQty = item.quantity + delta;
             if (newQty <= 0) return null;
             if (newQty > item.stock_quantity) return item;
@@ -216,9 +296,11 @@ export const POS: React.FC = () => {
     );
   };
 
-  // Remove item from cart
-  const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product_id !== productId));
+  // Remove item from cart (respects specific stock_source)
+  const removeFromCart = (productId: string, source: 'shop' | 'inventory' = 'shop') => {
+    setCart((prev) =>
+      prev.filter((item) => !(item.product_id === productId && (item.stock_source || 'shop') === source))
+    );
   };
 
   // Hardware USB Barcode Scanner listener
@@ -344,6 +426,7 @@ export const POS: React.FC = () => {
           unit_price: i.unit_price,
           discount: itemDisc,
           gst_rate: i.gst_rate,
+          stock_source: i.stock_source || 'shop',
         };
       }),
       discount_amount: totalDiscount,
@@ -467,6 +550,27 @@ export const POS: React.FC = () => {
                 )}
               </div>
 
+              {/* Default Stock Source Switcher (Shop vs Inventory) */}
+              <div className="pos-source-toggle-wrap" title="Default stock pool when adding products">
+                <span className="pos-source-label">Default Stock:</span>
+                <div className="pos-source-toggle">
+                  <button
+                    type="button"
+                    className={`pos-source-btn ${defaultStockSource === 'shop' ? 'active shop' : ''}`}
+                    onClick={() => setDefaultStockSource('shop')}
+                  >
+                    🏪 Shop
+                  </button>
+                  <button
+                    type="button"
+                    className={`pos-source-btn ${defaultStockSource === 'inventory' ? 'active inv' : ''}`}
+                    onClick={() => setDefaultStockSource('inventory')}
+                  >
+                    📦 Inventory
+                  </button>
+                </div>
+              </div>
+
               <div className="pos-scanner-badge" title="USB and Bluetooth barcode scanners automatically scan into this terminal">
                 <Zap size={13} fill="#16a34a" />
                 <span>Scanner Active</span>
@@ -506,7 +610,7 @@ export const POS: React.FC = () => {
                 className={`category-pill ${selectedCategory === 'cactus' ? 'active' : ''}`}
                 onClick={() => setSelectedCategory('cactus')}
               >
-                🌵 Cactus
+                <CactusIcon size={14} /> Cactus
                 <span className="pill-count">{categoryCounts.cactus}</span>
               </button>
               <button
@@ -514,7 +618,7 @@ export const POS: React.FC = () => {
                 className={`category-pill ${selectedCategory === 'pots' ? 'active' : ''}`}
                 onClick={() => setSelectedCategory('pots')}
               >
-                🪴 Pots & Planters
+                <PlanterIcon size={14} /> Pots & Planters
                 <span className="pill-count">{categoryCounts.pots}</span>
               </button>
               <button
@@ -522,7 +626,7 @@ export const POS: React.FC = () => {
                 className={`category-pill ${selectedCategory === 'fertilizers' ? 'active' : ''}`}
                 onClick={() => setSelectedCategory('fertilizers')}
               >
-                🧪 Fertilizers & Care
+                <FlaskConical size={14} /> Fertilizers & Care
                 <span className="pill-count">{categoryCounts.fertilizers}</span>
               </button>
               <button
@@ -530,7 +634,7 @@ export const POS: React.FC = () => {
                 className={`category-pill ${selectedCategory === 'flowers' ? 'active' : ''}`}
                 onClick={() => setSelectedCategory('flowers')}
               >
-                🌸 Flowers & Decor
+                <Flower2 size={14} /> Flowers & Decor
                 <span className="pill-count">{categoryCounts.flowers}</span>
               </button>
 
@@ -542,7 +646,7 @@ export const POS: React.FC = () => {
                   className={`category-pill ${selectedCategory === m.slug ? 'active' : ''}`}
                   onClick={() => setSelectedCategory(m.slug)}
                 >
-                  <span>{m.icon || '📦'}</span> {m.name}
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>{renderModuleIcon(m.icon, 14)}</span> {m.name}
                   <span className="pill-count">{categoryCounts[m.slug] || 0}</span>
                 </button>
               ))}
@@ -564,14 +668,19 @@ export const POS: React.FC = () => {
               </div>
             ) : (
               filteredProducts.map((p) => {
-                const isOutOfStock = p.stock_quantity <= 0;
-                const cartMatch = cart.find((it) => it.product_id === p.id);
-                const isLowStock = !isOutOfStock && p.stock_quantity <= (p.low_stock_threshold || 10);
+                const shopStock = Number(p.shop_stock !== undefined ? p.shop_stock : p.stock_quantity) || 0;
+                const warehouseStock = Number(p.warehouse_stock) || 0;
+                const totalStock = shopStock + warehouseStock;
+                const isOutOfStock = totalStock <= 0;
+                const cartShopMatch = cart.find((it) => it.product_id === p.id && (it.stock_source || 'shop') === 'shop');
+                const cartInvMatch = cart.find((it) => it.product_id === p.id && it.stock_source === 'inventory');
+                const totalInCart = (cartShopMatch?.quantity || 0) + (cartInvMatch?.quantity || 0);
+                const isLowStock = !isOutOfStock && totalStock <= (p.low_stock_threshold || 10);
 
                 return (
                   <div
                     key={p.id}
-                    className={`pos-product-card ${isOutOfStock ? 'out-of-stock' : ''} ${cartMatch ? 'in-cart' : ''}`}
+                    className={`pos-product-card ${isOutOfStock ? 'out-of-stock' : ''} ${totalInCart > 0 ? 'in-cart' : ''}`}
                     onClick={() => !isOutOfStock && addToCart(p)}
                   >
                     {/* Dedicated High-Visibility Image Preview Container */}
@@ -598,13 +707,17 @@ export const POS: React.FC = () => {
                         style={{ display: p.image_url ? 'none' : 'flex' }}
                       >
                         <span className="pos-prod-fallback-icon">
-                          {p.type === 'plants' && '🌿'}
-                          {p.type === 'cactus' && '🌵'}
-                          {p.type === 'pots' && '🪴'}
-                          {p.type === 'fertilizers' && '🧪'}
-                          {p.type === 'flowers' && '🌸'}
+                          {p.type === 'plants' && <Trees size={32} strokeWidth={1.75} style={{ color: '#16a34a' }} />}
+                          {p.type === 'cactus' && <CactusIcon size={32} style={{ color: '#0d9488' }} />}
+                          {p.type === 'pots' && <PlanterIcon size={32} style={{ color: '#ea580c' }} />}
+                          {p.type === 'fertilizers' && <FlaskConical size={32} strokeWidth={1.75} style={{ color: '#6366f1' }} />}
+                          {p.type === 'flowers' && <Flower2 size={32} strokeWidth={1.75} style={{ color: '#e11d48' }} />}
                           {!['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(p.type) && (
-                            modules.find((m) => m.slug === p.type)?.icon || '🌱'
+                            modules.find((m) => m.slug === p.type)?.icon ? (
+                              <span>{modules.find((m) => m.slug === p.type)?.icon}</span>
+                            ) : (
+                              <Trees size={32} strokeWidth={1.75} style={{ color: '#16a34a' }} />
+                            )
                           )}
                         </span>
                       </div>
@@ -615,9 +728,9 @@ export const POS: React.FC = () => {
                       </span>
 
                       {/* Overlay In-Cart Counter Pill */}
-                      {cartMatch && (
+                      {totalInCart > 0 && (
                         <span className="pos-in-cart-pill-overlay">
-                          {cartMatch.quantity} in cart
+                          {totalInCart} in cart
                         </span>
                       )}
 
@@ -637,12 +750,30 @@ export const POS: React.FC = () => {
                       <div className="pos-prod-sku">SKU: {p.sku}</div>
                     </div>
 
-                    {/* Product Footer: Price & Live Stock */}
+                    {/* Product Footer: Price & Both Live Stock Counts */}
                     <div className="pos-prod-footer">
                       <span className="pos-prod-price tabular">₹{Number(p.sale_price).toFixed(2)}</span>
-                      <span className={`pos-prod-stock tabular ${isOutOfStock ? 'out' : isLowStock ? 'low' : ''}`}>
-                        {isOutOfStock ? '• Out of stock' : isLowStock ? `⚡ ${p.stock_quantity} left` : `✓ ${p.stock_quantity} left`}
-                      </span>
+                      
+                      <div className="pos-dual-stock-chips" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className={`pos-stock-chip shop ${shopStock > 0 ? 'available' : 'empty'} ${defaultStockSource === 'shop' ? 'preferred' : ''}`}
+                          onClick={() => shopStock > 0 && addToCart(p, 'shop')}
+                          disabled={shopStock <= 0}
+                          title={shopStock > 0 ? `Add from Shop Counter (${shopStock} available)` : '0 in Shop Counter'}
+                        >
+                          🏪 {shopStock}
+                        </button>
+                        <button
+                          type="button"
+                          className={`pos-stock-chip inv ${warehouseStock > 0 ? 'available' : 'empty'} ${defaultStockSource === 'inventory' ? 'preferred' : ''}`}
+                          onClick={() => warehouseStock > 0 && addToCart(p, 'inventory')}
+                          disabled={warehouseStock <= 0}
+                          title={warehouseStock > 0 ? `Add from Main Inventory (${warehouseStock} available)` : '0 in Main Inventory'}
+                        >
+                          📦 {warehouseStock}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -835,9 +966,10 @@ export const POS: React.FC = () => {
                 const itemDisc = getItemDiscount(item);
                 const isDiscounted = itemDisc > 0;
                 const needsMorePieces = !isDiscounted && item.discount_pieces && item.discount_pieces > 0 && item.discount_percent && item.discount_percent > 0;
+                const currentSource = item.stock_source || 'shop';
 
                 return (
-                  <div key={item.product_id} className="pos-cart-item">
+                  <div key={`${item.product_id}-${currentSource}`} className="pos-cart-item">
                     <div className="cart-item-info">
                       <div className="cart-item-name" title={item.product_name} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
                         <span>{item.product_name}</span>
@@ -847,6 +979,32 @@ export const POS: React.FC = () => {
                           </span>
                         )}
                       </div>
+
+                      {/* Stock Source Switcher for this Cart Item */}
+                      <div className="cart-item-source-row">
+                        <span className="cart-source-label">Source:</span>
+                        <div className="cart-source-chips">
+                          <button
+                            type="button"
+                            className={`cart-source-chip shop ${currentSource === 'shop' ? 'active' : ''}`}
+                            onClick={() => switchCartItemSource(item.product_id, currentSource, 'shop')}
+                            disabled={(item.shop_stock ?? 0) <= 0}
+                            title={(item.shop_stock ?? 0) > 0 ? `Deduct from Shop Counter (${item.shop_stock} available)` : '0 stock in Shop Counter'}
+                          >
+                            🏪 Shop ({item.shop_stock ?? 0})
+                          </button>
+                          <button
+                            type="button"
+                            className={`cart-source-chip inv ${currentSource === 'inventory' ? 'active' : ''}`}
+                            onClick={() => switchCartItemSource(item.product_id, currentSource, 'inventory')}
+                            disabled={(item.warehouse_stock ?? 0) <= 0}
+                            title={(item.warehouse_stock ?? 0) > 0 ? `Deduct from Main Inventory (${item.warehouse_stock} available)` : '0 stock in Main Inventory'}
+                          >
+                            📦 Inv ({item.warehouse_stock ?? 0})
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="cart-item-price-desc">
                         ₹{item.unit_price.toFixed(2)} / unit {isTaxable && item.gst_rate > 0 && `&bull; ${item.gst_rate}% GST`}
                         {needsMorePieces && (
@@ -861,7 +1019,7 @@ export const POS: React.FC = () => {
                       <button
                         type="button"
                         className="cart-qty-btn"
-                        onClick={() => updateQuantity(item.product_id, -1)}
+                        onClick={() => updateQuantity(item.product_id, -1, currentSource)}
                         title="Decrease"
                       >
                         <Minus size={11} />
@@ -870,8 +1028,9 @@ export const POS: React.FC = () => {
                       <button
                         type="button"
                         className="cart-qty-btn"
-                        onClick={() => updateQuantity(item.product_id, 1)}
+                        onClick={() => updateQuantity(item.product_id, 1, currentSource)}
                         title="Increase"
+                        disabled={item.quantity >= item.stock_quantity}
                       >
                         <Plus size={11} />
                       </button>
@@ -889,7 +1048,7 @@ export const POS: React.FC = () => {
                     <button
                       type="button"
                       className="cart-item-delete"
-                      onClick={() => removeFromCart(item.product_id)}
+                      onClick={() => removeFromCart(item.product_id, currentSource)}
                       title="Remove item"
                     >
                       <Trash2 size={13} />

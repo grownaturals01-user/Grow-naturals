@@ -60,6 +60,7 @@ export interface Customer {
   address: string;
   gstin: string;
   customer_type?: 'customer' | 'wholesaler' | string;
+  credit_limit?: number;
   invoice_count?: number;
   total_spent?: number;
   created_at?: string;
@@ -155,6 +156,8 @@ export interface Product {
   gst_rate: number;
   hsn_code: string;
   stock_quantity: number;
+  shop_stock?: number;
+  warehouse_stock?: number;
   low_stock_threshold: number;
   supplier_id?: string | null;
   supplier_name?: string;
@@ -265,6 +268,44 @@ export interface Quotation {
   business_address?: string;
   business_phone?: string;
   invoice_footer?: string;
+  item_count?: number;
+  customer_total_quotes?: number;
+  customer_converted_quotes?: number;
+}
+
+export interface CustomerQuotationHistory {
+  is_repeated: boolean;
+  total_quotations: number;
+  converted_count: number;
+  pending_count: number;
+  conversion_rate: number;
+  total_quoted_amount: number;
+  total_converted_amount: number;
+  total_invoices_count: number;
+  total_invoice_revenue: number;
+  customer_tier: 'high_value' | 'regular' | 'quote_shopper' | 'prospect' | 'new';
+  tier_label: string;
+  badge_variant: string;
+  advice: string;
+  matched_name?: string;
+  matched_phone?: string;
+  recent_quotations: Array<{
+    id: string;
+    quotation_number: string;
+    customer_name: string;
+    customer_phone: string;
+    status: string;
+    total_amount: number | string;
+    converted_id?: string;
+    created_at: string;
+  }>;
+  recent_invoices?: Array<{
+    id: string;
+    invoice_number: string;
+    total_amount: number | string;
+    payment_status: string;
+    created_at: string;
+  }>;
 }
 
 export interface ChallanItem {
@@ -299,6 +340,16 @@ export interface DeliveryChallan {
   payment_date?: string;
   payment_notes?: string;
   invoice_id?: string;
+  approval_status?: 'approved' | 'pending_approval' | 'rejected';
+  approved_by?: string;
+  approved_at?: string;
+  approval_reason?: string;
+  credit_limit_at_creation?: number;
+  credit_exceeded_amount?: number;
+  due_date?: string;
+  reminder_notes?: string;
+  days_until_due?: number;
+  reminder_category?: 'overdue' | 'due_today' | 'due_soon' | 'upcoming';
   notes: string;
   created_at: string;
   project_name?: string;
@@ -458,6 +509,9 @@ export interface POSCartItem {
   discount: number;
   gst_rate: number;
   stock_quantity: number;
+  stock_source?: 'shop' | 'inventory';
+  shop_stock?: number;
+  warehouse_stock?: number;
   discount_pieces?: number;
   discount_percent?: number;
 }

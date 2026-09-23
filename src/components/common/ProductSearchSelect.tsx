@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Product } from '../../types';
 import { Search, ChevronDown, Check, X, Plus } from 'lucide-react';
+import { CategoryIconBadge } from './CategoryIcons';
 
 interface ProductSearchSelectProps {
   products: Product[];
@@ -61,17 +62,6 @@ export const ProductSearchSelect: React.FC<ProductSearchSelectProps> = ({
     e.stopPropagation();
     setQuery('');
     onChange('', undefined);
-  };
-
-  const getCategoryIcon = (type: string) => {
-    switch (type) {
-      case 'plants': return '🌱';
-      case 'cactus': return '🌵';
-      case 'pots': return '🪴';
-      case 'fertilizers': return '🧪';
-      case 'flowers': return '💐';
-      default: return '📦';
-    }
   };
 
   return (
@@ -207,7 +197,7 @@ export const ProductSearchSelect: React.FC<ProductSearchSelectProps> = ({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    <span style={{ fontSize: '1.1rem' }}>{getCategoryIcon(prod.type)}</span>
+                    <CategoryIconBadge type={prod.type} size={14} badgeSize={28} />
                     <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                       <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                         {prod.name}

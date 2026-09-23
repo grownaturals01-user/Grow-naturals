@@ -9,6 +9,7 @@ import './styles/layout.css';
 import './styles/components.css';
 import './styles/pos.css';
 import './styles/print.css';
+import './styles/create-sales-invoice.css';
 
 const rootElement = document.getElementById('root');
 

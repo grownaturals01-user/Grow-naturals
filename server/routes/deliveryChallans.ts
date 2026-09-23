@@ -11,7 +11,7 @@ function getBusinessId(req: Request): string {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const businessId = getBusinessId(req);
-    const { status, payment_status, customer, search, project_id } = req.query;
+    const { status, payment_status, approval_status, customer, search, project_id } = req.query;
 
     const db = await getDb();
     let query = `
@@ -33,6 +33,11 @@ router.get('/', async (req: Request, res: Response) => {
     if (payment_status && payment_status !== 'all') {
       query += ` AND dc.payment_status = $${paramIndex++}`;
       params.push(payment_status);
+    }
+
+    if (approval_status && approval_status !== 'all') {
+      query += ` AND dc.approval_status = $${paramIndex++}`;
+      params.push(approval_status);
     }
 
     if (customer) {
@@ -129,6 +134,70 @@ router.get('/customers-summary', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/delivery-challans/due-reminders
+router.get('/due-reminders', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const db = await getDb();
+
+    const query = `
+      SELECT dc.*, 
+             p.name as project_name,
+             (SELECT COUNT(*) FROM challan_items ci WHERE ci.challan_id = dc.id) as item_count
+      FROM delivery_challans dc
+      LEFT JOIN projects p ON dc.project_id = p.id
+      WHERE dc.business_id = $1 
+        AND dc.payment_status != 'paid'
+        AND dc.due_amount > 0
+        AND dc.due_date IS NOT NULL
+      ORDER BY dc.due_date ASC
+    `;
+
+    const result = await db.query(query, [businessId]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const rows = result.rows.map((row: any) => {
+      const dDate = new Date(row.due_date);
+      dDate.setHours(0, 0, 0, 0);
+      const diffTime = dDate.getTime() - today.getTime();
+      const daysUntilDue = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      let reminderCategory = 'upcoming';
+      if (daysUntilDue < 0) {
+        reminderCategory = 'overdue';
+      } else if (daysUntilDue === 0) {
+        reminderCategory = 'due_today';
+      } else if (daysUntilDue <= 3) {
+        reminderCategory = 'due_soon';
+      }
+
+      return {
+        ...row,
+        days_until_due: daysUntilDue,
+        reminder_category: reminderCategory
+      };
+    });
+
+    const overdue = rows.filter((r: any) => r.reminder_category === 'overdue');
+    const dueToday = rows.filter((r: any) => r.reminder_category === 'due_today');
+    const dueSoon = rows.filter((r: any) => r.reminder_category === 'due_soon');
+
+    res.json({
+      reminders: rows,
+      summary: {
+        total_pending: rows.length,
+        overdue_count: overdue.length,
+        due_today_count: dueToday.length,
+        due_soon_count: dueSoon.length,
+        total_due_amount: rows.reduce((s: number, r: any) => s + (Number(r.due_amount) || 0), 0)
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/delivery-challans/:id
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -168,6 +237,27 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/delivery-challans/:id/due-date
+router.put('/:id/due-date', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { due_date, reminder_notes } = req.body;
+    const db = await getDb();
+
+    await db.query(
+      `UPDATE delivery_challans 
+       SET due_date = $1, reminder_notes = COALESCE($2, reminder_notes)
+       WHERE id = $3`,
+      [due_date || null, reminder_notes || '', id]
+    );
+
+    const updated = await db.query(`SELECT * FROM delivery_challans WHERE id = $1`, [id]);
+    res.json(updated.rows[0]);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/delivery-challans
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -184,7 +274,9 @@ router.post('/', async (req: Request, res: Response) => {
       notes,
       paid_amount = 0,
       payment_method = '',
-      items
+      items,
+      due_date,
+      reminder_notes
     } = req.body;
 
     if (!customer_name) {
@@ -250,13 +342,55 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
+    // Check Customer Credit Limit
+    let customerCreditLimit = 0;
+    let customerCurrentDues = 0;
+
+    if (validCustomerId) {
+      const custRes = await db.query(`SELECT credit_limit FROM customers WHERE id = $1`, [validCustomerId]);
+      if (custRes.rows.length > 0) {
+        customerCreditLimit = Number(custRes.rows[0].credit_limit) || 0;
+      }
+    } else if (customer_name) {
+      const custRes = await db.query(`SELECT credit_limit FROM customers WHERE name ILIKE $1`, [customer_name.trim()]);
+      if (custRes.rows.length > 0) {
+        customerCreditLimit = Number(custRes.rows[0].credit_limit) || 0;
+      }
+    }
+
+    // Calculate customer's existing unpaid balance from previous Delivery Challans
+    const duesRes = await db.query(
+      `SELECT COALESCE(SUM(due_amount), 0) as total_dues 
+       FROM delivery_challans 
+       WHERE business_id = $1 
+         AND payment_status != 'paid' 
+         AND (customer_id = $2 OR customer_name ILIKE $3)`,
+      [businessId, validCustomerId || 'non-existent-id', customer_name.trim()]
+    );
+    customerCurrentDues = Number(duesRes.rows[0]?.total_dues) || 0;
+
+    let approvalStatus = 'approved';
+    let approvalReason = '';
+    let creditExceededAmount = 0;
+
+    if (customerCreditLimit > 0) {
+      const projectedTotalDue = customerCurrentDues + dueAmount;
+      if (projectedTotalDue > customerCreditLimit) {
+        approvalStatus = 'pending_approval';
+        creditExceededAmount = projectedTotalDue - customerCreditLimit;
+        approvalReason = `Credit limit of ₹${customerCreditLimit.toFixed(2)} exceeded by ₹${creditExceededAmount.toFixed(2)} (Current dues: ₹${customerCurrentDues.toFixed(2)} + New DC due: ₹${dueAmount.toFixed(2)} = ₹${projectedTotalDue.toFixed(2)})`;
+      }
+    }
+
     await db.query(
       `INSERT INTO delivery_challans (
         id, business_id, challan_number, customer_id, customer_name, customer_phone, project_id,
         quotation_id, dispatch_date, vehicle_no, driver_name, status,
         total_amount, paid_amount, due_amount, payment_status, payment_method,
-        payment_date, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'dispatched', $12, $13, $14, $15, $16, $17, $18)`,
+        payment_date, notes,
+        approval_status, approval_reason, credit_limit_at_creation, credit_exceeded_amount,
+        due_date, reminder_notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'dispatched', $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
       [
         challanId,
         businessId,
@@ -275,7 +409,13 @@ router.post('/', async (req: Request, res: Response) => {
         paymentStatus,
         initialPaid > 0 ? (payment_method || 'cash') : '',
         initialPaid > 0 ? new Date().toISOString() : null,
-        notes || ''
+        notes || '',
+        approvalStatus,
+        approvalReason,
+        customerCreditLimit,
+        creditExceededAmount,
+        due_date || (dueAmount > 0 ? new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0] : null),
+        reminder_notes || ''
       ]
     );
 
@@ -309,8 +449,67 @@ router.post('/', async (req: Request, res: Response) => {
       challan_number: challanNumber,
       total_amount: totalAmount,
       due_amount: dueAmount,
-      payment_status: paymentStatus
+      payment_status: paymentStatus,
+      approval_status: approvalStatus,
+      approval_reason: approvalReason,
+      credit_limit_at_creation: customerCreditLimit,
+      credit_exceeded_amount: creditExceededAmount
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/delivery-challans/:id/approve - Approve Credit Limit Exceeded DC
+router.post('/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { approved_by = 'Manager' } = req.body;
+
+    const db = await getDb();
+    const dcRes = await db.query(`SELECT * FROM delivery_challans WHERE id = $1`, [id]);
+    if (dcRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Delivery challan not found' });
+    }
+
+    await db.query(
+      `UPDATE delivery_challans 
+       SET approval_status = 'approved',
+           approved_by = $1,
+           approved_at = CURRENT_TIMESTAMP
+       WHERE id = $2`,
+      [approved_by, id]
+    );
+
+    res.json({ success: true, message: 'Delivery Challan approved successfully', approval_status: 'approved' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/delivery-challans/:id/reject - Reject Credit Limit Exceeded DC
+router.post('/:id/reject', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Credit limit exceeded override rejected', rejected_by = 'Manager' } = req.body;
+
+    const db = await getDb();
+    const dcRes = await db.query(`SELECT * FROM delivery_challans WHERE id = $1`, [id]);
+    if (dcRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Delivery challan not found' });
+    }
+
+    await db.query(
+      `UPDATE delivery_challans 
+       SET approval_status = 'rejected',
+           approved_by = $1,
+           approved_at = CURRENT_TIMESTAMP,
+           approval_reason = $2
+       WHERE id = $3`,
+      [rejected_by, reason, id]
+    );
+
+    res.json({ success: true, message: 'Delivery Challan rejected', approval_status: 'rejected' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -323,6 +522,11 @@ router.put('/:id/status', async (req: Request, res: Response) => {
     const { status } = req.body; // 'dispatched', 'delivered'
 
     const db = await getDb();
+    const dcCheck = await db.query(`SELECT approval_status FROM delivery_challans WHERE id = $1`, [id]);
+    if (dcCheck.rows.length > 0 && dcCheck.rows[0].approval_status === 'pending_approval') {
+      return res.status(400).json({ error: 'Cannot change status of Delivery Challan while credit limit approval is pending.' });
+    }
+
     await db.query(
       `UPDATE delivery_challans SET status = $1 WHERE id = $2`,
       [status || 'delivered', id]
@@ -352,6 +556,10 @@ router.post('/:id/payments', async (req: Request, res: Response) => {
     }
 
     const challan = dcRes.rows[0];
+    if (create_invoice && challan.approval_status === 'pending_approval') {
+      return res.status(400).json({ error: 'Cannot convert Delivery Challan to Invoice while Credit Limit Approval is pending.' });
+    }
+
     const currentTotal = Number(challan.total_amount) || 0;
     const currentPaid = Number(challan.paid_amount) || 0;
     const newPaid = currentPaid + paymentVal;

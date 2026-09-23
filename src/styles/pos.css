@@ -779,3 +779,186 @@
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   DUAL STOCK COUNTS & STOCK SOURCE SELECTION (SHOP COUNTER VS INVENTORY)
+   ========================================================================== */
+.pos-source-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-lg);
+  padding: 3px 6px;
+  height: 44px;
+}
+
+.pos-source-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.03em;
+  padding-left: 4px;
+}
+
+.pos-source-toggle {
+  display: flex;
+  gap: 3px;
+  background-color: #e2e8f0;
+  padding: 2px;
+  border-radius: var(--radius-md);
+}
+
+.pos-source-btn {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: #475569;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.pos-source-btn:hover {
+  color: #0f172a;
+}
+
+.pos-source-btn.active.shop {
+  background-color: #ffffff;
+  color: #15803d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.pos-source-btn.active.inv {
+  background-color: #ffffff;
+  color: #4338ca;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Product Card Dual Stock Chips */
+.pos-dual-stock-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pos-stock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.pos-stock-chip.shop {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.pos-stock-chip.shop:hover:not(:disabled) {
+  background-color: #d1fae5;
+  transform: translateY(-1px);
+}
+
+.pos-stock-chip.shop.preferred {
+  font-weight: 800;
+  border-color: #059669;
+  box-shadow: 0 0 0 1px #059669;
+}
+
+.pos-stock-chip.inv {
+  background-color: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
+.pos-stock-chip.inv:hover:not(:disabled) {
+  background-color: #e0e7ff;
+  transform: translateY(-1px);
+}
+
+.pos-stock-chip.inv.preferred {
+  font-weight: 800;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 1px #4f46e5;
+}
+
+.pos-stock-chip.empty {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}
+
+/* Cart Item Source Switcher Row */
+.cart-item-source-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 2px 0;
+}
+
+.cart-source-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.cart-source-chips {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.cart-source-chip {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.cart-source-chip:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.cart-source-chip.shop.active {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #10b981;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.15);
+}
+
+.cart-source-chip.inv.active {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-color: #6366f1;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(99, 102, 241, 0.15);
+}
+
+.cart-source-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #f1f5f9;
+}

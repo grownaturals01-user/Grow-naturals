@@ -26,7 +26,10 @@ import {
   FileCheck2,
   X,
   Loader2,
-  Briefcase
+  Briefcase,
+  ShieldAlert,
+  ShieldCheck,
+  Bell
 } from 'lucide-react';
 
 export const DeliveryChallansList: React.FC = () => {
@@ -39,7 +42,19 @@ export const DeliveryChallansList: React.FC = () => {
   const [search, setSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [approvalFilter, setApprovalFilter] = useState<string>('all');
+  const [dueReminderFilter, setDueReminderFilter] = useState<'all' | 'overdue' | 'due_today' | 'due_soon'>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [dueReminders, setDueReminders] = useState<{
+    reminders: any[];
+    summary: {
+      total_pending: number;
+      overdue_count: number;
+      due_today_count: number;
+      due_soon_count: number;
+      total_due_amount: number;
+    };
+  } | null>(null);
 
   // Expanded customers state
   const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
@@ -58,20 +73,27 @@ export const DeliveryChallansList: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [allDc, custSummary] = await Promise.all([
+      const [allDc, custSummary, reminders] = await Promise.all([
         api.get('/delivery-challans', {
           business_id: businessId,
           status: statusFilter !== 'all' ? statusFilter : undefined,
           payment_status: paymentFilter !== 'all' ? paymentFilter : undefined,
+          approval_status: approvalFilter !== 'all' ? approvalFilter : undefined,
           search: search.trim() || undefined,
         }),
         api.get('/delivery-challans/customers-summary', {
           business_id: businessId,
           search: search.trim() || undefined,
-        })
+        }),
+        api.get('/delivery-challans/due-reminders', {
+          business_id: businessId
+        }).catch(() => null)
       ]);
       setChallans(allDc);
       setCustomerSummaries(custSummary);
+      if (reminders) {
+        setDueReminders(reminders);
+      }
     } catch (err) {
       console.error('Failed to load DC data', err);
     } finally {
@@ -81,7 +103,7 @@ export const DeliveryChallansList: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [businessId, statusFilter, paymentFilter, search]);
+  }, [businessId, statusFilter, paymentFilter, approvalFilter, search]);
 
   const toggleCustomerExpand = (custName: string) => {
     setExpandedCustomers((prev) => ({ ...prev, [custName]: !prev[custName] }));
@@ -183,11 +205,61 @@ export const DeliveryChallansList: React.FC = () => {
     }
   };
 
+  // Helper to compute DC due status
+  const getDCDueInfo = (dc: DeliveryChallan) => {
+    const total = Number(dc.total_amount) || 0;
+    const paid = Number(dc.paid_amount) || 0;
+    const due = Number(dc.due_amount) || Math.max(0, total - paid);
+
+    if (due <= 0 || dc.payment_status === 'paid' || dc.payment_status === 'billed') {
+      return { isDue: false, days: null, category: 'settled', label: 'Settled', color: '#059669', bg: 'rgba(16, 185, 129, 0.12)' };
+    }
+    if (!dc.due_date) {
+      return { isDue: true, days: null, category: 'no_due_date', label: 'No Due Date', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dDate = new Date(dc.due_date);
+    dDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((dDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return { isDue: true, days: diffDays, category: 'overdue', label: `${Math.abs(diffDays)}d Overdue`, color: '#dc2626', bg: '#fee2e2' };
+    } else if (diffDays === 0) {
+      return { isDue: true, days: 0, category: 'due_today', label: 'Due Today', color: '#ea580c', bg: '#ffedd5' };
+    } else if (diffDays <= 7) {
+      return { isDue: true, days: diffDays, category: 'due_soon', label: `Due in ${diffDays}d`, color: '#d97706', bg: '#fef3c7' };
+    }
+    return { isDue: true, days: diffDays, category: 'upcoming', label: `Due ${new Date(dc.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`, color: '#2563eb', bg: '#eff6ff' };
+  };
+
   // Metrics calculation
   const totalDispatched = customerSummaries.reduce((sum, c) => sum + c.total_dispatched_amount, 0);
   const totalPaid = customerSummaries.reduce((sum, c) => sum + c.total_paid_amount, 0);
   const totalDues = customerSummaries.reduce((sum, c) => sum + c.total_due_balance, 0);
   const customersWithDues = customerSummaries.filter((c) => c.total_due_balance > 0).length;
+
+  // Filtered lists considering due reminder filters
+  const filteredChallans = challans.filter((dc) => {
+    if (dueReminderFilter === 'all') return true;
+    const dueInfo = getDCDueInfo(dc);
+    return dueInfo.category === dueReminderFilter;
+  });
+
+  const filteredCustomerSummaries = customerSummaries
+    .map((summary) => {
+      if (dueReminderFilter === 'all') return summary;
+      const matching = summary.challans.filter((dc) => {
+        const dueInfo = getDCDueInfo(dc);
+        return dueInfo.category === dueReminderFilter;
+      });
+      return {
+        ...summary,
+        challans: matching,
+        total_due_balance: matching.reduce((s, d) => s + (Number(d.due_amount) || Math.max(0, (Number(d.total_amount) || 0) - (Number(d.paid_amount) || 0))), 0)
+      };
+    })
+    .filter((s) => (dueReminderFilter === 'all' ? true : s.challans.length > 0));
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '40px' }}>
@@ -209,6 +281,133 @@ export const DeliveryChallansList: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Due Date & Reminders Banner */}
+      {dueReminders && (dueReminders.summary.overdue_count > 0 || dueReminders.summary.due_today_count > 0 || dueReminders.summary.due_soon_count > 0) && (
+        <div
+          style={{
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fcd34d',
+            borderRadius: 'var(--radius-xl)',
+            padding: '14px 20px',
+            marginBottom: '20px',
+            boxShadow: 'var(--shadow-xs)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '14px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: '#fef3c7',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <Bell size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Payment Due Reminders & Deadlines
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309', backgroundColor: '#fef3c7', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fde68a' }}>
+                  ₹{dueReminders.summary.total_due_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} Total Due
+                </span>
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#b45309', marginTop: '2px' }}>
+                Follow up with customers on pending challans before or on their scheduled payment due date.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {dueReminders.summary.overdue_count > 0 && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setDueReminderFilter(dueReminderFilter === 'overdue' ? 'all' : 'overdue')}
+                style={{
+                  backgroundColor: dueReminderFilter === 'overdue' ? '#dc2626' : '#fee2e2',
+                  color: dueReminderFilter === 'overdue' ? '#ffffff' : '#991b1b',
+                  border: '1px solid #fca5a5',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '5px 12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <AlertCircle size={13} /> {dueReminders.summary.overdue_count} Overdue
+              </button>
+            )}
+
+            {dueReminders.summary.due_today_count > 0 && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setDueReminderFilter(dueReminderFilter === 'due_today' ? 'all' : 'due_today')}
+                style={{
+                  backgroundColor: dueReminderFilter === 'due_today' ? '#ea580c' : '#ffedd5',
+                  color: dueReminderFilter === 'due_today' ? '#ffffff' : '#9a3412',
+                  border: '1px solid #fed7aa',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '5px 12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <Clock size={13} /> {dueReminders.summary.due_today_count} Due Today
+              </button>
+            )}
+
+            {dueReminders.summary.due_soon_count > 0 && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setDueReminderFilter(dueReminderFilter === 'due_soon' ? 'all' : 'due_soon')}
+                style={{
+                  backgroundColor: dueReminderFilter === 'due_soon' ? '#d97706' : '#fef3c7',
+                  color: dueReminderFilter === 'due_soon' ? '#ffffff' : '#b45309',
+                  border: '1px solid #fde68a',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '5px 12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <Calendar size={13} /> {dueReminders.summary.due_soon_count} Due in 7 Days
+              </button>
+            )}
+
+            {dueReminderFilter !== 'all' && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setDueReminderFilter('all')}
+                style={{ fontSize: '0.75rem', color: '#92400e', textDecoration: 'underline', padding: '4px 8px' }}
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* KPI Summary Cards */}
       <div className="stat-grid" style={{ marginBottom: '20px' }}>
@@ -275,7 +474,7 @@ export const DeliveryChallansList: React.FC = () => {
             onClick={() => setActiveTab('by-customer')}
             style={{ fontSize: '0.8125rem', padding: '7px 14px', borderRadius: 'var(--radius-md)' }}
           >
-            <Layers size={14} /> Grouped by Customer ({customerSummaries.length})
+            <Layers size={14} /> Grouped by Customer ({filteredCustomerSummaries.length})
           </button>
           <button
             type="button"
@@ -283,13 +482,13 @@ export const DeliveryChallansList: React.FC = () => {
             onClick={() => setActiveTab('all-challans')}
             style={{ fontSize: '0.8125rem', padding: '7px 14px', borderRadius: 'var(--radius-md)' }}
           >
-            <Truck size={14} /> All Challans ({challans.length})
+            <Truck size={14} /> All Challans ({filteredChallans.length})
           </button>
         </div>
 
         {/* Search and Filters */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ width: '260px' }}>
+          <div style={{ width: '240px' }}>
             <SearchBar
               value={search}
               onChange={setSearch}
@@ -300,6 +499,18 @@ export const DeliveryChallansList: React.FC = () => {
           <select
             className="form-select"
             style={{ width: '150px', fontSize: '0.8125rem', padding: '7px 12px' }}
+            value={dueReminderFilter}
+            onChange={(e) => setDueReminderFilter(e.target.value as any)}
+          >
+            <option value="all">All Deadlines</option>
+            <option value="overdue">🚨 Overdue Dues</option>
+            <option value="due_today">⏰ Due Today</option>
+            <option value="due_soon">📅 Due in 7 Days</option>
+          </select>
+
+          <select
+            className="form-select"
+            style={{ width: '145px', fontSize: '0.8125rem', padding: '7px 12px' }}
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value)}
           >
@@ -312,13 +523,25 @@ export const DeliveryChallansList: React.FC = () => {
 
           <select
             className="form-select"
-            style={{ width: '140px', fontSize: '0.8125rem', padding: '7px 12px' }}
+            style={{ width: '130px', fontSize: '0.8125rem', padding: '7px 12px' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">All Transit</option>
             <option value="dispatched">In Transit</option>
             <option value="delivered">Delivered</option>
+          </select>
+
+          <select
+            className="form-select"
+            style={{ width: '140px', fontSize: '0.8125rem', padding: '7px 12px' }}
+            value={approvalFilter}
+            onChange={(e) => setApprovalFilter(e.target.value)}
+          >
+            <option value="all">All Approvals</option>
+            <option value="pending_approval">Pending Approval</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
       </div>
@@ -330,18 +553,18 @@ export const DeliveryChallansList: React.FC = () => {
         </div>
       ) : activeTab === 'by-customer' ? (
         /* TAB 1: GROUPED BY CUSTOMER VIEW */
-        customerSummaries.length === 0 ? (
+        filteredCustomerSummaries.length === 0 ? (
           <EmptyState
             icon={Truck}
             title="No Customer Delivery Records"
-            description={`No delivery challans recorded for ${business?.name}.`}
+            description={`No delivery challans match your selected filters.`}
             actionText="Create Delivery Challan"
             actionLink="/delivery-challans/new"
             accentClass="btn-sell"
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {customerSummaries.map((summary) => {
+            {filteredCustomerSummaries.map((summary) => {
               const isExpanded = !!expandedCustomers[summary.customer_name];
               const hasDue = summary.total_due_balance > 0;
 
@@ -478,6 +701,7 @@ export const DeliveryChallansList: React.FC = () => {
                             const dcTotal = Number(dc.total_amount) || 0;
                             const dcPaid = Number(dc.paid_amount) || 0;
                             const dcDue = Number(dc.due_amount) || Math.max(0, dcTotal - dcPaid);
+                            const dueInfo = getDCDueInfo(dc);
 
                             return (
                               <tr key={dc.id} style={{ backgroundColor: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)' }}>
@@ -511,26 +735,67 @@ export const DeliveryChallansList: React.FC = () => {
                                 </td>
 
                                 <td style={{ padding: '12px 18px', verticalAlign: 'middle' }}>
-                                  <span
-                                    style={{
-                                      fontSize: '0.7rem',
-                                      fontWeight: 700,
-                                      padding: '2px 8px',
-                                      borderRadius: '999px',
-                                      backgroundColor: dc.status === 'delivered' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                                      color: dc.status === 'delivered' ? '#059669' : '#d97706',
-                                      border: `1px solid ${dc.status === 'delivered' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`
-                                    }}
-                                  >
-                                    {dc.status === 'delivered' ? 'Delivered' : 'In Transit'}
-                                  </span>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                    <span
+                                      style={{
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        padding: '2px 8px',
+                                        borderRadius: '999px',
+                                        width: 'fit-content',
+                                        backgroundColor: dc.status === 'delivered' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                        color: dc.status === 'delivered' ? '#059669' : '#d97706',
+                                        border: `1px solid ${dc.status === 'delivered' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`
+                                      }}
+                                    >
+                                      {dc.status === 'delivered' ? 'Delivered' : 'In Transit'}
+                                    </span>
+                                    {dc.approval_status === 'pending_approval' ? (
+                                      <span
+                                        style={{
+                                          fontSize: '0.68rem',
+                                          fontWeight: 700,
+                                          padding: '2px 7px',
+                                          borderRadius: '999px',
+                                          width: 'fit-content',
+                                          backgroundColor: '#fffbeb',
+                                          color: '#b45309',
+                                          border: '1px solid #fde68a',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '3px'
+                                        }}
+                                        title={dc.approval_reason || 'Credit limit exceeded'}
+                                      >
+                                        <ShieldAlert size={10} color="#d97706" /> Approval Required
+                                      </span>
+                                    ) : dc.approval_status === 'rejected' ? (
+                                      <span
+                                        style={{
+                                          fontSize: '0.68rem',
+                                          fontWeight: 700,
+                                          padding: '2px 7px',
+                                          borderRadius: '999px',
+                                          width: 'fit-content',
+                                          backgroundColor: '#fee2e2',
+                                          color: '#b91c1c',
+                                          border: '1px solid #fca5a5',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '3px'
+                                        }}
+                                      >
+                                        <X size={10} color="#dc2626" /> Rejected
+                                      </span>
+                                    ) : null}
+                                  </div>
                                 </td>
 
                                 <td style={{ padding: '12px 18px', textAlign: 'right', verticalAlign: 'middle' }}>
                                   <div style={{ fontWeight: 800, fontSize: '0.9rem', color: dcDue > 0 ? '#dc2626' : '#059669' }} className="tabular">
                                     ₹{dcDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })} {dcDue > 0 ? 'Due' : ''}
                                   </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginTop: '2px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                                       Total: ₹{dcTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </span>
@@ -556,6 +821,24 @@ export const DeliveryChallansList: React.FC = () => {
                                     >
                                       {dc.payment_status === 'billed' ? 'Billed' : dc.payment_status === 'paid' ? 'Paid' : dc.payment_status === 'partially_paid' ? 'Partial' : 'Unpaid'}
                                     </span>
+                                    {dueInfo.isDue && (
+                                      <span
+                                        style={{
+                                          fontSize: '0.68rem',
+                                          fontWeight: 700,
+                                          padding: '1px 6px',
+                                          borderRadius: '4px',
+                                          backgroundColor: dueInfo.bg,
+                                          color: dueInfo.color,
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '2px'
+                                        }}
+                                        title={dc.due_date ? `Due Date: ${new Date(dc.due_date).toLocaleDateString('en-IN')}` : undefined}
+                                      >
+                                        <Clock size={10} /> {dueInfo.label}
+                                      </span>
+                                    )}
                                   </div>
                                 </td>
 
@@ -608,7 +891,7 @@ export const DeliveryChallansList: React.FC = () => {
         )
       ) : (
         /* TAB 2: CHRONOLOGICAL ALL CHALLANS VIEW */
-        challans.length === 0 ? (
+        filteredChallans.length === 0 ? (
           <EmptyState
             icon={Truck}
             title="No Delivery Challans Found"
@@ -631,17 +914,18 @@ export const DeliveryChallansList: React.FC = () => {
               <thead>
                 <tr style={{ backgroundColor: 'var(--color-bg-surface-subtle)', borderBottom: '1px solid var(--color-border)' }}>
                   <th style={{ width: '18%', padding: '14px 18px' }}>Challan & Date</th>
-                  <th style={{ width: '30%', padding: '14px 18px' }}>Customer & Destination</th>
+                  <th style={{ width: '28%', padding: '14px 18px' }}>Customer & Destination</th>
                   <th style={{ width: '18%', padding: '14px 18px' }}>Transit & Vehicle</th>
-                  <th style={{ width: '18%', padding: '14px 18px', textAlign: 'right' }}>Total & Due Balance</th>
+                  <th style={{ width: '20%', padding: '14px 18px', textAlign: 'right' }}>Total & Due Balance</th>
                   <th style={{ width: '16%', padding: '14px 18px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {challans.map((dc) => {
+                {filteredChallans.map((dc) => {
                   const total = Number(dc.total_amount) || 0;
                   const paid = Number(dc.paid_amount) || 0;
                   const due = Number(dc.due_amount) || Math.max(0, total - paid);
+                  const dueInfo = getDCDueInfo(dc);
 
                   return (
                     <tr key={dc.id} style={{ transition: 'background-color 0.15s ease', borderBottom: '1px solid var(--color-border)' }}>
@@ -705,7 +989,7 @@ export const DeliveryChallansList: React.FC = () => {
                         <div style={{ fontWeight: 600, color: 'var(--color-text-secondary)', fontSize: '0.8125rem' }}>
                           {dc.vehicle_no || 'Handover Dispatch'}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
                           <span
                             style={{
                               fontSize: '0.7rem',
@@ -719,6 +1003,42 @@ export const DeliveryChallansList: React.FC = () => {
                           >
                             {dc.status === 'delivered' ? 'Delivered' : 'In Transit'}
                           </span>
+                          {dc.approval_status === 'pending_approval' ? (
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                padding: '2px 7px',
+                                borderRadius: '999px',
+                                backgroundColor: '#fffbeb',
+                                color: '#b45309',
+                                border: '1px solid #fde68a',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}
+                              title={dc.approval_reason || 'Credit limit exceeded'}
+                            >
+                              <ShieldAlert size={10} color="#d97706" /> Approval Required
+                            </span>
+                          ) : dc.approval_status === 'rejected' ? (
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                padding: '2px 7px',
+                                borderRadius: '999px',
+                                backgroundColor: '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #fca5a5',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}
+                            >
+                              <X size={10} color="#dc2626" /> Rejected
+                            </span>
+                          ) : null}
                           {dc.driver_name && (
                             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>
                               ({dc.driver_name})
@@ -732,7 +1052,7 @@ export const DeliveryChallansList: React.FC = () => {
                         <div style={{ fontWeight: 800, fontSize: '0.92rem', color: due > 0 ? '#dc2626' : '#059669' }} className="tabular">
                           ₹{due.toLocaleString('en-IN', { minimumFractionDigits: 2 })} {due > 0 ? 'Due' : ''}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginTop: '3px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                             Total: ₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
@@ -758,6 +1078,24 @@ export const DeliveryChallansList: React.FC = () => {
                           >
                             {dc.payment_status === 'billed' ? 'Billed' : dc.payment_status === 'paid' ? 'Paid' : dc.payment_status === 'partially_paid' ? 'Partial' : 'Unpaid'}
                           </span>
+                          {dueInfo.isDue && (
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                backgroundColor: dueInfo.bg,
+                                color: dueInfo.color,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px'
+                              }}
+                              title={dc.due_date ? `Due Date: ${new Date(dc.due_date).toLocaleDateString('en-IN')}` : undefined}
+                            >
+                              <Clock size={10} /> {dueInfo.label}
+                            </span>
+                          )}
                         </div>
                       </td>
 

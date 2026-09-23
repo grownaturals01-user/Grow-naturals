@@ -18,7 +18,13 @@ import {
   Building2,
   FileText,
   Loader2,
-  PackageCheck
+  PackageCheck,
+  ShieldAlert,
+  CheckCircle2,
+  Bell,
+  Clock,
+  Package,
+  CreditCard
 } from 'lucide-react';
 
 export const DeliveryChallanNew: React.FC = () => {
@@ -29,6 +35,7 @@ export const DeliveryChallanNew: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [existingCustomerDue, setExistingCustomerDue] = useState<number | null>(null);
+  const [customerCreditLimit, setCustomerCreditLimit] = useState<number>(0);
 
   // Form state
   const [customerName, setCustomerName] = useState<string>('');
@@ -36,6 +43,12 @@ export const DeliveryChallanNew: React.FC = () => {
   const [customerId, setCustomerId] = useState<string>('');
   const [projectId, setProjectId] = useState<string>('');
   const [dispatchDate, setDispatchDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [dueDate, setDueDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 15);
+    return d.toISOString().split('T')[0];
+  });
+  const [reminderNotes, setReminderNotes] = useState<string>('');
   const [vehicleNo, setVehicleNo] = useState<string>('');
   const [driverName, setDriverName] = useState<string>('');
   const [notes, setNotes] = useState<string>('Delivered in good condition. Payment due upon final inspection / invoice.');
@@ -60,19 +73,26 @@ export const DeliveryChallanNew: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const handleSetDuePreset = (days: number) => {
+    const base = dispatchDate ? new Date(dispatchDate) : new Date();
+    base.setDate(base.getDate() + days);
+    setDueDate(base.toISOString().split('T')[0]);
+  };
+
   useEffect(() => {
     api.get('/projects', { business_id: businessId }).then(setProjects).catch(console.warn);
     api.get('/products', { business_id: businessId }).then(setProducts).catch(console.warn);
     api.get('/customers', { business_id: businessId }).then(setCustomers).catch(console.warn);
   }, [businessId]);
 
-  // Check customer dues when customer is selected
+  // Check customer dues and credit limit when customer is selected
   const handleSelectCustomer = (selectedId: string) => {
     setCustomerId(selectedId);
     const found = customers.find((c) => c.id === selectedId);
     if (found) {
       setCustomerName(found.name);
       setCustomerPhone(found.phone || '');
+      setCustomerCreditLimit(Number(found.credit_limit) || 0);
 
       // Fetch customer's outstanding DC dues
       api.get('/delivery-challans/customers-summary', { business_id: businessId, search: found.name })
@@ -83,6 +103,7 @@ export const DeliveryChallanNew: React.FC = () => {
         .catch(() => setExistingCustomerDue(null));
     } else {
       setExistingCustomerDue(null);
+      setCustomerCreditLimit(0);
     }
   };
 
@@ -169,6 +190,8 @@ export const DeliveryChallanNew: React.FC = () => {
         notes: notes.trim(),
         paid_amount: finalPaidAmount,
         payment_method: finalPaidAmount > 0 ? paymentMethod : '',
+        due_date: finalPaidAmount < totalAmount ? dueDate : null,
+        reminder_notes: reminderNotes.trim(),
         items: validItems,
       });
 
@@ -280,26 +303,109 @@ export const DeliveryChallanNew: React.FC = () => {
               </div>
             </div>
 
-            {/* Existing Dues Indicator */}
-            {existingCustomerDue !== null && existingCustomerDue > 0 && (
+            {/* Existing Dues & Credit Limit Status Indicator */}
+            {(customerId || customerName) && (existingCustomerDue !== null || customerCreditLimit > 0) && (
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  backgroundColor: 'var(--module-sell-subtle)',
-                  color: 'var(--module-sell-text)',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  padding: '10px 14px',
+                  backgroundColor: '#f8fafc',
                   borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--module-sell-border)',
-                  marginTop: '10px',
-                  fontSize: '0.78rem'
+                  border: '1px solid #e2e8f0',
+                  marginTop: '12px',
+                  fontSize: '0.8rem'
                 }}
               >
-                <AlertCircle size={15} />
-                <span>
-                  <strong>Notice:</strong> This customer already has <strong>₹{existingCustomerDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong> in previous unpaid delivery challans. This new challan will be appended to their ledger.
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Building2 size={16} color="#0284c7" />
+                  <span>
+                    <strong>Customer Credit Status:</strong>{' '}
+                    Prior Unpaid Dues: <strong>₹{(existingCustomerDue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#475569' }}>
+                    Credit Limit:{' '}
+                    <strong style={{ color: customerCreditLimit > 0 ? '#0f172a' : '#64748b' }}>
+                      {customerCreditLimit > 0 ? `₹${customerCreditLimit.toLocaleString('en-IN')}` : 'No Limit (Auto-approved)'}
+                    </strong>
+                  </span>
+                  {customerCreditLimit > 0 && (
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '999px',
+                        backgroundColor: (existingCustomerDue || 0) > customerCreditLimit ? '#fee2e2' : '#ecfdf5',
+                        color: (existingCustomerDue || 0) > customerCreditLimit ? '#b91c1c' : '#047857',
+                        border: `1px solid ${(existingCustomerDue || 0) > customerCreditLimit ? '#fca5a5' : '#a7f3d0'}`
+                      }}
+                    >
+                      {(existingCustomerDue || 0) > customerCreditLimit
+                        ? `Over Limit by ₹${((existingCustomerDue || 0) - customerCreditLimit).toLocaleString('en-IN')}`
+                        : `Available Credit: ₹${Math.max(0, customerCreditLimit - (existingCustomerDue || 0)).toLocaleString('en-IN')}`}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Credit Limit Exceeded Live Warning */}
+            {customerCreditLimit > 0 && ((existingCustomerDue || 0) + (paymentOption === 'paid' ? 0 : paymentOption === 'partial' ? Math.max(0, items.reduce((s, it) => s + (Number(it.total) || 0), 0) - (Number(paidAmount) || 0)) : items.reduce((s, it) => s + (Number(it.total) || 0), 0))) > customerCreditLimit && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  padding: '12px 14px',
+                  backgroundColor: '#fffbeb',
+                  color: '#92400e',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1.5px solid #fde68a',
+                  marginTop: '10px',
+                  fontSize: '0.8rem'
+                }}
+              >
+                <ShieldAlert size={18} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.83rem', color: '#b45309', marginBottom: '2px' }}>
+                    ⚠️ Credit Limit Exceeded — Manager Approval Required
+                  </strong>
+                  <span>
+                    This Delivery Challan will increase customer's unpaid balance to{' '}
+                    <strong>
+                      ₹
+                      {(
+                        (existingCustomerDue || 0) +
+                        (paymentOption === 'paid'
+                          ? 0
+                          : paymentOption === 'partial'
+                          ? Math.max(0, items.reduce((s, it) => s + (Number(it.total) || 0), 0) - (Number(paidAmount) || 0))
+                          : items.reduce((s, it) => s + (Number(it.total) || 0), 0))
+                      ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </strong>
+                    , exceeding their limit of <strong>₹{customerCreditLimit.toLocaleString('en-IN')}</strong> by{' '}
+                    <strong style={{ color: '#b91c1c' }}>
+                      ₹
+                      {(
+                        (existingCustomerDue || 0) +
+                        (paymentOption === 'paid'
+                          ? 0
+                          : paymentOption === 'partial'
+                          ? Math.max(0, items.reduce((s, it) => s + (Number(it.total) || 0), 0) - (Number(paidAmount) || 0))
+                          : items.reduce((s, it) => s + (Number(it.total) || 0), 0)) -
+                        customerCreditLimit
+                      ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </strong>
+                    . It will be saved as <strong>Pending Approval</strong> and cannot be dispatched or shared until approved.
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -508,10 +614,12 @@ export const DeliveryChallanNew: React.FC = () => {
                 type="button"
                 className={`category-card-btn ${paymentOption === 'credit' ? 'active' : ''}`}
                 onClick={() => setPaymentOption('credit')}
-                style={{ padding: '10px 14px' }}
+                style={{ padding: '12px 14px' }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>📦 Deliver on Credit / Unpaid</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <Package size={14} style={{ color: 'var(--module-sell-accent)' }} /> Deliver on Credit / Unpaid
+                  </span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                     ₹0 received now. Full ₹{totalAmount.toFixed(2)} logged as customer due.
                   </span>
@@ -522,10 +630,12 @@ export const DeliveryChallanNew: React.FC = () => {
                 type="button"
                 className={`category-card-btn ${paymentOption === 'partial' ? 'active' : ''}`}
                 onClick={() => setPaymentOption('partial')}
-                style={{ padding: '10px 14px' }}
+                style={{ padding: '12px 14px' }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>💵 Advance / Partial Paid</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <IndianRupee size={14} style={{ color: 'var(--color-warning)' }} /> Advance / Partial Paid
+                  </span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                     Record upfront token/advance with remainder on due.
                   </span>
@@ -536,10 +646,12 @@ export const DeliveryChallanNew: React.FC = () => {
                 type="button"
                 className={`category-card-btn ${paymentOption === 'paid' ? 'active' : ''}`}
                 onClick={() => setPaymentOption('paid')}
-                style={{ padding: '10px 14px' }}
+                style={{ padding: '12px 14px' }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>✅ Fully Paid on Delivery</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle2 size={14} style={{ color: 'var(--color-success)' }} /> Fully Paid on Delivery
+                  </span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                     Full payment received upon truck dispatch/unloading.
                   </span>
@@ -548,7 +660,7 @@ export const DeliveryChallanNew: React.FC = () => {
             </div>
 
             {paymentOption !== 'credit' && (
-              <div className="form-grid-2" style={{ gap: '12px 16px', padding: '12px 16px', backgroundColor: 'var(--color-bg-surface-subtle)', borderRadius: 'var(--radius-lg)' }}>
+              <div className="form-grid-2" style={{ gap: '12px 16px', padding: '12px 16px', backgroundColor: 'var(--color-bg-surface-subtle)', borderRadius: 'var(--radius-lg)', marginBottom: '12px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">
                     {paymentOption === 'paid' ? 'Full Payment Amount (₹)' : 'Advance Paid Amount (₹)'}
@@ -575,12 +687,98 @@ export const DeliveryChallanNew: React.FC = () => {
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                   >
-                    <option value="cash">💵 Cash Handover</option>
-                    <option value="upi">📱 UPI / QR Code</option>
-                    <option value="bank_transfer">🏦 Bank Transfer</option>
-                    <option value="card">💳 Card</option>
-                    <option value="cheque">📝 Cheque</option>
+                    <option value="cash">Cash Handover</option>
+                    <option value="upi">UPI / QR Code</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="card">Card</option>
+                    <option value="cheque">Cheque</option>
                   </select>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Due End Date & Reminder Settings (When unpaid/partial) */}
+            {paymentOption !== 'paid' && (
+              <div
+                style={{
+                  padding: '14px 18px',
+                  backgroundColor: '#fffbeb',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid #fde68a',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Bell size={15} style={{ color: '#d97706' }} />
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#92400e' }}>
+                      Payment Due End Date & Reminder Notification
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 500 }}>
+                    In-app and WhatsApp due reminder will be triggered before this date
+                  </span>
+                </div>
+
+                <div className="form-grid-2" style={{ gap: '12px 16px', alignItems: 'flex-start' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#78350f' }}>
+                      Due End Date <span className="required">*</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        required={paymentOption === 'credit' || paymentOption === 'partial'}
+                        style={{ maxWidth: '170px', fontSize: '0.8125rem' }}
+                      />
+                      {/* Quick Presets */}
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => handleSetDuePreset(7)}
+                          style={{ padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #fde68a', backgroundColor: '#ffffff', color: '#92400e' }}
+                        >
+                          +7 Days
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => handleSetDuePreset(15)}
+                          style={{ padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #fde68a', backgroundColor: '#ffffff', color: '#92400e' }}
+                        >
+                          +15 Days
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => handleSetDuePreset(30)}
+                          style={{ padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #fde68a', backgroundColor: '#ffffff', color: '#92400e' }}
+                        >
+                          +30 Days
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#78350f' }}>
+                      Reminder Notes / Milestone (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={reminderNotes}
+                      onChange={(e) => setReminderNotes(e.target.value)}
+                      placeholder="e.g. Follow up after site inspection on Monday"
+                      style={{ fontSize: '0.8125rem' }}
+                    />
+                  </div>
                 </div>
               </div>
             )}

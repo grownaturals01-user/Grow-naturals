@@ -1,22 +1,47 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
-import type { Product, QuotationItem } from '../types';
+import type { Product, QuotationItem, CustomerQuotationHistory, Customer } from '../types';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Save, FileSpreadsheet, Search, CheckCircle2, AlertCircle, Loader2, Sparkles, Building2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Save,
+  FileSpreadsheet,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+  Building2,
+  Users,
+  User,
+  ChevronDown
+} from 'lucide-react';
 import { ProductSearchSelect } from '../components/common/ProductSearchSelect';
+import { CustomerQuotationIntelligence } from '../components/quotations/CustomerQuotationIntelligence';
 
 export const QuotationNew: React.FC = () => {
   const { businessId, business, isTaxable } = useBusiness();
   const navigate = useNavigate();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [existingCustomers, setExistingCustomers] = useState<Customer[]>([]);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState<boolean>(false);
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
+
   const [customerGstin, setCustomerGstin] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [customerAddress, setCustomerAddress] = useState<string>('');
   const [isFetchingGst, setIsFetchingGst] = useState<boolean>(false);
   const [gstFeedback, setGstFeedback] = useState<{ status: 'idle' | 'success' | 'warning' | 'error'; message: string; state?: string } | null>(null);
+
+  // Customer conversion history intelligence state
+  const [customerHistory, setCustomerHistory] = useState<CustomerQuotationHistory | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
+  const historyDebounceRef = useRef<any>(null);
 
   const [validUntil, setValidUntil] = useState<string>(() => {
     const d = new Date();
@@ -41,7 +66,91 @@ export const QuotationNew: React.FC = () => {
 
   useEffect(() => {
     api.get('/products', { business_id: businessId }).then(setProducts).catch(console.warn);
+    api.get('/customers').then((data) => {
+      if (Array.isArray(data)) setExistingCustomers(data);
+    }).catch(console.warn);
   }, [businessId]);
+
+  // Click outside listener for customer dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target as Node)) {
+        setShowCustomerSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectCustomer = (c: Customer) => {
+    setCustomerName(c.name);
+    if (c.phone) setCustomerPhone(c.phone);
+    if (c.gstin) setCustomerGstin(c.gstin);
+    if (c.address) setCustomerAddress(c.address);
+    setShowCustomerSuggestions(false);
+
+    // Immediately trigger customer history lookup
+    const cleanPhone = (c.phone || '').replace(/\D/g, '');
+    const cleanName = c.name.trim();
+    const cleanGst = (c.gstin || '').trim();
+
+    setIsLoadingHistory(true);
+    api.get('/quotations/customer-history', {
+      phone: cleanPhone || undefined,
+      name: cleanName || undefined,
+      gstin: cleanGst || undefined,
+    }).then((hist) => {
+      setCustomerHistory(hist);
+    }).catch(console.warn)
+      .finally(() => setIsLoadingHistory(false));
+  };
+
+  const filteredCustomers = existingCustomers.filter((c) => {
+    if (!customerName.trim()) return true;
+    const term = customerName.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(term) ||
+      (c.phone && c.phone.includes(term)) ||
+      (c.gstin && c.gstin.toLowerCase().includes(term))
+    );
+  });
+
+  // Debounced Customer Intelligence Fetch
+  useEffect(() => {
+    const cleanPhone = customerPhone.replace(/\D/g, '');
+    const cleanName = customerName.trim();
+    const cleanGst = customerGstin.trim();
+
+    if (historyDebounceRef.current) {
+      clearTimeout(historyDebounceRef.current);
+    }
+
+    if (cleanPhone.length < 7 && cleanName.length < 3 && cleanGst.length < 10) {
+      setCustomerHistory(null);
+      setIsLoadingHistory(false);
+      return;
+    }
+
+    setIsLoadingHistory(true);
+    historyDebounceRef.current = setTimeout(async () => {
+      try {
+        const data: CustomerQuotationHistory = await api.get('/quotations/customer-history', {
+          phone: cleanPhone || undefined,
+          name: cleanName || undefined,
+          gstin: cleanGst || undefined,
+        });
+        setCustomerHistory(data);
+      } catch (err) {
+        console.warn('Could not fetch customer quotation intelligence:', err);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    }, 400);
+
+    return () => {
+      if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current);
+    };
+  }, [customerPhone, customerName, customerGstin]);
 
   // GST Number Auto Fetch Details Handler
   const handleFetchGstDetails = async (inputGstin?: string) => {
@@ -297,20 +406,198 @@ export const QuotationNew: React.FC = () => {
                 )}
               </div>
 
-              {/* Customer / Client Name */}
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  Customer / Client Name <span className="required">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Oberoi Luxury Resorts, Anita Sharma"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  required
-                  autoFocus
-                />
+              {/* Customer / Client Name with Autocomplete & Verified Buyer Indicator */}
+              <div className="form-group" style={{ marginBottom: 0, position: 'relative' }} ref={customerDropdownRef}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label className="form-label" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>Customer / Client Name <span className="required">*</span></span>
+                  </label>
+                  
+                  {/* Real-time Verified Buyer / Tier Badge */}
+                  {customerHistory && (customerHistory.customer_tier === 'high_value' || customerHistory.customer_tier === 'regular' || (customerHistory.converted_count && customerHistory.converted_count > 0)) ? (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#047857',
+                        backgroundColor: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        padding: '2px 8px',
+                        borderRadius: '999px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      title={`Verified Repeat Buyer • ${customerHistory.converted_count} of ${customerHistory.total_quotations} quotes converted to invoices`}
+                    >
+                      <CheckCircle2 size={12} color="#10b981" /> Verified Buyer ({customerHistory.conversion_rate}%)
+                    </span>
+                  ) : customerHistory?.customer_tier === 'quote_shopper' ? (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#c2410c',
+                        backgroundColor: '#fff7ed',
+                        border: '1px solid #fed7aa',
+                        padding: '2px 8px',
+                        borderRadius: '999px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      title={`0 of ${customerHistory.total_quotations} quotes converted to invoices`}
+                    >
+                      <AlertCircle size={12} color="#ea580c" /> Quote Shopper (0 converted)
+                    </span>
+                  ) : null}
+                </div>
+
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Oberoi Luxury Resorts, Anita Sharma (type to search)"
+                    value={customerName}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      setShowCustomerSuggestions(true);
+                    }}
+                    onFocus={() => setShowCustomerSuggestions(true)}
+                    required
+                    autoFocus
+                    style={{ paddingRight: '32px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomerSuggestions((v) => !v)}
+                    tabIndex={-1}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#94a3b8',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                    title="Browse saved customers directory"
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+
+                {/* Existing Saved Customers Dropdown List */}
+                {showCustomerSuggestions && existingCustomers.length > 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 50,
+                      marginTop: '4px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                      maxHeight: '260px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#64748b',
+                        backgroundColor: '#f8fafc',
+                        borderBottom: '1px solid #e2e8f0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Users size={13} color="#0284c7" /> Saved Customers ({filteredCustomers.length})
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#94a3b8' }}>Click to auto-fill</span>
+                    </div>
+
+                    {filteredCustomers.length === 0 ? (
+                      <div style={{ padding: '12px', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+                        No saved customer matching "{customerName}". You can continue typing to create a new client.
+                      </div>
+                    ) : (
+                      filteredCustomers.map((c) => {
+                        const hasInvoices = (c.invoice_count || 0) > 0 || Number(c.total_spent || 0) > 0;
+                        return (
+                          <div
+                            key={c.id}
+                            onClick={() => handleSelectCustomer(c)}
+                            style={{
+                              padding: '10px 12px',
+                              borderBottom: '1px solid #f1f5f9',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              transition: 'background-color 0.15s',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f0f9ff')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
+                          >
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
+                                  {c.name}
+                                </span>
+                                {hasInvoices && (
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      fontWeight: 700,
+                                      backgroundColor: '#ecfdf5',
+                                      color: '#047857',
+                                      border: '1px solid #a7f3d0',
+                                      padding: '1px 6px',
+                                      borderRadius: '999px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '2px',
+                                    }}
+                                  >
+                                    <CheckCircle2 size={10} color="#10b981" /> Verified Buyer
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                {c.phone && <span>📞 {c.phone}</span>}
+                                {c.gstin && <span style={{ fontFamily: 'monospace' }}>GST: {c.gstin}</span>}
+                              </div>
+                            </div>
+
+                            {hasInvoices && (
+                              <div style={{ textAlign: 'right', fontSize: '11px' }}>
+                                <div style={{ fontWeight: 700, color: '#047857' }}>
+                                  ₹{Number(c.total_spent || 0).toLocaleString('en-IN')}
+                                </div>
+                                <div style={{ fontSize: '10px', color: '#64748b' }}>
+                                  {c.invoice_count} invoice(s)
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -336,6 +623,11 @@ export const QuotationNew: React.FC = () => {
                   onChange={(e) => setValidUntil(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* Customer Intelligence & Conversion Profiling */}
+            <div style={{ marginTop: '16px' }}>
+              <CustomerQuotationIntelligence history={customerHistory} isLoading={isLoadingHistory} />
             </div>
           </div>
 

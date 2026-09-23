@@ -8,6 +8,8 @@ import { SearchBar } from '../components/common/SearchBar';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
 import { Plus, ArrowRight, Package, Trash2 } from 'lucide-react';
+import { renderModuleIcon } from '../components/common/CategoryIcons';
+import { DeleteModuleModal } from '../components/common/DeleteModuleModal';
 
 export const DynamicInventoryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -23,6 +25,8 @@ export const DynamicInventoryPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -44,11 +48,15 @@ export const DynamicInventoryPage: React.FC = () => {
     };
   }, [businessId, slug, search]);
 
-  const handleDeleteModule = async () => {
+  const handleConfirmDelete = async () => {
     if (!moduleInfo) return;
-    if (window.confirm(`Are you sure you want to remove the "${moduleName}" inventory module? Products in this section will still be accessible in All Products.`)) {
+    setIsDeleting(true);
+    try {
       await deleteModule(moduleInfo.id);
       navigate('/products');
+    } catch (err) {
+      console.error('Failed to remove module:', err);
+      setIsDeleting(false);
     }
   };
 
@@ -57,8 +65,11 @@ export const DynamicInventoryPage: React.FC = () => {
       {/* Page Header */}
       <div className="page-header">
         <div className="page-title-group">
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>{moduleIcon} {moduleName} Inventory</span>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--module-inv-accent)' }}>
+              {renderModuleIcon(moduleIcon, 22)}
+            </span>
+            <span>{moduleName} Inventory</span>
             <Badge variant="inv">{business?.name}</Badge>
           </h1>
           <p className="page-description">
@@ -70,7 +81,7 @@ export const DynamicInventoryPage: React.FC = () => {
           {moduleInfo && (
             <button
               type="button"
-              onClick={handleDeleteModule}
+              onClick={() => setIsDeleteModalOpen(true)}
               className="btn btn-secondary btn-sm"
               title="Remove this inventory module"
               style={{ color: 'var(--color-danger)' }}
@@ -129,7 +140,7 @@ export const DynamicInventoryPage: React.FC = () => {
                   <tr key={p.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '1.2rem' }}>{moduleIcon}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center' }}>{renderModuleIcon(moduleIcon, 18)}</span>
                         <div>
                           <Link to={`/products/${p.id}`} style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
                             {p.name}
@@ -166,6 +177,16 @@ export const DynamicInventoryPage: React.FC = () => {
           </table>
         </div>
       )}
+
+      {/* Delete Confirmation Popup Modal */}
+      <DeleteModuleModal
+        isOpen={isDeleteModalOpen}
+        moduleName={moduleName}
+        moduleSlug={slug}
+        isDeleting={isDeleting}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 };

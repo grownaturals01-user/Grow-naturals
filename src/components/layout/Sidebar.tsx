@@ -31,8 +31,10 @@ import {
   Sun,
   Sprout,
   Plus,
-  PlusCircle
+  PlusCircle,
+  FilePlus2
 } from 'lucide-react';
+import { renderModuleIcon } from '../common/CategoryIcons';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -122,6 +124,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <NavLink to="/pos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="POS Counter">
                 <ShoppingCart className="nav-icon" />
                 {!collapsed && <span>POS Counter</span>}
+              </NavLink>
+            )}
+            {canAccess('invoices') && (
+              <NavLink to="/invoices/create" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Create Sales Invoice">
+                <FilePlus2 className="nav-icon" />
+                {!collapsed && <span>Create Sales Invoice</span>}
               </NavLink>
             )}
             {canAccess('invoices') && (
@@ -232,8 +240,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={handleLinkClick}
                 title={`${m.name} Inventory`}
               >
-                <span className="nav-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.05rem' }}>
-                  {m.icon || '📦'}
+                <span className="nav-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {renderModuleIcon(m.icon, 18)}
                 </span>
                 {!collapsed && <span>{m.name} Inventory</span>}
               </NavLink>

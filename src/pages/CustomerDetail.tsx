@@ -41,6 +41,7 @@ export const CustomerDetail: React.FC = () => {
   const [address, setAddress] = useState('');
   const [gstin, setGstin] = useState('');
   const [customerType, setCustomerType] = useState<'customer' | 'wholesaler'>('customer');
+  const [creditLimit, setCreditLimit] = useState<string>('0');
   const [saving, setSaving] = useState(false);
   const [isFetchingGst, setIsFetchingGst] = useState(false);
 
@@ -56,6 +57,7 @@ export const CustomerDetail: React.FC = () => {
       setAddress(data.address || '');
       setGstin(data.gstin || '');
       setCustomerType((data.customer_type as any) || 'customer');
+      setCreditLimit(String(data.credit_limit || 0));
     } catch (err: any) {
       setError(err.message || 'Failed to load customer profile');
     } finally {
@@ -99,7 +101,8 @@ export const CustomerDetail: React.FC = () => {
         email,
         address,
         gstin: gstin.trim().toUpperCase(),
-        customer_type: customerType
+        customer_type: customerType,
+        credit_limit: Number(creditLimit) || 0
       });
       setIsEditing(false);
       await fetchCustomer();
@@ -202,6 +205,7 @@ export const CustomerDetail: React.FC = () => {
                   setAddress(customer.address || '');
                   setGstin(customer.gstin || '');
                   setCustomerType((customer.customer_type as any) || 'customer');
+                  setCreditLimit(String(customer.credit_limit || 0));
                   setIsEditing(true);
                 }}
                 style={{ fontSize: '0.8rem', padding: '4px 8px' }}
@@ -301,6 +305,23 @@ export const CustomerDetail: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Delivery Challan Credit Limit (₹)</span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>0 = No Limit (Auto-approved)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    className="form-input tabular"
+                    value={creditLimit}
+                    onChange={e => setCreditLimit(e.target.value)}
+                  />
+                  <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>
+                    If total unpaid DC dues exceed this amount, new DCs require Manager Approval before dispatch.
+                  </p>
+                </div>
+                <div className="form-group">
                   <label className="form-label">Address</label>
                   <textarea
                     className="form-textarea"
@@ -351,6 +372,16 @@ export const CustomerDetail: React.FC = () => {
                       >
                         Retail Customer
                       </span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-secondary" style={{ fontSize: 'var(--font-xs)' }}>DC Credit Limit</div>
+                  <div style={{ fontWeight: 700, color: Number(customer.credit_limit || 0) > 0 ? '#0284c7' : '#64748b' }}>
+                    {Number(customer.credit_limit || 0) > 0 ? (
+                      `₹${Number(customer.credit_limit).toLocaleString('en-IN')}`
+                    ) : (
+                      'No Limit (Auto-approved)'
                     )}
                   </div>
                 </div>

@@ -15,7 +15,15 @@ router.get('/', async (req: Request, res: Response) => {
 
     const db = await getDb();
     let query = `
-      SELECT q.*, (SELECT COUNT(*) FROM quotation_items qi WHERE qi.quotation_id = q.id) as item_count
+      SELECT q.*, 
+        (SELECT COUNT(*) FROM quotation_items qi WHERE qi.quotation_id = q.id) as item_count,
+        (SELECT COUNT(*) FROM quotations q_all 
+         WHERE (q_all.customer_phone = q.customer_phone AND q.customer_phone != '') 
+            OR (q_all.customer_name = q.customer_name AND q.customer_name != '')) as customer_total_quotes,
+        (SELECT COUNT(*) FROM quotations q_conv 
+         WHERE ((q_conv.customer_phone = q.customer_phone AND q.customer_phone != '') 
+            OR (q_conv.customer_name = q.customer_name AND q.customer_name != ''))
+           AND (q_conv.status = 'converted_to_invoice' OR (q_conv.converted_id IS NOT NULL AND q_conv.converted_id != ''))) as customer_converted_quotes
       FROM quotations q
       WHERE q.business_id = $1
     `;
@@ -38,6 +46,183 @@ router.get('/', async (req: Request, res: Response) => {
     const result = await db.query(query, params);
     res.json(result.rows);
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/quotations/customer-history - Customer Quotation Conversion Intelligence
+router.get('/customer-history', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const phone = ((req.query.phone as string) || '').trim();
+    const name = ((req.query.name as string) || '').trim();
+    const gstin = ((req.query.gstin as string) || '').trim().toUpperCase();
+
+    if (!phone && !name && !gstin) {
+      return res.json({
+        is_repeated: false,
+        total_quotations: 0,
+        converted_count: 0,
+        conversion_rate: 0,
+        total_quoted_amount: 0,
+        total_converted_amount: 0,
+        customer_tier: 'new',
+        tier_label: 'New Customer',
+        badge_variant: 'neutral',
+        advice: 'No client phone or name provided yet.',
+        recent_quotations: [],
+        total_invoices_count: 0,
+        total_invoice_revenue: 0
+      });
+    }
+
+    const db = await getDb();
+    const cleanPhoneDigits = phone.replace(/[^0-9]/g, '').slice(-10);
+
+    // Build matching criteria
+    const quoteConditions: string[] = [];
+    const quoteParams: any[] = [];
+    let pIdx = 1;
+
+    if (cleanPhoneDigits.length >= 7) {
+      quoteConditions.push(`q.customer_phone LIKE $${pIdx}`);
+      quoteParams.push(`%${cleanPhoneDigits}%`);
+      pIdx++;
+    }
+
+    if (gstin && gstin.length >= 5) {
+      quoteConditions.push(`q.customer_gstin = $${pIdx}`);
+      quoteParams.push(gstin);
+      pIdx++;
+    }
+
+    if (name && name.length >= 3) {
+      quoteConditions.push(`q.customer_name ILIKE $${pIdx}`);
+      quoteParams.push(`%${name}%`);
+      pIdx++;
+    }
+
+    if (quoteConditions.length === 0) {
+      return res.json({
+        is_repeated: false,
+        total_quotations: 0,
+        converted_count: 0,
+        conversion_rate: 0,
+        customer_tier: 'new',
+        tier_label: 'New Customer',
+        badge_variant: 'neutral',
+        advice: 'Enter customer name or phone to check quotation conversion history.',
+        recent_quotations: []
+      });
+    }
+
+    // Query quotations
+    const quoteQuery = `
+      SELECT q.id, q.quotation_number, q.customer_name, q.customer_phone, q.status,
+             q.total_amount, q.converted_id, q.created_at, q.business_id
+      FROM quotations q
+      WHERE (${quoteConditions.join(' OR ')})
+      ORDER BY q.created_at DESC
+    `;
+    const quoteResult = await db.query(quoteQuery, quoteParams);
+    const quoteRows = quoteResult.rows;
+
+    // Build invoice lookup
+    const invConditions: string[] = [];
+    const invParams: any[] = [];
+    let ipIdx = 1;
+
+    if (cleanPhoneDigits.length >= 7) {
+      invConditions.push(`customer_phone LIKE $${ipIdx}`);
+      invParams.push(`%${cleanPhoneDigits}%`);
+      ipIdx++;
+    }
+    if (name && name.length >= 3) {
+      invConditions.push(`customer_name ILIKE $${ipIdx}`);
+      invParams.push(`%${name}%`);
+      ipIdx++;
+    }
+
+    let invRows: any[] = [];
+    if (invConditions.length > 0) {
+      const invQuery = `
+        SELECT id, invoice_number, total_amount, payment_status, created_at
+        FROM invoices
+        WHERE (${invConditions.join(' OR ')})
+        ORDER BY created_at DESC
+      `;
+      const invResult = await db.query(invQuery, invParams);
+      invRows = invResult.rows;
+    }
+
+    const totalQuotations = quoteRows.length;
+    const convertedRows = quoteRows.filter(
+      (q) => q.status === 'converted_to_invoice' || (q.converted_id && q.converted_id.trim() !== '')
+    );
+    const convertedCount = convertedRows.length;
+    const pendingCount = quoteRows.filter((q) => q.status === 'draft' || q.status === 'sent').length;
+    const conversionRate = totalQuotations > 0 ? Number(((convertedCount / totalQuotations) * 100).toFixed(1)) : 0;
+
+    const totalQuotedAmount = quoteRows.reduce((acc, q) => acc + (Number(q.total_amount) || 0), 0);
+    const totalConvertedAmount = convertedRows.reduce((acc, q) => acc + (Number(q.total_amount) || 0), 0);
+
+    const totalInvoicesCount = invRows.length;
+    const totalInvoiceRevenue = invRows.reduce((acc, inv) => acc + (Number(inv.total_amount) || 0), 0);
+
+    // Business Intelligence Classification
+    let customerTier: 'high_value' | 'regular' | 'quote_shopper' | 'prospect' | 'new' = 'new';
+    let tierLabel = 'New Customer';
+    let badgeVariant = 'neutral';
+    let advice = 'No previous quotation history. First-time client.';
+
+    if (totalQuotations === 0 && totalInvoicesCount === 0) {
+      customerTier = 'new';
+      tierLabel = 'New Client';
+      badgeVariant = 'neutral';
+      advice = 'No previous quotations or bills found. First proposal for this client.';
+    } else if (convertedCount >= 2 || totalInvoiceRevenue >= 25000 || (totalQuotations >= 2 && conversionRate >= 50)) {
+      customerTier = 'high_value';
+      tierLabel = `⭐ High-Value Buyer (${conversionRate}% Converted)`;
+      badgeVariant = 'success';
+      advice = `Strong conversion track record! Converted ${convertedCount} of ${totalQuotations} quotations (₹${Math.round(totalConvertedAmount).toLocaleString('en-IN')}) into confirmed invoices. Fast-track proposal.`;
+    } else if (convertedCount >= 1 || totalInvoicesCount >= 1) {
+      customerTier = 'regular';
+      tierLabel = `🤝 Verified Buyer (${conversionRate}% Converted)`;
+      badgeVariant = 'primary';
+      advice = `Confirmed repeat customer with ${convertedCount} converted quote(s) and ${totalInvoicesCount} invoices on record.`;
+    } else if (totalQuotations >= 2 && convertedCount === 0) {
+      customerTier = 'quote_shopper';
+      tierLabel = `⚠️ Quote Shopper (0 of ${totalQuotations} Converted)`;
+      badgeVariant = 'warning';
+      advice = `Customer has asked for ${totalQuotations} quotations previously without converting any into an invoice. They may be price-checking or comparison shopping. Follow up on previous objections before deep discounts.`;
+    } else if (totalQuotations === 1 && convertedCount === 0) {
+      customerTier = 'prospect';
+      tierLabel = `📄 Active Prospect (1 Previous Quote)`;
+      badgeVariant = 'info';
+      advice = `Has 1 previous proposal on file (${quoteRows[0]?.quotation_number} for ₹${Number(quoteRows[0]?.total_amount).toLocaleString('en-IN')}) that is still pending or unconverted.`;
+    }
+
+    res.json({
+      is_repeated: totalQuotations > 0 || totalInvoicesCount > 0,
+      total_quotations: totalQuotations,
+      converted_count: convertedCount,
+      pending_count: pendingCount,
+      conversion_rate: conversionRate,
+      total_quoted_amount: totalQuotedAmount,
+      total_converted_amount: totalConvertedAmount,
+      total_invoices_count: totalInvoicesCount,
+      total_invoice_revenue: totalInvoiceRevenue,
+      customer_tier: customerTier,
+      tier_label: tierLabel,
+      badge_variant: badgeVariant,
+      advice: advice,
+      matched_name: quoteRows[0]?.customer_name || invRows[0]?.customer_name || name,
+      matched_phone: quoteRows[0]?.customer_phone || invRows[0]?.customer_phone || phone,
+      recent_quotations: quoteRows.slice(0, 5),
+      recent_invoices: invRows.slice(0, 3)
+    });
+  } catch (error: any) {
+    console.error('Error calculating quotation customer history:', error);
     res.status(500).json({ error: error.message });
   }
 });

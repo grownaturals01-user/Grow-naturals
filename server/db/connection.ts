@@ -103,6 +103,15 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE quotations ADD COLUMN IF NOT EXISTS customer_gstin VARCHAR(32) DEFAULT '';`,
     `ALTER TABLE quotations ADD COLUMN IF NOT EXISTS customer_address TEXT DEFAULT '';`,
     `ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(32) DEFAULT 'customer';`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS credit_limit NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approval_status VARCHAR(32) DEFAULT 'approved';`,
+    `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approved_by VARCHAR(64) DEFAULT '';`,
+    `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;`,
+    `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approval_reason TEXT DEFAULT '';`,
+    `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS credit_limit_at_creation NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS credit_exceeded_amount NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS due_date DATE;`,
+    `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS reminder_notes TEXT DEFAULT '';`,
     `ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_taxable BOOLEAN DEFAULT false;`,
     `UPDATE businesses SET is_taxable = true WHERE id = 'grow-naturals';`,
@@ -176,7 +185,15 @@ export async function initDb(): Promise<void> {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
     `CREATE INDEX IF NOT EXISTS idx_inv_modules_biz ON inventory_modules(business_id);`,
-    `CREATE INDEX IF NOT EXISTS idx_inv_modules_slug ON inventory_modules(slug);`
+    `CREATE INDEX IF NOT EXISTS idx_inv_modules_slug ON inventory_modules(slug);`,
+    `INSERT INTO warehouse_stocks (id, business_id, product_id, stock_quantity, location_bin)
+     VALUES 
+       ('ws-gn-2', 'grow-naturals', 'prod-gn-2', 45, 'Greenhouse A1'),
+       ('ws-gn-3', 'grow-naturals', 'prod-gn-3', 60, 'Zone B-Polyhouse'),
+       ('ws-gn-4', 'grow-naturals', 'prod-gn-4', 25, 'Pot Yard Rack 3'),
+       ('ws-gn-5', 'grow-naturals', 'prod-gn-5', 30, 'Pot Yard Rack 1'),
+       ('ws-gn-6', 'grow-naturals', 'prod-gn-6', 80, 'Fertilizer Store')
+     ON CONFLICT (business_id, product_id) DO UPDATE SET stock_quantity = EXCLUDED.stock_quantity WHERE warehouse_stocks.stock_quantity = 0;`
   ];
 
   for (const m of migrations) {

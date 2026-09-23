@@ -16,10 +16,16 @@ router.get('/', async (req: Request, res: Response) => {
 
     const db = await getDb();
     let query = `
-      SELECT p.*, c.name as category_name, s.name as supplier_name
+      SELECT 
+        p.*, 
+        c.name as category_name, 
+        s.name as supplier_name,
+        p.stock_quantity as shop_stock,
+        COALESCE(ws.stock_quantity, 0) as warehouse_stock
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN suppliers s ON p.supplier_id = s.id
+      LEFT JOIN warehouse_stocks ws ON p.id = ws.product_id AND p.business_id = ws.business_id
       WHERE p.business_id = $1
     `;
     const params: any[] = [businessId];
@@ -69,11 +75,17 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const db = await getDb();
     const result = await db.query(
-      `SELECT p.*, c.name as category_name, s.name as supplier_name
-       FROM products p
-       LEFT JOIN categories c ON p.category_id = c.id
-       LEFT JOIN suppliers s ON p.supplier_id = s.id
-       WHERE p.id = $1`,
+      `SELECT 
+         p.*, 
+         c.name as category_name, 
+         s.name as supplier_name,
+         p.stock_quantity as shop_stock,
+         COALESCE(ws.stock_quantity, 0) as warehouse_stock
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN suppliers s ON p.supplier_id = s.id
+        LEFT JOIN warehouse_stocks ws ON p.id = ws.product_id AND p.business_id = ws.business_id
+        WHERE p.id = $1`,
       [req.params.id]
     );
 

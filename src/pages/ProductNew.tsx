@@ -22,8 +22,13 @@ import {
   Loader2,
   Image as ImageIcon,
   BadgePercent,
-  Percent
+  Percent,
+  Trees,
+  FlaskConical,
+  Flower2,
+  Boxes
 } from 'lucide-react';
+import { CategoryIconBadge, CactusIcon, PlanterIcon } from '../components/common/CategoryIcons';
 
 export const ProductNew: React.FC = () => {
   const { businessId, business, activeBusiness, isTaxable } = useBusiness();
@@ -190,15 +195,22 @@ export const ProductNew: React.FC = () => {
     }
   };
 
-  const categoryOptions = [
-    { type: 'plants' as CategoryType, icon: '🌱', label: 'Plants & Trees', desc: 'Live botanical stock' },
-    { type: 'cactus' as CategoryType, icon: '🌵', label: 'Cactus & Succulents', desc: 'Desert flora, low water' },
-    { type: 'pots' as CategoryType, icon: '🪴', label: 'Pots & Planters', desc: 'Ceramic, fiber, clay' },
-    { type: 'fertilizers' as CategoryType, icon: '🧪', label: 'Fertilizers', desc: 'Nutrients, pest care' },
-    { type: 'flowers' as CategoryType, icon: '💐', label: 'Flowers & Decor', desc: 'Bouquets, fresh cuts' },
+  interface CategoryOption {
+    type: CategoryType;
+    label: string;
+    desc: string;
+    customIcon?: string;
+  }
+
+  const categoryOptions: CategoryOption[] = [
+    { type: 'plants' as CategoryType, label: 'Plants & Trees', desc: 'Live botanical stock' },
+    { type: 'cactus' as CategoryType, label: 'Cactus & Succulents', desc: 'Desert flora, low water' },
+    { type: 'pots' as CategoryType, label: 'Pots & Planters', desc: 'Ceramic, fiber, clay' },
+    { type: 'fertilizers' as CategoryType, label: 'Fertilizers', desc: 'Nutrients, pest care' },
+    { type: 'flowers' as CategoryType, label: 'Flowers & Decor', desc: 'Bouquets, fresh cuts' },
     ...modules.map((m) => ({
       type: m.slug as CategoryType,
-      icon: m.icon || '📦',
+      customIcon: m.icon,
       label: m.name,
       desc: m.caption || 'Custom inventory workflow',
     })),
@@ -308,7 +320,11 @@ export const ProductNew: React.FC = () => {
                         <CheckCircle2 size={15} />
                       </span>
                     )}
-                    <span className="category-card-icon">{cat.icon}</span>
+                    <CategoryIconBadge
+                      type={cat.type}
+                      isSelected={isSelected}
+                      customIcon={cat.customIcon}
+                    />
                     <div className="category-card-text-group">
                       <span className="category-card-title">{cat.label}</span>
                       <span className="category-card-desc">{cat.desc}</span>
@@ -556,13 +572,46 @@ export const ProductNew: React.FC = () => {
                 <SlidersHorizontal size={15} style={{ color: 'var(--module-inv-accent)' }} />
                 <span>Specialized {type.toUpperCase()} Attributes</span>
               </div>
-              <span className="form-section-badge" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
-                {type === 'plants' && '🌱 Live Botany'}
-                {type === 'cactus' && '🌵 Desert Flora & Succulents'}
-                {type === 'pots' && '🪴 Container Specs'}
-                {type === 'fertilizers' && '🧪 Chemical Profile'}
-                {type === 'flowers' && '💐 Floral Freshness'}
-                {!['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(type) && '📦 Custom Category Specs'}
+              <span
+                className="form-section-badge"
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '3px 9px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {type === 'plants' && (
+                  <>
+                    <Trees size={13} style={{ color: '#15803d' }} /> Live Botany
+                  </>
+                )}
+                {type === 'cactus' && (
+                  <>
+                    <CactusIcon size={13} style={{ color: '#0d9488' }} /> Desert Flora & Succulents
+                  </>
+                )}
+                {type === 'pots' && (
+                  <>
+                    <PlanterIcon size={13} style={{ color: '#c2410c' }} /> Container Specs
+                  </>
+                )}
+                {type === 'fertilizers' && (
+                  <>
+                    <FlaskConical size={13} style={{ color: '#4f46e5' }} /> Chemical Profile
+                  </>
+                )}
+                {type === 'flowers' && (
+                  <>
+                    <Flower2 size={13} style={{ color: '#e11d48' }} /> Floral Freshness
+                  </>
+                )}
+                {!['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(type) && (
+                  <>
+                    <Boxes size={13} /> Custom Category Specs
+                  </>
+                )}
               </span>
             </div>
 
