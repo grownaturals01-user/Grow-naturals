@@ -31,6 +31,8 @@ import { PlantsInventory } from './pages/PlantsInventory';
 import { PotsInventory } from './pages/PotsInventory';
 import { FertilizersInventory } from './pages/FertilizersInventory';
 import { FlowersInventory } from './pages/FlowersInventory';
+import { LossTracking } from './pages/LossTracking';
+import { WarehouseManagement } from './pages/WarehouseManagement';
 
 // Quotations
 import { QuotationsList } from './pages/QuotationsList';
@@ -129,6 +131,8 @@ export const App: React.FC = () => {
                   <Route path="inventory/pots" element={<PotsInventory />} />
                   <Route path="inventory/fertilizers" element={<FertilizersInventory />} />
                   <Route path="inventory/flowers" element={<FlowersInventory />} />
+                  <Route path="inventory/losses" element={<LossTracking />} />
+                  <Route path="warehouse" element={<WarehouseManagement />} />
 
                   {/* Quotations */}
                   <Route path="quotations" element={<QuotationsList />} />

@@ -13,6 +13,7 @@ import {
   Building,
   DollarSign
 } from 'lucide-react';
+import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
 import { Customer, Invoice } from '../types';
 import { Badge } from '../components/common/Badge';
@@ -24,6 +25,7 @@ interface CustomerWithInvoices extends Customer {
 export const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { businesses } = useBusiness();
 
   const [customer, setCustomer] = useState<CustomerWithInvoices | null>(null);
   const [loading, setLoading] = useState(true);
@@ -262,7 +264,7 @@ export const CustomerDetail: React.FC = () => {
                         </td>
                         <td>
                           <Badge variant={inv.business_id === 'grow-naturals' ? 'info' : 'secondary'}>
-                            {inv.business_id === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery'}
+                            {businesses.find(b => b.id === inv.business_id)?.name || inv.business_name || inv.business_id}
                           </Badge>
                         </td>
                         <td style={{ whiteSpace: 'nowrap' }}>

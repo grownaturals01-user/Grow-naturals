@@ -2,7 +2,7 @@
  * GrowNaturals Billing — Unified TypeScript Interfaces
  */
 
-export type BusinessId = 'grow-naturals' | 'nikhlesh-nursery';
+export type BusinessId = string;
 
 export interface Business {
   id: BusinessId;
@@ -17,6 +17,8 @@ export interface Business {
   logo_url: string;
   currency: string;
   default_low_stock: number;
+  is_taxable?: boolean;
+  created_at?: string;
 }
 
 export type UserRole = 'admin' | 'manager' | 'cashier' | 'staff' | 'supervisor';
@@ -34,6 +36,7 @@ export interface UserPermissions {
   invoices?: boolean;
   staff?: boolean;
   settings?: boolean;
+  losses?: boolean;
   [key: string]: boolean | undefined;
 }
 
@@ -462,3 +465,113 @@ export interface HeldBill {
   discount_amount: number;
   saved_at: string;
 }
+
+export type LossReason =
+  | 'withered_decay'
+  | 'pest_infection'
+  | 'root_rot'
+  | 'physical_damage'
+  | 'transit_breakage'
+  | 'expired'
+  | 'weather_extreme'
+  | 'other';
+
+export interface InventoryLoss {
+  id: string;
+  business_id: string;
+  product_id: string;
+  product_name?: string;
+  product_sku?: string;
+  product_type?: string;
+  product_image_url?: string;
+  current_stock?: number;
+  quantity: number;
+  unit_cost: number;
+  unit_price: number;
+  loss_amount: number;
+  reason: LossReason;
+  notes?: string;
+  reported_by?: string;
+  damage_date: string;
+  created_at?: string;
+}
+
+export interface InventoryLossMetrics {
+  total_loss_amount: number;
+  total_items_lost: number;
+  total_records: number;
+  today_loss_amount: number;
+  today_items_lost: number;
+  top_reasons: { reason: string; occurrences: number; units_lost: number; total_amount: number }[];
+  top_products: { name: string; sku: string; type: string; units_lost: number; total_amount: number }[];
+}
+
+export type WarehouseTransactionType =
+  | 'sale'
+  | 'damage'
+  | 'inward'
+  | 'transfer_to_shop'
+  | 'transfer_from_shop'
+  | 'adjustment';
+
+export interface WarehouseItem {
+  id: string;
+  business_id: string;
+  name: string;
+  sku: string;
+  barcode?: string;
+  type: string;
+  cost_price: number;
+  sale_price: number;
+  shop_stock: number;
+  low_stock_threshold: number;
+  image_url?: string;
+  category_name?: string;
+  warehouse_stock: number;
+  location_bin?: string;
+  warehouse_valuation: number;
+  total_sold_units: number;
+  total_sold_amount: number;
+  total_damaged_units: number;
+  total_damaged_amount: number;
+  total_transferred_to_shop: number;
+}
+
+export interface WarehouseTransaction {
+  id: string;
+  business_id: string;
+  product_id: string;
+  product_name?: string;
+  product_sku?: string;
+  product_type?: string;
+  product_image_url?: string;
+  category_name?: string;
+  type: WarehouseTransactionType;
+  quantity: number;
+  previous_stock: number;
+  new_stock: number;
+  unit_price: number;
+  total_amount: number;
+  buyer_name?: string;
+  damage_reason?: string;
+  reference_no?: string;
+  notes?: string;
+  performed_by?: string;
+  transaction_date: string;
+  created_at: string;
+}
+
+export interface WarehouseMetrics {
+  total_warehouse_units: number;
+  total_warehouse_valuation: number;
+  total_products_tracked: number;
+  total_sales_units: number;
+  total_sales_amount: number;
+  sales_transactions_count: number;
+  total_damage_units: number;
+  total_damage_amount: number;
+  damage_records_count: number;
+  total_transfers_units: number;
+  transfer_records_count: number;
+}
+

@@ -3,16 +3,20 @@ import type { Invoice } from '../../types';
 import { printService } from '../../services/printService';
 import { Printer, Check, Cpu } from 'lucide-react';
 import gnLogo from '../../assets/grownaturalslogo.jpeg';
+import { useBusiness } from '../../context/BusinessContext';
 
 interface Receipt80mmViewProps {
   invoice: Invoice;
 }
 
 export const Receipt80mmView: React.FC<Receipt80mmViewProps> = ({ invoice }) => {
+  const { businesses } = useBusiness();
+  const matchedBiz = businesses.find(b => b.id === invoice.business_id);
+  const isTaxable = matchedBiz?.is_taxable !== undefined
+    ? Boolean(matchedBiz.is_taxable)
+    : (Number(invoice.tax_amount || 0) > 0 || invoice.business_id === 'grow-naturals');
   const [isPrinting, setIsPrinting] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<string | null>(null);
-
-  const isTaxable = invoice.business_id === 'grow-naturals';
 
   const handleThermalPrint = async () => {
     setIsPrinting(true);
@@ -162,10 +166,12 @@ export const Receipt80mmView: React.FC<Receipt80mmViewProps> = ({ invoice }) => 
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>{isTaxable ? 'GST Tax:' : 'GST Tax (0%):'}</span>
-            <span>Rs. {Number(invoice.tax_amount || 0).toFixed(2)}</span>
-          </div>
+          {isTaxable && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>GST Tax:</span>
+              <span>Rs. {Number(invoice.tax_amount || 0).toFixed(2)}</span>
+            </div>
+          )}
 
           <div className="receipt-divider" />
 

@@ -107,7 +107,50 @@ export async function initDb(): Promise<void> {
     `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=500&auto=format&fit=crop&q=60' WHERE id = 'prod-gn-4' AND (image_url IS NULL OR image_url = '');`,
     `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=500&auto=format&fit=crop&q=60' WHERE id = 'prod-gn-5' AND (image_url IS NULL OR image_url = '');`,
     `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1585336261026-7756f7ef506f?w=500&auto=format&fit=crop&q=60' WHERE id = 'prod-gn-6' AND (image_url IS NULL OR image_url = '');`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=500&auto=format&fit=crop&q=60' WHERE id = 'prod-gn-7' AND (image_url IS NULL OR image_url = '');`
+    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=500&auto=format&fit=crop&q=60' WHERE id = 'prod-gn-7' AND (image_url IS NULL OR image_url = '');`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_taxable BOOLEAN DEFAULT false;`,
+    `UPDATE businesses SET is_taxable = true WHERE id = 'grow-naturals';`,
+    `CREATE TABLE IF NOT EXISTS inventory_losses (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      product_id VARCHAR(64) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      quantity INTEGER NOT NULL,
+      unit_cost NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+      unit_price NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+      loss_amount NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+      reason VARCHAR(64) NOT NULL,
+      notes TEXT DEFAULT '',
+      reported_by VARCHAR(64) DEFAULT '',
+      damage_date DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS warehouse_stocks (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      product_id VARCHAR(64) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      stock_quantity INTEGER NOT NULL DEFAULT 0,
+      location_bin VARCHAR(64) DEFAULT '',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT uq_warehouse_stock UNIQUE (business_id, product_id)
+    );`,
+    `CREATE TABLE IF NOT EXISTS warehouse_transactions (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      product_id VARCHAR(64) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      type VARCHAR(32) NOT NULL,
+      quantity INTEGER NOT NULL,
+      previous_stock INTEGER NOT NULL,
+      new_stock INTEGER NOT NULL,
+      unit_price NUMERIC(12,2) DEFAULT 0.00,
+      total_amount NUMERIC(12,2) DEFAULT 0.00,
+      buyer_name VARCHAR(255) DEFAULT '',
+      damage_reason VARCHAR(64) DEFAULT '',
+      reference_no VARCHAR(64) DEFAULT '',
+      notes TEXT DEFAULT '',
+      performed_by VARCHAR(128) DEFAULT '',
+      transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`
   ];
 
   for (const m of migrations) {

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS businesses (
   logo_url TEXT DEFAULT '',
   currency VARCHAR(8) DEFAULT 'INR',
   default_low_stock INTEGER DEFAULT 5,
+  is_taxable BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -101,6 +102,53 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   reference_id VARCHAR(64) DEFAULT '',
   notes TEXT DEFAULT '',
   user_id VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7b. Inventory Losses & Damages
+CREATE TABLE IF NOT EXISTS inventory_losses (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+  product_id VARCHAR(64) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL,
+  unit_cost NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+  unit_price NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+  loss_amount NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+  reason VARCHAR(64) NOT NULL,
+  notes TEXT DEFAULT '',
+  reported_by VARCHAR(64) DEFAULT '',
+  damage_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7c. Warehouse Stocks (Dedicated warehouse / greenhouse stock pool)
+CREATE TABLE IF NOT EXISTS warehouse_stocks (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+  product_id VARCHAR(64) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  stock_quantity INTEGER NOT NULL DEFAULT 0,
+  location_bin VARCHAR(64) DEFAULT '',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_warehouse_stock UNIQUE (business_id, product_id)
+);
+
+-- 7d. Warehouse Transactions (Sales, Damages, Inward, Transfers)
+CREATE TABLE IF NOT EXISTS warehouse_transactions (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+  product_id VARCHAR(64) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  type VARCHAR(32) NOT NULL, -- 'sale', 'damage', 'inward', 'transfer_to_shop', 'transfer_from_shop', 'adjustment'
+  quantity INTEGER NOT NULL,
+  previous_stock INTEGER NOT NULL,
+  new_stock INTEGER NOT NULL,
+  unit_price NUMERIC(12,2) DEFAULT 0.00,
+  total_amount NUMERIC(12,2) DEFAULT 0.00,
+  buyer_name VARCHAR(255) DEFAULT '',
+  damage_reason VARCHAR(64) DEFAULT '',
+  reference_no VARCHAR(64) DEFAULT '',
+  notes TEXT DEFAULT '',
+  performed_by VARCHAR(128) DEFAULT '',
+  transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

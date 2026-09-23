@@ -24,7 +24,9 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeft,
-  Leaf
+  Leaf,
+  TrendingDown,
+  Warehouse
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -154,6 +156,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <NavLink to="/inventory/flowers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Flowers & Arrangements">
               <Flower2 className="nav-icon" />
               {!collapsed && <span>Flowers & Decor</span>}
+            </NavLink>
+            <NavLink to="/inventory/losses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Loss & Damage Tracking">
+              <TrendingDown className="nav-icon" />
+              {!collapsed && <span>Loss Tracking</span>}
+            </NavLink>
+            <NavLink to="/warehouse" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Warehouse & Stock Management">
+              <Warehouse className="nav-icon" />
+              {!collapsed && <span>Warehouse Stock</span>}
             </NavLink>
           </div>
         )}

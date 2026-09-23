@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 
 export const POS: React.FC = () => {
-  const { businessId, business, isTaxable } = useBusiness();
+  const { businessId, business, activeBusiness, isTaxable } = useBusiness();
   const { user } = useAuth();
   const { isOnline, queueOfflineSale } = usePosSync();
 
@@ -304,7 +304,8 @@ export const POS: React.FC = () => {
         }
       } else {
         // OFFLINE MODE: Queue in IndexedDB
-        const offlineInvNumber = `${businessId === 'grow-naturals' ? 'GN' : 'NN'}-OFF-${Date.now().toString().slice(-4)}`;
+        const prefix = (activeBusiness?.invoice_prefix || 'INV-').replace(/[^a-zA-Z0-9]/g, '');
+        const offlineInvNumber = `${prefix}-OFF-${Date.now().toString().slice(-4)}`;
         const offlineInvoice: any = {
           id: `off-inv-${Date.now()}`,
           business_id: businessId,
@@ -782,12 +783,12 @@ export const POS: React.FC = () => {
               />
             </div>
 
-            <div className="summary-row">
-              <span>
-                {isTaxable ? 'GST Tax (Included/Applied)' : 'GST Tax (0% Non-Taxable)'}
-              </span>
-              <span className="tabular" style={{ fontWeight: 600, color: '#0f172a' }}>₹{taxAmount.toFixed(2)}</span>
-            </div>
+            {isTaxable && (
+              <div className="summary-row">
+                <span>GST Tax (Included/Applied)</span>
+                <span className="tabular" style={{ fontWeight: 600, color: '#0f172a' }}>₹{taxAmount.toFixed(2)}</span>
+              </div>
+            )}
 
             <div className="summary-row total-row">
               <span>Grand Total</span>
@@ -899,7 +900,7 @@ export const POS: React.FC = () => {
                   className={`btn btn-sm ${printModalMode === 'a4' ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => setPrintModalMode('a4')}
                 >
-                  A4 Tax Invoice
+                  {isTaxable ? 'A4 Tax Invoice' : 'A4 Bill'}
                 </button>
                 <button
                   type="button"

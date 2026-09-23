@@ -25,6 +25,8 @@ import customersRouter from './routes/customers.js';
 import staffRouter from './routes/staff.js';
 import reportsRouter from './routes/reports.js';
 import printRouter from './routes/print.js';
+import lossesRouter from './routes/losses.js';
+import warehouseRouter from './routes/warehouse.js';
 
 dotenv.config();
 
@@ -69,6 +71,8 @@ app.use('/api/customers', customersRouter);
 app.use('/api/staff', staffRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/print', printRouter);
+app.use('/api/inventory-losses', lossesRouter);
+app.use('/api/warehouse', warehouseRouter);
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

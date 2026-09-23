@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export const ProductNew: React.FC = () => {
-  const { businessId, business, isTaxable } = useBusiness();
+  const { businessId, business, activeBusiness, isTaxable } = useBusiness();
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -84,7 +84,9 @@ export const ProductNew: React.FC = () => {
 
   // Auto-generate SKU
   const generateSku = () => {
-    const prefix = businessId === 'grow-naturals' ? 'GN' : 'NN';
+    const prefix = activeBusiness?.invoice_prefix
+      ? activeBusiness.invoice_prefix.replace(/[^a-zA-Z0-9]/g, '')
+      : (businessId === 'grow-naturals' ? 'GN' : 'NN');
     const typeCode = type.slice(0, 2).toUpperCase();
     const rand = Math.floor(1000 + Math.random() * 9000);
     const generated = `${prefix}-${typeCode}-${rand}`;

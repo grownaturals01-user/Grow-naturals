@@ -1,8 +1,8 @@
 /**
- * GrowNaturals Billing — Two-Business Context & Header Switcher
+ * GrowNaturals Billing — Dynamic Multi-Business Context & Header Switcher
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Business, BusinessId } from '../types';
 import { api, getActiveBusinessId, setActiveBusinessId } from '../services/api';
 
@@ -15,6 +15,8 @@ interface BusinessContextType {
   switchBusiness: (id: BusinessId) => void;
   refreshBusiness: () => Promise<void>;
   reloadBusinesses: () => Promise<void>;
+  createBusiness: (data: Partial<Business>) => Promise<Business>;
+  deleteBusiness: (id: string) => Promise<void>;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -27,22 +29,29 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [business, setBusiness] = useState<Business | null>(null);
 
-  const fetchBusinesses = async () => {
+  const fetchBusinesses = useCallback(async () => {
     try {
-      const list = await api.get('/businesses');
+      const list: Business[] = await api.get('/businesses');
       setBusinesses(list);
-      const current = list.find((b: Business) => b.id === businessId);
+
+      let current = list.find((b: Business) => b.id === businessId);
+      if (!current && list.length > 0) {
+        current = list[0];
+        setBusinessIdState(current.id);
+        setActiveBusinessId(current.id);
+      }
+
       if (current) {
         setBusiness(current);
       }
     } catch (err) {
       console.warn('Failed to load businesses:', err);
     }
-  };
+  }, [businessId]);
 
   useEffect(() => {
     fetchBusinesses();
-  }, [businessId]);
+  }, [fetchBusinesses]);
 
   const switchBusiness = (id: BusinessId) => {
     setBusinessIdState(id);
@@ -57,7 +66,22 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await fetchBusinesses();
   };
 
-  const isTaxable = businessId === 'grow-naturals';
+  const createBusiness = async (data: Partial<Business>): Promise<Business> => {
+    const created: Business = await api.post('/businesses', data);
+    await fetchBusinesses();
+    switchBusiness(created.id);
+    return created;
+  };
+
+  const deleteBusiness = async (id: string): Promise<void> => {
+    await api.delete(`/businesses/${id}`);
+    const remaining = businesses.filter(b => b.id !== id);
+    setBusinesses(remaining);
+    if (businessId === id && remaining.length > 0) {
+      switchBusiness(remaining[0].id);
+    }
+    await fetchBusinesses();
+  };
 
   const defaultActive: Business = {
     id: businessId,
@@ -71,10 +95,19 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     invoice_footer: businessId === 'grow-naturals' ? 'Thank you for choosing Grow Naturals! All goods subject to warranty.' : 'Thank you for choosing Nikhlesh Nursery! 100% genuine saplings and plants.',
     logo_url: '',
     currency: 'INR',
-    default_low_stock: 10
+    default_low_stock: 10,
+    is_taxable: businessId === 'grow-naturals'
   };
 
-  const activeBusiness: Business = business || businesses.find(b => b.id === businessId) || defaultActive;
+  const activeBusiness: Business =
+    business ||
+    businesses.find(b => b.id === businessId) ||
+    businesses[0] ||
+    defaultActive;
+
+  const isTaxable = activeBusiness.is_taxable !== undefined
+    ? Boolean(activeBusiness.is_taxable)
+    : (activeBusiness.id === 'grow-naturals');
 
   return (
     <BusinessContext.Provider
@@ -87,6 +120,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         switchBusiness,
         refreshBusiness,
         reloadBusinesses: refreshBusiness,
+        createBusiness,
+        deleteBusiness,
       }}
     >
       {children}

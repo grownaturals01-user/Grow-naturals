@@ -83,8 +83,6 @@ function printReceipt(bill, callback) {
         if (bill.tax_amount && Number(bill.tax_amount) > 0) {
           printer.text(`GST Tax  : Rs. ${Number(bill.tax_amount).toFixed(2)}`);
         }
-      } else {
-        printer.text(`GST Tax  : Rs. 0.00 (Non-Taxable)`);
       }
 
       printer
