@@ -11,7 +11,9 @@ import {
   Receipt,
   Eye,
   Building,
-  DollarSign
+  DollarSign,
+  Edit2,
+  X
 } from 'lucide-react';
 import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
@@ -38,7 +40,9 @@ export const CustomerDetail: React.FC = () => {
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [gstin, setGstin] = useState('');
+  const [customerType, setCustomerType] = useState<'customer' | 'wholesaler'>('customer');
   const [saving, setSaving] = useState(false);
+  const [isFetchingGst, setIsFetchingGst] = useState(false);
 
   const fetchCustomer = async () => {
     if (!id) return;
@@ -51,6 +55,7 @@ export const CustomerDetail: React.FC = () => {
       setEmail(data.email || '');
       setAddress(data.address || '');
       setGstin(data.gstin || '');
+      setCustomerType((data.customer_type as any) || 'customer');
     } catch (err: any) {
       setError(err.message || 'Failed to load customer profile');
     } finally {
@@ -62,6 +67,27 @@ export const CustomerDetail: React.FC = () => {
     fetchCustomer();
   }, [id]);
 
+  const handleFetchGstDetails = async (gstToLookup?: string) => {
+    const cleanGst = (gstToLookup || gstin).trim().toUpperCase();
+    if (!cleanGst || cleanGst.length !== 15) return;
+    setIsFetchingGst(true);
+    try {
+      const res: any = await api.get(`/gst/lookup/${cleanGst}`);
+      if (res && res.success) {
+        if (res.customer_name || res.trade_name || res.legal_name) {
+          setName(res.trade_name || res.legal_name || res.customer_name);
+          if (res.phone && !phone) setPhone(res.phone);
+          if (res.email && !email) setEmail(res.email);
+          if (res.address) setAddress(res.address);
+          setCustomerType('wholesaler');
+        }
+      }
+    } catch (err) {}
+    finally {
+      setIsFetchingGst(false);
+    }
+  };
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -72,7 +98,8 @@ export const CustomerDetail: React.FC = () => {
         phone,
         email,
         address,
-        gstin
+        gstin: gstin.trim().toUpperCase(),
+        customer_type: customerType
       });
       setIsEditing(false);
       await fetchCustomer();
@@ -104,41 +131,56 @@ export const CustomerDetail: React.FC = () => {
 
   const invoices = customer.invoices || [];
   const totalSpent = invoices.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0);
+  const isWholesale = customer.customer_type === 'wholesaler';
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       {/* Header */}
-      <div className="page-header" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="page-header" style={{ marginBottom: 'var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
           <button className="btn btn-ghost" onClick={() => navigate('/customers')}>
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="page-title">{customer.name}</h1>
-            <p className="page-subtitle">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1 className="page-title" style={{ margin: 0 }}>{customer.name}</h1>
+              {isWholesale ? (
+                <span
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: '#fef3c7',
+                    color: '#b45309',
+                    border: '1px solid #fde68a',
+                  }}
+                >
+                  Wholesaler / B2B
+                </span>
+              ) : (
+                <span
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: '#e0f2fe',
+                    color: '#0369a1',
+                    border: '1px solid #bae6fd',
+                  }}
+                >
+                  Retail Customer
+                </span>
+              )}
+            </div>
+            <p className="page-subtitle" style={{ margin: 0, marginTop: '2px' }}>
               Client profile & cross-business purchasing record
             </p>
           </div>
         </div>
 
-        <div>
-          <button
-            className={`btn ${isEditing ? 'btn-secondary' : 'btn-outline'}`}
-            onClick={() => setIsEditing(!isEditing)}
-          >
-            {isEditing ? 'Cancel Edit' : 'Edit Profile'}
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-        <div className="card stat-card">
-          <div className="stat-label">Total Bills Issued</div>
-          <div className="stat-value tabular-nums text-primary">{invoices.length}</div>
-          <div className="stat-helper">Across both businesses</div>
-        </div>
-        <div className="card stat-card">
+        <div style={{ textAlign: 'right' }}>
           <div className="stat-label">Lifetime Spend Value</div>
           <div className="stat-value tabular-nums text-success">₹{totalSpent.toFixed(2)}</div>
           <div className="stat-helper">Total gross billed</div>
@@ -148,12 +190,59 @@ export const CustomerDetail: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 'var(--space-4)' }}>
         {/* Left Column: Details or Edit Form */}
         <div className="card">
-          <div className="card-header">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 className="card-title">Customer Details</h2>
+            {!isEditing ? (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setName(customer.name || '');
+                  setPhone(customer.phone || '');
+                  setEmail(customer.email || '');
+                  setAddress(customer.address || '');
+                  setGstin(customer.gstin || '');
+                  setCustomerType((customer.customer_type as any) || 'customer');
+                  setIsEditing(true);
+                }}
+                style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+              >
+                <Edit2 size={14} /> Edit
+              </button>
+            ) : (
+              <button
+                className="btn btn-ghost btn-sm text-secondary"
+                onClick={() => setIsEditing(false)}
+                style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+              >
+                <X size={14} /> Cancel
+              </button>
+            )}
           </div>
           <div className="card-body">
             {isEditing ? (
               <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div className="form-group">
+                  <label className="form-label required">Customer Type</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className={`btn ${customerType === 'customer' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.8rem', padding: '6px 10px' }}
+                      onClick={() => setCustomerType('customer')}
+                    >
+                      Retail Customer
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${customerType === 'wholesaler' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.8rem', padding: '6px 10px' }}
+                      onClick={() => setCustomerType('wholesaler')}
+                    >
+                      Wholesaler / B2B
+                    </button>
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label required">Customer / Company Name</label>
                   <input
@@ -183,12 +272,32 @@ export const CustomerDetail: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">GSTIN</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>GSTIN</label>
+                    {gstin.length >= 15 && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: '0.75rem', padding: '2px 8px', height: 'auto', color: 'var(--primary-color)' }}
+                        onClick={() => handleFetchGstDetails(gstin)}
+                        disabled={isFetchingGst}
+                      >
+                        {isFetchingGst ? 'Fetching...' : '✨ Auto-Fetch Details'}
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     className="form-input"
                     value={gstin}
-                    onChange={e => setGstin(e.target.value)}
+                    placeholder="e.g. 33AABCT1332L1ZV"
+                    onChange={e => {
+                      const val = e.target.value.toUpperCase();
+                      setGstin(val);
+                      if (val.length === 15) {
+                        handleFetchGstDetails(val);
+                      }
+                    }}
                   />
                 </div>
                 <div className="form-group">
@@ -200,12 +309,51 @@ export const CustomerDetail: React.FC = () => {
                     onChange={e => setAddress(e.target.value)}
                   />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={saving} style={{ marginTop: 'var(--space-2)' }}>
-                  <Save size={16} /> {saving ? 'Saving...' : 'Update Details'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', marginTop: 'var(--space-2)' }}>
+                  <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1 }}>
+                    <Save size={16} /> {saving ? 'Saving...' : 'Update Details'}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => setIsEditing(false)}>
+                    Cancel
+                  </button>
+                </div>
               </form>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div>
+                  <div className="text-secondary" style={{ fontSize: 'var(--font-xs)' }}>Customer Type</div>
+                  <div style={{ marginTop: '2px' }}>
+                    {customer.customer_type === 'wholesaler' ? (
+                      <span
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          background: '#fef3c7',
+                          color: '#b45309',
+                          border: '1px solid #fde68a',
+                        }}
+                      >
+                        Wholesaler / B2B
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          background: '#e0f2fe',
+                          color: '#0369a1',
+                          border: '1px solid #bae6fd',
+                        }}
+                      >
+                        Retail Customer
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <div className="text-secondary" style={{ fontSize: 'var(--font-xs)' }}>Phone</div>
                   <div style={{ fontWeight: 600 }}>{customer.phone || '—'}</div>

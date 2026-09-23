@@ -46,8 +46,11 @@ export const PotsInventory: React.FC = () => {
           </p>
         </div>
 
-        <div className="page-actions">
-          <Link to="/products/new" className="btn btn-inv">
+        <div className="page-actions" style={{ display: 'flex', gap: '8px' }}>
+          <Link to="/inventory/new" className="btn btn-secondary">
+            <Plus size={15} /> Add Inventory
+          </Link>
+          <Link to="/products/new?type=pots" className="btn btn-inv">
             <Plus size={16} /> Add Pot / Planter
           </Link>
         </div>

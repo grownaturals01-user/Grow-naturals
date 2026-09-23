@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import type { Category, Supplier } from '../types';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useInventoryModules } from '../context/InventoryModulesContext';
 import { ProductImageUploader } from '../components/common/ProductImageUploader';
 import {
   ArrowLeft,
@@ -16,12 +17,15 @@ import {
   Building2,
   SlidersHorizontal,
   Loader2,
-  Leaf
+  Leaf,
+  BadgePercent,
+  Sparkles
 } from 'lucide-react';
 
 export const ProductEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { businessId, business, isTaxable } = useBusiness();
+  const { modules } = useInventoryModules();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -45,6 +49,8 @@ export const ProductEdit: React.FC = () => {
   const [stockQuantity, setStockQuantity] = useState<string>('0');
   const [lowStockThreshold, setLowStockThreshold] = useState<string>('5');
   const [supplierId, setSupplierId] = useState<string>('');
+  const [discountPieces, setDiscountPieces] = useState<string>('');
+  const [discountPercent, setDiscountPercent] = useState<string>('');
   const [attributes, setAttributes] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -68,6 +74,8 @@ export const ProductEdit: React.FC = () => {
         setStockQuantity(String(prod.stock_quantity));
         setLowStockThreshold(String(prod.low_stock_threshold));
         setSupplierId(prod.supplier_id || '');
+        setDiscountPieces(prod.discount_pieces ? String(prod.discount_pieces) : (prod.attributes?.discount_pieces ? String(prod.attributes.discount_pieces) : ''));
+        setDiscountPercent(prod.discount_percent ? String(prod.discount_percent) : (prod.attributes?.discount_percent ? String(prod.attributes.discount_percent) : ''));
         setAttributes(typeof prod.attributes === 'string' ? JSON.parse(prod.attributes) : (prod.attributes || {}));
 
         setCategories(cats);
@@ -101,7 +109,13 @@ export const ProductEdit: React.FC = () => {
       stock_quantity: Number(stockQuantity) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 5,
       supplier_id: supplierId || null,
-      attributes,
+      discount_pieces: Number(discountPieces) || 0,
+      discount_percent: Number(discountPercent) || 0,
+      attributes: {
+        ...attributes,
+        discount_pieces: Number(discountPieces) || 0,
+        discount_percent: Number(discountPercent) || 0,
+      },
       user_id: user?.id,
     };
 
@@ -200,7 +214,7 @@ export const ProductEdit: React.FC = () => {
               <Tag size={16} style={{ color: 'var(--module-inv-accent)' }} /> Product Information
             </h3>
 
-            <div className="form-grid-2" style={{ marginBottom: '14px' }}>
+            <div className="form-grid-3" style={{ marginBottom: '14px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">
                   Product Name <span className="required">*</span>
@@ -212,6 +226,27 @@ export const ProductEdit: React.FC = () => {
                   onChange={(e) => setName(e.target.value)}
                   required
                 />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Category Type <span className="required">*</span></label>
+                <select
+                  className="form-select"
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                >
+                  <option value="plants">🌱 Plants & Trees</option>
+                  <option value="cactus">🌵 Cactus & Succulents</option>
+                  <option value="pots">🪴 Pots & Planters</option>
+                  <option value="fertilizers">🧪 Fertilizers & Care</option>
+                  <option value="flowers">💐 Flowers & Decor</option>
+                  {modules.map((m) => (
+                    <option key={m.id} value={m.slug}>
+                      {m.icon || '📦'} {m.name}
+                    </option>
+                  ))}
+                  <option value="general">📦 General</option>
+                </select>
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
@@ -299,7 +334,7 @@ export const ProductEdit: React.FC = () => {
               <IndianRupee size={16} style={{ color: 'var(--module-inv-accent)' }} /> Pricing & Taxation
             </h3>
 
-            <div className="form-grid-4">
+            <div className={isTaxable ? "form-grid-4" : "form-grid-3"}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Cost Price</label>
                 <div className="input-addon-group">
@@ -333,11 +368,11 @@ export const ProductEdit: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  GST Rate {isTaxable ? '(%)' : ''}
-                </label>
-                {isTaxable ? (
+              {isTaxable && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">
+                    GST Rate (%)
+                  </label>
                   <div className="input-addon-group">
                     <span className="input-addon-prefix">%</span>
                     <input
@@ -348,16 +383,8 @@ export const ProductEdit: React.FC = () => {
                       onChange={(e) => setGstRate(e.target.value)}
                     />
                   </div>
-                ) : (
-                  <input
-                    type="text"
-                    className="form-input tabular"
-                    value="0% (Tax Exempt)"
-                    disabled
-                    style={{ fontWeight: 600 }}
-                  />
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">HSN Code</label>
@@ -407,7 +434,7 @@ export const ProductEdit: React.FC = () => {
           </div>
 
           {/* Section 5: Specialized Category Attributes */}
-          {Object.keys(attributes).length > 0 && (
+          {Object.keys(attributes).filter(k => k !== 'discount_pieces' && k !== 'discount_percent').length > 0 && (
             <div className="form-section-card">
               <div className="form-section-header">
                 <div className="form-section-title">
@@ -418,7 +445,9 @@ export const ProductEdit: React.FC = () => {
               </div>
 
               <div className="form-grid-3">
-                {Object.entries(attributes).map(([key, val]) => (
+                {Object.entries(attributes)
+                  .filter(([key]) => key !== 'discount_pieces' && key !== 'discount_percent')
+                  .map(([key, val]) => (
                   <div key={key} className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ textTransform: 'capitalize' }}>
                       {key.replace(/_/g, ' ')}
@@ -434,6 +463,73 @@ export const ProductEdit: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Section 6: Add Discount / Volume Discount (Optional) */}
+          <div className="form-section-card" style={{ padding: '14px 18px', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+            <div className="form-section-header" style={{ marginBottom: '12px', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="form-section-title" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: '#1e293b' }}>
+                <BadgePercent size={16} style={{ color: '#059669' }} />
+                <span>Add Discount / Bulk Tier (Optional)</span>
+              </div>
+              <span className="form-section-badge" style={{ fontSize: '0.72rem', padding: '2px 8px', background: '#ecfdf5', color: '#065f46', borderRadius: '12px', fontWeight: 500 }}>
+                🏷️ POS Auto Discount
+              </span>
+            </div>
+
+            <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  No. of Pieces
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 400 }}>(Threshold)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="form-input tabular"
+                  value={discountPieces}
+                  onChange={(e) => setDiscountPieces(e.target.value)}
+                  placeholder="e.g. 5"
+                />
+                <span className="form-helper" style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  Minimum quantity in cart to trigger discount
+                </span>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Discount (%)
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 400 }}>(Percentage)</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    className="form-input tabular"
+                    style={{ paddingRight: '28px' }}
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(e.target.value)}
+                    placeholder="e.g. 10"
+                  />
+                  <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>%</span>
+                </div>
+                <span className="form-helper" style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  Percentage to reduce from total product amount
+                </span>
+              </div>
+            </div>
+
+            {Number(discountPieces) > 0 && Number(discountPercent) > 0 && (
+              <div style={{ marginTop: '10px', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '0.75rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={14} style={{ color: '#16a34a' }} />
+                <span>
+                  <strong>Rule Active:</strong> When <strong>{discountPieces} or more pieces</strong> are taken in POS, <strong>{discountPercent}%</strong> will be deducted from the product total.
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Card Footer with Actions */}

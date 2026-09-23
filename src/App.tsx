@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { BusinessProvider } from './context/BusinessContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PosSyncProvider } from './context/PosSyncContext';
+import { InventoryModulesProvider } from './context/InventoryModulesContext';
 
 // Layout
 import { Layout } from './components/layout/Layout';
@@ -28,11 +29,14 @@ import { ProductDetail } from './pages/ProductDetail';
 import { ProductEdit } from './pages/ProductEdit';
 import { CategoriesManager } from './pages/CategoriesManager';
 import { PlantsInventory } from './pages/PlantsInventory';
+import { CactusInventory } from './pages/CactusInventory';
 import { PotsInventory } from './pages/PotsInventory';
 import { FertilizersInventory } from './pages/FertilizersInventory';
 import { FlowersInventory } from './pages/FlowersInventory';
 import { LossTracking } from './pages/LossTracking';
 import { WarehouseManagement } from './pages/WarehouseManagement';
+import { InventoryModuleNew } from './pages/InventoryModuleNew';
+import { DynamicInventoryPage } from './pages/DynamicInventoryPage';
 
 // Quotations
 import { QuotationsList } from './pages/QuotationsList';
@@ -95,8 +99,9 @@ export const App: React.FC = () => {
       <BusinessProvider>
         <AuthProvider>
           <PosSyncProvider>
-            <BrowserRouter>
-              <Routes>
+            <InventoryModulesProvider>
+              <BrowserRouter>
+                <Routes>
                 {/* Public Auth Route */}
                 <Route path="/login" element={<Login />} />
 
@@ -128,10 +133,13 @@ export const App: React.FC = () => {
                   <Route path="products/:id/edit" element={<ProductEdit />} />
                   <Route path="categories" element={<CategoriesManager />} />
                   <Route path="inventory/plants" element={<PlantsInventory />} />
+                  <Route path="inventory/cactus" element={<CactusInventory />} />
                   <Route path="inventory/pots" element={<PotsInventory />} />
                   <Route path="inventory/fertilizers" element={<FertilizersInventory />} />
                   <Route path="inventory/flowers" element={<FlowersInventory />} />
                   <Route path="inventory/losses" element={<LossTracking />} />
+                  <Route path="inventory/new" element={<InventoryModuleNew />} />
+                  <Route path="inventory/custom/:slug" element={<DynamicInventoryPage />} />
                   <Route path="warehouse" element={<WarehouseManagement />} />
 
                   {/* Quotations */}
@@ -181,7 +189,8 @@ export const App: React.FC = () => {
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
-            </BrowserRouter>
+              </BrowserRouter>
+            </InventoryModulesProvider>
           </PosSyncProvider>
         </AuthProvider>
       </BusinessProvider>

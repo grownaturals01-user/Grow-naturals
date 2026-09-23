@@ -27,6 +27,8 @@ import reportsRouter from './routes/reports.js';
 import printRouter from './routes/print.js';
 import lossesRouter from './routes/losses.js';
 import warehouseRouter from './routes/warehouse.js';
+import inventoryModulesRouter from './routes/inventoryModules.js';
+import gstRouter from './routes/gst.js';
 
 dotenv.config();
 
@@ -57,6 +59,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/businesses', businessesRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/categories', categoriesRouter);
+app.use('/api/inventory-modules', inventoryModulesRouter);
 app.use('/api/pos', posRouter);
 app.use('/api/invoices', invoicesRouter);
 app.use('/api/quotations', quotationsRouter);
@@ -73,6 +76,7 @@ app.use('/api/reports', reportsRouter);
 app.use('/api/print', printRouter);
 app.use('/api/inventory-losses', lossesRouter);
 app.use('/api/warehouse', warehouseRouter);
+app.use('/api/gst', gstRouter);
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

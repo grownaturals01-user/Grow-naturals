@@ -15,7 +15,9 @@ import {
   PlusCircle,
   Package,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  BadgePercent,
+  Sparkles
 } from 'lucide-react';
 
 export const ProductDetail: React.FC = () => {
@@ -189,7 +191,7 @@ export const ProductDetail: React.FC = () => {
               </h3>
             </div>
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isTaxable ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '16px' }}>
                 <div>
                   <div className="stat-label">Selling Price</div>
                   <div className="stat-value tabular" style={{ fontSize: '22px', color: 'var(--module-sell-accent)' }}>
@@ -204,12 +206,14 @@ export const ProductDetail: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <div className="stat-label">GST Rate</div>
-                  <div className="stat-value tabular" style={{ fontSize: '22px' }}>
-                    {isTaxable ? `${Number(product.gst_rate).toFixed(0)}%` : '0% (Non-Taxable)'}
+                {isTaxable && (
+                  <div>
+                    <div className="stat-label">GST Rate</div>
+                    <div className="stat-value tabular" style={{ fontSize: '22px' }}>
+                      {Number(product.gst_rate).toFixed(0)}%
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div>
                   <div className="stat-label">Current Stock</div>
@@ -218,6 +222,15 @@ export const ProductDetail: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {((Number(product.discount_pieces) > 0 && Number(product.discount_percent) > 0) || (Number(attributes.discount_pieces) > 0 && Number(attributes.discount_percent) > 0)) && (
+                <div style={{ marginTop: '16px', padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <BadgePercent size={18} style={{ color: '#059669', flexShrink: 0 }} />
+                  <div style={{ fontSize: '0.8125rem', color: '#065f46' }}>
+                    <strong>Volume Discount Active:</strong> Get <strong>{product.discount_percent || attributes.discount_percent}% OFF</strong> automatically in POS when taking <strong>{product.discount_pieces || attributes.discount_pieces}+ pieces</strong>.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -230,11 +243,13 @@ export const ProductDetail: React.FC = () => {
               </h3>
             </div>
             <div className="card-body">
-              {Object.keys(attributes).length === 0 ? (
+              {Object.keys(attributes).filter(k => k !== 'discount_pieces' && k !== 'discount_percent').length === 0 ? (
                 <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-sm)' }}>No category attributes specified.</p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-                  {Object.entries(attributes).map(([key, val]) => (
+                  {Object.entries(attributes)
+                    .filter(([k]) => k !== 'discount_pieces' && k !== 'discount_percent')
+                    .map(([key, val]) => (
                     <div key={key} style={{ borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '8px' }}>
                       <div style={{ fontSize: 'var(--font-xs)', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                         {key.replace(/_/g, ' ')}

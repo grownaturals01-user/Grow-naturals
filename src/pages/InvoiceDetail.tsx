@@ -86,7 +86,7 @@ export const InvoiceDetail: React.FC = () => {
                 {invoice.payment_status.toUpperCase()}
               </Badge>
               <Badge variant={isGrowNaturals ? 'info' : 'secondary'}>
-                {(invoice.business_name || (isGrowNaturals ? 'GROW NATURALS' : 'NIKHLESH NURSERY')).toUpperCase()}
+                {(invoice.business_name || (isGrowNaturals ? 'GROW NATURALS (GST)' : 'NIKHLESH NURSERY')).toUpperCase()}
               </Badge>
             </div>
             <p className="page-subtitle">

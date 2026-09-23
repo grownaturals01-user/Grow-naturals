@@ -8,11 +8,14 @@ import {
   Mail,
   Receipt,
   ArrowRight,
-  UserCheck
+  UserCheck,
+  Building2,
+  Filter
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Customer } from '../types';
 import { EmptyState } from '../components/common/EmptyState';
+import { Badge } from '../components/common/Badge';
 
 export const CustomersList: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +23,7 @@ export const CustomersList: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'wholesaler'>('all');
 
   const fetchCustomers = async () => {
     try {
@@ -44,6 +48,12 @@ export const CustomersList: React.FC = () => {
     fetchCustomers();
   };
 
+  const filteredCustomers = customers.filter(c => {
+    if (typeFilter === 'all') return true;
+    if (typeFilter === 'wholesaler') return c.customer_type === 'wholesaler';
+    return !c.customer_type || c.customer_type === 'customer';
+  });
+
   return (
     <div>
       {/* Page Header */}
@@ -61,10 +71,10 @@ export const CustomersList: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Search & Type Filter Bar */}
       <div className="card" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)' }}>
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-          <div className="input-icon-wrapper" style={{ flex: '1 1 300px' }}>
+        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', alignItems: 'center' }}>
+          <div className="input-icon-wrapper" style={{ flex: '1 1 260px' }}>
             <Search size={16} className="input-icon" />
             <input
               type="text"
@@ -74,15 +84,29 @@ export const CustomersList: React.FC = () => {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
+
+          <div style={{ width: '170px' }}>
+            <select
+              className="form-select"
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value as any)}
+            >
+              <option value="all">All Customer Types</option>
+              <option value="customer">Retail Customers</option>
+              <option value="wholesaler">Wholesalers / B2B</option>
+            </select>
+          </div>
+
           <button type="submit" className="btn btn-secondary">
             Search
           </button>
-          {search && (
+          {(search || typeFilter !== 'all') && (
             <button
               type="button"
               className="btn btn-ghost"
               onClick={() => {
                 setSearch('');
+                setTypeFilter('all');
                 fetchCustomers();
               }}
             >
@@ -98,7 +122,7 @@ export const CustomersList: React.FC = () => {
           <div style={{ padding: 'var(--space-8)', textAlign: 'center' }} className="text-secondary">
             Loading customers...
           </div>
-        ) : customers.length === 0 ? (
+        ) : filteredCustomers.length === 0 ? (
           <EmptyState
             title="No Customers Found"
             description="Add your first customer to track their billing history, recurring quotations, and delivery challans."
@@ -111,6 +135,7 @@ export const CustomersList: React.FC = () => {
               <thead>
                 <tr>
                   <th>Customer Name</th>
+                  <th>Customer Type</th>
                   <th>Contact Info</th>
                   <th>Address & GSTIN</th>
                   <th style={{ textAlign: 'right' }}>Bills Count</th>
@@ -119,62 +144,102 @@ export const CustomersList: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {customers.map(c => (
-                  <tr key={c.id}>
-                    <td>
-                      <Link
-                        to={`/customers/${c.id}`}
-                        style={{ fontWeight: 700, color: 'var(--color-primary)', textDecoration: 'none' }}
-                      >
-                        {c.name}
-                      </Link>
-                    </td>
-                    <td>
-                      {c.phone && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-sm)' }}>
-                          <Phone size={13} className="text-secondary" /> {c.phone}
-                        </div>
-                      )}
-                      {c.email && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)' }}>
-                          <Mail size={12} /> {c.email}
-                        </div>
-                      )}
-                      {!c.phone && !c.email && (
-                        <span className="text-tertiary" style={{ fontSize: 'var(--font-xs)' }}>No contact info</span>
-                      )}
-                    </td>
-                    <td>
-                      {c.gstin && (
-                        <div style={{ fontSize: 'var(--font-xs)', fontWeight: 600 }}>
-                          GSTIN: {c.gstin}
-                        </div>
-                      )}
-                      {c.address ? (
-                        <div className="text-secondary text-truncate" style={{ fontSize: 'var(--font-xs)', maxWidth: '220px' }}>
-                          {c.address}
-                        </div>
-                      ) : (
-                        <span className="text-tertiary" style={{ fontSize: 'var(--font-xs)' }}>No address</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }} className="tabular-nums font-semibold">
-                      {c.invoice_count || 0}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 700 }} className="tabular-nums text-success">
-                      ₹{Number(c.total_spent || 0).toFixed(2)}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link
-                        to={`/customers/${c.id}`}
-                        className="btn btn-ghost btn-sm"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        Profile <ArrowRight size={14} />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {filteredCustomers.map(c => {
+                  const isWholesale = c.customer_type === 'wholesaler';
+                  return (
+                    <tr key={c.id}>
+                      <td>
+                        <Link
+                          to={`/customers/${c.id}`}
+                          style={{ fontWeight: 700, color: 'var(--color-primary)', textDecoration: 'none' }}
+                        >
+                          {c.name}
+                        </Link>
+                      </td>
+                      <td>
+                        {isWholesale ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: '#fef3c7',
+                              color: '#b45309',
+                              border: '1px solid #fde68a',
+                            }}
+                          >
+                            <Building2 size={12} /> Wholesaler
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: '#e0f2fe',
+                              color: '#0369a1',
+                              border: '1px solid #bae6fd',
+                            }}
+                          >
+                            <Users size={12} /> Customer
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {c.phone && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-sm)' }}>
+                            <Phone size={13} className="text-secondary" /> {c.phone}
+                          </div>
+                        )}
+                        {c.email && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)' }}>
+                            <Mail size={12} /> {c.email}
+                          </div>
+                        )}
+                        {!c.phone && !c.email && (
+                          <span className="text-tertiary" style={{ fontSize: 'var(--font-xs)' }}>No contact info</span>
+                        )}
+                      </td>
+                      <td>
+                        {c.gstin && (
+                          <div style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: '#15803d' }}>
+                            GSTIN: {c.gstin}
+                          </div>
+                        )}
+                        {c.address ? (
+                          <div className="text-secondary text-truncate" style={{ fontSize: 'var(--font-xs)', maxWidth: '220px' }}>
+                            {c.address}
+                          </div>
+                        ) : (
+                          <span className="text-tertiary" style={{ fontSize: 'var(--font-xs)' }}>No address</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }} className="tabular-nums font-semibold">
+                        {c.invoice_count || 0}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }} className="tabular-nums text-success">
+                        ₹{Number(c.total_spent || 0).toFixed(2)}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Link
+                          to={`/customers/${c.id}`}
+                          className="btn btn-ghost btn-sm"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          Profile <ArrowRight size={14} />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

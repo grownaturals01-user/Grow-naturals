@@ -183,11 +183,9 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
             <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
               {isTaxable ? 'TAX INVOICE' : 'RETAIL INVOICE'}
             </h2>
-            {isTaxable && (
-              <div className="invoice-tax-badge">
-                GST Registered Entity
-              </div>
-            )}
+            <div className="invoice-tax-badge">
+              {isTaxable ? 'GST Registered Entity' : 'Retail Invoice'}
+            </div>
             <p style={{ fontSize: '14px', fontWeight: 700, marginTop: '8px' }}>
               Invoice #: <span className="tabular">{invoice.invoice_number}</span>
             </p>

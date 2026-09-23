@@ -31,6 +31,7 @@ export const BusinessToggle: React.FC = () => {
     <div className="business-toggle-container" role="radiogroup" aria-label="Business Selection">
       {list.map((biz) => {
         const isActive = biz.id === businessId;
+        const isGst = (biz as any).is_taxable ?? (biz.id === 'grow-naturals');
         return (
           <button
             key={biz.id}
@@ -41,6 +42,11 @@ export const BusinessToggle: React.FC = () => {
           >
             {getIcon(biz.id)}
             <span>{biz.name}</span>
+            {isGst ? (
+              <span className="biz-tag">GST</span>
+            ) : biz.id === 'nikhlesh-nursery' ? (
+              <span className="biz-tag">NURSERY</span>
+            ) : null}
           </button>
         );
       })}

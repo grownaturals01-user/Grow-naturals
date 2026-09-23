@@ -77,7 +77,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const businessId = req.body.business_id || getBusinessId(req);
-    const { customer_id, customer_name, customer_phone, valid_until, items, discount, notes } = req.body;
+    const { customer_id, customer_name, customer_phone, customer_gstin, customer_address, valid_until, items, discount, notes } = req.body;
 
     if (!customer_name) {
       return res.status(400).json({ error: 'Customer name is required' });
@@ -124,18 +124,47 @@ router.post('/', async (req: Request, res: Response) => {
     const disc = Number(discount) || 0;
     const totalAmount = Math.max(0, Number((subtotal + taxAmount - disc).toFixed(2)));
 
+    // Ensure customer is saved/updated in customers table
+    let resolvedCustId = customer_id || null;
+    try {
+      if (customer_name.trim()) {
+        const existingCust = await db.query(
+          `SELECT id FROM customers WHERE (gstin != '' AND UPPER(gstin) = UPPER($1)) OR (phone != '' AND phone = $2) LIMIT 1`,
+          [customer_gstin || '', customer_phone || '']
+        );
+        if (existingCust.rows.length > 0) {
+          resolvedCustId = existingCust.rows[0].id;
+          await db.query(
+            `UPDATE customers SET name = $1, phone = COALESCE(NULLIF($2, ''), phone), gstin = COALESCE(NULLIF($3, ''), gstin), address = COALESCE(NULLIF($4, ''), address) WHERE id = $5`,
+            [customer_name.trim(), customer_phone || '', customer_gstin || '', customer_address || '', resolvedCustId]
+          );
+        } else {
+          resolvedCustId = `cust-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+          await db.query(
+            `INSERT INTO customers (id, name, phone, email, address, gstin)
+             VALUES ($1, $2, $3, '', $4, $5)`,
+            [resolvedCustId, customer_name.trim(), customer_phone || '', customer_address || '', customer_gstin || '']
+          );
+        }
+      }
+    } catch (custErr) {
+      console.warn('Customer upsert non-critical warning:', custErr);
+    }
+
     await db.query(
       `INSERT INTO quotations (
-        id, business_id, quotation_number, customer_id, customer_name, customer_phone,
+        id, business_id, quotation_number, customer_id, customer_name, customer_phone, customer_gstin, customer_address,
         valid_until, subtotal, discount, tax_amount, total_amount, status, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'draft', $12)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'draft', $14)`,
       [
         quoteId,
         businessId,
         quoteNumber,
-        customer_id || null,
+        resolvedCustId,
         customer_name,
         customer_phone || '',
+        customer_gstin || '',
+        customer_address || '',
         valid_until || null,
         subtotal,
         disc,
