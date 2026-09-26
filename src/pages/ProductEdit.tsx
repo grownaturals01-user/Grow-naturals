@@ -235,17 +235,25 @@ export const ProductEdit: React.FC = () => {
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                 >
-                  <option value="plants">🌱 Plants & Trees</option>
-                  <option value="cactus">🌵 Cactus & Succulents</option>
-                  <option value="pots">🪴 Pots & Planters</option>
-                  <option value="fertilizers">🧪 Fertilizers & Care</option>
-                  <option value="flowers">💐 Flowers & Decor</option>
-                  {modules.map((m) => (
-                    <option key={m.id} value={m.slug}>
-                      {m.icon || '📦'} {m.name}
-                    </option>
-                  ))}
-                  <option value="general">📦 General</option>
+                  {modules.length > 0 ? (
+                    modules.map((m) => (
+                      <option key={m.id} value={m.slug}>
+                        {m.name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="plants">Plants & Trees</option>
+                      <option value="cactus">Cactus & Succulents</option>
+                      <option value="pots">Pots & Planters</option>
+                      <option value="fertilizers">Fertilizers & Care</option>
+                      <option value="flowers">Flowers & Decor</option>
+                    </>
+                  )}
+                  {/* If product type is not in current business modules, keep it visible */}
+                  {type && !modules.some((m) => m.slug === type) && (
+                    <option value={type}>{type.toUpperCase()}</option>
+                  )}
                 </select>
               </div>
 
@@ -257,9 +265,12 @@ export const ProductEdit: React.FC = () => {
                   onChange={(e) => setCategoryId(e.target.value)}
                 >
                   <option value="">Select Subcategory (Optional)</option>
-                  {categories.map((c) => (
+                  {(categories.filter((c) => !c.type || c.type === type).length > 0
+                    ? categories.filter((c) => !c.type || c.type === type)
+                    : categories
+                  ).map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.type})
+                      {c.name} {c.type ? `(${c.type})` : ''}
                     </option>
                   ))}
                 </select>

@@ -5,7 +5,7 @@ const router = Router();
 
 // Helper to get active business id
 function getBusinessId(req: Request): string {
-  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
 // GET /api/products
@@ -20,13 +20,15 @@ router.get('/', async (req: Request, res: Response) => {
         p.*, 
         c.name as category_name, 
         s.name as supplier_name,
+        b.name as business_name,
         p.stock_quantity as shop_stock,
         COALESCE(ws.stock_quantity, 0) as warehouse_stock
       FROM products p
+      LEFT JOIN businesses b ON p.business_id = b.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN suppliers s ON p.supplier_id = s.id
       LEFT JOIN warehouse_stocks ws ON p.id = ws.product_id AND p.business_id = ws.business_id
-      WHERE p.business_id = $1
+      WHERE ($1 = 'all' OR $1 = 'combined' OR p.business_id = $1)
     `;
     const params: any[] = [businessId];
     let paramIndex = 2;

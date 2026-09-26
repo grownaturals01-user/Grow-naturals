@@ -28,49 +28,6 @@ interface MainCategoryItem {
   product_count?: number;
 }
 
-const BUILTIN_CATEGORIES: Omit<MainCategoryItem, 'product_count'>[] = [
-  {
-    id: 'builtin-plants',
-    name: 'Plants',
-    slug: 'plants',
-    description: 'Exotic potted plants, hardy indoor greenery & bonsai',
-    sort_order: 1,
-    is_builtin: true,
-  },
-  {
-    id: 'builtin-cactus',
-    name: 'Cactus',
-    slug: 'cactus',
-    description: 'Desert succulents, hardy cactus & grafting specimens',
-    sort_order: 2,
-    is_builtin: true,
-  },
-  {
-    id: 'builtin-pots',
-    name: 'Pots',
-    slug: 'pots',
-    description: 'Artisan glazed pots, self-watering pots & planters',
-    sort_order: 3,
-    is_builtin: true,
-  },
-  {
-    id: 'builtin-fertilizers',
-    name: 'Fertilizers',
-    slug: 'fertilizers',
-    description: 'Bio boosters, seaweed tonics, soil mixes & neem sprays',
-    sort_order: 4,
-    is_builtin: true,
-  },
-  {
-    id: 'builtin-flowers',
-    name: 'Flowers',
-    slug: 'flowers',
-    description: 'Fresh cut lilies, orchids, and luxury arrangements',
-    sort_order: 5,
-    is_builtin: true,
-  },
-];
-
 export const CategoriesManager: React.FC = () => {
   const { businessId, business } = useBusiness();
   const { modules, addModule, updateModule, deleteModule, refreshModules } = useInventoryModules();
@@ -122,30 +79,21 @@ export const CategoriesManager: React.FC = () => {
     setIsSubCategoryModalOpen(false);
   }, [businessId]);
 
-  // Combine built-in categories with dynamic inventory modules
+  // Derive categories strictly from active business inventory modules
   const allMainCategories = useMemo<MainCategoryItem[]>(() => {
-    const list: MainCategoryItem[] = BUILTIN_CATEGORIES.map((b) => {
-      // Calculate total products matching this category slug/type
-      const count = products.filter((p) => p.type === b.slug).length;
-      return { ...b, product_count: count };
-    });
-
-    // Append custom modules from database
-    modules.forEach((m, idx) => {
+    return (modules || []).map((m, idx) => {
       const count = products.filter((p) => p.type === m.slug).length;
-      list.push({
+      return {
         id: m.id,
         name: m.name,
         slug: m.slug,
-        description: m.caption || 'Custom inventory classification',
-        sort_order: m.sort_order || (BUILTIN_CATEGORIES.length + idx + 1),
+        description: m.caption || `Catalog category for ${business?.name || 'this store'}`,
+        sort_order: m.sort_order || (idx + 1),
         is_builtin: false,
         product_count: count,
-      });
-    });
-
-    return list.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
-  }, [modules, products]);
+      };
+    }).sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  }, [modules, products, business]);
 
   // Map of category slug to human-friendly name
   const mainCategoryMap = useMemo(() => {
@@ -181,13 +129,11 @@ export const CategoriesManager: React.FC = () => {
 
     try {
       if (editingCategory) {
-        if (!editingCategory.is_builtin) {
-          await updateModule(editingCategory.id, {
-            name: catName.trim(),
-            caption: catDesc.trim(),
-            sort_order: Number(catSort) || 0,
-          });
-        }
+        await updateModule(editingCategory.id, {
+          name: catName.trim(),
+          caption: catDesc.trim(),
+          sort_order: Number(catSort) || 0,
+        });
       } else {
         await addModule({
           name: catName.trim(),
@@ -204,12 +150,8 @@ export const CategoriesManager: React.FC = () => {
     }
   };
 
-  // Handler: Delete Custom Category
+  // Handler: Delete Category
   const handleDeleteCategory = (item: MainCategoryItem) => {
-    if (item.is_builtin) {
-      alert('Built-in system categories (Plants, Cactus, Pots, Fertilizers, Flowers) cannot be deleted.');
-      return;
-    }
     setModuleToDelete(item);
   };
 
@@ -294,7 +236,7 @@ export const CategoriesManager: React.FC = () => {
   return (
     <div>
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '14px' }}>
         <div className="page-title-group">
           <h1 className="page-title">
             <span>Categories Management</span>
@@ -305,7 +247,7 @@ export const CategoriesManager: React.FC = () => {
           </p>
         </div>
 
-        <div className="page-actions">
+        <div className="page-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {activeTab === 'categories' ? (
             <button
               type="button"
@@ -330,40 +272,37 @@ export const CategoriesManager: React.FC = () => {
       <div
         style={{
           display: 'flex',
-          gap: '12px',
-          borderBottom: '1px solid var(--color-border, #e2e8f0)',
-          paddingBottom: '12px',
+          alignItems: 'center',
+          gap: '8px',
+          backgroundColor: 'var(--color-bg-surface)',
+          padding: '6px',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--color-border)',
+          width: 'fit-content',
           marginBottom: '20px',
+          boxShadow: 'var(--shadow-xs)'
         }}
       >
         <button
           type="button"
           onClick={() => setActiveTab('categories')}
+          className={`btn ${activeTab === 'categories' ? 'btn-inv' : 'btn-ghost'}`}
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            border: '1px solid',
-            borderColor: activeTab === 'categories' ? 'var(--color-primary, #0284c7)' : 'transparent',
-            background: activeTab === 'categories' ? 'var(--color-primary-bg, #f0f9ff)' : '#ffffff',
-            color: activeTab === 'categories' ? 'var(--color-primary, #0284c7)' : 'var(--color-text-secondary, #64748b)',
+            padding: '7px 16px',
+            fontSize: '0.8125rem',
+            borderRadius: 'var(--radius-lg)',
+            gap: '8px'
           }}
         >
-          <FolderTree size={16} /> Category
+          <FolderTree size={15} /> Categories
           <span
             style={{
-              padding: '1px 7px',
+              padding: '2px 8px',
               borderRadius: '999px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              background: activeTab === 'categories' ? 'var(--color-primary, #0284c7)' : '#f1f5f9',
-              color: activeTab === 'categories' ? '#ffffff' : '#64748b',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              background: activeTab === 'categories' ? 'rgba(255, 255, 255, 0.25)' : 'var(--color-bg-surface-subtle)',
+              color: activeTab === 'categories' ? '#ffffff' : 'var(--color-text-secondary)',
             }}
           >
             {allMainCategories.length}
@@ -373,31 +312,23 @@ export const CategoriesManager: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('subcategories')}
+          className={`btn ${activeTab === 'subcategories' ? 'btn-inv' : 'btn-ghost'}`}
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            border: '1px solid',
-            borderColor: activeTab === 'subcategories' ? 'var(--color-primary, #0284c7)' : 'transparent',
-            background: activeTab === 'subcategories' ? 'var(--color-primary-bg, #f0f9ff)' : '#ffffff',
-            color: activeTab === 'subcategories' ? 'var(--color-primary, #0284c7)' : 'var(--color-text-secondary, #64748b)',
+            padding: '7px 16px',
+            fontSize: '0.8125rem',
+            borderRadius: 'var(--radius-lg)',
+            gap: '8px'
           }}
         >
-          <Layers size={16} /> Sub Category
+          <Layers size={15} /> Sub Categories
           <span
             style={{
-              padding: '1px 7px',
+              padding: '2px 8px',
               borderRadius: '999px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              background: activeTab === 'subcategories' ? 'var(--color-primary, #0284c7)' : '#f1f5f9',
-              color: activeTab === 'subcategories' ? '#ffffff' : '#64748b',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              background: activeTab === 'subcategories' ? 'rgba(255, 255, 255, 0.25)' : 'var(--color-bg-surface-subtle)',
+              color: activeTab === 'subcategories' ? '#ffffff' : 'var(--color-text-secondary)',
             }}
           >
             {categories.length}
@@ -407,7 +338,7 @@ export const CategoriesManager: React.FC = () => {
 
       {/* TAB 1: MAIN CATEGORIES TAB */}
       {activeTab === 'categories' && (
-        <div className="card">
+        <div className="card" style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           {isLoading ? (
             <div style={{ textAlign: 'center', padding: '60px', color: 'var(--color-text-muted)' }}>
               Loading categories...
@@ -423,51 +354,67 @@ export const CategoriesManager: React.FC = () => {
             </div>
           ) : (
             <div className="table-responsive">
-              <table className="table">
+              <table className="table" style={{ margin: 0 }}>
                 <thead>
-                  <tr>
-                    <th style={{ width: '65px' }}>ORDER</th>
-                    <th>CATEGORY NAME</th>
-                    <th>DESCRIPTION</th>
-                    <th style={{ textAlign: 'center', width: '160px' }}>TOTAL PRODUCTS</th>
-                    <th style={{ textAlign: 'right', width: '240px' }}>ACTIONS</th>
+                  <tr style={{ backgroundColor: 'var(--color-bg-surface-subtle)' }}>
+                    <th style={{ width: '70px', padding: '12px 18px' }}>ORDER</th>
+                    <th style={{ padding: '12px 18px' }}>CATEGORY NAME</th>
+                    <th style={{ padding: '12px 18px' }}>DESCRIPTION</th>
+                    <th style={{ textAlign: 'center', width: '160px', padding: '12px 18px' }}>TOTAL PRODUCTS</th>
+                    <th style={{ textAlign: 'right', width: '230px', padding: '12px 18px' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {allMainCategories.map((cat) => (
                     <tr key={cat.id}>
-                      <td className="tabular" style={{ fontWeight: 600 }}>
+                      <td className="tabular" style={{ fontWeight: 600, padding: '12px 18px' }}>
                         {cat.sort_order}
                       </td>
-                      <td>
+                      <td style={{ padding: '12px 18px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontWeight: 700, color: 'var(--color-text-main, #0f172a)', fontSize: '0.925rem' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>
                             {cat.name}
                           </span>
-                          {cat.is_builtin && (
+                          {cat.is_builtin ? (
                             <span
                               style={{
                                 fontSize: '10px',
                                 textTransform: 'uppercase',
-                                padding: '1px 5px',
+                                padding: '2px 6px',
                                 borderRadius: '4px',
-                                background: '#f1f5f9',
-                                color: '#64748b',
+                                background: 'var(--color-bg-surface-subtle)',
+                                color: 'var(--color-text-muted)',
                                 fontWeight: 700,
+                                border: '1px solid var(--color-border)'
                               }}
                             >
                               Core
                             </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                textTransform: 'uppercase',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: 'var(--module-inv-subtle)',
+                                color: 'var(--module-inv-accent)',
+                                fontWeight: 700,
+                                border: '1px solid var(--module-inv-border)'
+                              }}
+                            >
+                              Custom
+                            </span>
                           )}
                         </div>
                       </td>
-                      <td style={{ color: 'var(--color-text-secondary, #64748b)', fontSize: 'var(--font-xs)' }}>
+                      <td style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-xs)', padding: '12px 18px' }}>
                         {cat.description || '—'}
                       </td>
-                      <td style={{ textAlign: 'center' }} className="tabular">
-                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{cat.product_count || 0}</span> items
+                      <td style={{ textAlign: 'center', padding: '12px 18px' }} className="tabular">
+                        <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{cat.product_count || 0}</span> items
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right', padding: '12px 18px' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           {/* Add Sub Category button */}
                           <button
@@ -479,11 +426,11 @@ export const CategoriesManager: React.FC = () => {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px',
-                              padding: '4px 8px',
+                              padding: '4px 10px',
                               fontSize: '0.75rem',
-                              color: 'var(--color-primary, #0284c7)',
-                              borderColor: '#bae6fd',
-                              background: '#f0f9ff',
+                              color: 'var(--module-inv-accent)',
+                              borderColor: 'var(--module-inv-border)',
+                              background: 'var(--module-inv-subtle)',
                               fontWeight: 600,
                             }}
                           >
@@ -493,21 +440,22 @@ export const CategoriesManager: React.FC = () => {
                           {/* Edit button */}
                           <button
                             type="button"
-                            className="btn btn-ghost btn-sm"
+                            className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenEditCategory(cat)}
                             title="Edit Category"
-                            style={{ padding: '4px 8px' }}
+                            style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '4px' }}
                           >
-                            <Edit2 size={14} /> Edit
+                            <Edit2 size={13} /> Edit
                           </button>
 
                           {/* Delete button (custom only) */}
                           {!cat.is_builtin && (
                             <button
                               type="button"
-                              className="btn btn-ghost btn-icon btn-sm text-error"
+                              className="btn btn-ghost btn-icon btn-sm"
                               onClick={() => handleDeleteCategory(cat)}
                               title="Delete Category"
+                              style={{ color: 'var(--color-danger)' }}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -525,7 +473,7 @@ export const CategoriesManager: React.FC = () => {
 
       {/* TAB 2: SUB CATEGORIES TAB */}
       {activeTab === 'subcategories' && (
-        <div className="card">
+        <div className="card" style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           {isLoading ? (
             <div style={{ textAlign: 'center', padding: '60px', color: 'var(--color-text-muted)' }}>
               Loading subcategories...
@@ -541,15 +489,15 @@ export const CategoriesManager: React.FC = () => {
             </div>
           ) : (
             <div className="table-responsive">
-              <table className="table">
+              <table className="table" style={{ margin: 0 }}>
                 <thead>
-                  <tr>
-                    <th style={{ width: '65px' }}>ORDER</th>
-                    <th>SUB CATEGORY NAME</th>
-                    <th>MAIN CATEGORY</th>
-                    <th>DESCRIPTION</th>
-                    <th style={{ textAlign: 'center', width: '160px' }}>TOTAL PRODUCTS</th>
-                    <th style={{ textAlign: 'right', width: '120px' }}>ACTIONS</th>
+                  <tr style={{ backgroundColor: 'var(--color-bg-surface-subtle)' }}>
+                    <th style={{ width: '70px', padding: '12px 18px' }}>ORDER</th>
+                    <th style={{ padding: '12px 18px' }}>SUB CATEGORY NAME</th>
+                    <th style={{ padding: '12px 18px' }}>MAIN CATEGORY</th>
+                    <th style={{ padding: '12px 18px' }}>DESCRIPTION</th>
+                    <th style={{ textAlign: 'center', width: '160px', padding: '12px 18px' }}>TOTAL PRODUCTS</th>
+                    <th style={{ textAlign: 'right', width: '150px', padding: '12px 18px' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -557,39 +505,40 @@ export const CategoriesManager: React.FC = () => {
                     const parentName = mainCategoryMap.get(subcat.type) || subcat.type;
                     return (
                       <tr key={subcat.id}>
-                        <td className="tabular" style={{ fontWeight: 600 }}>
+                        <td className="tabular" style={{ fontWeight: 600, padding: '12px 18px' }}>
                           {subcat.sort_order}
                         </td>
-                        <td style={{ fontWeight: 700, color: 'var(--color-text-main, #0f172a)' }}>
+                        <td style={{ fontWeight: 700, color: 'var(--color-text-primary)', padding: '12px 18px' }}>
                           {subcat.name}
                         </td>
-                        <td>
+                        <td style={{ padding: '12px 18px' }}>
                           <Badge variant="inv" style={{ textTransform: 'capitalize' }}>
                             {parentName}
                           </Badge>
                         </td>
-                        <td style={{ color: 'var(--color-text-secondary, #64748b)', fontSize: 'var(--font-xs)' }}>
+                        <td style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-xs)', padding: '12px 18px' }}>
                           {subcat.description || '—'}
                         </td>
-                        <td style={{ textAlign: 'center' }} className="tabular">
-                          <span style={{ fontWeight: 700, color: '#0f172a' }}>{subcat.product_count || 0}</span> items
+                        <td style={{ textAlign: 'center', padding: '12px 18px' }} className="tabular">
+                          <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{subcat.product_count || 0}</span> items
                         </td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td style={{ textAlign: 'right', padding: '12px 18px' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                             <button
                               type="button"
-                              className="btn btn-ghost btn-sm"
+                              className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenEditSubCategory(subcat)}
                               title="Edit Sub Category"
-                              style={{ padding: '4px 8px' }}
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '4px' }}
                             >
-                              <Edit2 size={14} /> Edit
+                              <Edit2 size={13} /> Edit
                             </button>
                             <button
                               type="button"
-                              className="btn btn-ghost btn-icon btn-sm text-error"
+                              className="btn btn-ghost btn-icon btn-sm"
                               onClick={() => handleDeleteSubCategory(subcat.id, subcat.name)}
                               title="Delete Sub Category"
+                              style={{ color: 'var(--color-danger)' }}
                             >
                               <Trash2 size={14} />
                             </button>

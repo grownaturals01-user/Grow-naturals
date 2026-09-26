@@ -497,20 +497,20 @@ export const DeliveryChallansList: React.FC = () => {
           </div>
 
           <select
-            className="form-select"
-            style={{ width: '150px', fontSize: '0.8125rem', padding: '7px 12px' }}
+            className="form-select form-select-sm"
+            style={{ width: '150px' }}
             value={dueReminderFilter}
             onChange={(e) => setDueReminderFilter(e.target.value as any)}
           >
             <option value="all">All Deadlines</option>
-            <option value="overdue">🚨 Overdue Dues</option>
-            <option value="due_today">⏰ Due Today</option>
-            <option value="due_soon">📅 Due in 7 Days</option>
+            <option value="overdue">Overdue Dues</option>
+            <option value="due_today">Due Today</option>
+            <option value="due_soon">Due in 7 Days</option>
           </select>
 
           <select
-            className="form-select"
-            style={{ width: '145px', fontSize: '0.8125rem', padding: '7px 12px' }}
+            className="form-select form-select-sm"
+            style={{ width: '155px' }}
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value)}
           >
@@ -522,8 +522,8 @@ export const DeliveryChallansList: React.FC = () => {
           </select>
 
           <select
-            className="form-select"
-            style={{ width: '130px', fontSize: '0.8125rem', padding: '7px 12px' }}
+            className="form-select form-select-sm"
+            style={{ width: '130px' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -533,8 +533,8 @@ export const DeliveryChallansList: React.FC = () => {
           </select>
 
           <select
-            className="form-select"
-            style={{ width: '140px', fontSize: '0.8125rem', padding: '7px 12px' }}
+            className="form-select form-select-sm"
+            style={{ width: '145px' }}
             value={approvalFilter}
             onChange={(e) => setApprovalFilter(e.target.value)}
           >

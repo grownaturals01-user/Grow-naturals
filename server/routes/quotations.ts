@@ -4,7 +4,7 @@ import { getDb } from '../db/connection.js';
 const router = Router();
 
 function getBusinessId(req: Request): string {
-  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
 // GET /api/quotations
@@ -16,6 +16,7 @@ router.get('/', async (req: Request, res: Response) => {
     const db = await getDb();
     let query = `
       SELECT q.*, 
+        b.name as business_name,
         (SELECT COUNT(*) FROM quotation_items qi WHERE qi.quotation_id = q.id) as item_count,
         (SELECT COUNT(*) FROM quotations q_all 
          WHERE (q_all.customer_phone = q.customer_phone AND q.customer_phone != '') 
@@ -25,7 +26,8 @@ router.get('/', async (req: Request, res: Response) => {
             OR (q_conv.customer_name = q.customer_name AND q.customer_name != ''))
            AND (q_conv.status = 'converted_to_invoice' OR (q_conv.converted_id IS NOT NULL AND q_conv.converted_id != ''))) as customer_converted_quotes
       FROM quotations q
-      WHERE q.business_id = $1
+      LEFT JOIN businesses b ON q.business_id = b.id
+      WHERE ($1 = 'all' OR $1 = 'combined' OR q.business_id = $1)
     `;
     const params: any[] = [businessId];
     let paramIndex = 2;

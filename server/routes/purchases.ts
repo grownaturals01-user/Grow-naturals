@@ -4,7 +4,7 @@ import { getDb } from '../db/connection.js';
 const router = Router();
 
 function getBusinessId(req: Request): string {
-  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
 // GET /api/purchases
@@ -16,13 +16,15 @@ router.get('/', async (req: Request, res: Response) => {
     const db = await getDb();
     let query = `
       SELECT po.*,
+             b.name as business_name,
              s.name as supplier_name,
              s.phone as supplier_phone,
              (po.total_amount - po.paid_amount) as outstanding_due,
              (SELECT COUNT(*) FROM purchase_order_items poi WHERE poi.po_id = po.id) as item_count
       FROM purchase_orders po
+      LEFT JOIN businesses b ON po.business_id = b.id
       JOIN suppliers s ON po.supplier_id = s.id
-      WHERE po.business_id = $1
+      WHERE ($1 = 'all' OR $1 = 'combined' OR po.business_id = $1)
     `;
     const params: any[] = [businessId];
     let paramIndex = 2;

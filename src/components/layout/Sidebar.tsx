@@ -28,6 +28,7 @@ import {
   Leaf,
   TrendingDown,
   Warehouse,
+  ArrowLeftRight,
   Sun,
   Sprout,
   Plus,
@@ -202,26 +203,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <FolderTree className="nav-icon" />
               {!collapsed && <span>Categories</span>}
             </NavLink>
-            <NavLink to="/inventory/plants" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Plant Inventory">
-              <Trees className="nav-icon" />
-              {!collapsed && <span>Plant Inventory</span>}
-            </NavLink>
-            <NavLink to="/inventory/cactus" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Cactus Inventory">
-              <Cactus className="nav-icon" />
-              {!collapsed && <span>Cactus Inventory</span>}
-            </NavLink>
-            <NavLink to="/inventory/pots" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Pots & Planters">
-              <Box className="nav-icon" />
-              {!collapsed && <span>Pots Inventory</span>}
-            </NavLink>
-            <NavLink to="/inventory/fertilizers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Fertilizers & Chemicals">
-              <FlaskConical className="nav-icon" />
-              {!collapsed && <span>Fertilizers & Care</span>}
-            </NavLink>
-            <NavLink to="/inventory/flowers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Flowers & Arrangements">
-              <Flower2 className="nav-icon" />
-              {!collapsed && <span>Flowers & Decor</span>}
-            </NavLink>
+            {/* Dynamic Inventory Categories for Active Business */}
+            {(modules || []).map((m) => {
+              const route = ['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(m.slug)
+                ? `/inventory/${m.slug}`
+                : `/inventory/custom/${m.slug}`;
+
+              return (
+                <NavLink
+                  key={m.id}
+                  to={route}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  onClick={handleLinkClick}
+                  title={`${m.name} Inventory`}
+                >
+                  <span className="nav-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {renderModuleIcon(m.icon || m.slug, 18)}
+                  </span>
+                  {!collapsed && <span>{m.name}</span>}
+                </NavLink>
+              );
+            })}
+
             <NavLink to="/inventory/losses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Loss & Damage Tracking">
               <TrendingDown className="nav-icon" />
               {!collapsed && <span>Loss Tracking</span>}
@@ -230,22 +233,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Warehouse className="nav-icon" />
               {!collapsed && <span>Warehouse Stock</span>}
             </NavLink>
-
-            {/* Dynamic Custom Inventory Modules */}
-            {(modules || []).map((m) => (
-              <NavLink
-                key={m.id}
-                to={`/inventory/custom/${m.slug}`}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                onClick={handleLinkClick}
-                title={`${m.name} Inventory`}
-              >
-                <span className="nav-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {renderModuleIcon(m.icon, 18)}
-                </span>
-                {!collapsed && <span>{m.name} Inventory</span>}
-              </NavLink>
-            ))}
+            <NavLink to="/transfers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Stock Transfers (Warehouse ➔ Shop)">
+              <ArrowLeftRight className="nav-icon" />
+              {!collapsed && <span>Stock Transfers</span>}
+            </NavLink>
 
             {/* Add New Inventory Module Button */}
             <NavLink
