@@ -959,6 +959,7 @@ export const POS: React.FC = () => {
                 const cartInvMatch = cart.find((it) => it.product_id === p.id && it.stock_source === 'inventory');
                 const totalInCart = (cartShopMatch?.quantity || 0) + (cartInvMatch?.quantity || 0);
                 const isLowStock = !isOutOfStock && totalStock <= (p.low_stock_threshold || 10);
+                const productImg = p.image_url || p.attributes?.image_url || (p as any).image || (p as any).photo;
 
                 return (
                   <div
@@ -968,9 +969,9 @@ export const POS: React.FC = () => {
                   >
                     {/* Full-bleed Top Image (0 padding top/left/right) */}
                     <div className="pos-prod-image-container">
-                      {p.image_url ? (
+                      {productImg ? (
                         <img
-                          src={p.image_url}
+                          src={productImg}
                           alt={p.name}
                           className="pos-prod-img"
                           loading="lazy"
@@ -987,19 +988,19 @@ export const POS: React.FC = () => {
 
                       <div
                         className="pos-prod-fallback"
-                        style={{ display: p.image_url ? 'none' : 'flex' }}
+                        style={{ display: productImg ? 'none' : 'flex' }}
                       >
                         <span className="pos-prod-fallback-icon">
-                          {p.type === 'plants' && <Trees size={36} strokeWidth={1.75} style={{ color: '#16a34a' }} />}
-                          {p.type === 'cactus' && <CactusIcon size={36} style={{ color: '#0d9488' }} />}
-                          {p.type === 'pots' && <PlanterIcon size={36} style={{ color: '#ea580c' }} />}
-                          {p.type === 'fertilizers' && <FlaskConical size={36} strokeWidth={1.75} style={{ color: '#6366f1' }} />}
-                          {p.type === 'flowers' && <Flower2 size={36} strokeWidth={1.75} style={{ color: '#e11d48' }} />}
+                          {p.type === 'plants' && <Trees size={32} strokeWidth={1.8} style={{ color: '#16a34a' }} />}
+                          {p.type === 'cactus' && <CactusIcon size={32} style={{ color: '#0d9488' }} />}
+                          {p.type === 'pots' && <PlanterIcon size={32} style={{ color: '#ea580c' }} />}
+                          {p.type === 'fertilizers' && <FlaskConical size={32} strokeWidth={1.8} style={{ color: '#6366f1' }} />}
+                          {p.type === 'flowers' && <Flower2 size={32} strokeWidth={1.8} style={{ color: '#e11d48' }} />}
                           {!['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(p.type) && (
                             modules.find((m) => m.slug === p.type)?.icon ? (
-                              <span>{modules.find((m) => m.slug === p.type)?.icon}</span>
+                              <span style={{ fontSize: '1.75rem' }}>{modules.find((m) => m.slug === p.type)?.icon}</span>
                             ) : (
-                              <Trees size={36} strokeWidth={1.75} style={{ color: '#16a34a' }} />
+                              <Trees size={32} strokeWidth={1.8} style={{ color: '#16a34a' }} />
                             )
                           )}
                         </span>
