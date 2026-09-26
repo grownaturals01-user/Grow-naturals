@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useBusiness } from '../context/BusinessContext';
 import { useAuth } from '../context/AuthContext';
 import { usePosSync } from '../context/PosSyncContext';
@@ -10,6 +10,7 @@ import { printService } from '../services/printService';
 import type { Product, POSCartItem, Customer, HeldBill, Invoice } from '../types';
 import { BarcodeScannerModal } from '../components/pos/BarcodeScannerModal';
 import { PosHoldBills } from '../components/pos/PosHoldBills';
+import { CustomerCreateModal } from '../components/pos/CustomerCreateModal';
 import { A4InvoiceView } from '../components/print/A4InvoiceView';
 import { Receipt80mmView } from '../components/print/Receipt80mmView';
 import confetti from 'canvas-confetti';
@@ -36,11 +37,21 @@ import {
   Sparkles,
   HandCoins,
   ArrowRight,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Phone,
   UserCheck,
   FlaskConical,
   Flower2,
-  Trees
+  Trees,
+  Store,
+  Boxes,
+  ScanLine,
+  UserPlus,
+  Scan,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { CactusIcon, PlanterIcon, getCategoryIcon, renderModuleIcon } from '../components/common/CategoryIcons';
 
@@ -60,13 +71,24 @@ export const POS: React.FC = () => {
   // Registered Customers Lookup
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState<boolean>(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>('');
+  const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] = useState<boolean>(false);
+  const [newCustomerInitialName, setNewCustomerInitialName] = useState<string>('');
 
   // Cart State
   const [cart, setCart] = useState<POSCartItem[]>([]);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [defaultStockSource, setDefaultStockSource] = useState<'shop' | 'inventory'>('shop');
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id?: string; name: string; phone: string }>({
-    name: 'Walk-in Customer',
+  const [selectedCustomer, setSelectedCustomer] = useState<{
+    id?: string;
+    name: string;
+    phone: string;
+    gstin?: string;
+    credit_limit?: number;
+    total_spent?: number;
+    customer_type?: string;
+  }>({
+    name: 'Walk in Customer',
     phone: '',
   });
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'credit'>('cash');
@@ -81,6 +103,44 @@ export const POS: React.FC = () => {
   const [isProcessingCheckout, setIsProcessingCheckout] = useState<boolean>(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+
+  const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
+  const [canScrollRight, setCanScrollRight] = useState<boolean>(true);
+
+  const checkScrollBounds = useCallback(() => {
+    if (!categoryScrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = categoryScrollRef.current;
+    setCanScrollLeft(scrollLeft > 4);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    checkScrollBounds();
+    el.addEventListener('scroll', checkScrollBounds, { passive: true });
+    window.addEventListener('resize', checkScrollBounds);
+    return () => {
+      el.removeEventListener('scroll', checkScrollBounds);
+      window.removeEventListener('resize', checkScrollBounds);
+    };
+  }, [checkScrollBounds, products, modules]);
+
+  const handleCategoryScroll = (direction: 'left' | 'right') => {
+    if (!categoryScrollRef.current) return;
+    const container = categoryScrollRef.current;
+    const firstPill = container.querySelector<HTMLElement>('.category-pill');
+    // Scroll step is exactly 1 card width + gap (10px)
+    const cardStep = firstPill ? firstPill.offsetWidth + 10 : 160;
+
+    if (direction === 'right') {
+      container.scrollBy({ left: cardStep, behavior: 'smooth' });
+    } else {
+      container.scrollBy({ left: -cardStep, behavior: 'smooth' });
+    }
+    setTimeout(checkScrollBounds, 350);
+  };
 
   // Load products (online-first, fallback to IndexedDB cache when offline)
   const loadProducts = useCallback(async () => {
@@ -120,11 +180,41 @@ export const POS: React.FC = () => {
   useEffect(() => {
     loadProducts();
     loadHeldBills();
-    api.get('/customers').then((data) => setAllCustomers(data || [])).catch(() => {});
+    api.get('/customers').then((data) => setAllCustomers(data || [])).catch(() => { });
     setCart([]);
     setDiscountAmount(0);
     setCompletedInvoice(null);
   }, [businessId, loadProducts, loadHeldBills]);
+
+  // Dynamic Customer Search Filtering
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearchQuery.trim()) return allCustomers.slice(0, 25);
+    const q = customerSearchQuery.toLowerCase();
+    return allCustomers
+      .filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.phone && c.phone.includes(q)) ||
+          (c.gstin && c.gstin.toLowerCase().includes(q))
+      )
+      .slice(0, 25);
+  }, [allCustomers, customerSearchQuery]);
+
+  // Handle successful customer creation from modal
+  const handleCustomerCreated = (newCust: Customer) => {
+    setAllCustomers((prev) => [newCust, ...prev]);
+    setSelectedCustomer({
+      id: newCust.id,
+      name: newCust.name,
+      phone: newCust.phone || '',
+      gstin: newCust.gstin || '',
+      credit_limit: newCust.credit_limit || 0,
+      total_spent: newCust.total_spent || 0,
+      customer_type: newCust.customer_type || 'customer',
+    });
+    setShowCustomerDropdown(false);
+    setCustomerSearchQuery('');
+  };
 
   // Filter products by category and search
   useEffect(() => {
@@ -147,19 +237,21 @@ export const POS: React.FC = () => {
     setFilteredProducts(result);
   }, [products, selectedCategory, searchQuery]);
 
-  // Category counts (including custom modules)
-  const categoryCounts: Record<string, number> = {
-    all: products.length,
-    plants: products.filter((p) => p.type === 'plants').length,
-    cactus: products.filter((p) => p.type === 'cactus').length,
-    pots: products.filter((p) => p.type === 'pots').length,
-    fertilizers: products.filter((p) => p.type === 'fertilizers').length,
-    flowers: products.filter((p) => p.type === 'flowers').length,
-    ...modules.reduce((acc, m) => {
-      acc[m.slug] = products.filter((p) => p.type === m.slug).length;
-      return acc;
-    }, {} as Record<string, number>),
-  };
+  // Category counts (strictly dynamic per business modules)
+  const categoryCounts = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = { all: products.length };
+    for (const m of modules) {
+      counts[m.slug] = 0;
+    }
+    for (const p of products) {
+      if (counts[p.type] !== undefined) {
+        counts[p.type]++;
+      } else {
+        counts[p.type] = (counts[p.type] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [products, modules]);
 
   // Add product to cart (Supports Shop Counter vs Main Inventory selection)
   const addToCart = (product: Product, forcedSource?: 'shop' | 'inventory') => {
@@ -303,6 +395,20 @@ export const POS: React.FC = () => {
     );
   };
 
+  const decrementCardQuantity = (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const cartItem =
+      cart.find((i) => i.product_id === product.id && (i.stock_source || 'shop') === 'shop') ||
+      cart.find((i) => i.product_id === product.id);
+    if (!cartItem) return;
+    updateQuantity(product.id, -1, cartItem.stock_source || 'shop');
+  };
+
+  const incrementCardQuantity = (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(product);
+  };
+
   // Hardware USB Barcode Scanner listener
   useEffect(() => {
     const removeListener = barcodeService.attachScannerListener((barcode) => {
@@ -361,10 +467,10 @@ export const POS: React.FC = () => {
 
   const taxAmount = isTaxable
     ? cart.reduce((acc, i) => {
-        const itemDisc = getItemDiscount(i);
-        const lineSubtotal = Math.max(0, i.quantity * i.unit_price - itemDisc);
-        return acc + (lineSubtotal * i.gst_rate) / 100;
-      }, 0)
+      const itemDisc = getItemDiscount(i);
+      const lineSubtotal = Math.max(0, i.quantity * i.unit_price - itemDisc);
+      return acc + (lineSubtotal * i.gst_rate) / 100;
+    }, 0)
     : 0;
 
   const cgstAmount = isTaxable ? Number((taxAmount / 2).toFixed(2)) : 0;
@@ -521,7 +627,7 @@ export const POS: React.FC = () => {
   }, [cart, paymentMethod, searchQuery]);
 
   return (
-    <div>
+    <div className="pos-page-root">
       <div className="pos-container">
         {/* Left Column: Product Grid & Search */}
         <div className="pos-catalog">
@@ -559,21 +665,18 @@ export const POS: React.FC = () => {
                     className={`pos-source-btn ${defaultStockSource === 'shop' ? 'active shop' : ''}`}
                     onClick={() => setDefaultStockSource('shop')}
                   >
-                    🏪 Shop
+                    <Store size={13} strokeWidth={2.2} />
+                    <span>Shop</span>
                   </button>
                   <button
                     type="button"
                     className={`pos-source-btn ${defaultStockSource === 'inventory' ? 'active inv' : ''}`}
                     onClick={() => setDefaultStockSource('inventory')}
                   >
-                    📦 Inventory
+                    <Boxes size={13} strokeWidth={2.2} />
+                    <span>Inventory</span>
                   </button>
                 </div>
-              </div>
-
-              <div className="pos-scanner-badge" title="USB and Bluetooth barcode scanners automatically scan into this terminal">
-                <Zap size={13} fill="#16a34a" />
-                <span>Scanner Active</span>
               </div>
 
               <button
@@ -587,69 +690,102 @@ export const POS: React.FC = () => {
               </button>
             </div>
 
-            {/* Category Filter Pills */}
-            <div className="pos-category-pills">
-              <button
-                type="button"
-                className={`category-pill ${selectedCategory === 'all' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('all')}
-              >
-                <Layers size={14} /> All Items
-                <span className="pill-count">{categoryCounts.all}</span>
-              </button>
-              <button
-                type="button"
-                className={`category-pill ${selectedCategory === 'plants' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('plants')}
-              >
-                <Leaf size={14} /> Plants & Trees
-                <span className="pill-count">{categoryCounts.plants}</span>
-              </button>
-              <button
-                type="button"
-                className={`category-pill ${selectedCategory === 'cactus' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('cactus')}
-              >
-                <CactusIcon size={14} /> Cactus
-                <span className="pill-count">{categoryCounts.cactus}</span>
-              </button>
-              <button
-                type="button"
-                className={`category-pill ${selectedCategory === 'pots' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('pots')}
-              >
-                <PlanterIcon size={14} /> Pots & Planters
-                <span className="pill-count">{categoryCounts.pots}</span>
-              </button>
-              <button
-                type="button"
-                className={`category-pill ${selectedCategory === 'fertilizers' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('fertilizers')}
-              >
-                <FlaskConical size={14} /> Fertilizers & Care
-                <span className="pill-count">{categoryCounts.fertilizers}</span>
-              </button>
-              <button
-                type="button"
-                className={`category-pill ${selectedCategory === 'flowers' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('flowers')}
-              >
-                <Flower2 size={14} /> Flowers & Decor
-                <span className="pill-count">{categoryCounts.flowers}</span>
-              </button>
+            {/* Categories Section with Header & Smooth Navigation Arrows */}
+            <div className="pos-categories-section">
+              <div className="pos-categories-header">
+                <h2 className="pos-categories-title">Categories</h2>
+                <div className="pos-category-nav-arrows">
+                  <button
+                    type="button"
+                    className={`pos-nav-arrow-btn ${!canScrollLeft ? 'disabled' : ''}`}
+                    onClick={() => handleCategoryScroll('left')}
+                    disabled={!canScrollLeft}
+                    title="Scroll categories left"
+                    aria-label="Previous categories"
+                  >
+                    <ArrowLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`pos-nav-arrow-btn ${!canScrollRight ? 'disabled' : ''}`}
+                    onClick={() => handleCategoryScroll('right')}
+                    disabled={!canScrollRight}
+                    title="Scroll categories right"
+                    aria-label="Next categories"
+                  >
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
 
-              {/* Dynamic Custom Modules */}
-              {modules.map((m) => (
+              {/* Category Filter Pills (Scrollable with Scroll Snap) */}
+              <div className="pos-category-pills" ref={categoryScrollRef}>
                 <button
-                  key={m.id}
                   type="button"
-                  className={`category-pill ${selectedCategory === m.slug ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(m.slug)}
+                  className={`category-pill ${selectedCategory === 'all' ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory('all')}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>{renderModuleIcon(m.icon, 14)}</span> {m.name}
-                  <span className="pill-count">{categoryCounts[m.slug] || 0}</span>
+                  <span className="pill-name">All</span>
+                  <span className="pill-count">{categoryCounts.all || 0}</span>
                 </button>
-              ))}
+
+                {modules && modules.length > 0 ? (
+                  modules.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`category-pill ${selectedCategory === m.slug ? 'active' : ''}`}
+                      onClick={() => setSelectedCategory(m.slug)}
+                    >
+                      <span className="pill-name">{m.name}</span>
+                      <span className="pill-count">{categoryCounts[m.slug] || 0}</span>
+                    </button>
+                  ))
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className={`category-pill ${selectedCategory === 'plants' ? 'active' : ''}`}
+                      onClick={() => setSelectedCategory('plants')}
+                    >
+                      <span className="pill-name">Plants & Trees</span>
+                      <span className="pill-count">{categoryCounts.plants || 0}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`category-pill ${selectedCategory === 'cactus' ? 'active' : ''}`}
+                      onClick={() => setSelectedCategory('cactus')}
+                    >
+                      <span className="pill-name">Cactus</span>
+                      <span className="pill-count">{categoryCounts.cactus || 0}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`category-pill ${selectedCategory === 'pots' ? 'active' : ''}`}
+                      onClick={() => setSelectedCategory('pots')}
+                    >
+                      <span className="pill-name">Pots & Planters</span>
+                      <span className="pill-count">{categoryCounts.pots || 0}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`category-pill ${selectedCategory === 'fertilizers' ? 'active' : ''}`}
+                      onClick={() => setSelectedCategory('fertilizers')}
+                    >
+                      <span className="pill-name">Fertilizers & Care</span>
+                      <span className="pill-count">{categoryCounts.fertilizers || 0}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`category-pill ${selectedCategory === 'flowers' ? 'active' : ''}`}
+                      onClick={() => setSelectedCategory('flowers')}
+                    >
+                      <span className="pill-name">Flowers & Decor</span>
+                      <span className="pill-count">{categoryCounts.flowers || 0}</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -683,7 +819,7 @@ export const POS: React.FC = () => {
                     className={`pos-product-card ${isOutOfStock ? 'out-of-stock' : ''} ${totalInCart > 0 ? 'in-cart' : ''}`}
                     onClick={() => !isOutOfStock && addToCart(p)}
                   >
-                    {/* Dedicated High-Visibility Image Preview Container */}
+                    {/* Full-bleed Top Image (0 padding top/left/right) */}
                     <div className="pos-prod-image-container">
                       {p.image_url ? (
                         <img
@@ -701,40 +837,39 @@ export const POS: React.FC = () => {
                           }}
                         />
                       ) : null}
-                      
+
                       <div
                         className="pos-prod-fallback"
                         style={{ display: p.image_url ? 'none' : 'flex' }}
                       >
                         <span className="pos-prod-fallback-icon">
-                          {p.type === 'plants' && <Trees size={32} strokeWidth={1.75} style={{ color: '#16a34a' }} />}
-                          {p.type === 'cactus' && <CactusIcon size={32} style={{ color: '#0d9488' }} />}
-                          {p.type === 'pots' && <PlanterIcon size={32} style={{ color: '#ea580c' }} />}
-                          {p.type === 'fertilizers' && <FlaskConical size={32} strokeWidth={1.75} style={{ color: '#6366f1' }} />}
-                          {p.type === 'flowers' && <Flower2 size={32} strokeWidth={1.75} style={{ color: '#e11d48' }} />}
+                          {p.type === 'plants' && <Trees size={36} strokeWidth={1.75} style={{ color: '#16a34a' }} />}
+                          {p.type === 'cactus' && <CactusIcon size={36} style={{ color: '#0d9488' }} />}
+                          {p.type === 'pots' && <PlanterIcon size={36} style={{ color: '#ea580c' }} />}
+                          {p.type === 'fertilizers' && <FlaskConical size={36} strokeWidth={1.75} style={{ color: '#6366f1' }} />}
+                          {p.type === 'flowers' && <Flower2 size={36} strokeWidth={1.75} style={{ color: '#e11d48' }} />}
                           {!['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(p.type) && (
                             modules.find((m) => m.slug === p.type)?.icon ? (
                               <span>{modules.find((m) => m.slug === p.type)?.icon}</span>
                             ) : (
-                              <Trees size={32} strokeWidth={1.75} style={{ color: '#16a34a' }} />
+                              <Trees size={36} strokeWidth={1.75} style={{ color: '#16a34a' }} />
                             )
                           )}
                         </span>
                       </div>
 
-                      {/* Overlay Category Badge */}
-                      <span className={`pos-prod-badge-overlay ${p.type}`}>
-                        {p.type}
-                      </span>
-
-                      {/* Overlay In-Cart Counter Pill */}
-                      {totalInCart > 0 && (
-                        <span className="pos-in-cart-pill-overlay">
-                          {totalInCart} in cart
+                      {/* Top-Left Must Try / Discount Badge */}
+                      {p.discount_percent && p.discount_percent > 0 ? (
+                        <span className="pos-prod-badge-must-try">
+                          🔥 {p.discount_percent}% Off
                         </span>
-                      )}
+                      ) : p.attributes?.is_featured || p.attributes?.must_try ? (
+                        <span className="pos-prod-badge-must-try">
+                          🔥 Must Try
+                        </span>
+                      ) : null}
 
-                      {/* Overlay Out-of-Stock Indicator */}
+                      {/* Out-of-Stock Overlay */}
                       {isOutOfStock && (
                         <div className="pos-out-of-stock-overlay">
                           <span>Out of Stock</span>
@@ -742,37 +877,62 @@ export const POS: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Product Details */}
+                    {/* Product Details Body */}
                     <div className="pos-prod-body">
+                      {/* Meta Subtitle Row: Category & Live Stock */}
+                      <div className="pos-prod-meta-row">
+                        <span className="pos-prod-category-text">
+                          {modules.find((m) => m.slug === p.type)?.name || p.type || 'Item'}
+                        </span>
+                        <span className={`pos-prod-stock-indicator ${isOutOfStock ? 'empty' : isLowStock ? 'low' : 'ok'}`}>
+                          {isOutOfStock ? 'Out of Stock' : `🏪 ${shopStock}${warehouseStock > 0 ? ` · 📦 ${warehouseStock}` : ''}`}
+                        </span>
+                      </div>
+
+                      {/* Product Name */}
                       <h4 className="pos-prod-name" title={p.name}>
                         {p.name}
                       </h4>
-                      <div className="pos-prod-sku">SKU: {p.sku}</div>
-                    </div>
 
-                    {/* Product Footer: Price & Both Live Stock Counts */}
-                    <div className="pos-prod-footer">
-                      <span className="pos-prod-price tabular">₹{Number(p.sale_price).toFixed(2)}</span>
-                      
-                      <div className="pos-dual-stock-chips" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className={`pos-stock-chip shop ${shopStock > 0 ? 'available' : 'empty'} ${defaultStockSource === 'shop' ? 'preferred' : ''}`}
-                          onClick={() => shopStock > 0 && addToCart(p, 'shop')}
-                          disabled={shopStock <= 0}
-                          title={shopStock > 0 ? `Add from Shop Counter (${shopStock} available)` : '0 in Shop Counter'}
-                        >
-                          🏪 {shopStock}
-                        </button>
-                        <button
-                          type="button"
-                          className={`pos-stock-chip inv ${warehouseStock > 0 ? 'available' : 'empty'} ${defaultStockSource === 'inventory' ? 'preferred' : ''}`}
-                          onClick={() => warehouseStock > 0 && addToCart(p, 'inventory')}
-                          disabled={warehouseStock <= 0}
-                          title={warehouseStock > 0 ? `Add from Main Inventory (${warehouseStock} available)` : '0 in Main Inventory'}
-                        >
-                          📦 {warehouseStock}
-                        </button>
+                      {/* Footer: Price & Circular Stepper */}
+                      <div className="pos-prod-footer">
+                        <div className="pos-prod-price-wrap">
+                          {p.discount_percent && p.discount_percent > 0 ? (
+                            <>
+                              <span className="pos-prod-price-old">₹{Number(p.sale_price).toFixed(0)}</span>
+                              <span className="pos-prod-price-current">
+                                ₹{(Number(p.sale_price) * (1 - p.discount_percent / 100)).toFixed(0)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="pos-prod-price-current">₹{Number(p.sale_price).toFixed(2)}</span>
+                          )}
+                        </div>
+
+                        {/* Stepper with Minus, Quantity, Plus */}
+                        <div className="pos-card-stepper" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className={`pos-card-step-btn minus ${totalInCart <= 0 ? 'disabled' : ''}`}
+                            onClick={(e) => decrementCardQuantity(p, e)}
+                            disabled={totalInCart <= 0}
+                            title="Decrease Quantity"
+                          >
+                            −
+                          </button>
+                          <span className={`pos-card-step-qty ${totalInCart > 0 ? 'active' : ''}`}>
+                            {totalInCart}
+                          </span>
+                          <button
+                            type="button"
+                            className="pos-card-step-btn plus"
+                            onClick={(e) => incrementCardQuantity(p, e)}
+                            disabled={isOutOfStock}
+                            title="Add to Cart"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -784,156 +944,227 @@ export const POS: React.FC = () => {
 
         {/* Right Column: Active Cart Panel */}
         <div className="pos-cart-panel">
-          {/* Cart Header */}
-          <div className="pos-cart-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(22, 163, 74, 0.12)',
-                  color: '#16a34a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <ShoppingBag size={18} />
-              </div>
-              <div>
-                <h3 className="pos-cart-title">
-                  Current Sale
-                </h3>
-              </div>
-              <span className="pos-cart-count-badge">
-                {cart.reduce((acc, i) => acc + i.quantity, 0)} items
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', gap: '6px' }}>
+          {/* Order List Header */}
+          <div className="pos-order-header">
+            <h2 className="pos-order-title">Order List</h2>
+            <div className="pos-order-header-right">
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
+                className="pos-held-badge-btn"
                 onClick={() => setIsHoldDrawerOpen(true)}
                 title="View Held Bills (F8)"
-                style={{ fontSize: '0.75rem', padding: '4px 10px', gap: '4px' }}
               >
-                <Clock size={13} /> Held ({heldBills.length})
+                <Clock size={12} /> Held ({heldBills.length})
               </button>
-              {cart.length > 0 && (
-                <>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={handleHoldBill}
-                    title="Hold current sale to attend next customer"
-                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-                  >
-                    Hold
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      if (window.confirm('Clear all items from current cart?')) {
-                        setCart([]);
-                        setDiscountAmount(0);
-                      }
-                    }}
-                    title="Clear Cart"
-                    style={{ padding: '4px 8px', color: '#dc2626' }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </>
-              )}
+              <span className="pos-order-badge">
+                #ORD123
+              </span>
+              <button
+                type="button"
+                className="pos-order-trash-btn"
+                onClick={() => {
+                  if (cart.length > 0 && window.confirm('Clear all items from current cart?')) {
+                    setCart([]);
+                    setDiscountAmount(0);
+                  }
+                }}
+                disabled={cart.length === 0}
+                title="Clear Cart"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
           </div>
 
-          {/* Customer Input Card */}
-          <div className="pos-customer-card">
-            <div className="pos-customer-card-header">
-              <div className="pos-customer-label">
-                <UserCheck size={14} color="#16a34a" />
-                <span>Billed Customer</span>
-              </div>
-              {selectedCustomer.name !== 'Walk-in Customer' && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setSelectedCustomer({ name: 'Walk-in Customer', phone: '' })}
-                  style={{ fontSize: '0.72rem', padding: '2px 6px', height: '22px', color: '#64748b' }}
-                >
-                  Reset to Walk-in
-                </button>
-              )}
-            </div>
+          <div className="pos-order-divider" />
 
-            <div className="pos-customer-fields">
-              <div className="pos-customer-input-wrap">
-                <User size={14} className="field-icon" />
-                <input
-                  type="text"
-                  className="pos-customer-input"
-                  value={selectedCustomer.name}
-                  onChange={(e) => {
-                    setSelectedCustomer({ ...selectedCustomer, name: e.target.value, id: undefined });
-                    setShowCustomerDropdown(true);
+          {/* Customer Information Section */}
+          <div className="pos-customer-section">
+            <div className="pos-customer-section-title">Customer Information</div>
+
+            <div className="pos-customer-select-row">
+              <div
+                className={`pos-customer-trigger ${showCustomerDropdown ? 'open' : ''}`}
+                onClick={() => setShowCustomerDropdown((prev) => !prev)}
+              >
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedCustomer.name || 'Walk in Customer'}
+                </span>
+                <ChevronDown
+                  size={16}
+                  style={{
+                    color: '#64748b',
+                    transform: showCustomerDropdown ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.15s ease',
                   }}
-                  onFocus={() => setShowCustomerDropdown(true)}
-                  placeholder="Customer Name"
                 />
               </div>
 
-              <div className="pos-customer-input-wrap">
-                <Phone size={14} className="field-icon" />
-                <input
-                  type="tel"
-                  className="pos-customer-input"
-                  value={selectedCustomer.phone}
-                  onChange={(e) => {
-                    setSelectedCustomer({ ...selectedCustomer, phone: e.target.value });
-                    setShowCustomerDropdown(true);
-                  }}
-                  onFocus={() => setShowCustomerDropdown(true)}
-                  placeholder="Mobile No"
-                />
-              </div>
-            </div>
+              {/* Customer Create Button */}
+              <button
+                type="button"
+                className="pos-cust-action-btn pos-cust-create-btn"
+                onClick={() => {
+                  setNewCustomerInitialName(customerSearchQuery);
+                  setIsCreateCustomerModalOpen(true);
+                }}
+                title="Add New Customer"
+              >
+                <UserPlus size={18} />
+              </button>
 
-            {/* Customer Search Auto-Suggest Dropdown */}
-            {showCustomerDropdown && (selectedCustomer.name.length > 1 || selectedCustomer.phone.length > 1) && (
-              <div className="pos-customer-suggestions">
-                <div style={{ padding: '6px 12px', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Matching Directory Clients</span>
-                  <span style={{ cursor: 'pointer' }} onClick={() => setShowCustomerDropdown(false)}>✕ Close</span>
-                </div>
-                {allCustomers
-                  .filter(
-                    (c) =>
-                      c.name.toLowerCase().includes(selectedCustomer.name.toLowerCase()) ||
-                      (c.phone && c.phone.includes(selectedCustomer.phone))
-                  )
-                  .slice(0, 5)
-                  .map((c) => (
+              {/* Scan Customer / Barcode Button */}
+              <button
+                type="button"
+                className="pos-cust-action-btn pos-cust-scan-btn"
+                onClick={() => setIsScannerOpen(true)}
+                title="Scan Customer Card / QR Code"
+              >
+                <Scan size={18} />
+              </button>
+
+              {/* Customer Search & Select Dropdown Menu */}
+              {showCustomerDropdown && (
+                <div className="pos-customer-menu">
+                  <div className="pos-customer-menu-search">
+                    <Search size={14} color="#94a3b8" />
+                    <input
+                      type="text"
+                      placeholder="Search customer name, phone, or GST..."
+                      value={customerSearchQuery}
+                      onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                      autoFocus
+                    />
+                    {customerSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomerSearchQuery('')}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="pos-customer-menu-list">
                     <div
-                      key={c.id}
-                      className="pos-customer-suggestion-item"
+                      className={`pos-customer-menu-item ${selectedCustomer.name === 'Walk in Customer' || selectedCustomer.name === 'Walk-in Customer' ? 'active' : ''}`}
                       onClick={() => {
-                        setSelectedCustomer({ id: c.id, name: c.name, phone: c.phone || '' });
+                        setSelectedCustomer({ name: 'Walk in Customer', phone: '' });
                         setShowCustomerDropdown(false);
+                        setCustomerSearchQuery('');
                       }}
                     >
                       <div>
-                        <strong style={{ fontSize: '0.8125rem', color: '#0f172a' }}>{c.name}</strong>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{c.phone || 'No mobile listed'}</div>
+                        <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>Walk in Customer</strong>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Standard counter customer</div>
                       </div>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#16a34a', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
-                        Select
-                      </span>
+                      {(selectedCustomer.name === 'Walk in Customer' || selectedCustomer.name === 'Walk-in Customer') && (
+                        <Check size={16} color="#16a34a" />
+                      )}
                     </div>
-                  ))}
+
+                    {filteredCustomers.map((c) => (
+                      <div
+                        key={c.id}
+                        className={`pos-customer-menu-item ${selectedCustomer.id === c.id ? 'active' : ''}`}
+                        onClick={() => {
+                          setSelectedCustomer({
+                            id: c.id,
+                            name: c.name,
+                            phone: c.phone || '',
+                            gstin: c.gstin || '',
+                            credit_limit: c.credit_limit || 0,
+                            total_spent: c.total_spent || 0,
+                            customer_type: c.customer_type || 'customer',
+                          });
+                          setShowCustomerDropdown(false);
+                          setCustomerSearchQuery('');
+                        }}
+                      >
+                        <div>
+                          <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{c.name}</strong>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                            {c.phone || 'No mobile listed'} {c.gstin ? `• GST: ${c.gstin}` : ''}
+                          </div>
+                        </div>
+                        {selectedCustomer.id === c.id ? (
+                          <Check size={16} color="#16a34a" />
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              color: '#0d9488',
+                              backgroundColor: '#ccfbf1',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            Select
+                          </span>
+                        )}
+                      </div>
+                    ))}
+
+                    {filteredCustomers.length === 0 && customerSearchQuery && (
+                      <div style={{ padding: '14px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 8px 0' }}>
+                          No customer found for "{customerSearchQuery}"
+                        </p>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={() => {
+                            setShowCustomerDropdown(false);
+                            setNewCustomerInitialName(customerSearchQuery);
+                            setIsCreateCustomerModalOpen(true);
+                          }}
+                          style={{ backgroundColor: '#0d9488', borderColor: '#0d9488', borderRadius: '6px' }}
+                        >
+                          + Create "{customerSearchQuery}"
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Selected Customer Banner Card (Orange / Peach Tinted as in screenshot) */}
+            {selectedCustomer.name && selectedCustomer.name !== 'Walk in Customer' && selectedCustomer.name !== 'Walk-in Customer' && (
+              <div className="pos-selected-cust-banner">
+                <button
+                  type="button"
+                  className="pos-banner-close-btn"
+                  onClick={() => setSelectedCustomer({ name: 'Walk in Customer', phone: '' })}
+                  title="Remove customer"
+                >
+                  <X size={12} />
+                </button>
+
+                <div className="pos-banner-info">
+                  <div className="pos-banner-name">
+                    {selectedCustomer.name}
+                  </div>
+                  <div className="pos-banner-tags">
+                    <span>
+                      Bonus : <span className="pos-tag-pill bonus">148</span>
+                    </span>
+                    <span style={{ color: '#cbd5e1' }}>|</span>
+                    <span>
+                      Loyalty : <span className="pos-tag-pill loyalty">$20</span>
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="pos-banner-apply-btn"
+                  onClick={() => setShowCustomerDropdown(false)}
+                >
+                  Apply
+                </button>
               </div>
             )}
           </div>
@@ -941,23 +1172,23 @@ export const POS: React.FC = () => {
           {/* Cart Line Items */}
           <div className="pos-cart-items-wrapper">
             {cart.length === 0 ? (
-              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '50px 20px', margin: 'auto' }}>
+              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '28px 16px', margin: 'auto' }}>
                 <div
                   style={{
-                    width: '56px',
-                    height: '56px',
+                    width: '46px',
+                    height: '46px',
                     borderRadius: '50%',
                     backgroundColor: '#f1f5f9',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '0 auto 12px auto'
+                    margin: '0 auto 8px auto'
                   }}
                 >
-                  <ShoppingBag size={26} style={{ color: '#94a3b8' }} />
+                  <ShoppingBag size={22} style={{ color: '#94a3b8' }} />
                 </div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>Register Cart is Empty</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a' }}>Register Cart is Empty</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '3px' }}>
                   Click items from catalog or scan product barcode to add
                 </div>
               </div>
@@ -980,38 +1211,13 @@ export const POS: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Stock Source Switcher for this Cart Item */}
-                      <div className="cart-item-source-row">
-                        <span className="cart-source-label">Source:</span>
-                        <div className="cart-source-chips">
-                          <button
-                            type="button"
-                            className={`cart-source-chip shop ${currentSource === 'shop' ? 'active' : ''}`}
-                            onClick={() => switchCartItemSource(item.product_id, currentSource, 'shop')}
-                            disabled={(item.shop_stock ?? 0) <= 0}
-                            title={(item.shop_stock ?? 0) > 0 ? `Deduct from Shop Counter (${item.shop_stock} available)` : '0 stock in Shop Counter'}
-                          >
-                            🏪 Shop ({item.shop_stock ?? 0})
-                          </button>
-                          <button
-                            type="button"
-                            className={`cart-source-chip inv ${currentSource === 'inventory' ? 'active' : ''}`}
-                            onClick={() => switchCartItemSource(item.product_id, currentSource, 'inventory')}
-                            disabled={(item.warehouse_stock ?? 0) <= 0}
-                            title={(item.warehouse_stock ?? 0) > 0 ? `Deduct from Main Inventory (${item.warehouse_stock} available)` : '0 stock in Main Inventory'}
-                          >
-                            📦 Inv ({item.warehouse_stock ?? 0})
-                          </button>
-                        </div>
-                      </div>
-
                       <div className="cart-item-price-desc">
-                        ₹{item.unit_price.toFixed(2)} / unit {isTaxable && item.gst_rate > 0 && `&bull; ${item.gst_rate}% GST`}
-                        {needsMorePieces && (
+                        ₹{item.unit_price.toFixed(2)} / unit{isTaxable && item.gst_rate > 0 ? ` • ${item.gst_rate}% GST` : ''}
+                        {needsMorePieces ? (
                           <span style={{ marginLeft: '4px', color: '#059669', fontSize: '0.7rem', fontWeight: 600 }}>
                             (Add {item.discount_pieces! - item.quantity} more for {item.discount_percent}% off)
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
 
@@ -1262,6 +1468,14 @@ export const POS: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Customer Quick Create Popup Modal */}
+      <CustomerCreateModal
+        isOpen={isCreateCustomerModalOpen}
+        onClose={() => setIsCreateCustomerModalOpen(false)}
+        onCustomerCreated={handleCustomerCreated}
+        initialName={newCustomerInitialName}
+      />
     </div>
   );
 };

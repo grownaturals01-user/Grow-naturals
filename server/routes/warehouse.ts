@@ -31,7 +31,7 @@ async function getOrCreateWarehouseStock(db: any, businessId: string, productId:
 // GET /api/warehouse/inventory - List products with warehouse stock balances
 router.get('/inventory', async (req: Request, res: Response) => {
   try {
-    const businessId = (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+    const businessId = (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
     const search = req.query.search as string;
     const type = req.query.type as string;
 
@@ -41,6 +41,7 @@ router.get('/inventory', async (req: Request, res: Response) => {
       SELECT 
         p.id,
         p.business_id,
+        b.name AS business_name,
         p.name,
         p.sku,
         p.barcode,
@@ -60,27 +61,28 @@ router.get('/inventory', async (req: Request, res: Response) => {
         COALESCE(damages.damaged_amount, 0) AS total_damaged_amount,
         COALESCE(transfers.transferred_units, 0) AS total_transferred_to_shop
       FROM products p
+      LEFT JOIN businesses b ON p.business_id = b.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN warehouse_stocks ws ON p.id = ws.product_id AND p.business_id = ws.business_id
       LEFT JOIN (
         SELECT product_id, SUM(quantity) AS sold_units, SUM(total_amount) AS sold_amount
         FROM warehouse_transactions
-        WHERE business_id = $1 AND type = 'sale'
+        WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1) AND type = 'sale'
         GROUP BY product_id
       ) sales ON p.id = sales.product_id
       LEFT JOIN (
         SELECT product_id, SUM(quantity) AS damaged_units, SUM(total_amount) AS damaged_amount
         FROM warehouse_transactions
-        WHERE business_id = $1 AND type = 'damage'
+        WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1) AND type = 'damage'
         GROUP BY product_id
       ) damages ON p.id = damages.product_id
       LEFT JOIN (
         SELECT product_id, SUM(quantity) AS transferred_units
         FROM warehouse_transactions
-        WHERE business_id = $1 AND type = 'transfer_to_shop'
+        WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1) AND type = 'transfer_to_shop'
         GROUP BY product_id
       ) transfers ON p.id = transfers.product_id
-      WHERE p.business_id = $1
+      WHERE ($1 = 'all' OR $1 = 'combined' OR p.business_id = $1)
     `;
 
     const params: any[] = [businessId];
@@ -108,7 +110,7 @@ router.get('/inventory', async (req: Request, res: Response) => {
 // GET /api/warehouse/metrics - Key KPIs for warehouse
 router.get('/metrics', async (req: Request, res: Response) => {
   try {
-    const businessId = (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+    const businessId = (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
     const db = await getDb();
 
     // 1. Stock overview
@@ -119,7 +121,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
          COUNT(DISTINCT ws.product_id) AS total_products_tracked
        FROM warehouse_stocks ws
        JOIN products p ON ws.product_id = p.id
-       WHERE ws.business_id = $1`,
+       WHERE ($1 = 'all' OR $1 = 'combined' OR ws.business_id = $1)`,
       [businessId]
     );
 
@@ -130,7 +132,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
          COALESCE(SUM(total_amount), 0) AS total_sales_amount,
          COUNT(*) AS sales_transactions_count
        FROM warehouse_transactions
-       WHERE business_id = $1 AND type = 'sale'`,
+       WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1) AND type = 'sale'`,
       [businessId]
     );
 
@@ -141,7 +143,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
          COALESCE(SUM(total_amount), 0) AS total_damage_amount,
          COUNT(*) AS damage_records_count
        FROM warehouse_transactions
-       WHERE business_id = $1 AND type = 'damage'`,
+       WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1) AND type = 'damage'`,
       [businessId]
     );
 
@@ -151,7 +153,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
          COALESCE(SUM(quantity), 0) AS total_transfers_units,
          COUNT(*) AS transfer_records_count
        FROM warehouse_transactions
-       WHERE business_id = $1 AND type = 'transfer_to_shop'`,
+       WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1) AND type = 'transfer_to_shop'`,
       [businessId]
     );
 
@@ -177,7 +179,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
 // GET /api/warehouse/transactions - Audit history of all movements
 router.get('/transactions', async (req: Request, res: Response) => {
   try {
-    const businessId = (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+    const businessId = (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
     const type = req.query.type as string;
     const limit = parseInt(req.query.limit as string, 10) || 100;
 
@@ -185,15 +187,17 @@ router.get('/transactions', async (req: Request, res: Response) => {
     let query = `
       SELECT 
         wt.*,
+        b.name AS business_name,
         p.name AS product_name,
         p.sku AS product_sku,
         p.type AS product_type,
         p.image_url AS product_image_url,
         COALESCE(c.name, 'General') AS category_name
       FROM warehouse_transactions wt
+      LEFT JOIN businesses b ON wt.business_id = b.id
       JOIN products p ON wt.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE wt.business_id = $1
+      WHERE ($1 = 'all' OR $1 = 'combined' OR wt.business_id = $1)
     `;
 
     const params: any[] = [businessId];
@@ -382,6 +386,179 @@ router.post('/transactions', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error recording warehouse transaction:', error);
     res.status(500).json({ error: error.message || 'Failed to record warehouse transaction' });
+  }
+});
+
+// POST /api/warehouse/transfers/batch - Execute multi-item transfer between Warehouse and Shop
+router.post('/transfers/batch', async (req: Request, res: Response) => {
+  try {
+    const {
+      business_id,
+      type = 'transfer_to_shop', // 'transfer_to_shop' | 'transfer_from_shop'
+      items, // Array<{ product_id: string; quantity: number; notes?: string }>
+      reference_no,
+      notes,
+      performed_by,
+      transaction_date
+    } = req.body;
+
+    const bizId = business_id || (req.headers['x-business-id'] as string) || 'grow-naturals';
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Please provide at least one item to transfer' });
+    }
+
+    const db = await getDb();
+    const results: any[] = [];
+    const transferDate = transaction_date || new Date().toISOString().split('T')[0];
+    const refNo = reference_no || `TRF-${Date.now().toString(36).toUpperCase()}`;
+
+    // First pass: validate all items
+    for (const item of items) {
+      const qty = parseInt(String(item.quantity), 10);
+      if (!qty || qty <= 0) {
+        return res.status(400).json({ error: `Invalid quantity for item ${item.product_id}` });
+      }
+
+      const prodRes = await db.query(`SELECT * FROM products WHERE id = $1 AND business_id = $2`, [item.product_id, bizId]);
+      if (prodRes.rows.length === 0) {
+        return res.status(404).json({ error: `Product not found: ${item.product_id}` });
+      }
+
+      const product = prodRes.rows[0];
+      const whStockRow = await getOrCreateWarehouseStock(db, bizId, item.product_id);
+      const prevWhStock = Number(whStockRow.stock_quantity || 0);
+      const prevShopStock = Number(product.stock_quantity || 0);
+
+      if (type === 'transfer_to_shop' && prevWhStock < qty) {
+        return res.status(400).json({
+          error: `Insufficient warehouse stock for "${product.name}". Available in warehouse: ${prevWhStock}, requested: ${qty}`
+        });
+      }
+
+      if (type === 'transfer_from_shop' && prevShopStock < qty) {
+        return res.status(400).json({
+          error: `Insufficient shop stock for "${product.name}". Available in shop: ${prevShopStock}, requested: ${qty}`
+        });
+      }
+    }
+
+    // Second pass: apply all items
+    for (const item of items) {
+      const qty = parseInt(String(item.quantity), 10);
+      const prodRes = await db.query(`SELECT * FROM products WHERE id = $1 AND business_id = $2`, [item.product_id, bizId]);
+      const product = prodRes.rows[0];
+      const whStockRow = await getOrCreateWarehouseStock(db, bizId, item.product_id);
+      const prevWhStock = Number(whStockRow.stock_quantity || 0);
+      const prevShopStock = Number(product.stock_quantity || 0);
+
+      let newWhStock = prevWhStock;
+      let newShopStock = prevShopStock;
+
+      if (type === 'transfer_to_shop') {
+        newWhStock = prevWhStock - qty;
+        newShopStock = prevShopStock + qty;
+      } else {
+        newShopStock = prevShopStock - qty;
+        newWhStock = prevWhStock + qty;
+      }
+
+      // Update warehouse stock
+      await db.query(
+        `UPDATE warehouse_stocks SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE business_id = $2 AND product_id = $3`,
+        [newWhStock, bizId, item.product_id]
+      );
+
+      // Update shop stock
+      await db.query(
+        `UPDATE products SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        [newShopStock, item.product_id]
+      );
+
+      // Record stock movement
+      const smId = `sm-wh-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+      const movementNotes =
+        type === 'transfer_to_shop'
+          ? `Dispatched from Warehouse to Shop Counter (${qty} units)`
+          : `Returned from Shop Counter to Warehouse (${qty} units)`;
+
+      await db.query(
+        `INSERT INTO stock_movements (
+          id, business_id, product_id, type, quantity_change, previous_quantity, new_quantity,
+          reference_type, reference_id, notes
+        ) VALUES ($1, $2, $3, 'adjustment', $4, $5, $6, 'warehouse_transfer', $7, $8)`,
+        [
+          smId,
+          bizId,
+          item.product_id,
+          type === 'transfer_to_shop' ? qty : -qty,
+          prevShopStock,
+          newShopStock,
+          refNo,
+          item.notes || movementNotes
+        ]
+      );
+
+      // Record warehouse transaction
+      const unitPrice = Number(product.cost_price) > 0 ? Number(product.cost_price) : Number(product.sale_price) || 0;
+      const totalAmount = Number((qty * unitPrice).toFixed(2));
+      const txId = `wh-tx-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+
+      await db.query(
+        `INSERT INTO warehouse_transactions (
+          id, business_id, product_id, type, quantity, previous_stock, new_stock,
+          unit_price, total_amount, buyer_name, damage_reason, reference_no,
+          notes, performed_by, transaction_date, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)`,
+        [
+          txId,
+          bizId,
+          item.product_id,
+          type,
+          qty,
+          prevWhStock,
+          newWhStock,
+          unitPrice,
+          totalAmount,
+          '',
+          '',
+          refNo,
+          item.notes || notes || '',
+          performed_by || '',
+          transferDate
+        ]
+      );
+
+      results.push({
+        id: txId,
+        product_id: item.product_id,
+        product_name: product.name,
+        product_sku: product.sku,
+        product_image_url: product.image_url,
+        quantity: qty,
+        previous_wh_stock: prevWhStock,
+        new_wh_stock: newWhStock,
+        previous_shop_stock: prevShopStock,
+        new_shop_stock: newShopStock,
+        unit_price: unitPrice,
+        total_amount: totalAmount
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      reference_no: refNo,
+      type,
+      transaction_date: transferDate,
+      performed_by: performed_by || '',
+      items_count: results.length,
+      total_units: results.reduce((sum, r) => sum + r.quantity, 0),
+      transfers: results,
+      message: `Successfully processed transfer of ${results.length} product(s)`
+    });
+  } catch (error: any) {
+    console.error('Error executing batch transfer:', error);
+    res.status(500).json({ error: error.message || 'Failed to process batch transfer' });
   }
 });
 

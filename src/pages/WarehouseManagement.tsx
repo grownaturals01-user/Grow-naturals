@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Building2,
   TrendingDown,
@@ -375,8 +376,24 @@ export const WarehouseManagement: React.FC = () => {
               gap: '6px'
             }}
           >
-            <ArrowLeftRight size={15} /> ⇄ Dispatch to Shop
+            <ArrowLeftRight size={15} /> ⇄ Quick Transfer
           </button>
+
+          <Link
+            to="/transfers"
+            className="btn btn-secondary"
+            style={{
+              padding: '7px 14px',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              textDecoration: 'none'
+            }}
+          >
+            <Store size={15} /> All Transfers & Slips ➔
+          </Link>
         </div>
       </div>
 

@@ -5,7 +5,7 @@
 const BASE_URL = '/api';
 
 export function getActiveBusinessId(): string {
-  return localStorage.getItem('gn_active_business') || 'grow-naturals';
+  return localStorage.getItem('gn_active_business') || 'all';
 }
 
 export function setActiveBusinessId(id: string): void {

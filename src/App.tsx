@@ -35,6 +35,7 @@ import { FertilizersInventory } from './pages/FertilizersInventory';
 import { FlowersInventory } from './pages/FlowersInventory';
 import { LossTracking } from './pages/LossTracking';
 import { WarehouseManagement } from './pages/WarehouseManagement';
+import { StockTransfers } from './pages/StockTransfers';
 import { InventoryModuleNew } from './pages/InventoryModuleNew';
 import { DynamicInventoryPage } from './pages/DynamicInventoryPage';
 
@@ -142,6 +143,8 @@ export const App: React.FC = () => {
                   <Route path="inventory/new" element={<InventoryModuleNew />} />
                   <Route path="inventory/custom/:slug" element={<DynamicInventoryPage />} />
                   <Route path="warehouse" element={<WarehouseManagement />} />
+                  <Route path="transfers" element={<StockTransfers />} />
+                  <Route path="inventory/transfers" element={<StockTransfers />} />
 
                   {/* Quotations */}
                   <Route path="quotations" element={<QuotationsList />} />

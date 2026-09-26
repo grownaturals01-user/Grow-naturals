@@ -1,895 +1,565 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useBusiness } from '../context/BusinessContext';
+import { useAuth } from '../context/AuthContext';
 import { useInventoryModules } from '../context/InventoryModulesContext';
 import { api } from '../services/api';
 import type { Product } from '../types';
 import { EmptyState } from '../components/common/EmptyState';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Package,
   Plus,
   AlertTriangle,
   Eye,
   Edit2,
+  Trash2,
   Search,
-  X,
-  LayoutGrid,
-  List,
-  TrendingUp,
-  Layers,
-  Sparkles,
-  ArrowUpDown
+  RotateCw,
+  FileSpreadsheet,
+  FileText,
+  UploadCloud,
+  Loader2,
+  X
 } from 'lucide-react';
-import { renderModuleIcon } from '../components/common/CategoryIcons';
 
 export const ProductsList: React.FC = () => {
-  const { businessId, business, isTaxable } = useBusiness();
+  const { businessId, business } = useBusiness();
+  const { user } = useAuth();
   const { modules } = useInventoryModules();
+  const navigate = useNavigate();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState<string>('');
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out' | 'in'>('all');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [sortBy, setSortBy] = useState<'name' | 'stock' | 'price'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Delete modal state
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState<boolean>(false);
+
   // Fetch products
-  useEffect(() => {
-    let isMounted = true;
+  const fetchProducts = async () => {
     setIsLoading(true);
-
-    const params: any = { business_id: businessId };
-    if (selectedType !== 'all') params.type = selectedType;
-    if (stockFilter === 'low') params.low_stock = 'true';
-    if (search.trim()) params.search = search.trim();
-
-    api
-      .get('/products', params)
-      .then((data) => {
-        if (isMounted) setProducts(data);
-      })
-      .catch((err) => console.error('Fetch products error:', err))
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [businessId, selectedType, stockFilter, search]);
-
-  // Summary Metrics
-  const metrics = useMemo(() => {
-    const totalCount = products.length;
-    let totalValuation = 0;
-    let lowStockCount = 0;
-    let outOfStockCount = 0;
-    let totalUnits = 0;
-
-    for (const p of products) {
-      const qty = Number(p.stock_quantity) || 0;
-      const sale = Number(p.sale_price) || 0;
-      const thresh = Number(p.low_stock_threshold) || 5;
-
-      totalUnits += qty;
-      totalValuation += qty * sale;
-
-      if (qty <= 0) outOfStockCount++;
-      else if (qty <= thresh) lowStockCount++;
-    }
-
-    return {
-      totalCount,
-      totalValuation,
-      lowStockCount,
-      outOfStockCount,
-      totalUnits,
-    };
-  }, [products]);
-
-  // Client-side filtering & sorting
-  const filteredProducts = useMemo(() => {
-    let list = [...products];
-
-    if (stockFilter === 'out') {
-      list = list.filter((p) => p.stock_quantity <= 0);
-    } else if (stockFilter === 'in') {
-      list = list.filter((p) => p.stock_quantity > (p.low_stock_threshold || 5));
-    }
-
-    list.sort((a, b) => {
-      let comp = 0;
-      if (sortBy === 'name') comp = a.name.localeCompare(b.name);
-      else if (sortBy === 'stock') comp = a.stock_quantity - b.stock_quantity;
-      else if (sortBy === 'price') comp = Number(a.sale_price) - Number(b.sale_price);
-
-      return sortOrder === 'asc' ? comp : -comp;
-    });
-
-    return list;
-  }, [products, stockFilter, sortBy, sortOrder]);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: products.length, plants: 0, cactus: 0, pots: 0, fertilizers: 0, flowers: 0 };
-    for (const m of modules) {
-      counts[m.slug] = 0;
-    }
-    for (const p of products) {
-      if (counts[p.type] !== undefined) {
-        counts[p.type]++;
-      } else if (p.type === 'plants') counts.plants++;
-      else if (p.type === 'cactus') counts.cactus++;
-      else if (p.type === 'pots') counts.pots++;
-      else if (p.type === 'fertilizers') counts.fertilizers++;
-      else if (p.type === 'flowers') counts.flowers++;
-    }
-    return counts;
-  }, [products, modules]);
-
-  const handleSort = (field: 'name' | 'stock' | 'price') => {
-    if (sortBy === field) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(field);
-      setSortOrder('asc');
+    try {
+      const params: any = { business_id: businessId };
+      const data = await api.get<Product[]>('/products', params);
+      setProducts(data || []);
+    } catch (err) {
+      console.error('Fetch products error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchProducts();
+  }, [businessId]);
+
+  // Unique brands/suppliers list for dropdown filter
+  const brandOptions = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      const brand = p.attributes?.brand || p.supplier_name;
+      if (brand && brand.trim()) set.add(brand.trim());
+    });
+    return Array.from(set).sort();
+  }, [products]);
+
+  // Client-side filtering
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      // Category filter
+      if (selectedCategory !== 'all') {
+        const catSlug = p.type || p.category_name?.toLowerCase();
+        if (catSlug !== selectedCategory) return false;
+      }
+
+      // Brand filter
+      if (selectedBrand !== 'all') {
+        const brand = p.attributes?.brand || p.supplier_name;
+        if (brand !== selectedBrand) return false;
+      }
+
+      // Search filter
+      if (!search.trim()) return true;
+      const q = search.toLowerCase().trim();
+      const nameMatch = p.name?.toLowerCase().includes(q);
+      const skuMatch = p.sku?.toLowerCase().includes(q);
+      const barcodeMatch = p.barcode?.toLowerCase().includes(q);
+      const catMatch = p.category_name?.toLowerCase().includes(q) || p.type?.toLowerCase().includes(q);
+      const supplierMatch = p.supplier_name?.toLowerCase().includes(q);
+
+      return nameMatch || skuMatch || barcodeMatch || catMatch || supplierMatch;
+    });
+  }, [products, search, selectedCategory, selectedBrand]);
+
+  // Avatar palette generator for creator avatar
+  const getAvatarStyle = (name: string) => {
+    const palettes = [
+      { bg: '#e0e7ff', color: '#4338ca' },
+      { bg: '#ffe4e6', color: '#e11d48' },
+      { bg: '#d1fae5', color: '#059669' },
+      { bg: '#fef3c7', color: '#d97706' },
+      { bg: '#e0f2fe', color: '#0284c7' },
+      { bg: '#ede9fe', color: '#7c3aed' },
+      { bg: '#fee2e2', color: '#dc2626' },
+      { bg: '#ffedd5', color: '#ea580c' },
+    ];
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % palettes.length;
+    return palettes[index];
+  };
+
+  const getInitials = (name: string) => {
+    const parts = (name || '').trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return (name || '').slice(0, 2).toUpperCase() || 'AD';
+  };
+
+  // Checkbox handling
+  const allSelected = filteredProducts.length > 0 && selectedIds.size === filteredProducts.length;
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(new Set(filteredProducts.map((p) => p.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleToggleRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Delete Single Product
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setIsDeleting(true);
+      await api.delete(`/products/${deleteTarget.id}`);
+      setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteTarget.id);
+        return next;
+      });
+      setDeleteTarget(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete product');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Bulk Delete Selected
+  const confirmBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      setIsBulkDeleting(true);
+      for (const id of Array.from(selectedIds)) {
+        try {
+          await api.delete(`/products/${id}`);
+        } catch (e) {
+          console.error(`Error deleting product ${id}:`, e);
+        }
+      }
+      setProducts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete selected products');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Export to CSV / Excel
+  const handleExportCSV = () => {
+    if (filteredProducts.length === 0) return;
+    const headers = ['SKU', 'Product Name', 'Category', 'Brand', 'Price', 'Unit', 'Stock Qty'];
+    const rows = filteredProducts.map((p, idx) => {
+      const sku = p.sku || `PT${String(idx + 1).padStart(3, '0')}`;
+      const category = p.category_name || p.type || 'General';
+      const brand = p.attributes?.brand || p.supplier_name || business?.name || 'Grow Naturals';
+      const price = Number(p.sale_price || 0).toFixed(2);
+      const unit = p.attributes?.unit || 'Pc';
+      const qty = p.stock_quantity ?? 0;
+      return [
+        `"${sku}"`,
+        `"${p.name.replace(/"/g, '""')}"`,
+        `"${category}"`,
+        `"${brand}"`,
+        `"${price}"`,
+        `"${unit}"`,
+        `"${qty}"`,
+      ].join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Product_List_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Print PDF Trigger
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '40px' }}>
+    <div className="prod-page-container">
       {/* 1. Header Banner */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '20px',
-        }}
-      >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-              Product Catalog
-            </h1>
-            <span
+      <div className="prod-page-header">
+        <div className="prod-page-title-group">
+          <h1>Product List</h1>
+          <p>Manage your products</p>
+        </div>
+
+        <div className="prod-header-actions">
+          {/* Quick Action Icons (PDF, XLS, Refresh, Clear) */}
+          <button
+            type="button"
+            className="prod-icon-btn"
+            title="Print / Save PDF"
+            onClick={handlePrint}
+          >
+            <FileText size={16} color="#ef4444" />
+          </button>
+          <button
+            type="button"
+            className="prod-icon-btn"
+            title="Export to Excel (CSV)"
+            onClick={handleExportCSV}
+          >
+            <FileSpreadsheet size={16} color="#16a34a" />
+          </button>
+          <button
+            type="button"
+            className="prod-icon-btn"
+            title="Refresh Product List"
+            onClick={fetchProducts}
+          >
+            <RotateCw size={15} />
+          </button>
+
+          {/* Add Product Button */}
+          <Link to="/products/new" className="prod-add-btn">
+            <Plus size={16} /> Add Product
+          </Link>
+
+          {/* Import Product Button */}
+          <Link to="/inventory/new" className="prod-import-btn">
+            <UploadCloud size={16} /> Import Product
+          </Link>
+        </div>
+      </div>
+
+      {/* Bulk action banner if items selected */}
+      {selectedIds.size > 0 && (
+        <div className="cust-bulk-bar">
+          <span>{selectedIds.size} product{selectedIds.size > 1 ? 's' : ''} selected</span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
               style={{
-                fontSize: '0.75rem',
+                background: 'transparent',
+                border: 'none',
+                color: '#64748b',
                 fontWeight: 600,
-                padding: '3px 8px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+              }}
+            >
+              Deselect All
+            </button>
+            <button
+              type="button"
+              onClick={confirmBulkDelete}
+              disabled={isBulkDeleting}
+              style={{
+                background: '#ef4444',
+                color: '#ffffff',
+                border: 'none',
                 borderRadius: '6px',
-                backgroundColor: '#f1f5f9',
-                color: '#475569',
-                border: '1px solid #e2e8f0',
+                padding: '4px 12px',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
               }}
             >
-              <Sparkles size={11} /> {business?.name || 'Grow Naturals'}
-            </span>
-          </div>
-          <p style={{ fontSize: '0.825rem', color: '#64748b', marginTop: '3px', margin: 0 }}>
-            Manage botanical inventory, prices, tax rates, and warehouse stock levels.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Link
-            to="/inventory/new"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              backgroundColor: '#f1f5f9',
-              color: '#0f172a',
-              border: '1px solid #cbd5e1',
-              borderRadius: '7px',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e2e8f0')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
-          >
-            <Plus size={15} /> Add Inventory
-          </Link>
-          <Link
-            to="/products/new"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              backgroundColor: '#16a34a',
-              color: '#ffffff',
-              borderRadius: '7px',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              textDecoration: 'none',
-              boxShadow: '0 1px 2px rgba(22, 163, 74, 0.2)',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#15803d')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#16a34a')}
-          >
-            <Plus size={15} /> Add Product
-          </Link>
-        </div>
-      </div>
-
-      {/* 2. Clean Compact Stats */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-          gap: '12px',
-          marginBottom: '18px',
-        }}
-      >
-        <div
-          style={{
-            background: '#ffffff',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              background: '#f8fafc',
-              color: '#475569',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Package size={18} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Total SKUs
-            </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
-              {metrics.totalCount} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b' }}>products</span>
-            </div>
+              {isBulkDeleting ? <Loader2 size={12} className="spin" /> : <Trash2 size={12} />}
+              <span>Delete Selected</span>
+            </button>
           </div>
         </div>
+      )}
 
-        <div
-          style={{
-            background: '#ffffff',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              background: '#f0fdf4',
-              color: '#16a34a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <TrendingUp size={18} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Inventory Value
-            </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
-              ₹{metrics.totalValuation.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: '#ffffff',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              background: '#f8fafc',
-              color: '#475569',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Layers size={18} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Stock On Hand
-            </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
-              {metrics.totalUnits} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b' }}>units</span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          onClick={() => setStockFilter(stockFilter === 'low' ? 'all' : 'low')}
-          style={{
-            background: metrics.lowStockCount > 0 ? '#fffbeb' : '#ffffff',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            border: '1px solid',
-            borderColor: metrics.lowStockCount > 0 ? '#fde68a' : '#e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            cursor: 'pointer',
-          }}
-        >
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              background: metrics.lowStockCount > 0 ? '#fef3c7' : '#f8fafc',
-              color: metrics.lowStockCount > 0 ? '#d97706' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AlertTriangle size={18} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: metrics.lowStockCount > 0 ? '#b45309' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Low Stock Alerts
-            </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 700, color: metrics.lowStockCount > 0 ? '#b45309' : '#0f172a' }}>
-              {metrics.lowStockCount} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#92400e' }}>items</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Search & Category Filters Bar */}
-      <div
-        style={{
-          background: '#ffffff',
-          borderRadius: '10px',
-          border: '1px solid #e2e8f0',
-          padding: '12px 16px',
-          marginBottom: '16px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
-          {/* Search Input */}
-          <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: '420px' }}>
-            <Search
-              size={15}
-              style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#94a3b8',
-                pointerEvents: 'none',
-              }}
-            />
+      {/* 2. Main Organized Table Card */}
+      <div className="prod-table-card">
+        {/* Toolbar: Search & Dropdowns */}
+        <div className="prod-table-toolbar">
+          <div className="prod-search-box">
+            <Search size={15} className="prod-search-icon" />
             <input
               type="text"
-              placeholder="Search by name, SKU, or barcode..."
+              placeholder="Search..."
+              className="prod-search-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 32px 8px 34px',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.85rem',
-                color: '#0f172a',
-                outline: 'none',
-                background: '#ffffff',
-              }}
             />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                style={{
-                  position: 'absolute',
-                  right: '8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                }}
-              >
-                <X size={14} />
-              </button>
-            )}
           </div>
 
-          {/* Right Controls: Stock status + View mode */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px', gap: '2px' }}>
-              <button
-                type="button"
-                onClick={() => setStockFilter('all')}
-                style={{
-                  padding: '5px 9px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: '5px',
-                  border: 'none',
-                  background: stockFilter === 'all' ? '#ffffff' : 'transparent',
-                  color: stockFilter === 'all' ? '#0f172a' : '#64748b',
-                  boxShadow: stockFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                All Stock
-              </button>
-              <button
-                type="button"
-                onClick={() => setStockFilter('in')}
-                style={{
-                  padding: '5px 9px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: '5px',
-                  border: 'none',
-                  background: stockFilter === 'in' ? '#ffffff' : 'transparent',
-                  color: stockFilter === 'in' ? '#16a34a' : '#64748b',
-                  boxShadow: stockFilter === 'in' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                In Stock
-              </button>
-              <button
-                type="button"
-                onClick={() => setStockFilter('low')}
-                style={{
-                  padding: '5px 9px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: '5px',
-                  border: 'none',
-                  background: stockFilter === 'low' ? '#ffffff' : 'transparent',
-                  color: stockFilter === 'low' ? '#d97706' : '#64748b',
-                  boxShadow: stockFilter === 'low' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                Low Stock {metrics.lowStockCount > 0 && `(${metrics.lowStockCount})`}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStockFilter('out')}
-                style={{
-                  padding: '5px 9px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: '5px',
-                  border: 'none',
-                  background: stockFilter === 'out' ? '#ffffff' : 'transparent',
-                  color: stockFilter === 'out' ? '#dc2626' : '#64748b',
-                  boxShadow: stockFilter === 'out' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                Out of Stock {metrics.outOfStockCount > 0 && `(${metrics.outOfStockCount})`}
-              </button>
-            </div>
+          <div className="prod-toolbar-filters">
+            {/* Category Dropdown */}
+            <select
+              className="prod-filter-select"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="all">Category: All</option>
+              {modules && modules.length > 0 ? (
+                modules.map((m) => (
+                  <option key={m.slug} value={m.slug}>
+                    {m.name}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="plants">Plants & Trees</option>
+                  <option value="pots">Pots & Planters</option>
+                  <option value="cactus">Cactus & Succulents</option>
+                  <option value="fertilizers">Fertilizers & Care</option>
+                  <option value="flowers">Flowers & Decor</option>
+                </>
+              )}
+            </select>
 
-            {/* View Mode Switcher */}
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px', gap: '2px' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                title="Table View"
-                style={{
-                  padding: '5px 7px',
-                  borderRadius: '5px',
-                  border: 'none',
-                  background: viewMode === 'table' ? '#ffffff' : 'transparent',
-                  color: viewMode === 'table' ? '#0f172a' : '#64748b',
-                  boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <List size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                title="Gallery Cards"
-                style={{
-                  padding: '5px 7px',
-                  borderRadius: '5px',
-                  border: 'none',
-                  background: viewMode === 'grid' ? '#ffffff' : 'transparent',
-                  color: viewMode === 'grid' ? '#0f172a' : '#64748b',
-                  boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <LayoutGrid size={15} />
-              </button>
-            </div>
+            {/* Brand / Supplier Dropdown */}
+            <select
+              className="prod-filter-select"
+              value={selectedBrand}
+              onChange={(e) => setSelectedBrand(e.target.value)}
+            >
+              <option value="all">Brand: All</option>
+              {brandOptions.map((brand) => (
+                <option key={brand} value={brand}>
+                  {brand}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Category Filter Pills */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginTop: '10px',
-            overflowX: 'auto',
-          }}
-        >
-          {[
-            { id: 'all', label: 'All', count: categoryCounts.all },
-            { id: 'plants', label: 'Plants & Trees', count: categoryCounts.plants, icon: 'plants' },
-            { id: 'cactus', label: 'Cactus & Succulents', count: categoryCounts.cactus, icon: 'cactus' },
-            { id: 'pots', label: 'Pots & Planters', count: categoryCounts.pots, icon: 'pots' },
-            { id: 'fertilizers', label: 'Fertilizers & Care', count: categoryCounts.fertilizers, icon: 'fertilizers' },
-            { id: 'flowers', label: 'Flowers & Decor', count: categoryCounts.flowers, icon: 'flowers' },
-            ...modules.map((m) => ({
-              id: m.slug,
-              label: m.name,
-              icon: m.icon,
-              count: categoryCounts[m.slug] || 0,
-            })),
-          ].map((cat) => {
-            const isActive = selectedType === cat.id;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedType(cat.id)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 500,
-                  border: '1px solid',
-                  borderColor: isActive ? 'var(--color-botanical-600)' : 'var(--color-border)',
-                  background: isActive ? 'var(--color-botanical-50)' : 'var(--color-bg-surface)',
-                  color: isActive ? 'var(--color-botanical-800)' : 'var(--color-text-primary)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all var(--transition-fast)'
-                }}
-              >
-                {'icon' in cat && (cat as any).icon && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', color: isActive ? 'var(--color-botanical-700)' : 'inherit' }}>
-                    {renderModuleIcon((cat as any).icon, 13)}
-                  </span>
-                )}
-                <span>{cat.label}</span>
-                <span style={{ fontSize: '0.7rem', opacity: isActive ? 0.9 : 0.6, fontWeight: isActive ? 700 : 400 }}>({cat.count})</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. Products Table */}
-      {isLoading ? (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            background: '#ffffff',
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-          }}
-        >
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              border: '2.5px solid #e2e8f0',
-              borderTopColor: '#16a34a',
-              animation: 'spin 0.8s linear infinite',
-              margin: '0 auto 10px auto',
-            }}
-          />
-          <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Loading products...</div>
-        </div>
-      ) : filteredProducts.length === 0 ? (
-        <EmptyState
-          icon={Package}
-          title="No Products Found"
-          description={`No inventory items match your current filters.`}
-          actionText="Add Product"
-          actionLink="/products/new"
-          accentClass="btn-inv"
-        />
-      ) : viewMode === 'table' ? (
-        /* ULTRA-CLEAN TABLE */
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.825rem' }}>
+        {/* Table Content */}
+        {isLoading ? (
+          <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="spin" style={{ margin: '0 auto 8px' }} />
+            <div>Loading product catalog...</div>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div style={{ padding: '30px' }}>
+            <EmptyState
+              icon={Package}
+              title="No Products Found"
+              description="No catalog items matched your current search or category filter. Click Add Product to register new inventory."
+              actionLabel="Add Product"
+              onAction={() => navigate('/products/new')}
+            />
+          </div>
+        ) : (
+          <div className="prod-table-responsive">
+            <table className="prod-spacious-table">
               <thead>
-                <tr
-                  style={{
-                    background: '#f8fafc',
-                    borderBottom: '1px solid #e2e8f0',
-                    color: '#64748b',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  <th style={{ padding: '11px 16px', fontWeight: 600 }}>
-                    <div
-                      onClick={() => handleSort('name')}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                    >
-                      Product <ArrowUpDown size={11} />
-                    </div>
+                <tr>
+                  <th style={{ width: '40px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      className="cust-checkbox"
+                      checked={allSelected}
+                      onChange={handleSelectAll}
+                      style={{ margin: '0 auto' }}
+                    />
                   </th>
-                  <th style={{ padding: '11px 16px', fontWeight: 600 }}>Category</th>
-                  <th style={{ padding: '11px 16px', textAlign: 'right', fontWeight: 600 }}>Cost</th>
-                  <th style={{ padding: '11px 16px', textAlign: 'right', fontWeight: 600 }}>
-                    <div
-                      onClick={() => handleSort('price')}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', justifyContent: 'flex-end' }}
-                    >
-                      Selling Price <ArrowUpDown size={11} />
-                    </div>
-                  </th>
-                  <th style={{ padding: '11px 16px', textAlign: 'center', fontWeight: 600 }}>GST</th>
-                  <th style={{ padding: '11px 16px', textAlign: 'center', fontWeight: 600 }}>
-                    <div
-                      onClick={() => handleSort('stock')}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', justifyContent: 'center' }}
-                    >
-                      Stock <ArrowUpDown size={11} />
-                    </div>
-                  </th>
-                  <th style={{ padding: '11px 16px', fontWeight: 600 }}>Supplier</th>
-                  <th style={{ padding: '11px 16px', textAlign: 'right', fontWeight: 600 }}>Actions</th>
+                  <th style={{ width: '90px' }}>SKU</th>
+                  <th style={{ minWidth: '220px' }}>Product Name</th>
+                  <th style={{ minWidth: '140px' }}>Category</th>
+                  <th style={{ minWidth: '130px' }}>Brand</th>
+                  <th style={{ minWidth: '100px' }}>Price</th>
+                  <th style={{ minWidth: '80px' }}>Unit</th>
+                  <th style={{ minWidth: '80px' }}>Qty</th>
+                  <th style={{ minWidth: '150px' }}>Created By</th>
+                  <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredProducts.map((p, idx) => {
-                  const isOut = p.stock_quantity <= 0;
-                  const isLow = !isOut && p.stock_quantity <= (p.low_stock_threshold || 5);
-                  const cost = Number(p.cost_price) || 0;
-                  const sale = Number(p.sale_price) || 0;
+                  const isChecked = selectedIds.has(p.id);
+                  const sku = p.sku || `PT${String(idx + 1).padStart(3, '0')}`;
+                  const category = p.category_name || (p.type ? p.type.charAt(0).toUpperCase() + p.type.slice(1) : 'General');
+                  const brand = p.attributes?.brand || p.supplier_name || business?.name || 'Grow Naturals';
+                  const price = Number(p.sale_price || 0);
+                  const unit = p.attributes?.unit || 'Pc';
+                  const qty = Number(p.stock_quantity ?? 0);
+                  const isLow = qty <= (p.low_stock_threshold || 5);
+                  const isOut = qty <= 0;
+
+                  // Creator info
+                  const creatorName = user?.name || 'Admin';
+                  const creatorTheme = getAvatarStyle(creatorName);
 
                   return (
                     <tr
                       key={p.id}
                       style={{
-                        borderBottom: idx === filteredProducts.length - 1 ? 'none' : '1px solid #f1f5f9',
-                        transition: 'background-color 0.1s ease',
+                        backgroundColor: isChecked ? 'rgba(255, 159, 67, 0.05)' : undefined,
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
                     >
-                      {/* Product Thumbnail + Name + SKU */}
-                      <td style={{ padding: '10px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div
-                            style={{
-                              width: '38px',
-                              height: '38px',
-                              borderRadius: '6px',
-                              overflow: 'hidden',
-                              background: '#f1f5f9',
-                              border: '1px solid #e2e8f0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                            }}
-                          >
+                      {/* Checkbox */}
+                      <td style={{ textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          className="cust-checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleRow(p.id)}
+                          style={{ margin: '0 auto' }}
+                        />
+                      </td>
+
+                      {/* SKU */}
+                      <td>
+                        <span className="cust-code-text">{sku}</span>
+                      </td>
+
+                      {/* Product Name + Image */}
+                      <td>
+                        <div className="prod-name-cell">
+                          <div className="prod-thumb-box">
                             {p.image_url ? (
                               <img
                                 src={p.image_url}
                                 alt={p.name}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 onError={(e) => {
                                   (e.target as HTMLElement).style.display = 'none';
                                 }}
                               />
                             ) : (
-                              <Package size={16} style={{ color: '#94a3b8' }} />
+                              <Package size={16} color="#94a3b8" />
                             )}
                           </div>
-
-                          <div>
-                            <Link
-                              to={`/products/${p.id}`}
-                              style={{
-                                fontWeight: 600,
-                                fontSize: '0.85rem',
-                                color: '#0f172a',
-                                textDecoration: 'none',
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.color = '#16a34a')}
-                              onMouseLeave={(e) => (e.currentTarget.style.color = '#0f172a')}
-                            >
-                              {p.name}
-                            </Link>
-
-                            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '1px' }}>
-                              <span>SKU: {p.sku}</span>
-                              {p.barcode && p.barcode !== p.sku && (
-                                <span style={{ marginLeft: '6px', color: '#94a3b8' }}>
-                                  · Barcode: {p.barcode}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                          <Link to={`/products/${p.id}`} className="prod-name-text">
+                            {p.name}
+                          </Link>
                         </div>
                       </td>
 
                       {/* Category */}
-                      <td style={{ padding: '10px 16px', color: '#334155' }}>
-                        <div>{p.category_name || p.type}</div>
+                      <td>
+                        <span className="cust-company-text">{category}</span>
                       </td>
 
-                      {/* Cost Price */}
-                      <td style={{ padding: '10px 16px', textAlign: 'right', color: '#64748b', fontFamily: 'monospace' }}>
-                        ₹{cost.toFixed(2)}
+                      {/* Brand */}
+                      <td>
+                        <span className="cust-country-text">{brand}</span>
                       </td>
 
-                      {/* Selling Price */}
-                      <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#0f172a', fontFamily: 'monospace' }}>
-                        ₹{sale.toFixed(2)}
-                      </td>
-
-                      {/* GST Tax Rate */}
-                      <td style={{ padding: '10px 16px', textAlign: 'center', color: '#64748b', fontSize: '0.78rem' }}>
-                        {isTaxable ? `${Number(p.gst_rate || 0).toFixed(0)}%` : '0%'}
-                      </td>
-
-                      {/* Stock Level */}
-                      <td style={{ padding: '10px 16px', textAlign: 'center' }}>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            color: isOut ? '#dc2626' : isLow ? '#d97706' : '#16a34a',
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: '6px',
-                              height: '6px',
-                              borderRadius: '50%',
-                              backgroundColor: isOut ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e',
-                            }}
-                          />
-                          {isOut ? 'Out of stock' : `${p.stock_quantity} in stock`}
+                      {/* Price */}
+                      <td>
+                        <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                          ₹{price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </span>
                       </td>
 
-                      {/* Supplier */}
-                      <td style={{ padding: '10px 16px', fontSize: '0.78rem', color: '#64748b' }}>
-                        {p.supplier_name || '—'}
+                      {/* Unit */}
+                      <td>
+                        <span className="cust-email-text">{unit}</span>
+                      </td>
+
+                      {/* Qty */}
+                      <td>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: isOut ? '#ef4444' : isLow ? '#d97706' : '#0f172a',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {qty}
+                        </span>
+                      </td>
+
+                      {/* Created By */}
+                      <td>
+                        <div className="prod-creator-cell">
+                          <div
+                            className="prod-creator-avatar"
+                            style={{
+                              backgroundColor: creatorTheme.bg,
+                              color: creatorTheme.color,
+                            }}
+                          >
+                            {getInitials(creatorName)}
+                          </div>
+                          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155' }}>
+                            {creatorName}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <td>
+                        <div className="cust-actions-group">
+                          {/* View */}
                           <Link
                             to={`/products/${p.id}`}
-                            title="View Details"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              padding: '4px 7px',
-                              fontSize: '0.72rem',
-                              fontWeight: 500,
-                              borderRadius: '5px',
-                              border: '1px solid #e2e8f0',
-                              background: '#ffffff',
-                              color: '#475569',
-                              textDecoration: 'none',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = '#94a3b8';
-                              e.currentTarget.style.color = '#0f172a';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = '#e2e8f0';
-                              e.currentTarget.style.color = '#475569';
-                            }}
+                            className="cust-action-btn view"
+                            title="View Product Details"
                           >
-                            <Eye size={12} />
-                            <span>Details</span>
+                            <Eye size={14} />
                           </Link>
 
+                          {/* Edit */}
                           <Link
                             to={`/products/${p.id}/edit`}
+                            className="cust-action-btn edit"
                             title="Edit Product"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              padding: '4px 7px',
-                              fontSize: '0.72rem',
-                              fontWeight: 500,
-                              borderRadius: '5px',
-                              border: '1px solid #e2e8f0',
-                              background: '#ffffff',
-                              color: '#475569',
-                              textDecoration: 'none',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = '#16a34a';
-                              e.currentTarget.style.color = '#16a34a';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = '#e2e8f0';
-                              e.currentTarget.style.color = '#475569';
-                            }}
                           >
-                            <Edit2 size={12} />
-                            <span>Edit</span>
+                            <Edit2 size={14} />
                           </Link>
+
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            className="cust-action-btn delete"
+                            title="Delete Product"
+                            onClick={() => setDeleteTarget(p)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -898,145 +568,84 @@ export const ProductsList: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </div>
-      ) : (
-        /* GALLERY GRID VIEW */
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: '16px',
-          }}
-        >
-          {filteredProducts.map((p) => {
-            const isOut = p.stock_quantity <= 0;
-            const isLow = !isOut && p.stock_quantity <= (p.low_stock_threshold || 5);
-            const sale = Number(p.sale_price) || 0;
-            const cost = Number(p.cost_price) || 0;
+        )}
 
-            return (
-              <div
-                key={p.id}
+        {/* Footer info & summary */}
+        {!isLoading && filteredProducts.length > 0 && (
+          <div className="cust-table-footer">
+            <span>
+              Showing {filteredProducts.length} of {products.length} products
+            </span>
+            <span style={{ fontWeight: 600 }}>
+              Inventory catalog synchronized
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteTarget && (
+        <div className="dialog-overlay" onClick={() => setDeleteTarget(null)} style={{ zIndex: 1200 }}>
+          <div
+            className="dialog-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '420px', borderRadius: '12px', padding: '24px', textAlign: 'center' }}
+          >
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: '#fee2e2',
+                color: '#ef4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}
+            >
+              <AlertTriangle size={24} />
+            </div>
+
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.125rem', fontWeight: 800, color: '#0f172a' }}>
+              Delete Product?
+            </h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '0.8125rem', color: '#64748b' }}>
+              Are you sure you want to remove <strong>{deleteTarget.name}</strong> (SKU: {deleteTarget.sku}) from your product catalog?
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                style={{ borderRadius: '8px', padding: '8px 18px', fontWeight: 700 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={isDeleting}
                 style={{
-                  background: '#ffffff',
-                  borderRadius: '10px',
-                  border: '1px solid #e2e8f0',
-                  overflow: 'hidden',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 20px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
                   display: 'flex',
-                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
               >
-                {/* Product Image Hero */}
-                <div
-                  style={{
-                    height: '140px',
-                    width: '100%',
-                    background: '#f8fafc',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {p.image_url ? (
-                    <img
-                      src={p.image_url}
-                      alt={p.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <Package size={32} style={{ color: '#cbd5e1' }} />
-                  )}
-
-                  {/* Stock Badge */}
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
-                      padding: '2px 7px',
-                      borderRadius: '12px',
-                      background: isOut ? '#ef4444' : isLow ? '#f59e0b' : '#16a34a',
-                      color: '#ffffff',
-                    }}
-                  >
-                    {isOut ? 'Out of stock' : `${p.stock_quantity} in stock`}
-                  </span>
-                </div>
-
-                {/* Card Body */}
-                <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>
-                    {p.sku} {p.category_name ? `· ${p.category_name}` : ''}
-                  </div>
-
-                  <Link
-                    to={`/products/${p.id}`}
-                    style={{
-                      fontWeight: 600,
-                      fontSize: '0.875rem',
-                      color: '#0f172a',
-                      textDecoration: 'none',
-                      lineHeight: '1.3',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    {p.name}
-                  </Link>
-
-                  <div style={{ marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
-                        ₹{sale.toFixed(2)}
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                        Cost: ₹{cost.toFixed(2)}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <Link
-                        to={`/products/${p.id}`}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '5px',
-                          border: '1px solid #e2e8f0',
-                          background: '#ffffff',
-                          color: '#475569',
-                          fontSize: '0.72rem',
-                          fontWeight: 500,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        Details
-                      </Link>
-                      <Link
-                        to={`/products/${p.id}/edit`}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '5px',
-                          border: '1px solid #e2e8f0',
-                          background: '#ffffff',
-                          color: '#475569',
-                          fontSize: '0.72rem',
-                          fontWeight: 500,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        Edit
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                {isDeleting ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
+                <span>{isDeleting ? 'Deleting...' : 'Yes, Delete'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

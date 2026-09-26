@@ -81,9 +81,9 @@ interface DashboardReportData {
 type ViewTab = 'overview' | 'sales' | 'payments' | 'products' | 'inventory' | 'all';
 
 export const Reports: React.FC = () => {
-  const { activeBusiness, business } = useBusiness();
+  const { businessId, activeBusiness, business } = useBusiness();
 
-  const [isCombined, setIsCombined] = useState(false);
+  const [isCombined, setIsCombined] = useState(businessId === 'all');
   const [range, setRange] = useState<'today' | '7days' | 'month' | 'year'>('month');
   const [activeTab, setActiveTab] = useState<ViewTab>('overview');
   const [data, setData] = useState<DashboardReportData | null>(null);
@@ -91,12 +91,14 @@ export const Reports: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [productSearch, setProductSearch] = useState('');
 
+  const effectiveCombined = isCombined || businessId === 'all' || activeBusiness.id === 'all';
+
   const fetchReports = async () => {
     try {
       setLoading(true);
       const params: Record<string, any> = { range };
-      if (isCombined) {
-        params.business_id = 'combined';
+      if (effectiveCombined) {
+        params.business_id = 'all';
       }
       const res = await api.get<DashboardReportData>('/reports/dashboard', params);
       setData(res);
@@ -108,8 +110,12 @@ export const Reports: React.FC = () => {
   };
 
   useEffect(() => {
+    setIsCombined(businessId === 'all');
+  }, [businessId]);
+
+  useEffect(() => {
     fetchReports();
-  }, [activeBusiness.id, range, isCombined]);
+  }, [businessId, activeBusiness.id, range, isCombined, effectiveCombined]);
 
   const handlePrint = () => {
     window.print();

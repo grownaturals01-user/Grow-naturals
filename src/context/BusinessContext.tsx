@@ -23,16 +23,37 @@ const BusinessContext = createContext<BusinessContextType | undefined>(undefined
 
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [businessId, setBusinessIdState] = useState<BusinessId>(() => {
-    return (getActiveBusinessId() as BusinessId) || 'grow-naturals';
+    return (getActiveBusinessId() as BusinessId) || 'all';
   });
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [business, setBusiness] = useState<Business | null>(null);
 
+  const allBusinessObj: Business = {
+    id: 'all',
+    name: 'All Businesses',
+    legal_name: 'All Combined Businesses',
+    gstin: '',
+    address: 'Central Aggregated System',
+    phone: '',
+    email: '',
+    invoice_prefix: 'ALL-',
+    invoice_footer: '',
+    logo_url: '',
+    currency: 'INR',
+    default_low_stock: 10,
+    is_taxable: true
+  };
+
   const fetchBusinesses = useCallback(async () => {
     try {
       const list: Business[] = await api.get('/businesses');
       setBusinesses(list);
+
+      if (businessId === 'all') {
+        setBusiness(allBusinessObj);
+        return;
+      }
 
       let current = list.find((b: Business) => b.id === businessId);
       if (!current && list.length > 0) {
@@ -56,6 +77,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const switchBusiness = (id: BusinessId) => {
     setBusinessIdState(id);
     setActiveBusinessId(id);
+    if (id === 'all') {
+      setBusiness(allBusinessObj);
+      return;
+    }
     const selected = businesses.find((b) => b.id === id);
     if (selected) {
       setBusiness(selected);
@@ -83,25 +108,27 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await fetchBusinesses();
   };
 
-  const defaultActive: Business = {
-    id: businessId,
-    name: businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery',
-    legal_name: businessId === 'grow-naturals' ? 'Grow Naturals Private Limited' : 'Nikhlesh Nursery & Farm',
-    gstin: businessId === 'grow-naturals' ? '27AAAAA0000A1Z5' : '',
-    address: 'No. 19/7, Annasalai, K K Nagar, 80 Feet Road, Madurai-625020, Tamil Nadu',
-    phone: businessId === 'grow-naturals' ? '+91 98220 12345' : '+91 98220 54321',
-    email: businessId === 'grow-naturals' ? 'billing@grownaturals.in' : 'sales@nikhleshnursery.in',
-    invoice_prefix: businessId === 'grow-naturals' ? 'GN-' : 'NN-',
-    invoice_footer: businessId === 'grow-naturals' ? 'Thank you for choosing Grow Naturals! All goods subject to warranty.' : 'Thank you for choosing Nikhlesh Nursery! 100% genuine saplings and plants.',
-    logo_url: '',
-    currency: 'INR',
-    default_low_stock: 10,
-    is_taxable: businessId === 'grow-naturals'
-  };
+  const defaultActive: Business = businessId === 'all'
+    ? allBusinessObj
+    : {
+        id: businessId,
+        name: businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery',
+        legal_name: businessId === 'grow-naturals' ? 'Grow Naturals Private Limited' : 'Nikhlesh Nursery & Farm',
+        gstin: businessId === 'grow-naturals' ? '27AAAAA0000A1Z5' : '',
+        address: 'No. 19/7, Annasalai, K K Nagar, 80 Feet Road, Madurai-625020, Tamil Nadu',
+        phone: businessId === 'grow-naturals' ? '+91 98220 12345' : '+91 98220 54321',
+        email: businessId === 'grow-naturals' ? 'billing@grownaturals.in' : 'sales@nikhleshnursery.in',
+        invoice_prefix: businessId === 'grow-naturals' ? 'GN-' : 'NN-',
+        invoice_footer: businessId === 'grow-naturals' ? 'Thank you for choosing Grow Naturals! All goods subject to warranty.' : 'Thank you for choosing Nikhlesh Nursery! 100% genuine saplings and plants.',
+        logo_url: '',
+        currency: 'INR',
+        default_low_stock: 10,
+        is_taxable: businessId === 'grow-naturals'
+      };
 
   const activeBusiness: Business =
     business ||
-    businesses.find(b => b.id === businessId) ||
+    (businessId === 'all' ? allBusinessObj : businesses.find(b => b.id === businessId)) ||
     businesses[0] ||
     defaultActive;
 

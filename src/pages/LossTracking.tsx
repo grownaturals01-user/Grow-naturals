@@ -5,7 +5,8 @@ import {
   Plus,
   Trash2,
   Calendar,
-  DollarSign,
+  IndianRupee,
+  PackageX,
   Package,
   RefreshCw,
   Search,
@@ -13,6 +14,7 @@ import {
   Bug,
   Droplets,
   Clock,
+  CalendarDays,
   ArrowRight,
   Trees,
   X,
@@ -26,6 +28,8 @@ import {
   CloudSnow,
   HelpCircle,
   ShieldAlert,
+  FileWarning,
+  Activity,
   Check
 } from 'lucide-react';
 import { api } from '../services/api';
@@ -311,21 +315,23 @@ export const LossTracking: React.FC = () => {
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div
               style={{
-                width: '42px',
-                height: '42px',
+                width: '46px',
+                height: '46px',
                 borderRadius: '12px',
-                backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
                 color: '#dc2626',
+                border: '1px solid rgba(220, 38, 38, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0
+                flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.12)'
               }}
             >
-              <TrendingDown size={22} />
+              <FileWarning size={22} strokeWidth={2} />
             </div>
             <div>
               <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.02em' }}>
@@ -406,8 +412,8 @@ export const LossTracking: React.FC = () => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>Total Financial Loss</span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DollarSign size={16} />
+            <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', color: '#dc2626', border: '1px solid rgba(220, 38, 38, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <IndianRupee size={17} strokeWidth={2.2} />
             </div>
           </div>
           <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#dc2626' }}>
@@ -431,8 +437,8 @@ export const LossTracking: React.FC = () => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>Total Damaged Units</span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Package size={16} />
+            <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#d97706', border: '1px solid rgba(217, 119, 6, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PackageX size={17} strokeWidth={2} />
             </div>
           </div>
           <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a' }}>
@@ -456,8 +462,8 @@ export const LossTracking: React.FC = () => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>Today's Spoilage</span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Clock size={16} />
+            <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)', color: '#4f46e5', border: '1px solid rgba(79, 70, 229, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CalendarDays size={17} strokeWidth={2} />
             </div>
           </div>
           <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a' }}>
@@ -481,8 +487,8 @@ export const LossTracking: React.FC = () => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>Primary Spoilage Cause</span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ShieldAlert size={16} />
+            <div style={{ width: '34px', height: '34px', borderRadius: '9px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShieldAlert size={17} strokeWidth={2} />
             </div>
           </div>
           <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

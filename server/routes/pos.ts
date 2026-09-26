@@ -32,7 +32,8 @@ router.post('/checkout', async (req: Request, res: Response) => {
       created_by
     } = req.body;
 
-    const bizId = business_id || (req.headers['x-business-id'] as string) || 'grow-naturals';
+    const rawBiz = business_id || (req.headers['x-business-id'] as string) || 'grow-naturals';
+    const bizId = (rawBiz && rawBiz !== 'all' && rawBiz !== 'combined') ? rawBiz : 'grow-naturals';
     const isTaxable = bizId === 'grow-naturals';
 
     if (!items || !Array.isArray(items) || items.length === 0) {

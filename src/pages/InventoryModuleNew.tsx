@@ -287,41 +287,47 @@ export const InventoryModuleNew: React.FC = () => {
                         <span
                           style={{
                             position: 'absolute',
-                            top: '6px',
-                            right: '6px',
+                            top: '8px',
+                            right: '8px',
                             color: 'var(--color-botanical-600)',
                             display: 'flex',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            backgroundColor: '#fff',
+                            borderRadius: '50%',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
                           }}
                         >
-                          <CheckCircle2 size={14} />
+                          <CheckCircle2 size={15} />
                         </span>
                       )}
 
                       <div
                         style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '8px',
+                          width: '46px',
+                          height: '46px',
+                          borderRadius: '12px',
                           backgroundColor: preset.bgColor,
                           color: preset.color,
+                          border: `1px solid ${preset.color}25`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          marginBottom: '8px',
-                          transition: 'transform 0.2s ease',
-                          transform: isSelected ? 'scale(1.06)' : 'none'
+                          marginBottom: '10px',
+                          transition: 'all 0.2s ease',
+                          transform: isSelected ? 'scale(1.08)' : 'none',
+                          boxShadow: isSelected ? `0 4px 10px ${preset.color}30` : 'none'
                         }}
                       >
-                        {preset.iconComponent(20)}
+                        {preset.iconComponent(22)}
                       </div>
 
                       <span
                         style={{
-                          fontSize: '0.75rem',
+                          fontSize: '0.78rem',
                           fontWeight: isSelected ? 700 : 600,
                           color: isSelected ? 'var(--color-botanical-900)' : 'var(--color-text-primary)',
-                          lineHeight: 1.2
+                          lineHeight: 1.25,
+                          letterSpacing: '-0.01em'
                         }}
                       >
                         {preset.label}

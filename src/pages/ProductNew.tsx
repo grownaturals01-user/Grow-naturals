@@ -105,13 +105,15 @@ export const ProductNew: React.FC = () => {
     notes: '',
   });
 
-  // Preselect from URL query param if present
+  // Preselect from URL query param if present, or fallback to first business module
   useEffect(() => {
     const typeParam = searchParams.get('type');
     if (typeParam) {
       handleCategoryTypeChange(typeParam as CategoryType);
+    } else if (modules.length > 0 && !modules.some((m) => m.slug === type)) {
+      handleCategoryTypeChange(modules[0].slug as CategoryType);
     }
-  }, [searchParams]);
+  }, [searchParams, modules]);
 
   // Load categories & suppliers
   useEffect(() => {
@@ -133,10 +135,12 @@ export const ProductNew: React.FC = () => {
 
   const handleCategoryTypeChange = (newType: CategoryType) => {
     setType(newType);
-    if (newType === 'plants' || newType === 'cactus') setHsnCode('0602');
-    else if (newType === 'pots') setHsnCode('6913');
-    else if (newType === 'fertilizers') setHsnCode('3101');
+    if (newType === 'plants' || newType === 'cactus' || newType === 'nursery-plants') setHsnCode('0602');
+    else if (newType === 'pots' || newType === 'nursery-pots') setHsnCode('6913');
+    else if (newType === 'fertilizers' || newType === 'soil-manure') setHsnCode('3101');
     else if (newType === 'flowers') setHsnCode('0603');
+    else if (newType === 'seeds-bulbs') setHsnCode('1209');
+    else if (newType === 'fruit-trees') setHsnCode('0602');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,19 +206,22 @@ export const ProductNew: React.FC = () => {
     customIcon?: string;
   }
 
-  const categoryOptions: CategoryOption[] = [
-    { type: 'plants' as CategoryType, label: 'Plants & Trees', desc: 'Live botanical stock' },
-    { type: 'cactus' as CategoryType, label: 'Cactus & Succulents', desc: 'Desert flora, low water' },
-    { type: 'pots' as CategoryType, label: 'Pots & Planters', desc: 'Ceramic, fiber, clay' },
-    { type: 'fertilizers' as CategoryType, label: 'Fertilizers', desc: 'Nutrients, pest care' },
-    { type: 'flowers' as CategoryType, label: 'Flowers & Decor', desc: 'Bouquets, fresh cuts' },
-    ...modules.map((m) => ({
-      type: m.slug as CategoryType,
-      customIcon: m.icon,
-      label: m.name,
-      desc: m.caption || 'Custom inventory workflow',
-    })),
-  ];
+  const categoryOptions: CategoryOption[] = (modules && modules.length > 0)
+    ? modules.map((m) => ({
+        type: m.slug as CategoryType,
+        customIcon: m.icon,
+        label: m.name,
+        desc: m.caption || `${m.name} inventory workflow`,
+      }))
+    : [
+        { type: 'plants' as CategoryType, label: 'Plants & Trees', desc: 'Live botanical stock' },
+        { type: 'cactus' as CategoryType, label: 'Cactus & Succulents', desc: 'Desert flora, low water' },
+        { type: 'pots' as CategoryType, label: 'Pots & Planters', desc: 'Ceramic, fiber, clay' },
+        { type: 'fertilizers' as CategoryType, label: 'Fertilizers', desc: 'Nutrients, pest care' },
+        { type: 'flowers' as CategoryType, label: 'Flowers & Decor', desc: 'Bouquets, fresh cuts' },
+      ];
+
+  const matchingSubcategories = categories.filter((c) => !c.type || c.type === type);
 
   return (
     <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', paddingBottom: '32px' }}>
@@ -366,9 +373,9 @@ export const ProductNew: React.FC = () => {
                   onChange={(e) => setCategoryId(e.target.value)}
                 >
                   <option value="">Select Subcategory (Optional)</option>
-                  {categories.map((c) => (
+                  {(matchingSubcategories.length > 0 ? matchingSubcategories : categories).map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.type})
+                      {c.name} {c.type ? `(${c.type})` : ''}
                     </option>
                   ))}
                 </select>

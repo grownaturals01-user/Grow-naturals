@@ -4,7 +4,7 @@ import { getDb } from '../db/connection.js';
 const router = Router();
 
 function getBusinessId(req: Request): string {
-  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
 // GET /api/expenses/categories - User-definable expense categories
@@ -18,7 +18,7 @@ router.get('/categories', async (req: Request, res: Response) => {
               COALESCE(SUM(e.amount), 0.00) as total_spent
        FROM expense_categories ec
        LEFT JOIN expenses e ON ec.id = e.category_id
-       WHERE ec.business_id = $1
+       WHERE ($1 = 'all' OR $1 = 'combined' OR ec.business_id = $1)
        GROUP BY ec.id
        ORDER BY ec.name ASC`,
       [businessId]
@@ -32,7 +32,8 @@ router.get('/categories', async (req: Request, res: Response) => {
 // POST /api/expenses/categories
 router.post('/categories', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
+    const rawBizId = req.body.business_id || getBusinessId(req);
+    const businessId = (rawBizId && rawBizId !== 'all' && rawBizId !== 'combined') ? rawBizId : 'grow-naturals';
     const { name, description } = req.body;
 
     if (!name) {
@@ -101,12 +102,14 @@ router.get('/', async (req: Request, res: Response) => {
     const db = await getDb();
     let query = `
       SELECT e.*,
+             b.name as business_name,
              ec.name as category_name,
              p.name as project_name
       FROM expenses e
+      LEFT JOIN businesses b ON e.business_id = b.id
       LEFT JOIN expense_categories ec ON e.category_id = ec.id
       LEFT JOIN projects p ON e.project_id = p.id
-      WHERE e.business_id = $1
+      WHERE ($1 = 'all' OR $1 = 'combined' OR e.business_id = $1)
     `;
     const params: any[] = [businessId];
     let paramIndex = 2;

@@ -4,7 +4,7 @@ import { getDb } from '../db/connection.js';
 const router = Router();
 
 function getBusinessId(req: Request): string {
-  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
 // GET /api/inventory-losses - List all damage and loss logs
@@ -17,14 +17,16 @@ router.get('/', async (req: Request, res: Response) => {
     let query = `
       SELECT 
         l.*,
+        b.name as business_name,
         p.name as product_name,
         p.sku as product_sku,
         p.type as product_type,
         p.image_url as product_image_url,
         p.stock_quantity as current_stock
       FROM inventory_losses l
+      LEFT JOIN businesses b ON l.business_id = b.id
       JOIN products p ON l.product_id = p.id
-      WHERE l.business_id = $1
+      WHERE ($1 = 'all' OR $1 = 'combined' OR l.business_id = $1)
     `;
     const params: any[] = [businessId];
 
@@ -72,7 +74,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
         COALESCE(SUM(CASE WHEN damage_date = CURRENT_DATE THEN loss_amount ELSE 0 END), 0.00) as today_loss_amount,
         COALESCE(SUM(CASE WHEN damage_date = CURRENT_DATE THEN quantity ELSE 0 END), 0) as today_items_lost
        FROM inventory_losses
-       WHERE business_id = $1`,
+       WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1)`,
       [businessId]
     );
 
@@ -80,7 +82,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
     const reasonsRes = await db.query(
       `SELECT reason, COUNT(id) as occurrences, SUM(quantity) as units_lost, SUM(loss_amount) as total_amount
        FROM inventory_losses
-       WHERE business_id = $1
+       WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1)
        GROUP BY reason
        ORDER BY total_amount DESC
        LIMIT 5`,
@@ -92,7 +94,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
       `SELECT p.name, p.sku, p.type, SUM(l.quantity) as units_lost, SUM(l.loss_amount) as total_amount
        FROM inventory_losses l
        JOIN products p ON l.product_id = p.id
-       WHERE l.business_id = $1
+       WHERE ($1 = 'all' OR $1 = 'combined' OR l.business_id = $1)
        GROUP BY p.id, p.name, p.sku, p.type
        ORDER BY total_amount DESC
        LIMIT 5`,

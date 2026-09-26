@@ -4,25 +4,42 @@ import { getDb } from '../db/connection.js';
 const router = Router();
 
 function getBusinessId(req: Request): string {
-  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
+  return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
 // GET /api/invoices
 router.get('/', async (req: Request, res: Response) => {
   try {
     const businessId = getBusinessId(req);
-    const { search, customer_id, start_date, end_date, limit } = req.query;
+    const {
+      search,
+      customer_id,
+      start_date,
+      end_date,
+      payment_method,
+      payment_status,
+      min_amount,
+      max_amount,
+      project_id,
+      customer_type,
+      has_discount,
+      has_tax,
+      sort_by,
+      limit
+    } = req.query;
 
     const db = await getDb();
     let query = `
       SELECT i.*, 
              u.name as cashier_name,
              p.name as project_name,
+             b.name as business_name,
              (SELECT COUNT(*) FROM invoice_items ii WHERE ii.invoice_id = i.id) as item_count
       FROM invoices i
+      LEFT JOIN businesses b ON i.business_id = b.id
       LEFT JOIN users u ON i.created_by = u.id
       LEFT JOIN projects p ON i.project_id = p.id
-      WHERE i.business_id = $1
+      WHERE ($1 = 'all' OR $1 = 'combined' OR i.business_id = $1)
     `;
     const params: any[] = [businessId];
     let paramIndex = 2;
@@ -48,13 +65,79 @@ router.get('/', async (req: Request, res: Response) => {
       params.push(end_date);
     }
 
-    query += ` ORDER BY i.created_at DESC`;
+    if (payment_method && payment_method !== 'all') {
+      query += ` AND i.payment_method = $${paramIndex++}`;
+      params.push(payment_method);
+    }
 
-    if (limit) {
+    if (payment_status && payment_status !== 'all') {
+      query += ` AND i.payment_status = $${paramIndex++}`;
+      params.push(payment_status);
+    }
+
+    if (project_id && project_id !== 'all') {
+      if (project_id === 'direct_only') {
+        query += ` AND (i.project_id IS NULL OR i.project_id = '')`;
+      } else if (project_id === 'projects_only') {
+        query += ` AND i.project_id IS NOT NULL AND i.project_id != ''`;
+      } else {
+        query += ` AND i.project_id = $${paramIndex++}`;
+        params.push(project_id);
+      }
+    }
+
+    if (customer_type && customer_type !== 'all') {
+      if (customer_type === 'registered') {
+        query += ` AND (i.customer_id IS NOT NULL AND i.customer_id != '')`;
+      } else if (customer_type === 'walkin') {
+        query += ` AND (i.customer_id IS NULL OR i.customer_id = '')`;
+      }
+    }
+
+    if (has_discount && has_discount !== 'all') {
+      if (has_discount === 'yes') {
+        query += ` AND i.discount_amount > 0`;
+      } else if (has_discount === 'no') {
+        query += ` AND (i.discount_amount = 0 OR i.discount_amount IS NULL)`;
+      }
+    }
+
+    if (has_tax && has_tax !== 'all') {
+      if (has_tax === 'yes') {
+        query += ` AND i.tax_amount > 0`;
+      } else if (has_tax === 'no') {
+        query += ` AND (i.tax_amount = 0 OR i.tax_amount IS NULL)`;
+      }
+    }
+
+    if (min_amount) {
+      query += ` AND i.total_amount >= $${paramIndex++}`;
+      params.push(Number(min_amount));
+    }
+
+    if (max_amount) {
+      query += ` AND i.total_amount <= $${paramIndex++}`;
+      params.push(Number(max_amount));
+    }
+
+    // Dynamic Ordering
+    if (sort_by === 'date_asc') {
+      query += ` ORDER BY i.created_at ASC`;
+    } else if (sort_by === 'amount_desc') {
+      query += ` ORDER BY i.total_amount DESC`;
+    } else if (sort_by === 'amount_asc') {
+      query += ` ORDER BY i.total_amount ASC`;
+    } else if (sort_by === 'items_desc') {
+      query += ` ORDER BY item_count DESC`;
+    } else {
+      query += ` ORDER BY i.created_at DESC`;
+    }
+
+    if (limit && Number(limit) > 0) {
       query += ` LIMIT $${paramIndex++}`;
       params.push(Number(limit));
     } else {
-      query += ` LIMIT 100`;
+      query += ` LIMIT 200`;
     }
 
     const result = await db.query(query, params);

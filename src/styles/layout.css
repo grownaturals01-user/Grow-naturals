@@ -632,15 +632,17 @@
 /* Main Viewport */
 .main-content {
   flex: 1;
-  padding: var(--space-6) var(--space-8);
-  max-width: 1600px;
+  padding: 16px 24px;
+  max-width: 100%;
   width: 100%;
+  min-height: calc(100vh - 68px);
+  box-sizing: border-box;
 }
 
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
   .main-content {
-    padding: var(--space-5) var(--space-5);
+    padding: 14px 16px;
   }
 }
 
@@ -663,14 +665,15 @@
   }
 
   .header {
-    padding: 0 var(--space-4);
+    padding: 0 12px;
   }
 
   .main-content {
-    padding: var(--space-4) var(--space-3);
+    padding: 10px 10px;
   }
 
   .user-info {
     display: none;
   }
 }
+
