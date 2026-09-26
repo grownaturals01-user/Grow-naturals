@@ -301,23 +301,11 @@ export const POS: React.FC = () => {
   const addToCart = (product: Product, forcedSource?: 'shop' | 'inventory') => {
     const shopStock = Number(product.shop_stock !== undefined ? product.shop_stock : product.stock_quantity) || 0;
     const warehouseStock = Number(product.warehouse_stock) || 0;
-    const totalStock = shopStock + warehouseStock;
 
-    if (totalStock <= 0) return;
-
-    // Pick source: forcedSource > defaultStockSource (if has stock) > shop (if has stock) > inventory
-    let chosenSource: 'shop' | 'inventory' = 'shop';
-    if (forcedSource) {
-      chosenSource = forcedSource;
-    } else if (defaultStockSource === 'inventory' && warehouseStock > 0) {
-      chosenSource = 'inventory';
-    } else if (shopStock > 0) {
-      chosenSource = 'shop';
-    } else if (warehouseStock > 0) {
-      chosenSource = 'inventory';
-    }
-
+    // Pick source: forcedSource > defaultStockSource
+    const chosenSource: 'shop' | 'inventory' = forcedSource || defaultStockSource;
     const availableStock = chosenSource === 'shop' ? shopStock : warehouseStock;
+
     if (availableStock <= 0) return;
 
     const discPieces = Number(product.discount_pieces) || Number(product.attributes?.discount_pieces) || 0;
@@ -441,16 +429,17 @@ export const POS: React.FC = () => {
 
   const decrementCardQuantity = (product: Product, e: React.MouseEvent) => {
     e.stopPropagation();
-    const cartItem =
-      cart.find((i) => i.product_id === product.id && (i.stock_source || 'shop') === 'shop') ||
-      cart.find((i) => i.product_id === product.id);
+    const chosenSource = defaultStockSource;
+    const cartItem = cart.find(
+      (i) => i.product_id === product.id && (i.stock_source || 'shop') === chosenSource
+    );
     if (!cartItem) return;
-    updateQuantity(product.id, -1, cartItem.stock_source || 'shop');
+    updateQuantity(product.id, -1, chosenSource);
   };
 
   const incrementCardQuantity = (product: Product, e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(product);
+    addToCart(product, defaultStockSource);
   };
 
   // Hardware USB Barcode Scanner listener
@@ -953,19 +942,19 @@ export const POS: React.FC = () => {
               filteredProducts.map((p) => {
                 const shopStock = Number(p.shop_stock !== undefined ? p.shop_stock : p.stock_quantity) || 0;
                 const warehouseStock = Number(p.warehouse_stock) || 0;
-                const totalStock = shopStock + warehouseStock;
-                const isOutOfStock = totalStock <= 0;
+                const activeStock = defaultStockSource === 'shop' ? shopStock : warehouseStock;
+                const isOutOfStock = activeStock <= 0;
                 const cartShopMatch = cart.find((it) => it.product_id === p.id && (it.stock_source || 'shop') === 'shop');
                 const cartInvMatch = cart.find((it) => it.product_id === p.id && it.stock_source === 'inventory');
-                const totalInCart = (cartShopMatch?.quantity || 0) + (cartInvMatch?.quantity || 0);
-                const isLowStock = !isOutOfStock && totalStock <= (p.low_stock_threshold || 10);
+                const totalInCart = defaultStockSource === 'shop' ? (cartShopMatch?.quantity || 0) : (cartInvMatch?.quantity || 0);
+                const isLowStock = !isOutOfStock && activeStock <= (p.low_stock_threshold || 10);
                 const productImg = p.image_url || p.attributes?.image_url || (p as any).image || (p as any).photo;
 
                 return (
                   <div
                     key={p.id}
                     className={`pos-product-card ${isOutOfStock ? 'out-of-stock' : ''} ${totalInCart > 0 ? 'in-cart' : ''}`}
-                    onClick={() => !isOutOfStock && addToCart(p)}
+                    onClick={() => !isOutOfStock && totalInCart < activeStock && addToCart(p, defaultStockSource)}
                   >
                     {/* Full-bleed Top Image (0 padding top/left/right) */}
                     <div className="pos-prod-image-container">
@@ -1033,7 +1022,7 @@ export const POS: React.FC = () => {
                           {modules.find((m) => m.slug === p.type)?.name || p.type || 'Item'}
                         </span>
                         <span className={`pos-prod-stock-indicator ${isOutOfStock ? 'empty' : isLowStock ? 'low' : 'ok'}`}>
-                          {isOutOfStock ? 'Out of Stock' : `🏪 ${shopStock}${warehouseStock > 0 ? ` · 📦 ${warehouseStock}` : ''}`}
+                          {defaultStockSource === 'shop' ? `🏪 ${shopStock}` : `📦 ${warehouseStock}`}
                         </span>
                       </div>
 
@@ -1075,7 +1064,7 @@ export const POS: React.FC = () => {
                             type="button"
                             className="pos-card-step-btn plus"
                             onClick={(e) => incrementCardQuantity(p, e)}
-                            disabled={isOutOfStock}
+                            disabled={isOutOfStock || totalInCart >= activeStock}
                             title="Add to Cart"
                           >
                             +
