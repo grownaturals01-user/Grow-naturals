@@ -1392,7 +1392,7 @@
 }
 
 /* ==========================================================================
-   CART LINE ITEMS LIST (Natural full-height scroll)
+   CART LINE ITEMS LIST (Clean one-by-one stacking with hidden scrollbar)
    ========================================================================== */
 .pos-cart-items-wrapper {
   flex: 1 1 0%;
@@ -1405,34 +1405,28 @@
   flex-direction: column;
   gap: 6px;
   background-color: #ffffff;
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge */
 }
 
 .pos-cart-items-wrapper::-webkit-scrollbar {
-  width: 5px;
-}
-
-.pos-cart-items-wrapper::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.pos-cart-items-wrapper::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 4px;
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
 }
 
 .pos-cart-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
+  padding: 7px 10px;
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   gap: 8px;
   transition: all var(--transition-fast);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  animation: fadeIn 0.15s ease-out;
 }
 
 .pos-cart-item:hover {
@@ -1452,13 +1446,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .cart-item-price-desc {
   font-size: 0.6875rem;
   color: #64748b;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .cart-qty-controls {
