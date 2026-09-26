@@ -33,6 +33,10 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
       .map((it, idx) => `${idx + 1}. *${it.product_name}* (Qty: ${it.quantity}) — ₹${Number(it.total).toFixed(2)}`)
       .join('\n');
 
+    const paymentMethodText = invoice.payment_method === 'split'
+      ? `SPLIT (Cash: ₹${Number(invoice.split_cash_amount || 0).toFixed(2)} + UPI: ₹${Number(invoice.split_upi_amount || 0).toFixed(2)})`
+      : (invoice.payment_method || 'Cash').toUpperCase();
+
     const msg = [
       `🧾 *TAX INVOICE — ${bizName.toUpperCase()}* 🧾`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
@@ -40,7 +44,7 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
       `*Customer:* ${invoice.customer_name || 'Valued Customer'}`,
       `*Date:* ${new Date(invoice.created_at).toLocaleDateString('en-IN')}`,
       `*Payment Status:* ${invoice.payment_status.toUpperCase()}`,
-      `*Payment Method:* ${(invoice.payment_method || 'Cash').toUpperCase()}`,
+      `*Payment Method:* ${paymentMethodText}`,
       ``,
       `*Items Summary:*`,
       itemsSummary,
@@ -206,7 +210,14 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
 
           <div className="invoice-detail-block" style={{ textAlign: 'right' }}>
             <h4>Payment Info:</h4>
-            <p style={{ fontSize: '13px', color: '#475569' }}>Payment Mode: <strong style={{ textTransform: 'uppercase' }}>{invoice.payment_method}</strong></p>
+            <p style={{ fontSize: '13px', color: '#475569' }}>
+              Payment Mode:{' '}
+              <strong style={{ textTransform: 'uppercase' }}>
+                {invoice.payment_method === 'split'
+                  ? `SPLIT (Cash: ₹${Number(invoice.split_cash_amount || 0).toFixed(2)} + UPI: ₹${Number(invoice.split_upi_amount || 0).toFixed(2)})`
+                  : invoice.payment_method}
+              </strong>
+            </p>
             <p style={{ fontSize: '13px', color: '#475569' }}>Payment Status: <strong style={{ textTransform: 'uppercase', color: invoice.payment_status === 'paid' ? '#16a34a' : '#d97706' }}>{invoice.payment_status}</strong></p>
             {invoice.cashier_name && <p style={{ fontSize: '12px', color: '#64748b' }}>Billed By: {invoice.cashier_name}</p>}
           </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   TrendingUp,
+  TrendingDown,
   Receipt,
   AlertTriangle,
   Briefcase,
@@ -24,7 +25,14 @@ import {
   BarChart3,
   PieChart,
   ShoppingBag,
-  ArrowUpRight
+  ArrowUpRight,
+  ArrowDownRight,
+  Calculator,
+  Minus,
+  Plus,
+  Percent,
+  ShieldAlert,
+  Scale
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useBusiness } from '../context/BusinessContext';
@@ -38,6 +46,9 @@ interface DashboardReportData {
     today_sales: number;
     today_bills: number;
     period_sales: number;
+    period_expenses?: number;
+    period_damage?: number;
+    period_net_profit?: number;
     period_tax: number;
     period_cgst?: number;
     period_sgst?: number;
@@ -48,11 +59,17 @@ interface DashboardReportData {
   };
   business_breakdown?: Array<{
     business_id: string;
+    business_name?: string;
     total_sales: number;
     total_tax: number;
     total_bills: number;
+    total_expenses?: number;
+    total_damage?: number;
+    net_profit?: number;
   }>;
   top_products: Array<{ product_name: string; total_qty: number; total_revenue: number }>;
+  top_expenses?: Array<{ category_name: string; count: number; total_amount: number }>;
+  top_damages?: Array<{ reason: string; occurrences: number; units_lost: number; total_amount: number }>;
   payment_breakdown: Array<{ payment_method: string; count: number; total: number }>;
   recent_invoices: Array<{
     id: string;
@@ -78,7 +95,7 @@ interface DashboardReportData {
   sales_trend: Array<{ day: string; total: number; count: number }>;
 }
 
-type ViewTab = 'overview' | 'sales' | 'payments' | 'products' | 'inventory' | 'all';
+type ViewTab = 'overview' | 'profit' | 'sales' | 'payments' | 'products' | 'inventory' | 'all';
 
 export const Reports: React.FC = () => {
   const { activeBusiness, business } = useBusiness();
@@ -115,6 +132,17 @@ export const Reports: React.FC = () => {
     window.print();
   };
 
+  // Safe calculated numbers
+  const periodSales = Number(data?.metrics.period_sales) || 0;
+  const periodExpenses = Number(data?.metrics.period_expenses) || 0;
+  const periodDamage = Number(data?.metrics.period_damage) || 0;
+  const periodNetProfit = data?.metrics.period_net_profit !== undefined
+    ? Number(data.metrics.period_net_profit)
+    : Number((periodSales - periodExpenses - periodDamage).toFixed(2));
+  
+  const profitMarginPercent = periodSales > 0 ? ((periodNetProfit / periodSales) * 100).toFixed(1) : '0.0';
+  const isNetProfitable = periodNetProfit >= 0;
+
   const handleCopySummary = () => {
     if (!data) return;
     const rangeLabel = range === 'today' ? 'Today' : range === '7days' ? 'Last 7 Days' : range === 'month' ? 'Last 30 Days' : 'This Year';
@@ -128,16 +156,21 @@ export const Reports: React.FC = () => {
         `📊 COMBINED BUSINESS REPORT (Both Shops) — ${rangeLabel}`,
         `🏢 Grow Naturals (GST) + Nikhlesh Nursery`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `• Total Combined Sales: ₹${Number(data.metrics.period_sales).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-        `• Total Invoices: ${data.metrics.period_bills} bills issued`,
+        `• Total Sales Revenue: ₹${periodSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${data.metrics.period_bills} bills)`,
+        `• Total Operational Expenses: -₹${periodExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `• Total Damage & Loss: -₹${periodDamage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `🏆 NET PROFIT: ${isNetProfitable ? '₹' : '-₹'}${Math.abs(periodNetProfit).toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${profitMarginPercent}% Margin)`,
+        `• Formula: Sales (₹${periodSales.toFixed(2)}) - Expenses (₹${periodExpenses.toFixed(2)}) - Damage (₹${periodDamage.toFixed(2)})`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
         `• Total GST Tax Collected: ₹${Number(data.metrics.period_tax).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
         `• Pending Supplier Payables: ₹${Number(data.metrics.supplier_dues).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
         `• Active Site Projects: ${data.metrics.active_projects}`,
         `• Critical Low Stock Items: ${data.metrics.low_stock_count}`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `📈 INDIVIDUAL SHOP BREAKDOWN:`,
-        `• Grow Naturals: ₹${Number(gnStats?.total_sales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${gnStats?.total_bills || 0} bills, GST: ₹${Number(gnStats?.total_tax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })})`,
-        `• Nikhlesh Nursery: ₹${Number(nnStats?.total_sales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${nnStats?.total_bills || 0} bills)`,
+        `📈 INDIVIDUAL SHOP NET PROFIT BREAKDOWN:`,
+        `• Grow Naturals: Sales ₹${Number(gnStats?.total_sales || 0).toFixed(2)} | Exp ₹${Number(gnStats?.total_expenses || 0).toFixed(2)} | Dmg ₹${Number(gnStats?.total_damage || 0).toFixed(2)} | Net Profit: ₹${Number(gnStats?.net_profit || 0).toFixed(2)}`,
+        `• Nikhlesh Nursery: Sales ₹${Number(nnStats?.total_sales || 0).toFixed(2)} | Exp ₹${Number(nnStats?.total_expenses || 0).toFixed(2)} | Dmg ₹${Number(nnStats?.total_damage || 0).toFixed(2)} | Net Profit: ₹${Number(nnStats?.net_profit || 0).toFixed(2)}`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
         `Generated from GrowNaturals Dual POS & ERP on ${new Date().toLocaleDateString('en-IN')}`
       ].join('\n');
@@ -146,8 +179,13 @@ export const Reports: React.FC = () => {
       text = [
         `📊 Business Report — ${bizName} (${rangeLabel})`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `• Total Sales Revenue: ₹${Number(data.metrics.period_sales).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-        `• Total Invoices: ${data.metrics.period_bills} bills issued`,
+        `• Total Sales Revenue: ₹${periodSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${data.metrics.period_bills} bills)`,
+        `• Total Operational Expenses: -₹${periodExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `• Total Damage & Loss: -₹${periodDamage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `🏆 NET PROFIT: ${isNetProfitable ? '₹' : '-₹'}${Math.abs(periodNetProfit).toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${profitMarginPercent}% Margin)`,
+        `• Formula: Sales (₹${periodSales.toFixed(2)}) - Expenses (₹${periodExpenses.toFixed(2)}) - Damage (₹${periodDamage.toFixed(2)})`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
         ...(isGrowNaturals ? [`• GST Tax Collected: ₹${Number(data.metrics.period_tax).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`] : []),
         `• Pending Supplier Dues: ₹${Number(data.metrics.supplier_dues).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
         `• Active Site Projects: ${data.metrics.active_projects}`,
@@ -183,6 +221,13 @@ export const Reports: React.FC = () => {
     }
   };
 
+  const formatReasonLabel = (reason: string) => {
+    if (!reason) return 'General Loss';
+    return reason
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
   const getPaymentMethodMeta = (method: string) => {
     const m = (method || '').toLowerCase();
     if (m.includes('cash')) {
@@ -197,6 +242,9 @@ export const Reports: React.FC = () => {
     if (m.includes('card')) {
       return { label: 'Debit / Credit Card', icon: CreditCard, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.25)' };
     }
+    if (m.includes('split')) {
+      return { label: 'Split Payment (Cash + UPI)', icon: Scale, color: '#0369a1', bg: 'rgba(3, 105, 161, 0.12)', border: 'rgba(3, 105, 161, 0.25)' };
+    }
     return { label: method || 'Other Mode', icon: Layers, color: '#64748b', bg: 'rgba(100, 116, 139, 0.12)', border: 'rgba(100, 116, 139, 0.25)' };
   };
 
@@ -207,16 +255,16 @@ export const Reports: React.FC = () => {
   );
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', paddingBottom: '48px' }}>
+    <div style={{ maxWidth: '1360px', margin: '0 auto', paddingBottom: '48px' }}>
       {/* Print-Only Header */}
       <div className="print-only" style={{ marginBottom: '24px', borderBottom: '2px solid #0f172a', paddingBottom: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#166534', letterSpacing: '-0.02em' }}>
-              {isCombined ? 'Grow Naturals & Nikhlesh Nursery — Combined Business Report' : `${business?.name || activeBusiness.name} — Business Report`}
+              {isCombined ? 'Grow Naturals & Nikhlesh Nursery — Consolidated P&L & Business Report' : `${business?.name || activeBusiness.name} — Business & P&L Report`}
             </h1>
             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#475569' }}>
-              {isCombined ? 'Consolidated executive financial performance and tax liabilities across both retail units' : (business?.legal_name || activeBusiness.legal_name)}
+              {isCombined ? 'Consolidated executive financial performance, net profit analysis, and tax liabilities' : (business?.legal_name || activeBusiness.legal_name)}
             </p>
           </div>
           <div style={{ textAlign: 'right', fontSize: '11px', color: '#475569', lineHeight: 1.5 }}>
@@ -248,75 +296,56 @@ export const Reports: React.FC = () => {
             {isCombined ? (
               <span
                 style={{
-                  fontSize: '0.75rem',
+                  backgroundColor: '#059669',
+                  color: '#ffffff',
+                  fontSize: '0.72rem',
                   fontWeight: 800,
-                  padding: '4px 12px',
+                  padding: '2px 8px',
                   borderRadius: '999px',
-                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%)',
-                  color: '#065f46',
-                  border: '1px solid rgba(16, 185, 129, 0.35)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
                 }}
               >
-                <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                Combined: Grow Naturals + Nikhlesh Nursery
+                Combined (Both Shops)
               </span>
             ) : (
               <span
                 style={{
-                  fontSize: '0.75rem',
+                  backgroundColor: 'var(--color-botanical-subtle)',
+                  color: 'var(--color-botanical-700)',
+                  border: '1px solid var(--color-botanical-300)',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
-                  padding: '3px 10px',
-                  borderRadius: '999px',
-                  backgroundColor: isGrowNaturals ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                  color: isGrowNaturals ? '#059669' : '#d97706',
-                  border: `1px solid ${isGrowNaturals ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`
+                  padding: '2px 8px',
+                  borderRadius: '999px'
                 }}
               >
-                {business?.name || activeBusiness.name}
+                {activeBusiness.name}
               </span>
             )}
           </div>
-          <p className="page-subtitle" style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-            {isCombined ? (
-              <>
-                Real-time combined financial performance, tax liabilities, top sellers, and revenue velocity aggregated for <strong>Grow Naturals</strong> &amp; <strong>Nikhlesh Nursery</strong>.
-              </>
-            ) : (
-              <>
-                Real-time financial performance, tax liabilities, top sellers, and revenue velocity for <strong>{business?.name || activeBusiness.name}</strong>.
-              </>
-            )}
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+            Real-time financial performance, automated Net Profit calculation, tax liabilities, and revenue velocity for <strong>{isCombined ? 'Grow Naturals & Nikhlesh Nursery' : activeBusiness.name}</strong>.
           </p>
         </div>
 
-        {/* Action Controls: Combined Reports Button + Time Selector + Export + Print */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          
-          {/* Combined Reports Toggle Button */}
+        {/* Global Controls: Combined Toggle, Date Range, Copy, Print */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Combined Shops Toggle */}
           <button
-            type="button"
             onClick={() => setIsCombined(!isCombined)}
-            className={`btn ${isCombined ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm ${isCombined ? 'btn-primary' : 'btn-secondary'}`}
             style={{
               fontSize: '0.78rem',
-              padding: '6px 14px',
-              gap: '6px',
-              fontWeight: 700,
-              backgroundColor: isCombined ? '#065f46' : 'var(--color-bg-surface-subtle)',
-              color: isCombined ? '#ffffff' : 'var(--color-text-primary)',
-              borderColor: isCombined ? '#047857' : 'var(--color-border)',
-              boxShadow: isCombined ? '0 2px 8px rgba(5, 150, 105, 0.25)' : 'none',
+              padding: '6px 12px',
               display: 'inline-flex',
               alignItems: 'center',
-              borderRadius: 'var(--radius-md)',
-              transition: 'all 0.18s ease'
+              gap: '6px',
+              fontWeight: 700
             }}
-            title={isCombined ? 'Click to view individual shop report' : 'Click to combine reports for both Grow Naturals & Nikhlesh Nursery'}
+            title="Toggle between single shop view and combined performance of both retail businesses"
           >
-            <Layers size={14} style={{ color: isCombined ? '#6ee7b7' : 'var(--color-botanical-600)' }} />
+            <Layers size={14} />
             <span>Combined Reports</span>
             {isCombined && (
               <span
@@ -379,7 +408,7 @@ export const Reports: React.FC = () => {
             onClick={handleCopySummary}
             className="btn btn-secondary btn-sm"
             style={{ fontSize: '0.78rem', padding: '6px 12px', gap: '5px' }}
-            title="Copy high-level summary to clipboard"
+            title="Copy high-level P&L summary to clipboard"
           >
             {copied ? <Check size={14} style={{ color: '#059669' }} /> : <Copy size={14} />}
             {copied ? 'Copied!' : 'Copy Summary'}
@@ -409,6 +438,7 @@ export const Reports: React.FC = () => {
       >
         {[
           { id: 'overview', label: 'Executive Overview', icon: BarChart3 },
+          { id: 'profit', label: 'Net Profit & P&L Analysis', icon: Calculator },
           { id: 'sales', label: 'Daily Sales Velocity', icon: TrendingUp },
           { id: 'payments', label: 'Payment Modes & Cash Flow', icon: CreditCard },
           { id: 'products', label: 'Top Selling Products', icon: Award },
@@ -474,47 +504,228 @@ export const Reports: React.FC = () => {
             <Sparkles size={28} style={{ color: 'var(--color-botanical-600)' }} />
           </div>
           <p style={{ fontWeight: 600, color: 'var(--color-text-secondary)', margin: 0 }}>
-            Analyzing business metrics & aggregating financial data...
+            Analyzing business metrics & calculating net profit...
           </p>
         </div>
       ) : data ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           
-          {/* 3. Top Key Metric KPI Cards (Always Shown for Executive Visibility) */}
+          {/* 3. HERO EXECUTIVE NET PROFIT & P&L COMMAND BANNER (Full-width, high visual hierarchy) */}
+          <div
+            style={{
+              backgroundColor: 'var(--color-bg-surface)',
+              borderRadius: 'var(--radius-xl)',
+              border: `1.5px solid ${isNetProfitable ? '#86efac' : '#fca5a5'}`,
+              boxShadow: `0 4px 18px ${isNetProfitable ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)'}`,
+              padding: '18px 22px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                backgroundColor: isNetProfitable ? '#10b981' : '#ef4444'
+              }}
+            />
+
+            {/* Top Bar inside Banner */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: isNetProfitable ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: isNetProfitable ? '#059669' : '#dc2626',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Calculator size={17} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                    {isCombined ? 'Consolidated Net Profit & Loss Overview (Both Shops)' : `${activeBusiness.name} — Net Profit & Loss Summary`}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                    Total Sales Revenue - Total Expenses - Total Damage = Net Profit
+                  </div>
+                </div>
+              </div>
+
+              <span
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: isNetProfitable ? '#dcfce7' : '#ffe4e6',
+                  color: isNetProfitable ? '#15803d' : '#be123c',
+                  border: `1px solid ${isNetProfitable ? '#bbf7d0' : '#fecdd3'}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                {isNetProfitable ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                {isNetProfitable ? `Net Profit Margin: ${profitMarginPercent}%` : `Operational Deficit (${profitMarginPercent}%)`}
+              </span>
+            </div>
+
+            {/* 4 Connected Metric Columns */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                gap: '12px'
+              }}
+            >
+              {/* Pillar 1: Sales Revenue */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#047857', textTransform: 'uppercase' }}>
+                    1. Sales Revenue (+)
+                  </span>
+                  <Plus size={13} color="#059669" />
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#047857', fontFamily: 'var(--font-family-display)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(periodSales)}>
+                  {formatCurrency(periodSales)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--color-text-dim)', marginTop: '2px' }}>
+                  {data.metrics.period_bills} {data.metrics.period_bills === 1 ? 'bill' : 'bills'} issued
+                </div>
+              </div>
+
+              {/* Pillar 2: Operating Expenses */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#b91c1c', textTransform: 'uppercase' }}>
+                    2. Operating Expenses (-)
+                  </span>
+                  <Minus size={13} color="#dc2626" />
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#dc2626', fontFamily: 'var(--font-family-display)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(periodExpenses)}>
+                  -{formatCurrency(periodExpenses)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--color-text-dim)', marginTop: '2px' }}>
+                  Day-to-day nursery expenses
+                </div>
+              </div>
+
+              {/* Pillar 3: Damage & Loss */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#c2410c', textTransform: 'uppercase' }}>
+                    3. Damage & Loss (-)
+                  </span>
+                  <Minus size={13} color="#ea580c" />
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c2410c', fontFamily: 'var(--font-family-display)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(periodDamage)}>
+                  -{formatCurrency(periodDamage)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--color-text-dim)', marginTop: '2px' }}>
+                  Wilting, breakage & decay
+                </div>
+              </div>
+
+              {/* Pillar 4: Final Net Profit */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  backgroundColor: isNetProfitable ? '#ecfdf5' : '#fff1f2',
+                  border: `1.5px solid ${isNetProfitable ? '#10b981' : '#f43f5e'}`,
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isNetProfitable ? '#065f46' : '#9f1239', textTransform: 'uppercase' }}>
+                    = Net Profit
+                  </span>
+                  <Scale size={13} color={isNetProfitable ? '#059669' : '#e11d48'} />
+                </div>
+                <div
+                  style={{
+                    fontSize: '1.35rem',
+                    fontWeight: 900,
+                    color: isNetProfitable ? '#047857' : '#be123c',
+                    fontFamily: 'var(--font-family-display)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                  title={formatCurrency(periodNetProfit)}
+                >
+                  {formatCurrency(periodNetProfit)}
+                </div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: isNetProfitable ? '#047857' : '#be123c', marginTop: '2px' }}>
+                  {isNetProfitable ? `✓ Profitable (${profitMarginPercent}%)` : `⚠️ Deficit for period`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. BALANCED 4-COLUMN OPERATIONAL METRIC CARDS */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '16px'
             }}
           >
-            {/* KPI 1: Sales Revenue */}
+            {/* Card 1: Sales Revenue */}
             <div
               style={{
                 backgroundColor: 'var(--color-bg-surface)',
                 borderRadius: 'var(--radius-xl)',
                 padding: '18px 20px',
                 border: '1px solid rgba(16, 185, 129, 0.3)',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.05)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'transform 0.15s ease'
+                justifyContent: 'space-between'
               }}
             >
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', backgroundColor: '#10b981' }} />
               
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
-                  {isCombined ? 'Total Sales Revenue (Combined)' : 'Total Sales Revenue'}
+                  Total Sales Revenue
                 </span>
                 <div
                   style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
                     backgroundColor: 'rgba(16, 185, 129, 0.12)',
                     color: '#10b981',
                     display: 'flex',
@@ -522,13 +733,13 @@ export const Reports: React.FC = () => {
                     justifyContent: 'center'
                   }}
                 >
-                  <TrendingUp size={18} />
+                  <TrendingUp size={17} />
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#059669', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>
-                  {formatCurrency(data.metrics.period_sales)}
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#059669', lineHeight: 1.2, fontFamily: 'var(--font-family-display)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(periodSales)}>
+                  {formatCurrency(periodSales)}
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
@@ -542,30 +753,25 @@ export const Reports: React.FC = () => {
                       color: '#059669'
                     }}
                   >
-                    {data.metrics.period_bills} {data.metrics.period_bills === 1 ? 'bill' : 'bills'} issued {isCombined ? '(Both Shops)' : ''}
+                    {data.metrics.period_bills} {data.metrics.period_bills === 1 ? 'bill issued' : 'bills issued'}
                   </span>
                   {data.metrics.period_bills > 0 && !isCombined && (
                     <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>
-                      Avg {formatCurrency(Number(data.metrics.period_sales) / (data.metrics.period_bills || 1))}/bill
-                    </span>
-                  )}
-                  {isCombined && data.business_breakdown && data.business_breakdown.length > 0 && (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>
-                      GN: {formatCurrency(data.business_breakdown.find(b => b.business_id === 'grow-naturals')?.total_sales || 0)} • NN: {formatCurrency(data.business_breakdown.find(b => b.business_id === 'nikhlesh-nursery')?.total_sales || 0)}
+                      Avg {formatCurrency(Number(periodSales) / (data.metrics.period_bills || 1))}/bill
                     </span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* KPI 2: Tax Liability / GST */}
+            {/* Card 2: Tax Liability / GST */}
             <div
               style={{
                 backgroundColor: 'var(--color-bg-surface)',
                 borderRadius: 'var(--radius-xl)',
                 padding: '18px 20px',
                 border: '1px solid rgba(139, 92, 246, 0.3)',
-                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.05)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
@@ -577,13 +783,13 @@ export const Reports: React.FC = () => {
               
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
-                  {isCombined ? 'GST Tax Collected (Combined)' : isGrowNaturals ? 'GST Tax Collected' : 'Total Bills Issued'}
+                  {isCombined ? 'GST Tax Collected' : isGrowNaturals ? 'GST Tax Collected' : 'Bills Issued'}
                 </span>
                 <div
                   style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
                     backgroundColor: 'rgba(139, 92, 246, 0.12)',
                     color: '#8b5cf6',
                     display: 'flex',
@@ -591,12 +797,12 @@ export const Reports: React.FC = () => {
                     justifyContent: 'center'
                   }}
                 >
-                  <Receipt size={18} />
+                  <Receipt size={17} />
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#7c3aed', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#7c3aed', lineHeight: 1.2, fontFamily: 'var(--font-family-display)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(data.metrics.period_tax)}>
                   {isGrowNaturals || isCombined ? formatCurrency(data.metrics.period_tax) : `${data.metrics.period_bills} Bills`}
                 </div>
 
@@ -613,11 +819,9 @@ export const Reports: React.FC = () => {
                     }}
                   >
                     {isCombined ? (
-                      <>
-                        CGST 9% ({formatCurrency(data.metrics.period_cgst || Number(data.metrics.period_tax) / 2)}) + SGST 9% ({formatCurrency(data.metrics.period_sgst || Number(data.metrics.period_tax) / 2)})
-                      </>
+                      <>CGST ({formatCurrency(data.metrics.period_cgst || Number(data.metrics.period_tax) / 2)}) + SGST ({formatCurrency(data.metrics.period_sgst || Number(data.metrics.period_tax) / 2)})</>
                     ) : isGrowNaturals ? (
-                      <>CGST 9% ({formatCurrency(Number(data.metrics.period_tax) / 2)}) + SGST 9% ({formatCurrency(Number(data.metrics.period_tax) / 2)})</>
+                      <>CGST ({formatCurrency(Number(data.metrics.period_tax) / 2)}) + SGST ({formatCurrency(Number(data.metrics.period_tax) / 2)})</>
                     ) : (
                       'Nursery Completed Bills'
                     )}
@@ -626,14 +830,14 @@ export const Reports: React.FC = () => {
               </div>
             </div>
 
-            {/* KPI 3: Supplier Payables */}
+            {/* Card 3: Supplier Payables */}
             <div
               style={{
                 backgroundColor: 'var(--color-bg-surface)',
                 borderRadius: 'var(--radius-xl)',
                 padding: '18px 20px',
                 border: `1px solid ${Number(data.metrics.supplier_dues) > 0 ? 'rgba(239, 68, 68, 0.35)' : 'rgba(16, 185, 129, 0.25)'}`,
-                boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
@@ -654,13 +858,13 @@ export const Reports: React.FC = () => {
               
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
-                  {isCombined ? 'Supplier Payables (Both Shops)' : 'Supplier Payables'}
+                  Supplier Payables
                 </span>
                 <div
                   style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
                     backgroundColor: Number(data.metrics.supplier_dues) > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
                     color: Number(data.metrics.supplier_dues) > 0 ? '#ef4444' : '#10b981',
                     display: 'flex',
@@ -668,19 +872,23 @@ export const Reports: React.FC = () => {
                     justifyContent: 'center'
                   }}
                 >
-                  <AlertTriangle size={18} />
+                  <AlertTriangle size={17} />
                 </div>
               </div>
 
               <div>
                 <div
                   style={{
-                    fontSize: '1.65rem',
+                    fontSize: '1.45rem',
                     fontWeight: 800,
                     color: Number(data.metrics.supplier_dues) > 0 ? '#dc2626' : '#059669',
                     lineHeight: 1.2,
-                    fontFamily: 'var(--font-family-display)'
+                    fontFamily: 'var(--font-family-display)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}
+                  title={formatCurrency(data.metrics.supplier_dues)}
                 >
                   {formatCurrency(data.metrics.supplier_dues)}
                 </div>
@@ -700,10 +908,10 @@ export const Reports: React.FC = () => {
                     }}
                   >
                     {Number(data.metrics.supplier_dues) > 0 ? (
-                      isCombined ? 'Pending payables across both shops' : 'Pending payables to suppliers'
+                      'Pending supplier bills'
                     ) : (
                       <>
-                        <CheckCircle2 size={12} /> {isCombined ? 'All supplier bills cleared across both shops' : 'All supplier bills cleared'}
+                        <CheckCircle2 size={12} /> All supplier bills cleared
                       </>
                     )}
                   </span>
@@ -711,14 +919,14 @@ export const Reports: React.FC = () => {
               </div>
             </div>
 
-            {/* KPI 4: Active Site Projects */}
+            {/* Card 4: Active Site Projects */}
             <div
               style={{
                 backgroundColor: 'var(--color-bg-surface)',
                 borderRadius: 'var(--radius-xl)',
                 padding: '18px 20px',
                 border: '1px solid rgba(2, 132, 199, 0.3)',
-                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.05)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
@@ -730,13 +938,13 @@ export const Reports: React.FC = () => {
               
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
-                  {isCombined ? 'Active Site Projects (Both Shops)' : 'Active Site Projects'}
+                  Active Site Projects
                 </span>
                 <div
                   style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
                     backgroundColor: 'rgba(2, 132, 199, 0.12)',
                     color: '#0284c7',
                     display: 'flex',
@@ -744,12 +952,12 @@ export const Reports: React.FC = () => {
                     justifyContent: 'center'
                   }}
                 >
-                  <Briefcase size={18} />
+                  <Briefcase size={17} />
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0284c7', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0284c7', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>
                   {data.metrics.active_projects}
                 </div>
 
@@ -765,14 +973,222 @@ export const Reports: React.FC = () => {
                       display: 'inline-block'
                     }}
                   >
-                    {isCombined ? 'In-progress client installations across both businesses' : 'In-progress client installations'}
+                    In-progress client installations
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 4. Sales Velocity & Payment Breakdown Grid */}
+          {/* 5. DEDICATED PROFIT & LOSS BREAKDOWN TABLE (When in Profit tab or Overview tab) */}
+          {(activeTab === 'profit' || (activeTab === 'overview' && isCombined)) && data.business_breakdown && data.business_breakdown.length > 0 && (
+            <div
+              style={{
+                backgroundColor: 'var(--color-bg-surface)',
+                borderRadius: 'var(--radius-xl)',
+                border: '1px solid var(--color-border)',
+                boxShadow: 'var(--shadow-sm)',
+                overflow: 'hidden'
+              }}
+            >
+              <div
+                style={{
+                  padding: '16px 20px',
+                  borderBottom: '1px solid var(--color-border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: 'var(--color-bg-surface-subtle)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calculator size={16} color="#059669" />
+                  <h3 style={{ fontSize: '0.92rem', fontWeight: 800, margin: 0, color: 'var(--color-text-primary)' }}>
+                    Individual Retail Entity Profitability & P&L Analysis
+                  </h3>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  Consolidated dual-business performance
+                </span>
+              </div>
+
+              <div style={{ overflowX: 'auto', padding: 0 }}>
+                <table className="table" style={{ margin: 0, fontSize: '0.8125rem' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'transparent' }}>
+                      <th style={{ padding: '12px 18px' }}>Business Retail Entity</th>
+                      <th style={{ textAlign: 'right', padding: '12px 16px' }}>Sales Revenue (+)</th>
+                      <th style={{ textAlign: 'right', padding: '12px 16px' }}>Expenses (-)</th>
+                      <th style={{ textAlign: 'right', padding: '12px 16px' }}>Damage & Loss (-)</th>
+                      <th style={{ textAlign: 'right', padding: '12px 18px' }}>Net Profit (=)</th>
+                      <th style={{ textAlign: 'center', padding: '12px 16px' }}>Net Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.business_breakdown.map((biz) => {
+                      const bSales = Number(biz.total_sales) || 0;
+                      const bExp = Number(biz.total_expenses) || 0;
+                      const bDmg = Number(biz.total_damage) || 0;
+                      const bNet = Number(biz.net_profit ?? (bSales - bExp - bDmg));
+                      const bMargin = bSales > 0 ? ((bNet / bSales) * 100).toFixed(1) : '0.0';
+                      const bProfitable = bNet >= 0;
+
+                      return (
+                        <tr key={biz.business_id}>
+                          <td style={{ padding: '12px 18px', fontWeight: 700 }}>
+                            <span
+                              style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                backgroundColor: biz.business_id === 'grow-naturals' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                color: biz.business_id === 'grow-naturals' ? '#059669' : '#d97706',
+                                border: `1px solid ${biz.business_id === 'grow-naturals' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`
+                              }}
+                            >
+                              {biz.business_id === 'grow-naturals' ? 'Grow Naturals (GST Unit)' : 'Nikhlesh Nursery (Retail Unit)'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', padding: '12px 16px' }}>
+                            {formatCurrency(bSales)}
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#dc2626', padding: '12px 16px' }}>
+                            -{formatCurrency(bExp)}
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#ea580c', padding: '12px 16px' }}>
+                            -{formatCurrency(bDmg)}
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 900, color: bProfitable ? '#047857' : '#be123c', padding: '12px 18px' }}>
+                            {formatCurrency(bNet)}
+                          </td>
+                          <td style={{ textAlign: 'center', padding: '12px 16px' }}>
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                backgroundColor: bProfitable ? '#dcfce7' : '#ffe4e6',
+                                color: bProfitable ? '#15803d' : '#be123c'
+                              }}
+                            >
+                              {bMargin}%
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-breakdown: Expense Categories & Damage Causes (Shown on Profit tab or Full Report) */}
+          {(activeTab === 'profit' || activeTab === 'all') && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '16px'
+              }}
+            >
+              {/* Expense Categories Breakdown */}
+              <div
+                style={{
+                  backgroundColor: 'var(--color-bg-surface)',
+                  padding: '16px',
+                  borderRadius: 'var(--radius-xl)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Receipt size={15} color="#dc2626" />
+                    <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Operating Expense Categories
+                    </h4>
+                  </div>
+                  <Link to="/expenses" style={{ fontSize: '0.72rem', color: 'var(--color-botanical-700)', fontWeight: 600, textDecoration: 'none' }}>
+                    Manage Expenses →
+                  </Link>
+                </div>
+
+                {(data.top_expenses && data.top_expenses.length > 0) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {data.top_expenses.map((exp, i) => {
+                      const expPct = periodExpenses > 0 ? Math.round((Number(exp.total_amount) / periodExpenses) * 100) : 0;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{exp.category_name}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>({exp.count} vouchers)</span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <strong style={{ color: '#dc2626' }}>{formatCurrency(exp.total_amount)}</strong>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginLeft: '4px' }}>({expPct}%)</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', padding: '16px 0', textAlign: 'center' }}>
+                    No expenses logged for this time period.
+                  </div>
+                )}
+              </div>
+
+              {/* Damage Causes Breakdown */}
+              <div
+                style={{
+                  backgroundColor: 'var(--color-bg-surface)',
+                  padding: '16px',
+                  borderRadius: 'var(--radius-xl)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangle size={15} color="#ea580c" />
+                    <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Inventory Damage & Loss Causes
+                    </h4>
+                  </div>
+                  <Link to="/inventory-loss" style={{ fontSize: '0.72rem', color: 'var(--color-botanical-700)', fontWeight: 600, textDecoration: 'none' }}>
+                    Loss Tracking →
+                  </Link>
+                </div>
+
+                {(data.top_damages && data.top_damages.length > 0) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {data.top_damages.map((dmg, i) => {
+                      const dmgPct = periodDamage > 0 ? Math.round((Number(dmg.total_amount) / periodDamage) * 100) : 0;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{formatReasonLabel(dmg.reason)}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>({dmg.units_lost} units)</span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <strong style={{ color: '#ea580c' }}>{formatCurrency(dmg.total_amount)}</strong>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginLeft: '4px' }}>({dmgPct}%)</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', padding: '16px 0', textAlign: 'center' }}>
+                    No inventory damage / loss logged for this time period.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 6. Sales Velocity & Payment Breakdown Grid */}
           {(activeTab === 'overview' || activeTab === 'sales' || activeTab === 'all') && (
             <div
               style={{
@@ -1045,7 +1461,7 @@ export const Reports: React.FC = () => {
             </div>
           )}
 
-          {/* 5. Payment Modes Dedicated View (When Payments Tab Active) */}
+          {/* 7. Payment Modes Dedicated View (When Payments Tab Active) */}
           {activeTab === 'payments' && (
             <div
               style={{
@@ -1162,7 +1578,7 @@ export const Reports: React.FC = () => {
             </div>
           )}
 
-          {/* 6. Top Selling Products & Inventory Health Grid */}
+          {/* 8. Top Selling Products & Inventory Health Grid */}
           {(activeTab === 'overview' || activeTab === 'products' || activeTab === 'inventory' || activeTab === 'all') && (
             <div
               style={{
@@ -1460,7 +1876,7 @@ export const Reports: React.FC = () => {
             </div>
           )}
 
-          {/* 7. Recent Invoices Quick Ledger (Shown on Overview & Full Report) */}
+          {/* 9. Recent Invoices Quick Ledger (Shown on Overview & Full Report) */}
           {(activeTab === 'overview' || activeTab === 'all') && (
             <div
               style={{

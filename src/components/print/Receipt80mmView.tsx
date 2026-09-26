@@ -182,7 +182,11 @@ export const Receipt80mmView: React.FC<Receipt80mmViewProps> = ({ invoice }) => 
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
             <span>Payment:</span>
-            <span style={{ textTransform: 'uppercase' }}>{invoice.payment_method}</span>
+            <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>
+              {invoice.payment_method === 'split'
+                ? `SPLIT (Cash: Rs. ${Number(invoice.split_cash_amount || 0).toFixed(2)} | UPI: Rs. ${Number(invoice.split_upi_amount || 0).toFixed(2)})`
+                : invoice.payment_method}
+            </span>
           </div>
         </div>
 

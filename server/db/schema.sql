@@ -198,6 +198,8 @@ CREATE TABLE IF NOT EXISTS invoices (
   sgst_amount NUMERIC(12,2) NOT NULL DEFAULT 0.00,
   total_amount NUMERIC(12,2) NOT NULL DEFAULT 0.00,
   payment_method VARCHAR(32) NOT NULL DEFAULT 'cash', -- 'cash', 'card', 'upi', 'credit', 'split'
+  split_cash_amount NUMERIC(12,2) DEFAULT 0.00,
+  split_upi_amount NUMERIC(12,2) DEFAULT 0.00,
   payment_status VARCHAR(32) NOT NULL DEFAULT 'paid',
   notes TEXT DEFAULT '',
   created_by VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,

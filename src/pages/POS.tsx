@@ -7,7 +7,7 @@ import { api } from '../services/api';
 import { posQueueService } from '../services/posQueue';
 import { barcodeService } from '../services/barcodeService';
 import { printService } from '../services/printService';
-import type { Product, POSCartItem, Customer, HeldBill, Invoice } from '../types';
+import type { Product, POSCartItem, Customer, HeldBill, Invoice, Project } from '../types';
 import { BarcodeScannerModal } from '../components/pos/BarcodeScannerModal';
 import { PosHoldBills } from '../components/pos/PosHoldBills';
 import { A4InvoiceView } from '../components/print/A4InvoiceView';
@@ -40,7 +40,12 @@ import {
   UserCheck,
   FlaskConical,
   Flower2,
-  Trees
+  Trees,
+  FolderKanban,
+  Building,
+  ChevronDown,
+  Check,
+  ArrowLeftRight
 } from 'lucide-react';
 import { CactusIcon, PlanterIcon, getCategoryIcon, renderModuleIcon } from '../components/common/CategoryIcons';
 
@@ -61,6 +66,31 @@ export const POS: React.FC = () => {
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState<boolean>(false);
 
+  // Client Projects State & Tabs
+  const [customerTab, setCustomerTab] = useState<'customer' | 'project'>('customer');
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectSearchQuery, setProjectSearchQuery] = useState<string>('');
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState<boolean>(false);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close project dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        projectDropdownRef.current &&
+        !projectDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsProjectDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   // Cart State
   const [cart, setCart] = useState<POSCartItem[]>([]);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
@@ -69,7 +99,9 @@ export const POS: React.FC = () => {
     name: 'Walk-in Customer',
     phone: '',
   });
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'credit'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'credit' | 'split'>('cash');
+  const [splitCash, setSplitCash] = useState<string>('');
+  const [splitUpi, setSplitUpi] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
   // Modals & Drawers
@@ -81,6 +113,14 @@ export const POS: React.FC = () => {
   const [isProcessingCheckout, setIsProcessingCheckout] = useState<boolean>(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Filter projects by search query
+  const filteredProjects = allProjects.filter(
+    (p) =>
+      p.name.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
+      p.client_name.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
+      (p.company && p.company.toLowerCase().includes(projectSearchQuery.toLowerCase()))
+  );
 
   // Load products (online-first, fallback to IndexedDB cache when offline)
   const loadProducts = useCallback(async () => {
@@ -121,9 +161,15 @@ export const POS: React.FC = () => {
     loadProducts();
     loadHeldBills();
     api.get('/customers').then((data) => setAllCustomers(data || [])).catch(() => {});
+    api.get('/projects', { business_id: businessId }).then((data) => setAllProjects(data || [])).catch(() => {});
     setCart([]);
     setDiscountAmount(0);
     setCompletedInvoice(null);
+    setCustomerTab('customer');
+    setSelectedProjectId('');
+    setSelectedProject(null);
+    setProjectSearchQuery('');
+    setIsProjectDropdownOpen(false);
   }, [businessId, loadProducts, loadHeldBills]);
 
   // Filter products by category and search
@@ -371,16 +417,61 @@ export const POS: React.FC = () => {
   const sgstAmount = isTaxable ? Number((taxAmount / 2).toFixed(2)) : 0;
   const grandTotal = Math.max(0, Number((subtotal - totalDiscount + taxAmount).toFixed(2)));
 
+  // Split payment helper calculations and actions
+  const splitCashNum = Number(splitCash) || 0;
+  const splitUpiNum = Number(splitUpi) || 0;
+  const splitTotalAllocated = Number((splitCashNum + splitUpiNum).toFixed(2));
+  const splitDiff = Number((grandTotal - splitTotalAllocated).toFixed(2));
+  const isSplitBalanced = grandTotal > 0 && Math.abs(splitDiff) < 0.01;
+  const isSplitShort = grandTotal > 0 && splitDiff > 0.01;
+  const isSplitExceeded = grandTotal > 0 && splitDiff < -0.01;
+
+  const handleSelectSplit = () => {
+    setPaymentMethod('split');
+    if (grandTotal > 0) {
+      const half = Math.floor((grandTotal / 2) * 100) / 100;
+      const remainder = Number((grandTotal - half).toFixed(2));
+      setSplitCash(half > 0 ? half.toString() : '');
+      setSplitUpi(remainder > 0 ? remainder.toString() : '');
+    }
+  };
+
+  const handleSetSplit5050 = () => {
+    const half = Math.floor((grandTotal / 2) * 100) / 100;
+    const remainder = Number((grandTotal - half).toFixed(2));
+    setSplitCash(half > 0 ? half.toString() : '0');
+    setSplitUpi(remainder > 0 ? remainder.toString() : '0');
+  };
+
+  const handleBalanceToUpi = () => {
+    const c = Number(splitCash) || 0;
+    const rem = Math.max(0, Number((grandTotal - c).toFixed(2)));
+    setSplitUpi(rem.toString());
+  };
+
+  const handleBalanceToCash = () => {
+    const u = Number(splitUpi) || 0;
+    const rem = Math.max(0, Number((grandTotal - u).toFixed(2)));
+    setSplitCash(rem.toString());
+  };
+
   // Hold Bill
   const handleHoldBill = async () => {
     if (cart.length === 0) return;
+
+    const mappedCustomerName = customerTab === 'project' && selectedProject
+      ? (selectedProject.client_name ? `${selectedProject.client_name} (${selectedProject.name})` : selectedProject.name)
+      : selectedCustomer.name;
 
     const holdBill: HeldBill = {
       id: `hold-${Date.now()}`,
       hold_number: `HOLD-${100 + heldBills.length + 1}`,
       business_id: businessId,
-      customer_name: selectedCustomer.name,
+      customer_name: mappedCustomerName,
       customer_phone: selectedCustomer.phone,
+      project_id: customerTab === 'project' ? selectedProjectId : undefined,
+      project_name: customerTab === 'project' ? selectedProject?.name : undefined,
+      customer_tab: customerTab,
       items: cart,
       discount_amount: totalDiscount,
       saved_at: new Date().toISOString(),
@@ -400,21 +491,68 @@ export const POS: React.FC = () => {
       name: bill.customer_name,
       phone: bill.customer_phone,
     });
+    if (bill.project_id || bill.customer_tab === 'project') {
+      setCustomerTab('project');
+      const pId = bill.project_id || '';
+      setSelectedProjectId(pId);
+      const matched = allProjects.find((p) => p.id === pId);
+      if (matched) setSelectedProject(matched);
+    } else {
+      setCustomerTab('customer');
+      setSelectedProjectId('');
+      setSelectedProject(null);
+    }
     posQueueService.deleteHeldBill(bill.id).then(loadHeldBills);
   };
 
   // Complete Checkout (Online or Offline Queue)
-  const handleCheckout = async (methodOverride?: 'cash' | 'upi' | 'card' | 'credit') => {
+  const handleCheckout = async (methodOverride?: 'cash' | 'upi' | 'card' | 'credit' | 'split') => {
     if (cart.length === 0 || isProcessingCheckout) return;
 
+    if (customerTab === 'project' && !selectedProjectId) {
+      alert('Please select a client project from the dropdown before completing checkout.');
+      return;
+    }
+
     const method = methodOverride || paymentMethod;
+
+    let splitCashAmount: number | undefined = undefined;
+    let splitUpiAmount: number | undefined = undefined;
+
+    if (method === 'split') {
+      const cNum = Number(splitCash) || 0;
+      const uNum = Number(splitUpi) || 0;
+      const allocated = Number((cNum + uNum).toFixed(2));
+      if (Math.abs(allocated - grandTotal) > 0.05) {
+        alert(
+          `Split payment amounts must sum up to the Grand Total (₹${grandTotal.toFixed(2)}).\n` +
+          `Currently entered: Cash ₹${cNum.toFixed(2)} + UPI ₹${uNum.toFixed(2)} = ₹${allocated.toFixed(2)} ` +
+          `(${allocated < grandTotal ? `₹${(grandTotal - allocated).toFixed(2)} remaining` : `₹${(allocated - grandTotal).toFixed(2)} extra`})`
+        );
+        return;
+      }
+      splitCashAmount = cNum;
+      splitUpiAmount = uNum;
+    }
+
     setIsProcessingCheckout(true);
+
+    const mappedCustomerName = customerTab === 'project' && selectedProject
+      ? (selectedProject.client_name ? `${selectedProject.client_name} (${selectedProject.name})` : selectedProject.name)
+      : (selectedCustomer.name || 'Walk-in Customer');
+
+    const mappedPhone = customerTab === 'project' && selectedProject
+      ? (selectedCustomer.phone || selectedProject.supervisor_phone || '')
+      : (selectedCustomer.phone || '');
+
+    const effectiveProjectId = customerTab === 'project' ? (selectedProjectId || null) : null;
 
     const payload = {
       business_id: businessId,
-      customer_id: selectedCustomer.id,
-      customer_name: selectedCustomer.name || 'Walk-in Customer',
-      customer_phone: selectedCustomer.phone || '',
+      customer_id: customerTab === 'customer' ? selectedCustomer.id : undefined,
+      customer_name: mappedCustomerName,
+      customer_phone: mappedPhone,
+      project_id: effectiveProjectId,
       items: cart.map((i) => {
         const itemDisc = getItemDiscount(i);
         return {
@@ -431,7 +569,9 @@ export const POS: React.FC = () => {
       }),
       discount_amount: totalDiscount,
       payment_method: method,
-      notes: notes || '',
+      split_cash_amount: method === 'split' ? splitCashAmount : undefined,
+      split_upi_amount: method === 'split' ? splitUpiAmount : undefined,
+      notes: notes || (customerTab === 'project' && selectedProject ? `POS Bill mapped to Project: ${selectedProject.name}` : ''),
       created_by: user?.id,
     };
 
@@ -451,8 +591,10 @@ export const POS: React.FC = () => {
           id: `off-inv-${Date.now()}`,
           business_id: businessId,
           invoice_number: offlineInvNumber,
-          customer_name: selectedCustomer.name || 'Walk-in Customer',
-          customer_phone: selectedCustomer.phone || '',
+          customer_name: mappedCustomerName,
+          customer_phone: mappedPhone,
+          project_id: effectiveProjectId,
+          project_name: selectedProject?.name,
           subtotal,
           discount_amount: totalDiscount,
           tax_amount: taxAmount,
@@ -460,7 +602,9 @@ export const POS: React.FC = () => {
           sgst_amount: sgstAmount,
           total_amount: grandTotal,
           payment_method: method,
-          notes: 'Offline Queued Bill',
+          split_cash_amount: method === 'split' ? splitCashAmount : undefined,
+          split_upi_amount: method === 'split' ? splitUpiAmount : undefined,
+          notes: notes || (customerTab === 'project' && selectedProject ? `POS Bill mapped to Project: ${selectedProject.name}` : 'Offline Queued Bill'),
           created_by: user?.id,
           created_at: new Date().toISOString(),
           items: cart.map((i) => {
@@ -483,6 +627,8 @@ export const POS: React.FC = () => {
       setCart([]);
       setDiscountAmount(0);
       setNotes('');
+      setSplitCash('');
+      setSplitUpi('');
       loadProducts();
     } catch (err: any) {
       alert(`Checkout failed: ${err.message}`);
@@ -504,6 +650,9 @@ export const POS: React.FC = () => {
       } else if (e.key === 'F4') {
         e.preventDefault();
         setPaymentMethod('card');
+      } else if (e.key === 'F5') {
+        e.preventDefault();
+        handleSelectSplit();
       } else if (e.key === 'F8') {
         e.preventDefault();
         if (cart.length > 0) handleHoldBill();
@@ -518,7 +667,7 @@ export const POS: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, paymentMethod, searchQuery]);
+  }, [cart, paymentMethod, searchQuery, grandTotal, splitCash, splitUpi]);
 
   return (
     <div>
@@ -851,89 +1000,296 @@ export const POS: React.FC = () => {
             </div>
           </div>
 
-          {/* Customer Input Card */}
+          {/* Customer / Project Mapping Mode Switcher */}
           <div className="pos-customer-card">
-            <div className="pos-customer-card-header">
-              <div className="pos-customer-label">
-                <UserCheck size={14} color="#16a34a" />
+            {/* Two Tabs: Billed Customer & Project */}
+            <div className="pos-mapping-tabs">
+              <button
+                type="button"
+                className={`pos-mapping-tab ${customerTab === 'customer' ? 'active' : ''}`}
+                onClick={() => {
+                  setCustomerTab('customer');
+                  setSelectedProjectId('');
+                  setSelectedProject(null);
+                }}
+              >
+                <UserCheck size={14} />
                 <span>Billed Customer</span>
-              </div>
-              {selectedCustomer.name !== 'Walk-in Customer' && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setSelectedCustomer({ name: 'Walk-in Customer', phone: '' })}
-                  style={{ fontSize: '0.72rem', padding: '2px 6px', height: '22px', color: '#64748b' }}
-                >
-                  Reset to Walk-in
-                </button>
-              )}
+              </button>
+              <button
+                type="button"
+                className={`pos-mapping-tab ${customerTab === 'project' ? 'active proj' : ''}`}
+                onClick={() => {
+                  setCustomerTab('project');
+                  setShowCustomerDropdown(false);
+                }}
+              >
+                <FolderKanban size={14} />
+                <span>Project</span>
+                {allProjects.length > 0 && (
+                  <span className="pos-tab-badge">{allProjects.length}</span>
+                )}
+              </button>
             </div>
 
-            <div className="pos-customer-fields">
-              <div className="pos-customer-input-wrap">
-                <User size={14} className="field-icon" />
-                <input
-                  type="text"
-                  className="pos-customer-input"
-                  value={selectedCustomer.name}
-                  onChange={(e) => {
-                    setSelectedCustomer({ ...selectedCustomer, name: e.target.value, id: undefined });
-                    setShowCustomerDropdown(true);
-                  }}
-                  onFocus={() => setShowCustomerDropdown(true)}
-                  placeholder="Customer Name"
-                />
-              </div>
-
-              <div className="pos-customer-input-wrap">
-                <Phone size={14} className="field-icon" />
-                <input
-                  type="tel"
-                  className="pos-customer-input"
-                  value={selectedCustomer.phone}
-                  onChange={(e) => {
-                    setSelectedCustomer({ ...selectedCustomer, phone: e.target.value });
-                    setShowCustomerDropdown(true);
-                  }}
-                  onFocus={() => setShowCustomerDropdown(true)}
-                  placeholder="Mobile No"
-                />
-              </div>
-            </div>
-
-            {/* Customer Search Auto-Suggest Dropdown */}
-            {showCustomerDropdown && (selectedCustomer.name.length > 1 || selectedCustomer.phone.length > 1) && (
-              <div className="pos-customer-suggestions">
-                <div style={{ padding: '6px 12px', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Matching Directory Clients</span>
-                  <span style={{ cursor: 'pointer' }} onClick={() => setShowCustomerDropdown(false)}>✕ Close</span>
-                </div>
-                {allCustomers
-                  .filter(
-                    (c) =>
-                      c.name.toLowerCase().includes(selectedCustomer.name.toLowerCase()) ||
-                      (c.phone && c.phone.includes(selectedCustomer.phone))
-                  )
-                  .slice(0, 5)
-                  .map((c) => (
-                    <div
-                      key={c.id}
-                      className="pos-customer-suggestion-item"
-                      onClick={() => {
-                        setSelectedCustomer({ id: c.id, name: c.name, phone: c.phone || '' });
-                        setShowCustomerDropdown(false);
-                      }}
+            {customerTab === 'customer' ? (
+              /* --- EXISTING BILLED CUSTOMER WORKFLOW --- */
+              <>
+                <div className="pos-customer-card-header">
+                  <div className="pos-customer-label">
+                    <User size={13} color="#16a34a" />
+                    <span>Customer Details</span>
+                  </div>
+                  {selectedCustomer.name !== 'Walk-in Customer' && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setSelectedCustomer({ name: 'Walk-in Customer', phone: '' })}
+                      style={{ fontSize: '0.72rem', padding: '2px 6px', height: '22px', color: '#64748b' }}
                     >
-                      <div>
-                        <strong style={{ fontSize: '0.8125rem', color: '#0f172a' }}>{c.name}</strong>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{c.phone || 'No mobile listed'}</div>
-                      </div>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#16a34a', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
-                        Select
-                      </span>
+                      Reset to Walk-in
+                    </button>
+                  )}
+                </div>
+
+                <div className="pos-customer-fields">
+                  <div className="pos-customer-input-wrap">
+                    <User size={14} className="field-icon" />
+                    <input
+                      type="text"
+                      className="pos-customer-input"
+                      value={selectedCustomer.name}
+                      onChange={(e) => {
+                        setSelectedCustomer({ ...selectedCustomer, name: e.target.value, id: undefined });
+                        setShowCustomerDropdown(true);
+                      }}
+                      onFocus={() => setShowCustomerDropdown(true)}
+                      placeholder="Customer Name"
+                    />
+                  </div>
+
+                  <div className="pos-customer-input-wrap">
+                    <Phone size={14} className="field-icon" />
+                    <input
+                      type="tel"
+                      className="pos-customer-input"
+                      value={selectedCustomer.phone}
+                      onChange={(e) => {
+                        setSelectedCustomer({ ...selectedCustomer, phone: e.target.value });
+                        setShowCustomerDropdown(true);
+                      }}
+                      onFocus={() => setShowCustomerDropdown(true)}
+                      placeholder="Mobile No"
+                    />
+                  </div>
+                </div>
+
+                {/* Customer Search Auto-Suggest Dropdown */}
+                {showCustomerDropdown && (selectedCustomer.name.length > 1 || selectedCustomer.phone.length > 1) && (
+                  <div className="pos-customer-suggestions">
+                    <div style={{ padding: '6px 12px', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Matching Directory Clients</span>
+                      <span style={{ cursor: 'pointer' }} onClick={() => setShowCustomerDropdown(false)}>✕ Close</span>
                     </div>
-                  ))}
+                    {allCustomers
+                      .filter(
+                        (c) =>
+                          c.name.toLowerCase().includes(selectedCustomer.name.toLowerCase()) ||
+                          (c.phone && c.phone.includes(selectedCustomer.phone))
+                      )
+                      .slice(0, 5)
+                      .map((c) => (
+                        <div
+                          key={c.id}
+                          className="pos-customer-suggestion-item"
+                          onClick={() => {
+                            setSelectedCustomer({ id: c.id, name: c.name, phone: c.phone || '' });
+                            setShowCustomerDropdown(false);
+                          }}
+                        >
+                          <div>
+                            <strong style={{ fontSize: '0.8125rem', color: '#0f172a' }}>{c.name}</strong>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{c.phone || 'No mobile listed'}</div>
+                          </div>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#16a34a', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
+                            Select
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              /* --- PROJECT SELECTION WORKFLOW --- */
+              <div className="pos-project-select-container">
+                <div className="pos-customer-card-header">
+                  <div className="pos-customer-label">
+                    <FolderKanban size={13} color="#16a34a" />
+                    <span>Select Client Project</span>
+                  </div>
+                  {selectedProject && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        setSelectedProjectId('');
+                        setSelectedProject(null);
+                        setProjectSearchQuery('');
+                        setSelectedCustomer({ name: 'Walk-in Customer', phone: '' });
+                      }}
+                      style={{ fontSize: '0.72rem', padding: '2px 6px', height: '22px', color: '#64748b' }}
+                    >
+                      Clear Selection
+                    </button>
+                  )}
+                </div>
+
+                {/* Custom Searchable Project Select Dropdown */}
+                <div className="pos-project-select-wrap" ref={projectDropdownRef}>
+                  <div
+                    className={`pos-project-search-input-box ${isProjectDropdownOpen ? 'focused' : ''} ${selectedProject ? 'has-selection' : ''}`}
+                    onClick={() => setIsProjectDropdownOpen((prev) => !prev)}
+                  >
+                    <Building size={15} className="pos-proj-field-icon" />
+                    
+                    <input
+                      type="text"
+                      className="pos-project-search-input"
+                      value={
+                        isProjectDropdownOpen
+                          ? projectSearchQuery
+                          : selectedProject
+                          ? selectedProject.name
+                          : projectSearchQuery
+                      }
+                      onChange={(e) => {
+                        setProjectSearchQuery(e.target.value);
+                        if (!isProjectDropdownOpen) setIsProjectDropdownOpen(true);
+                      }}
+                      onFocus={() => {
+                        setIsProjectDropdownOpen(true);
+                        if (selectedProject) setProjectSearchQuery('');
+                      }}
+                      placeholder={selectedProject ? selectedProject.name : 'Search or choose client project...'}
+                    />
+
+                    <div className="pos-project-input-actions" onClick={(e) => e.stopPropagation()}>
+                      {selectedProject && (
+                        <button
+                          type="button"
+                          className="pos-proj-clear-btn"
+                          onClick={() => {
+                            setSelectedProjectId('');
+                            setSelectedProject(null);
+                            setProjectSearchQuery('');
+                            setSelectedCustomer({ name: 'Walk-in Customer', phone: '' });
+                          }}
+                          title="Clear project"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="pos-proj-chevron-btn"
+                        onClick={() => setIsProjectDropdownOpen((prev) => !prev)}
+                        title="Toggle projects dropdown"
+                      >
+                        <ChevronDown
+                          size={14}
+                          style={{
+                            transform: isProjectDropdownOpen ? 'rotate(180deg)' : 'none',
+                            transition: 'transform 0.2s ease'
+                          }}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Floating Custom Dropdown List */}
+                  {isProjectDropdownOpen && (
+                    <div className="pos-project-dropdown-list">
+                      <div className="pos-project-dropdown-header">
+                        <span>Projects Directory ({filteredProjects.length})</span>
+                        <span className="pos-project-dropdown-close" onClick={() => setIsProjectDropdownOpen(false)}>✕ Close</span>
+                      </div>
+                      <div className="pos-project-dropdown-items">
+                        {filteredProjects.length === 0 ? (
+                          <div className="pos-project-no-match">
+                            {allProjects.length === 0
+                              ? 'No client projects found. Create projects in Client Projects.'
+                              : `No projects match "${projectSearchQuery}"`}
+                          </div>
+                        ) : (
+                          filteredProjects.map((p) => {
+                            const isSelected = selectedProjectId === p.id;
+                            return (
+                              <div
+                                key={p.id}
+                                className={`pos-project-option-item ${isSelected ? 'selected' : ''}`}
+                                onClick={() => {
+                                  setSelectedProjectId(p.id);
+                                  setSelectedProject(p);
+                                  setProjectSearchQuery('');
+                                  setIsProjectDropdownOpen(false);
+                                  setSelectedCustomer({
+                                    id: undefined,
+                                    name: p.client_name ? `${p.client_name} (${p.name})` : p.name,
+                                    phone: p.supervisor_phone || ''
+                                  });
+                                }}
+                              >
+                                <div className="pos-option-main">
+                                  <div className="pos-option-title-row">
+                                    <span className="pos-option-name">{p.name}</span>
+                                    <span className={`pos-option-status-pill ${p.status}`}>
+                                      {p.status}
+                                    </span>
+                                  </div>
+                                  <div className="pos-option-sub">
+                                    <span>👤 {p.client_name} {p.company ? `• 🏢 ${p.company}` : ''}</span>
+                                    {p.supervisor_name && (
+                                      <span>• 👷 {p.supervisor_name}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {isSelected && <Check size={16} className="pos-option-check" />}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {selectedProject ? (
+                  <div className="pos-selected-project-card">
+                    <div className="pos-project-meta-grid">
+                      <div className="pos-project-meta-item">
+                        <span className="meta-label">Client:</span>
+                        <span className="meta-val">{selectedProject.client_name} {selectedProject.company && `(${selectedProject.company})`}</span>
+                      </div>
+                      {selectedProject.supervisor_name && (
+                        <div className="pos-project-meta-item">
+                          <span className="meta-label">Supervisor:</span>
+                          <span className="meta-val">{selectedProject.supervisor_name}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="pos-project-sync-hint">
+                      ✨ Billed amount will automatically credit <strong>Project Expenses</strong> & add to <strong>Billed Invoices</strong>.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pos-project-empty-hint">
+                    {allProjects.length === 0 ? (
+                      <span>No client projects found. Create projects under Client Projects menu.</span>
+                    ) : (
+                      <span>Search or pick a project from the dropdown above to map sale.</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1149,6 +1505,13 @@ export const POS: React.FC = () => {
               </button>
               <button
                 type="button"
+                className={`quick-pay-btn split ${paymentMethod === 'split' ? 'active' : ''}`}
+                onClick={handleSelectSplit}
+              >
+                <ArrowLeftRight size={15} /> Split [F5]
+              </button>
+              <button
+                type="button"
                 className={`quick-pay-btn credit ${paymentMethod === 'credit' ? 'active' : ''}`}
                 onClick={() => setPaymentMethod('credit')}
               >
@@ -1156,15 +1519,114 @@ export const POS: React.FC = () => {
               </button>
             </div>
 
+            {paymentMethod === 'split' && (
+              <div className="pos-split-payment-panel">
+                <div className="pos-split-panel-header">
+                  <div className="pos-split-title">
+                    <ArrowLeftRight size={13} />
+                    <span>Split Payment (Cash + UPI)</span>
+                  </div>
+                  <div className="pos-split-quick-actions">
+                    <button
+                      type="button"
+                      className="pos-split-quick-btn"
+                      onClick={handleSetSplit5050}
+                      title="Split grand total equally between Cash and UPI"
+                    >
+                      50/50 Split
+                    </button>
+                    <button
+                      type="button"
+                      className="pos-split-quick-btn"
+                      onClick={handleBalanceToUpi}
+                      title="Auto calculate remainder into UPI"
+                    >
+                      Rem → UPI
+                    </button>
+                    <button
+                      type="button"
+                      className="pos-split-quick-btn"
+                      onClick={handleBalanceToCash}
+                      title="Auto calculate remainder into Cash"
+                    >
+                      Rem → Cash
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pos-split-fields-grid">
+                  <div className="pos-split-field-wrap">
+                    <label className="pos-split-field-label">
+                      <Banknote size={13} color="#16a34a" /> Cash Amount
+                    </label>
+                    <div className="pos-split-input-container">
+                      <span className="pos-split-curr">₹</span>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        className="pos-split-input"
+                        placeholder="0.00"
+                        value={splitCash}
+                        onChange={(e) => setSplitCash(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pos-split-field-wrap">
+                    <label className="pos-split-field-label">
+                      <QrCode size={13} color="#9333ea" /> UPI Amount
+                    </label>
+                    <div className="pos-split-input-container">
+                      <span className="pos-split-curr">₹</span>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        className="pos-split-input"
+                        placeholder="0.00"
+                        value={splitUpi}
+                        onChange={(e) => setSplitUpi(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {grandTotal > 0 && (
+                  <div
+                    className={`pos-split-status-bar ${
+                      isSplitBalanced ? 'balanced' : isSplitShort ? 'short' : 'exceeded'
+                    }`}
+                  >
+                    {isSplitBalanced ? (
+                      <span>✓ Exact Match: ₹{splitCashNum.toFixed(2)} Cash + ₹{splitUpiNum.toFixed(2)} UPI = ₹{grandTotal.toFixed(2)}</span>
+                    ) : isSplitShort ? (
+                      <span>⚠️ ₹{splitDiff.toFixed(2)} remaining to allocate (Total allocated: ₹{splitTotalAllocated.toFixed(2)} / ₹{grandTotal.toFixed(2)})</span>
+                    ) : (
+                      <span>❌ Allocated ₹{splitTotalAllocated.toFixed(2)} exceeds Grand Total by ₹{Math.abs(splitDiff).toFixed(2)}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               type="button"
               className="complete-checkout-btn"
               onClick={() => handleCheckout(paymentMethod)}
-              disabled={cart.length === 0 || isProcessingCheckout}
+              disabled={cart.length === 0 || isProcessingCheckout || (paymentMethod === 'split' && !isSplitBalanced)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CheckCircle size={18} />
-                <span>{isProcessingCheckout ? 'Processing Bill...' : `Pay with ${paymentMethod.toUpperCase()}`}</span>
+                <span>
+                  {isProcessingCheckout
+                    ? 'Processing Bill...'
+                    : paymentMethod === 'split'
+                    ? 'Complete Split Payment'
+                    : `Pay with ${paymentMethod.toUpperCase()}`}
+                </span>
               </div>
               <span style={{ fontSize: '1.1rem', fontFamily: 'monospace' }}>
                 ₹{grandTotal.toFixed(2)}

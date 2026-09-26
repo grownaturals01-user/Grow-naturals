@@ -215,6 +215,8 @@ export interface Invoice {
   sgst_amount: number;
   total_amount: number;
   payment_method: string;
+  split_cash_amount?: number;
+  split_upi_amount?: number;
   payment_status: string;
   notes: string;
   created_by?: string;
@@ -523,6 +525,8 @@ export interface OfflineSaleQueueItem {
   customer_id?: string | null;
   customer_name: string;
   customer_phone: string;
+  project_id?: string | null;
+  project_name?: string | null;
   subtotal: number;
   discount_amount: number;
   tax_amount: number;
@@ -530,6 +534,8 @@ export interface OfflineSaleQueueItem {
   sgst_amount: number;
   total_amount: number;
   payment_method: string;
+  split_cash_amount?: number;
+  split_upi_amount?: number;
   notes: string;
   created_by?: string;
   created_at: string;
@@ -543,6 +549,9 @@ export interface HeldBill {
   business_id: BusinessId;
   customer_name: string;
   customer_phone: string;
+  project_id?: string | null;
+  project_name?: string | null;
+  customer_tab?: 'customer' | 'project';
   items: POSCartItem[];
   discount_amount: number;
   saved_at: string;

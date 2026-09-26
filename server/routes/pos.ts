@@ -28,6 +28,8 @@ router.post('/checkout', async (req: Request, res: Response) => {
       items, // array of { product_id, product_name, sku, hsn_code, quantity, unit_price, discount, gst_rate }
       discount_amount,
       payment_method,
+      split_cash_amount,
+      split_upi_amount,
       notes,
       created_by
     } = req.body;
@@ -88,8 +90,8 @@ router.post('/checkout', async (req: Request, res: Response) => {
       `INSERT INTO invoices (
         id, business_id, invoice_number, customer_id, customer_name, customer_phone,
         project_id, subtotal, discount_amount, tax_amount, cgst_amount, sgst_amount,
-        total_amount, payment_method, payment_status, notes, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+        total_amount, payment_method, split_cash_amount, split_upi_amount, payment_status, notes, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
       [
         invoiceId,
         bizId,
@@ -105,13 +107,15 @@ router.post('/checkout', async (req: Request, res: Response) => {
         sgst,
         finalTotal,
         payment_method || 'cash',
+        Number(split_cash_amount) || 0,
+        Number(split_upi_amount) || 0,
         'paid',
         notes || '',
         created_by || null
       ]
     );
 
-    // Insert Items & Update Stock
+      // Insert Items & Update Stock
     for (const item of processedItems) {
       await db.query(
         `INSERT INTO invoice_items (
@@ -211,6 +215,37 @@ router.post('/checkout', async (req: Request, res: Response) => {
       }
     }
 
+    // If tagged to a client project, also record in expenses table for this project
+    if (project_id) {
+      try {
+        const expId = `exp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+        const expCatRes = await db.query(
+          `SELECT id FROM expense_categories WHERE business_id = $1 AND (name ILIKE '%material%' OR name ILIKE '%suppl%' OR name ILIKE '%plant%') LIMIT 1`,
+          [bizId]
+        );
+        const categoryId = expCatRes.rows.length > 0 ? expCatRes.rows[0].id : null;
+
+        await db.query(
+          `INSERT INTO expenses (
+            id, business_id, category_id, project_id, amount, payment_method, date, recipient, reference_no, notes
+          ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, $7, $8, $9)`,
+          [
+            expId,
+            bizId,
+            categoryId,
+            project_id,
+            finalTotal,
+            payment_method || 'cash',
+            customer_name ? `${customer_name} (POS Checkout)` : `POS Billing #${invoiceNumber}`,
+            invoiceNumber,
+            `POS Sale #${invoiceNumber} for project materials (${processedItems.length} item(s))`
+          ]
+        );
+      } catch (expErr) {
+        console.error('Error logging project expense from POS checkout:', expErr);
+      }
+    }
+
     res.status(201).json({
       success: true,
       invoice: {
@@ -219,6 +254,7 @@ router.post('/checkout', async (req: Request, res: Response) => {
         invoice_number: invoiceNumber,
         customer_name: customer_name || 'Walk-in Customer',
         customer_phone: customer_phone || '',
+        project_id: project_id || null,
         subtotal: calculatedSubtotal,
         discount_amount: totalDiscount,
         tax_amount: calculatedTax,
@@ -226,6 +262,8 @@ router.post('/checkout', async (req: Request, res: Response) => {
         sgst_amount: sgst,
         total_amount: finalTotal,
         payment_method: payment_method || 'cash',
+        split_cash_amount: Number(split_cash_amount) || 0,
+        split_upi_amount: Number(split_upi_amount) || 0,
         created_at: new Date().toISOString(),
         items: processedItems
       }
@@ -267,9 +305,9 @@ router.post('/sync', async (req: Request, res: Response) => {
       await db.query(
         `INSERT INTO invoices (
           id, business_id, invoice_number, customer_id, customer_name, customer_phone,
-          subtotal, discount_amount, tax_amount, cgst_amount, sgst_amount,
-          total_amount, payment_method, payment_status, notes, created_by, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+          project_id, subtotal, discount_amount, tax_amount, cgst_amount, sgst_amount,
+          total_amount, payment_method, split_cash_amount, split_upi_amount, payment_status, notes, created_by, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
         [
           invoiceId,
           bizId,
@@ -277,6 +315,7 @@ router.post('/sync', async (req: Request, res: Response) => {
           sale.customer_id || null,
           sale.customer_name || 'Walk-in Customer',
           sale.customer_phone || '',
+          sale.project_id || null,
           sale.subtotal || 0,
           sale.discount_amount || 0,
           sale.tax_amount || 0,
@@ -284,12 +323,38 @@ router.post('/sync', async (req: Request, res: Response) => {
           isTaxable ? (sale.sgst_amount || Number((sale.tax_amount / 2).toFixed(2)) || 0) : 0,
           sale.total_amount || 0,
           sale.payment_method || 'cash',
+          Number(sale.split_cash_amount) || 0,
+          Number(sale.split_upi_amount) || 0,
           'paid',
-          'Offline Queued POS Sale Synced',
+          sale.notes || 'Offline Queued POS Sale Synced',
           sale.created_by || null,
           sale.created_at || new Date().toISOString()
         ]
       );
+
+      // If tagged to a project, log to expenses too
+      if (sale.project_id) {
+        try {
+          const expId = `exp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+          await db.query(
+            `INSERT INTO expenses (
+              id, business_id, category_id, project_id, amount, payment_method, date, recipient, reference_no, notes
+            ) VALUES ($1, $2, null, $3, $4, $5, CURRENT_DATE, $6, $7, $8)`,
+            [
+              expId,
+              bizId,
+              sale.project_id,
+              sale.total_amount || 0,
+              sale.payment_method || 'cash',
+              sale.customer_name ? `${sale.customer_name} (Offline POS)` : `POS Billing #${invoiceNumber}`,
+              invoiceNumber,
+              `Offline Synced POS Sale #${invoiceNumber} for project`
+            ]
+          );
+        } catch (expErr) {
+          console.error('Error logging offline project expense:', expErr);
+        }
+      }
 
       // Insert items and adjust stock
       for (const item of (sale.items || [])) {

@@ -193,7 +193,9 @@ export async function initDb(): Promise<void> {
        ('ws-gn-4', 'grow-naturals', 'prod-gn-4', 25, 'Pot Yard Rack 3'),
        ('ws-gn-5', 'grow-naturals', 'prod-gn-5', 30, 'Pot Yard Rack 1'),
        ('ws-gn-6', 'grow-naturals', 'prod-gn-6', 80, 'Fertilizer Store')
-     ON CONFLICT (business_id, product_id) DO UPDATE SET stock_quantity = EXCLUDED.stock_quantity WHERE warehouse_stocks.stock_quantity = 0;`
+     ON CONFLICT (business_id, product_id) DO UPDATE SET stock_quantity = EXCLUDED.stock_quantity WHERE warehouse_stocks.stock_quantity = 0;`,
+    `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS split_cash_amount NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS split_upi_amount NUMERIC(12,2) DEFAULT 0.00;`
   ];
 
   for (const m of migrations) {
