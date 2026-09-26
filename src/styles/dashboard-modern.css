@@ -1013,7 +1013,7 @@
 .dash-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
+  gap: 12px;
 }
 
 @media (max-width: 1200px) {
@@ -1032,11 +1032,11 @@
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
-  padding: 16px 20px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: center;
+  gap: 6px;
   box-shadow: none !important;
   box-sizing: border-box;
 }
@@ -1798,7 +1798,7 @@
    Matches Dashboard fonts, colors, and layout aesthetics from design image
    ========================================================================== */
 .cust-page-container {
-  padding: 24px;
+  padding: 0 0 20px 0;
   font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #0f172a;
 }
@@ -1811,15 +1811,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .cust-page-title {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.02em;
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
 }
 
 [data-theme="dark"] .cust-page-title {
@@ -1854,8 +1854,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid #cbd5e1;
 }
 
@@ -1871,7 +1871,7 @@
 
 .cust-search-icon {
   position: absolute;
-  left: 12px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;
@@ -1880,8 +1880,8 @@
 
 .cust-search-input {
   width: 100%;
-  height: 38px;
-  padding: 0 12px 0 36px;
+  height: 32px;
+  padding: 0 10px 0 32px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   font-size: 0.8125rem;
@@ -1909,12 +1909,12 @@
 .cust-toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .cust-filter-select {
-  height: 38px;
-  padding: 0 32px 0 14px;
+  height: 32px;
+  padding: 0 28px 0 10px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   font-size: 0.8125rem;
@@ -1939,8 +1939,8 @@
 }
 
 .cust-add-btn {
-  height: 38px;
-  padding: 0 16px;
+  height: 32px;
+  padding: 0 14px;
   border: none;
   border-radius: 4px;
   background-color: #ff9f43;
@@ -1975,7 +1975,7 @@
 }
 
 .cust-spacious-table th {
-  padding: 14px 16px;
+  padding: 8px 12px;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: capitalize;
@@ -1993,7 +1993,7 @@
 }
 
 .cust-spacious-table td {
-  padding: 16px 16px;
+  padding: 8px 12px;
   font-size: 0.8125rem;
   color: #334155;
   border-bottom: 1px solid #e2e8f0;
@@ -2210,7 +2210,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 20px;
+  padding: 8px 12px;
   border-top: 1px solid #cbd5e1;
   font-size: 0.75rem;
   color: #64748b;
@@ -2247,7 +2247,7 @@
    Matches reference image with theme consistency
    ========================================================================== */
 .prod-page-container {
-  padding: 24px;
+  padding: 0 0 20px 0;
   font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #0f172a;
 }
@@ -2261,16 +2261,16 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .prod-page-title-group h1 {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.02em;
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
 }
 
 [data-theme="dark"] .prod-page-title-group h1 {
@@ -2290,13 +2290,13 @@
 .prod-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .prod-icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 4px;
   border: 1px solid #cbd5e1;
   background: #ffffff;
@@ -2328,8 +2328,8 @@
 }
 
 .prod-add-btn {
-  height: 36px;
-  padding: 0 16px;
+  height: 32px;
+  padding: 0 14px;
   border: none;
   border-radius: 4px;
   background-color: #ff9f43;
@@ -2352,8 +2352,8 @@
 }
 
 .prod-import-btn {
-  height: 36px;
-  padding: 0 16px;
+  height: 32px;
+  padding: 0 14px;
   border: none;
   border-radius: 4px;
   background-color: #0f172a;
@@ -2398,8 +2398,8 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid #cbd5e1;
 }
 
@@ -2415,7 +2415,7 @@
 
 .prod-search-icon {
   position: absolute;
-  left: 12px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;
@@ -2424,8 +2424,8 @@
 
 .prod-search-input {
   width: 100%;
-  height: 38px;
-  padding: 0 12px 0 36px;
+  height: 32px;
+  padding: 0 10px 0 32px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   font-size: 0.8125rem;
@@ -2453,13 +2453,13 @@
 .prod-toolbar-filters {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .prod-filter-select {
-  height: 38px;
-  padding: 0 30px 0 14px;
+  height: 32px;
+  padding: 0 28px 0 10px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   font-size: 0.8125rem;
@@ -2497,7 +2497,7 @@
 }
 
 .prod-spacious-table th {
-  padding: 14px 16px;
+  padding: 8px 12px;
   font-size: 0.75rem;
   font-weight: 700;
   color: #64748b;
@@ -2513,7 +2513,7 @@
 }
 
 .prod-spacious-table td {
-  padding: 16px 16px;
+  padding: 8px 12px;
   font-size: 0.8125rem;
   color: #334155;
   border-bottom: 1px solid #e2e8f0;
@@ -2685,4 +2685,292 @@
 
 [data-theme="dark"] .cat-status-pill {
   background-color: #16a34a;
+}
+
+/* ==========================================================================
+   WAREHOUSE & SEGMENTED TABS SYSTEM
+   ========================================================================== */
+.prod-tab-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #cbd5e1;
+  background: #ffffff;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+[data-theme="dark"] .prod-tab-nav {
+  background: #1e293b;
+  border-bottom-color: #475569;
+}
+
+.prod-tab-group {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 4px;
+  gap: 3px;
+}
+
+[data-theme="dark"] .prod-tab-group {
+  background: #0f172a;
+}
+
+.prod-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.prod-tab-btn:hover {
+  color: #0f172a;
+}
+
+[data-theme="dark"] .prod-tab-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .prod-tab-btn:hover {
+  color: #ffffff;
+}
+
+.prod-tab-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 800;
+  border-color: #cbd5e1;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .prod-tab-btn.active {
+  background: #1e293b;
+  color: #ffffff;
+  border-color: #475569;
+}
+
+.prod-tab-badge {
+  font-size: 0.6875rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  color: #334155;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .prod-tab-badge {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+/* Warehouse Action Buttons in Table */
+.wh-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  text-decoration: none;
+  transition: all 0.12s ease;
+}
+
+.wh-mini-btn.stock {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.wh-mini-btn.stock:hover {
+  background: #d1fae5;
+}
+
+.wh-mini-btn.sale {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+.wh-mini-btn.sale:hover {
+  background: #dbeafe;
+}
+
+.wh-mini-btn.transfer {
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #fde68a;
+}
+
+.wh-mini-btn.transfer:hover {
+  background: #fef3c7;
+}
+
+.wh-mini-btn.damage {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.wh-mini-btn.damage:hover {
+  background: #fee2e2;
+}
+
+.wh-mini-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   GLOBAL APP-WIDE MODERN SHARP DESIGN SYSTEM UNIFICATION
+   Applied to ALL pages across GrowNaturals Billing:
+   - Fonts: 'Nunito', sans-serif everywhere
+   - Borders: 1px solid #cbd5e1 (sharp, bright borders)
+   - Radii: 4px sharp border-radius across all cards, tables, inputs, buttons
+   - Shadows: Completely remove blurry drop-shadows (box-shadow: none !important)
+   - Tables: Clean header typography, uppercase labels, tabular-nums
+   ========================================================================== */
+
+/* Universal font family enforcement */
+html, body, #root,
+button, input, select, textarea,
+h1, h2, h3, h4, h5, h6, p, span, div, a, label, table, th, td {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Sharp 4px borders & shadow removal for cards and containers */
+.card,
+.stat-card,
+.table-container,
+.prod-table-card,
+.dash-white-card,
+.modal-content,
+.dialog-content,
+.pos-catalog,
+.pos-cart-panel,
+.empty-state {
+  border-radius: 4px !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+/* Universal Button Modernization: Sharp 4px, Crisp Borders, No Blurry Shadows */
+.btn,
+button.btn,
+.prod-btn,
+.wh-mini-btn,
+.pos-nav-arrow-btn,
+.category-pill,
+.quick-pay-btn,
+.complete-checkout-btn,
+.cust-action-btn,
+.pos-cust-action-btn {
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+/* Universal Form Controls: Sharp 4px, Bright Borders */
+.form-input,
+.form-select,
+.form-textarea,
+.search-input,
+.prod-search-input,
+.pos-search-input,
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="search"],
+select {
+  border-radius: 4px !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus,
+.search-input:focus,
+.prod-search-input:focus,
+.pos-search-input:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="search"]:focus,
+select:focus {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15) !important;
+}
+
+/* Universal Table Header & Row Styling */
+table.table th,
+.prod-spacious-table th,
+.table th {
+  font-family: 'Nunito', sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #475569 !important;
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  border-top: none !important;
+  padding: 10px 14px !important;
+}
+
+table.table td,
+.prod-spacious-table td,
+.table td {
+  font-family: 'Nunito', sans-serif !important;
+  font-size: 0.8125rem !important;
+  color: #1e293b !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 10px 14px !important;
+}
+
+table.table tbody tr:hover,
+.prod-spacious-table tbody tr:hover,
+.table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Universal Code / SKU Pill */
+code,
+.sku,
+.cust-code-text {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.75rem !important;
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Modals & Dialogs Across All Pages */
+.modal-overlay,
+.dialog-overlay {
+  backdrop-filter: blur(2px) !important;
+}
+
+.modal-content,
+.modal-dialog,
+.dialog-content {
+  border-radius: 4px !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: none !important;
 }

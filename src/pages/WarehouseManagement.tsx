@@ -268,131 +268,68 @@ export const WarehouseManagement: React.FC = () => {
   }, [selectedProduct, inventory]);
 
   return (
-    <div style={{ maxWidth: '1240px', margin: '0 auto', paddingBottom: '60px' }}>
-      {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(79, 70, 229, 0.1)',
-              color: '#4f46e5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-          >
-            <Building2 size={22} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.02em' }}>
-              Warehouse & Nursery Stock
-            </h1>
-            <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary, #64748b)', margin: '2px 0 0 0' }}>
-              Central nursery stock, warehouse direct sales, damage tracking, and shop dispatches for <strong>{activeBusiness.name}</strong>
-            </p>
-          </div>
+    <div className="prod-page-container">
+      {/* 1. Page Header */}
+      <div className="prod-page-header">
+        <div className="prod-page-title-group">
+          <h1>Warehouse & Nursery Stock</h1>
+          <p>
+            Central nursery stock, warehouse direct sales, damage tracking, and shop dispatches for <strong>{activeBusiness.name}</strong>
+          </p>
         </div>
 
-        {/* Top Quick Actions Bar */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="prod-header-actions">
           <button
             type="button"
-            className="btn"
+            className="prod-icon-btn"
+            onClick={fetchData}
+            title="Refresh Data"
+          >
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          </button>
+
+          <button
+            type="button"
+            className="wh-mini-btn stock"
+            style={{ height: '32px', padding: '0 12px', fontSize: '0.8125rem' }}
             onClick={() => handleOpenActionModal('inward')}
-            style={{
-              backgroundColor: '#059669',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '7px 14px',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
           >
             <ArrowDownLeft size={15} /> + Inward Stock
           </button>
 
           <button
             type="button"
-            className="btn"
+            className="wh-mini-btn sale"
+            style={{ height: '32px', padding: '0 12px', fontSize: '0.8125rem' }}
             onClick={() => handleOpenActionModal('sale')}
-            style={{
-              backgroundColor: '#4f46e5',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '7px 14px',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
           >
             <ShoppingBag size={15} /> + Warehouse Sale
           </button>
 
           <button
             type="button"
-            className="btn"
+            className="wh-mini-btn damage"
+            style={{ height: '32px', padding: '0 12px', fontSize: '0.8125rem' }}
             onClick={() => handleOpenActionModal('damage')}
-            style={{
-              backgroundColor: '#dc2626',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '7px 14px',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
           >
             <TrendingDown size={15} /> + Log Damage
           </button>
 
           <button
             type="button"
-            className="btn"
+            className="wh-mini-btn transfer"
+            style={{ height: '32px', padding: '0 12px', fontSize: '0.8125rem' }}
             onClick={() => handleOpenActionModal('transfer_to_shop')}
-            style={{
-              backgroundColor: '#d97706',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '7px 14px',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
           >
-            <ArrowLeftRight size={15} /> ⇄ Quick Transfer
+            <ArrowLeftRight size={15} /> Quick Transfer
           </button>
 
           <Link
             to="/transfers"
-            className="btn btn-secondary"
-            style={{
-              padding: '7px 14px',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              textDecoration: 'none'
-            }}
+            className="prod-icon-btn"
+            style={{ width: 'auto', padding: '0 12px', gap: '6px', fontSize: '0.8125rem', fontWeight: 600 }}
           >
-            <Store size={15} /> All Transfers & Slips ➔
+            <Store size={14} /> All Transfers & Slips ➔
           </Link>
         </div>
       </div>
@@ -401,21 +338,22 @@ export const WarehouseManagement: React.FC = () => {
       {notification && (
         <div
           style={{
+            padding: '10px 14px',
+            borderRadius: '4px',
+            marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 16px',
-            marginBottom: '18px',
-            backgroundColor: notification.type === 'success' ? '#f0fdf4' : '#fef2f2',
-            border: `1px solid ${notification.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-            borderRadius: '10px',
-            color: notification.type === 'success' ? '#166534' : '#991b1b',
-            fontSize: '0.84rem',
-            fontWeight: 500
+            backgroundColor: notification.type === 'success' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(220, 38, 38, 0.12)',
+            color: notification.type === 'success' ? '#15803d' : '#b91c1c',
+            border: `1px solid ${notification.type === 'success' ? 'rgba(22, 163, 74, 0.25)' : 'rgba(220, 38, 38, 0.25)'}`,
+            fontWeight: 600,
+            fontSize: '0.8125rem',
+            boxShadow: 'none',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {notification.type === 'success' ? <CheckCircle2 size={17} color="#16a34a" /> : <AlertTriangle size={17} color="#dc2626" />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {notification.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
             <span>{notification.message}</span>
           </div>
           <button
@@ -428,369 +366,265 @@ export const WarehouseManagement: React.FC = () => {
         </div>
       )}
 
-      {/* KPI Overview Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+      {/* 2. KPI Overview Cards (Dashboard Style) */}
+      <div className="dash-stats-grid" style={{ marginBottom: '12px' }}>
         {/* KPI 1: Remaining Warehouse Stock */}
-        <div
-          className="card"
-          style={{
-            padding: '18px',
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Warehouse Remaining Stock</span>
-            <div style={{ width: '30px', height: '30px', borderRadius: '7px', backgroundColor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building2 size={15} />
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Warehouse Remaining Stock</span>
+              <span className="dash-white-amount">
+                {metrics?.total_warehouse_units || 0}{' '}
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#64748b' }}>units</span>
+              </span>
+            </div>
+            <div className="dash-soft-icon icon-cyan">
+              <Building2 size={18} />
             </div>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>
-            {metrics?.total_warehouse_units || 0} <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#64748b' }}>units</span>
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#4f46e5', marginTop: '3px', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>
             Valuation: ₹{Number(metrics?.total_warehouse_valuation || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
         </div>
 
         {/* KPI 2: Warehouse Sales */}
-        <div
-          className="card"
-          style={{
-            padding: '18px',
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Direct Warehouse Sales</span>
-            <div style={{ width: '30px', height: '30px', borderRadius: '7px', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DollarSign size={15} />
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Direct Warehouse Sales</span>
+              <span className="dash-white-amount" style={{ color: '#16a34a' }}>
+                ₹{Number(metrics?.total_sales_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="dash-soft-icon icon-mint">
+              <DollarSign size={18} />
             </div>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669' }}>
-            ₹{Number(metrics?.total_sales_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
             {metrics?.total_sales_units || 0} units across {metrics?.sales_transactions_count || 0} orders
           </div>
         </div>
 
         {/* KPI 3: Warehouse Damages */}
-        <div
-          className="card"
-          style={{
-            padding: '18px',
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Warehouse Damage / Spoilage</span>
-            <div style={{ width: '30px', height: '30px', borderRadius: '7px', backgroundColor: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TrendingDown size={15} />
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Warehouse Damage / Spoilage</span>
+              <span className="dash-white-amount" style={{ color: '#dc2626' }}>
+                ₹{Number(metrics?.total_damage_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="dash-soft-icon icon-coral">
+              <TrendingDown size={18} />
             </div>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#dc2626' }}>
-            ₹{Number(metrics?.total_damage_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
             {metrics?.total_damage_units || 0} damaged units logged
           </div>
         </div>
 
         {/* KPI 4: Shop Dispatches */}
-        <div
-          className="card"
-          style={{
-            padding: '18px',
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Dispatched to Retail Counter</span>
-            <div style={{ width: '30px', height: '30px', borderRadius: '7px', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Store size={15} />
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Dispatched to Retail Counter</span>
+              <span className="dash-white-amount">
+                {metrics?.total_transfers_units || 0}{' '}
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#64748b' }}>units</span>
+              </span>
+            </div>
+            <div className="dash-soft-icon icon-amber">
+              <Store size={18} />
             </div>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>
-            {metrics?.total_transfers_units || 0} <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#64748b' }}>units</span>
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#d97706', marginTop: '3px', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: 600 }}>
             {metrics?.transfer_records_count || 0} dispatch shipments
           </div>
         </div>
       </div>
 
-      {/* Main Section Card */}
-      <div
-        className="card"
-        style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '14px',
-          border: '1px solid #e2e8f0',
-          overflow: 'hidden',
-          boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)'
-        }}
-      >
-        {/* Clean Segmented Tab Navigation Row */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 18px',
-            borderBottom: '1px solid #e2e8f0',
-            backgroundColor: '#ffffff',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}
-        >
-          {/* Segmented Pill Tabs */}
-          <div style={{ display: 'inline-flex', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '9px', gap: '3px' }}>
+      {/* 3. Main Section Card */}
+      <div className="prod-table-card">
+        {/* Segmented Tab Navigation Row */}
+        <div className="prod-tab-nav">
+          <div className="prod-tab-group">
             <button
               type="button"
+              className={`prod-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
               onClick={() => setActiveTab('inventory')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 13px',
-                borderRadius: '7px',
-                border: 'none',
-                backgroundColor: activeTab === 'inventory' ? '#ffffff' : 'transparent',
-                color: activeTab === 'inventory' ? '#0f172a' : '#64748b',
-                fontWeight: activeTab === 'inventory' ? 700 : 500,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'inventory' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
             >
-              <Package size={15} color={activeTab === 'inventory' ? '#4f46e5' : '#64748b'} />
+              <Package size={14} />
               <span>Stock Balances</span>
-              <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#334155', fontWeight: 700 }}>
-                {inventory.length}
-              </span>
+              <span className="prod-tab-badge">{inventory.length}</span>
             </button>
 
             <button
               type="button"
+              className={`prod-tab-btn ${activeTab === 'sales' ? 'active' : ''}`}
               onClick={() => setActiveTab('sales')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 13px',
-                borderRadius: '7px',
-                border: 'none',
-                backgroundColor: activeTab === 'sales' ? '#ffffff' : 'transparent',
-                color: activeTab === 'sales' ? '#0f172a' : '#64748b',
-                fontWeight: activeTab === 'sales' ? 700 : 500,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'sales' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
             >
-              <ShoppingBag size={15} color={activeTab === 'sales' ? '#059669' : '#64748b'} />
+              <ShoppingBag size={14} />
               <span>Warehouse Sales</span>
-              <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#334155', fontWeight: 700 }}>
-                {salesTransactions.length}
-              </span>
+              <span className="prod-tab-badge">{salesTransactions.length}</span>
             </button>
 
             <button
               type="button"
+              className={`prod-tab-btn ${activeTab === 'damages' ? 'active' : ''}`}
               onClick={() => setActiveTab('damages')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 13px',
-                borderRadius: '7px',
-                border: 'none',
-                backgroundColor: activeTab === 'damages' ? '#ffffff' : 'transparent',
-                color: activeTab === 'damages' ? '#0f172a' : '#64748b',
-                fontWeight: activeTab === 'damages' ? 700 : 500,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'damages' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
             >
-              <TrendingDown size={15} color={activeTab === 'damages' ? '#dc2626' : '#64748b'} />
+              <TrendingDown size={14} />
               <span>Warehouse Damages</span>
-              <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#334155', fontWeight: 700 }}>
-                {damageTransactions.length}
-              </span>
+              <span className="prod-tab-badge">{damageTransactions.length}</span>
             </button>
 
             <button
               type="button"
+              className={`prod-tab-btn ${activeTab === 'ledger' ? 'active' : ''}`}
               onClick={() => setActiveTab('ledger')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 13px',
-                borderRadius: '7px',
-                border: 'none',
-                backgroundColor: activeTab === 'ledger' ? '#ffffff' : 'transparent',
-                color: activeTab === 'ledger' ? '#0f172a' : '#64748b',
-                fontWeight: activeTab === 'ledger' ? 700 : 500,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'ledger' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
             >
-              <Layers size={15} color={activeTab === 'ledger' ? '#0284c7' : '#64748b'} />
+              <Layers size={14} />
               <span>Movements Ledger</span>
-              <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#334155', fontWeight: 700 }}>
-                {transactions.length}
-              </span>
+              <span className="prod-tab-badge">{transactions.length}</span>
             </button>
           </div>
 
-          {/* Quick Item Counter */}
-          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-            {activeTab === 'inventory' && `Showing ${filteredInventory.length} botanical items`}
+          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+            {activeTab === 'inventory' && `Showing ${filteredInventory.length} of ${inventory.length} botanical items`}
             {activeTab === 'sales' && `${salesTransactions.length} direct sales recorded`}
             {activeTab === 'damages' && `${damageTransactions.length} spoilage logs recorded`}
             {activeTab === 'ledger' && `${transactions.length} total movement events`}
           </div>
         </div>
 
-        {/* Clean Filter Bar for Inventory Tab */}
+        {/* Filter Bar for Inventory Tab */}
         {activeTab === 'inventory' && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px 18px',
-              backgroundColor: '#f8fafc',
-              borderBottom: '1px solid #e2e8f0',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '280px' }}>
-              {/* Search */}
-              <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
-                <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type="text"
-                  className="form-input"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by plant name, SKU, or variety..."
-                  style={{ paddingLeft: '32px', fontSize: '0.8125rem', height: '34px', backgroundColor: '#ffffff' }}
-                />
-              </div>
-
-              {/* Category Dropdown */}
-              <div style={{ minWidth: '170px' }}>
-                <select
-                  className="form-input"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  style={{ fontSize: '0.8125rem', height: '34px', backgroundColor: '#ffffff' }}
+          <div className="prod-table-toolbar">
+            <div className="prod-search-box">
+              <Search size={14} className="prod-search-icon" />
+              <input
+                type="text"
+                className="prod-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by plant name, SKU, or variety..."
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#94a3b8',
+                  }}
                 >
-                  <option value="all">All Categories</option>
-                  {categoriesList.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
 
-              {/* Stock Status Dropdown */}
-              <div style={{ minWidth: '150px' }}>
-                <select
-                  className="form-input"
-                  value={stockFilter}
-                  onChange={(e) => setStockFilter(e.target.value as any)}
-                  style={{ fontSize: '0.8125rem', height: '34px', backgroundColor: '#ffffff' }}
-                >
-                  <option value="all">All Stock Levels</option>
-                  <option value="in_stock">In Warehouse Stock (&gt; 0)</option>
-                  <option value="out_of_stock">Out of Stock (= 0)</option>
-                </select>
-              </div>
+            <div className="prod-toolbar-filters">
+              <select
+                className="prod-filter-select"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                {categoriesList.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="prod-filter-select"
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value as any)}
+              >
+                <option value="all">All Stock Levels</option>
+                <option value="in_stock">In Warehouse Stock (&gt; 0)</option>
+                <option value="out_of_stock">Out of Stock (= 0)</option>
+              </select>
             </div>
           </div>
         )}
 
         {/* Tab 1: Clean, Spacious Warehouse Stock Table */}
+        {/* Tab 1: Clean, Spacious Warehouse Stock Table */}
         {activeTab === 'inventory' && (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <div className="prod-table-responsive">
+            <table className="prod-spacious-table">
               <thead>
-                <tr style={{ backgroundColor: '#ffffff', borderBottom: '1.5px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  <th style={{ padding: '12px 18px', textAlign: 'left', minWidth: '320px' }}>Plant / Item</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', width: '180px' }}>Warehouse Stock</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', width: '160px' }}>Retail Shop Stock</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right', width: '140px' }}>Cost Price</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right', width: '220px' }}>Actions</th>
+                <tr>
+                  <th style={{ minWidth: '260px' }}>Plant / Item</th>
+                  <th style={{ minWidth: '150px', textAlign: 'center' }}>Warehouse Stock</th>
+                  <th style={{ minWidth: '140px', textAlign: 'center' }}>Retail Shop Stock</th>
+                  <th style={{ minWidth: '130px', textAlign: 'right' }}>Cost Price</th>
+                  <th style={{ minWidth: '220px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                      <RefreshCw size={22} className="animate-spin" style={{ margin: '0 auto 8px auto', color: '#4f46e5' }} />
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                      <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', color: '#ff9f43' }} />
                       <div>Loading warehouse inventory...</div>
                     </td>
                   </tr>
                 ) : filteredInventory.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '44px 20px', color: '#94a3b8' }}>
-                      <Building2 size={30} style={{ margin: '0 auto 8px auto', color: '#cbd5e1' }} />
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>No items match your filter</div>
-                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '3px' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                      <div
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '4px',
+                          backgroundColor: 'rgba(255, 159, 67, 0.1)',
+                          color: '#ff9f43',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto 12px auto',
+                        }}
+                      >
+                        <Building2 size={24} />
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', marginBottom: '4px' }}>
+                        No items match your filter
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: '#64748b', maxWidth: '360px', margin: '0 auto' }}>
                         {searchQuery ? 'Try clearing your search query' : 'Use "+ Inward Stock" to add inventory to the warehouse.'}
                       </div>
                     </td>
                   </tr>
                 ) : (
                   filteredInventory.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={item.id}>
                       {/* Botanical Item with image, name, SKU and category */}
-                      <td style={{ padding: '14px 18px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          {item.image_url ? (
-                            <img
-                              src={item.image_url}
-                              alt={item.name}
-                              style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
-                            />
-                          ) : (
-                            <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5', flexShrink: 0 }}>
-                              <Trees size={20} />
-                            </div>
-                          )}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div className="prod-thumb-box" style={{ width: '32px', height: '32px' }}>
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.name} />
+                            ) : (
+                              <Trees size={16} color="#64748b" />
+                            )}
+                          </div>
                           <div>
-                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', lineHeight: 1.3 }}>
+                            <div className="prod-name-text" style={{ fontSize: '0.8125rem' }}>
                               {item.name}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
-                              <code style={{ fontSize: '0.72rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>
-                                {item.sku}
-                              </code>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                              <span className="cust-code-text">{item.sku}</span>
                               {item.category_name && (
-                                <span style={{ fontSize: '0.72rem', color: '#475569' }}>
+                                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
                                   &bull; {item.category_name}
                                 </span>
                               )}
@@ -800,22 +634,23 @@ export const WarehouseManagement: React.FC = () => {
                       </td>
 
                       {/* Warehouse Stock Badge */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <div>
                           <span
                             style={{
-                              fontWeight: 800,
-                              fontSize: '0.88rem',
-                              padding: '4px 12px',
-                              borderRadius: '7px',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              padding: '2px 8px',
+                              borderRadius: '3px',
                               display: 'inline-block',
-                              backgroundColor: item.warehouse_stock > 5 ? '#e0e7ff' : item.warehouse_stock > 0 ? '#fef3c7' : '#fee2e2',
-                              color: item.warehouse_stock > 5 ? '#3730a3' : item.warehouse_stock > 0 ? '#b45309' : '#b91c1c'
+                              backgroundColor: item.warehouse_stock > 5 ? '#eff6ff' : item.warehouse_stock > 0 ? '#fef3c7' : '#fee2e2',
+                              color: item.warehouse_stock > 5 ? '#2563eb' : item.warehouse_stock > 0 ? '#b45309' : '#b91c1c',
+                              border: `1px solid ${item.warehouse_stock > 5 ? '#bfdbfe' : item.warehouse_stock > 0 ? '#fde68a' : '#fecaca'}`
                             }}
                           >
                             {item.warehouse_stock} units
                           </span>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
                             {item.warehouse_stock > 0
                               ? `Val: ₹${(item.warehouse_stock * (Number(item.cost_price) || 0)).toLocaleString('en-IN')}`
                               : 'Out of stock'}
@@ -824,20 +659,20 @@ export const WarehouseManagement: React.FC = () => {
                       </td>
 
                       {/* Shop Counter Stock */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <div>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155' }}>
                             {item.shop_stock} units
                           </span>
-                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '3px' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
                             Retail display
                           </div>
                         </div>
                       </td>
 
                       {/* Cost Price */}
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.88rem' }} className="tabular">
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8125rem' }}>
                           ₹{Number(item.cost_price || 0).toFixed(2)}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
@@ -845,47 +680,43 @@ export const WarehouseManagement: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Spacious Action Buttons (No Clipping!) */}
-                      <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                      {/* Action Buttons */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', justifyContent: 'flex-end' }}>
                           <button
                             type="button"
-                            className="btn btn-ghost btn-sm"
+                            className="wh-mini-btn stock"
                             title="Inward Stock Arrival"
                             onClick={() => handleOpenActionModal('inward', item as any)}
-                            style={{ padding: '5px 9px', color: '#059669', backgroundColor: '#ecfdf5', fontSize: '0.78rem', fontWeight: 600, borderRadius: '6px' }}
                           >
                             + Stock
                           </button>
                           <button
                             type="button"
-                            className="btn btn-ghost btn-sm"
+                            className="wh-mini-btn sale"
                             title="Direct Warehouse Sale"
                             onClick={() => handleOpenActionModal('sale', item as any)}
                             disabled={item.warehouse_stock <= 0}
-                            style={{ padding: '5px 9px', color: '#4f46e5', backgroundColor: '#eef2ff', fontSize: '0.78rem', fontWeight: 600, borderRadius: '6px', opacity: item.warehouse_stock <= 0 ? 0.4 : 1 }}
                           >
                             Sale
                           </button>
                           <button
                             type="button"
-                            className="btn btn-ghost btn-sm"
+                            className="wh-mini-btn transfer"
                             title="Dispatch to Shop Counter"
                             onClick={() => handleOpenActionModal('transfer_to_shop', item as any)}
                             disabled={item.warehouse_stock <= 0}
-                            style={{ padding: '5px 9px', color: '#d97706', backgroundColor: '#fffbeb', fontSize: '0.78rem', fontWeight: 600, borderRadius: '6px', opacity: item.warehouse_stock <= 0 ? 0.4 : 1 }}
                           >
                             Transfer
                           </button>
                           <button
                             type="button"
-                            className="btn btn-ghost btn-sm"
+                            className="wh-mini-btn damage"
                             title="Log Warehouse Damage"
                             onClick={() => handleOpenActionModal('damage', item as any)}
                             disabled={item.warehouse_stock <= 0}
-                            style={{ padding: '5px 7px', color: '#dc2626', backgroundColor: '#fef2f2', fontSize: '0.78rem', fontWeight: 600, borderRadius: '6px', opacity: item.warehouse_stock <= 0 ? 0.4 : 1 }}
                           >
-                            <TrendingDown size={14} />
+                            <TrendingDown size={13} />
                           </button>
                         </div>
                       </td>
@@ -899,69 +730,100 @@ export const WarehouseManagement: React.FC = () => {
 
         {/* Tab 2: Warehouse Sales History */}
         {activeTab === 'sales' && (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <div className="prod-table-responsive">
+            <table className="prod-spacious-table">
               <thead>
-                <tr style={{ backgroundColor: '#ffffff', borderBottom: '1.5px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Date</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Plant / Item</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Buyer / Customer</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right' }}>Quantity</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right' }}>Unit Rate</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right' }}>Total Revenue</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Notes / Ref</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'center' }}>Action</th>
+                <tr>
+                  <th style={{ minWidth: '130px' }}>Date</th>
+                  <th style={{ minWidth: '220px' }}>Plant / Item</th>
+                  <th style={{ minWidth: '180px' }}>Buyer / Customer</th>
+                  <th style={{ minWidth: '120px', textAlign: 'right' }}>Quantity</th>
+                  <th style={{ minWidth: '110px', textAlign: 'right' }}>Unit Rate</th>
+                  <th style={{ minWidth: '130px', textAlign: 'right' }}>Total Revenue</th>
+                  <th style={{ minWidth: '150px' }}>Notes / Ref</th>
+                  <th style={{ width: '80px', textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {salesTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
-                      <ShoppingBag size={30} style={{ margin: '0 auto 8px auto', color: '#cbd5e1' }} />
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>No warehouse direct sales logged</div>
-                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '3px' }}>
-                        Click "+ Warehouse Sale" to record bulk sales directly from warehouse stock.
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                      <div
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '4px',
+                          backgroundColor: 'rgba(255, 159, 67, 0.1)',
+                          color: '#ff9f43',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto 12px auto',
+                        }}
+                      >
+                        <ShoppingBag size={24} />
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', marginBottom: '4px' }}>
+                        No warehouse direct sales logged
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: '#64748b', maxWidth: '360px', margin: '0 auto' }}>
+                        Click "+ Warehouse Sale" above to record wholesale or direct client sales from warehouse stock.
                       </div>
                     </td>
                   </tr>
                 ) : (
                   salesTransactions.map((tx) => (
-                    <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        <div style={{ fontWeight: 600, color: '#334155' }}>
+                    <tr key={tx.id}>
+                      <td>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8125rem' }}>
                           {new Date(tx.transaction_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
                       </td>
-                      <td style={{ padding: '14px 18px' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{tx.product_name}</div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>SKU: <code>{tx.product_sku}</code></div>
+                      <td>
+                        <div className="prod-name-text" style={{ fontSize: '0.8125rem' }}>{tx.product_name}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                          SKU: <span className="cust-code-text">{tx.product_sku || '—'}</span>
+                        </div>
                       </td>
-                      <td style={{ padding: '14px 18px', color: '#334155', fontWeight: 600 }}>
+                      <td style={{ color: '#334155', fontWeight: 600, fontSize: '0.8125rem' }}>
                         {tx.buyer_name || 'Direct Wholesale Buyer'}
                       </td>
-                      <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 700, color: '#059669' }}>
-                        {tx.quantity} units
+                      <td style={{ textAlign: 'right' }}>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                            padding: '2px 8px',
+                            borderRadius: '3px',
+                            backgroundColor: '#eff6ff',
+                            color: '#2563eb',
+                            border: '1px solid #bfdbfe'
+                          }}
+                        >
+                          {tx.quantity} units
+                        </span>
                       </td>
-                      <td style={{ padding: '14px 18px', textAlign: 'right', color: '#64748b' }} className="tabular">
+                      <td style={{ textAlign: 'right', color: '#64748b', fontSize: '0.8125rem' }}>
                         ₹{Number(tx.unit_price).toFixed(2)}
                       </td>
-                      <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#059669', fontSize: '0.92rem' }} className="tabular">
+                      <td style={{ textAlign: 'right', fontWeight: 800, color: '#16a34a', fontSize: '0.875rem' }}>
                         ₹{Number(tx.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
-                      <td style={{ padding: '14px 18px', fontSize: '0.8rem', color: '#64748b' }}>
-                        {tx.notes || tx.reference_no || '-'}
+                      <td style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        {tx.notes || tx.reference_no || '—'}
                       </td>
-                      <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => handleRollback(tx.id, tx.product_name)}
-                          disabled={deletingId === tx.id}
-                          title="Rollback sale and restore stock"
-                          style={{ color: '#dc2626', padding: '5px' }}
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="cust-actions-group">
+                          <button
+                            type="button"
+                            className="cust-action-btn delete"
+                            onClick={() => handleRollback(tx.id, tx.product_name)}
+                            disabled={deletingId === tx.id}
+                            title="Rollback sale and restore stock"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -973,27 +835,43 @@ export const WarehouseManagement: React.FC = () => {
 
         {/* Tab 3: Warehouse Damages History */}
         {activeTab === 'damages' && (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <div className="prod-table-responsive">
+            <table className="prod-spacious-table">
               <thead>
-                <tr style={{ backgroundColor: '#ffffff', borderBottom: '1.5px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Date</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Plant / Item</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right' }}>Damaged Qty</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right' }}>Unit Cost</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right' }}>Loss Value</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Cause / Reason</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Reported By</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'center' }}>Action</th>
+                <tr>
+                  <th style={{ minWidth: '130px' }}>Date</th>
+                  <th style={{ minWidth: '220px' }}>Plant / Item</th>
+                  <th style={{ minWidth: '120px', textAlign: 'right' }}>Damaged Qty</th>
+                  <th style={{ minWidth: '110px', textAlign: 'right' }}>Unit Cost</th>
+                  <th style={{ minWidth: '130px', textAlign: 'right' }}>Loss Value</th>
+                  <th style={{ minWidth: '160px' }}>Cause / Reason</th>
+                  <th style={{ minWidth: '140px' }}>Reported By</th>
+                  <th style={{ width: '80px', textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {damageTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
-                      <TrendingDown size={30} style={{ margin: '0 auto 8px auto', color: '#cbd5e1' }} />
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>No warehouse damages logged</div>
-                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '3px' }}>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                      <div
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '4px',
+                          backgroundColor: 'rgba(255, 159, 67, 0.1)',
+                          color: '#ff9f43',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto 12px auto',
+                        }}
+                      >
+                        <TrendingDown size={24} />
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', marginBottom: '4px' }}>
+                        No warehouse damages logged
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: '#64748b', maxWidth: '360px', margin: '0 auto' }}>
                         Click "+ Log Damage" if plants in the warehouse or greenhouse show wilting, pests, or decay.
                       </div>
                     </td>
@@ -1003,47 +881,73 @@ export const WarehouseManagement: React.FC = () => {
                     const rCfg = DAMAGE_REASONS[tx.damage_reason || ''] || DAMAGE_REASONS.other;
                     const ReasonIcon = rCfg.icon;
                     return (
-                      <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontWeight: 600, color: '#334155' }}>
+                      <tr key={tx.id}>
+                        <td>
+                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8125rem' }}>
                             {new Date(tx.transaction_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </div>
                         </td>
-                        <td style={{ padding: '14px 18px' }}>
-                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{tx.product_name}</div>
-                          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>SKU: <code>{tx.product_sku}</code></div>
+                        <td>
+                          <div className="prod-name-text" style={{ fontSize: '0.8125rem' }}>{tx.product_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                            SKU: <span className="cust-code-text">{tx.product_sku || '—'}</span>
+                          </div>
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                          <span style={{ fontWeight: 700, color: '#b91c1c', backgroundColor: '#fee2e2', padding: '3px 8px', borderRadius: '6px', fontSize: '0.8125rem' }}>
+                        <td style={{ textAlign: 'right' }}>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              backgroundColor: '#fee2e2',
+                              color: '#b91c1c',
+                              border: '1px solid #fecaca'
+                            }}
+                          >
                             -{tx.quantity} units
                           </span>
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'right', color: '#64748b' }} className="tabular">
+                        <td style={{ textAlign: 'right', color: '#64748b', fontSize: '0.8125rem' }}>
                           ₹{Number(tx.unit_price).toFixed(2)}
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#dc2626', fontSize: '0.92rem' }} className="tabular">
+                        <td style={{ textAlign: 'right', fontWeight: 800, color: '#dc2626', fontSize: '0.875rem' }}>
                           ₹{Number(tx.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
-                        <td style={{ padding: '14px 18px' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, padding: '3px 9px', borderRadius: '6px', backgroundColor: rCfg.bg, color: rCfg.color, border: `1px solid ${rCfg.border}` }}>
-                            <ReasonIcon size={13} />
+                        <td>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              backgroundColor: rCfg.bg,
+                              color: rCfg.color,
+                              border: `1px solid ${rCfg.border}`
+                            }}
+                          >
+                            <ReasonIcon size={12} />
                             <span>{rCfg.label}</span>
                           </span>
                         </td>
-                        <td style={{ padding: '14px 18px', color: '#334155', fontSize: '0.8125rem' }}>
+                        <td style={{ color: '#334155', fontSize: '0.8125rem' }}>
                           {tx.performed_by || 'Staff'}
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => handleRollback(tx.id, tx.product_name)}
-                            disabled={deletingId === tx.id}
-                            title="Rollback damage and restore stock"
-                            style={{ color: '#dc2626', padding: '5px' }}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        <td style={{ textAlign: 'right' }}>
+                          <div className="cust-actions-group">
+                            <button
+                              type="button"
+                              className="cust-action-btn delete"
+                              onClick={() => handleRollback(tx.id, tx.product_name)}
+                              disabled={deletingId === tx.id}
+                              title="Rollback damage and restore stock"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1056,98 +960,145 @@ export const WarehouseManagement: React.FC = () => {
 
         {/* Tab 4: Movement Ledger (Timeline) */}
         {activeTab === 'ledger' && (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <div className="prod-table-responsive">
+            <table className="prod-spacious-table">
               <thead>
-                <tr style={{ backgroundColor: '#ffffff', borderBottom: '1.5px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Date</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Movement Type</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Item Details</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right' }}>Quantity</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'center' }}>Stock Balance</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'right' }}>Amount</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'left' }}>Notes / Handled By</th>
-                  <th style={{ padding: '12px 18px', textAlign: 'center' }}>Action</th>
+                <tr>
+                  <th style={{ minWidth: '140px' }}>Date & Time</th>
+                  <th style={{ minWidth: '160px' }}>Movement Type</th>
+                  <th style={{ minWidth: '220px' }}>Item Details</th>
+                  <th style={{ minWidth: '120px', textAlign: 'right' }}>Quantity</th>
+                  <th style={{ minWidth: '130px', textAlign: 'center' }}>Stock Balance</th>
+                  <th style={{ minWidth: '120px', textAlign: 'right' }}>Amount</th>
+                  <th style={{ minWidth: '160px' }}>Notes / Handled By</th>
+                  <th style={{ width: '80px', textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
-                      <Layers size={30} style={{ margin: '0 auto 8px auto', color: '#cbd5e1' }} />
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>No movement activity recorded</div>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                      <div
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '4px',
+                          backgroundColor: 'rgba(255, 159, 67, 0.1)',
+                          color: '#ff9f43',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto 12px auto',
+                        }}
+                      >
+                        <Layers size={24} />
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', marginBottom: '4px' }}>
+                        No movement activity recorded
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: '#64748b', maxWidth: '360px', margin: '0 auto' }}>
+                        Transactions will appear here as stock arrives, transfers, or is sold.
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   transactions.map((tx) => {
-                    let badgeColor = '#4f46e5';
-                    let badgeBg = '#e0e7ff';
+                    let badgeColor = '#2563eb';
+                    let badgeBg = '#eff6ff';
+                    let badgeBorder = '#bfdbfe';
                     let label = 'Movement';
 
                     if (tx.type === 'inward') {
-                      badgeColor = '#059669';
-                      badgeBg = '#d1fae5';
+                      badgeColor = '#16a34a';
+                      badgeBg = '#f0fdf4';
+                      badgeBorder = '#bbf7d0';
                       label = 'Stock Inward (Arrival)';
                     } else if (tx.type === 'sale') {
-                      badgeColor = '#4338ca';
-                      badgeBg = '#e0e7ff';
+                      badgeColor = '#2563eb';
+                      badgeBg = '#eff6ff';
+                      badgeBorder = '#bfdbfe';
                       label = 'Warehouse Sale';
                     } else if (tx.type === 'damage') {
                       badgeColor = '#dc2626';
-                      badgeBg = '#fee2e2';
+                      badgeBg = '#fef2f2';
+                      badgeBorder = '#fecaca';
                       label = 'Warehouse Damage';
                     } else if (tx.type === 'transfer_to_shop') {
                       badgeColor = '#d97706';
-                      badgeBg = '#fef3c7';
+                      badgeBg = '#fffbeb';
+                      badgeBorder = '#fde68a';
                       label = 'Dispatched to Shop';
                     }
 
                     return (
-                      <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontWeight: 600, color: '#334155' }}>
+                      <tr key={tx.id}>
+                        <td>
+                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8125rem' }}>
                             {new Date(tx.transaction_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                          <div className="cust-code-text" style={{ marginTop: '2px' }}>
                             {new Date(tx.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </td>
-                        <td style={{ padding: '14px 18px' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', backgroundColor: badgeBg, color: badgeColor }}>
+                        <td>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              backgroundColor: badgeBg,
+                              color: badgeColor,
+                              border: `1px solid ${badgeBorder}`
+                            }}
+                          >
                             {label}
                           </span>
                         </td>
-                        <td style={{ padding: '14px 18px' }}>
-                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{tx.product_name}</div>
-                          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>SKU: <code>{tx.product_sku}</code></div>
+                        <td>
+                          <div className="prod-name-text" style={{ fontSize: '0.8125rem' }}>{tx.product_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                            SKU: <span className="cust-code-text">{tx.product_sku || '—'}</span>
+                          </div>
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 700 }}>
-                          <span style={{ color: tx.type === 'inward' ? '#059669' : '#dc2626' }}>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              backgroundColor: tx.type === 'inward' ? '#f0fdf4' : '#fef2f2',
+                              color: tx.type === 'inward' ? '#16a34a' : '#dc2626',
+                              border: `1px solid ${tx.type === 'inward' ? '#bbf7d0' : '#fecaca'}`
+                            }}
+                          >
                             {tx.type === 'inward' ? `+${tx.quantity}` : `-${tx.quantity}`} units
                           </span>
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'center', fontSize: '0.8125rem' }}>
-                          <span style={{ color: '#64748b' }}>{tx.previous_stock}</span> &rarr;{' '}
+                        <td style={{ textAlign: 'center', fontSize: '0.8125rem' }}>
+                          <span style={{ color: '#64748b' }}>{tx.previous_stock}</span>{' '}
+                          <span style={{ color: '#94a3b8', margin: '0 2px' }}>➔</span>{' '}
                           <strong style={{ color: '#0f172a' }}>{tx.new_stock}</strong>
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 600 }} className="tabular">
-                          {Number(tx.total_amount) > 0 ? `₹${Number(tx.total_amount).toFixed(2)}` : '-'}
+                        <td style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.8125rem' }}>
+                          {Number(tx.total_amount) > 0 ? `₹${Number(tx.total_amount).toFixed(2)}` : '—'}
                         </td>
-                        <td style={{ padding: '14px 18px', fontSize: '0.8rem', color: '#475569' }}>
-                          <div>{tx.notes || tx.buyer_name || '-'}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>By: {tx.performed_by || 'Staff'}</div>
+                        <td style={{ fontSize: '0.75rem', color: '#475569' }}>
+                          <div>{tx.notes || tx.buyer_name || '—'}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>By: {tx.performed_by || 'Staff'}</div>
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => handleRollback(tx.id, tx.product_name)}
-                            disabled={deletingId === tx.id}
-                            title="Rollback transaction and restore stock"
-                            style={{ color: '#dc2626', padding: '5px' }}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        <td style={{ textAlign: 'right' }}>
+                          <div className="cust-actions-group">
+                            <button
+                              type="button"
+                              className="cust-action-btn delete"
+                              onClick={() => handleRollback(tx.id, tx.product_name)}
+                              disabled={deletingId === tx.id}
+                              title="Rollback transaction and restore stock"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1157,6 +1108,17 @@ export const WarehouseManagement: React.FC = () => {
             </table>
           </div>
         )}
+
+        {/* Footer */}
+        <div className="cust-table-footer">
+          <span>
+            {activeTab === 'inventory' && `Showing ${filteredInventory.length} of ${inventory.length} total botanical items`}
+            {activeTab === 'sales' && `Showing ${salesTransactions.length} direct warehouse sales records`}
+            {activeTab === 'damages' && `Showing ${damageTransactions.length} damage audit logs`}
+            {activeTab === 'ledger' && `Showing ${transactions.length} movement ledger entries`}
+          </span>
+          <span style={{ fontWeight: 600 }}>Live warehouse inventory reconciliation active</span>
+        </div>
       </div>
 
       {/* Action Modals */}
@@ -1165,13 +1127,14 @@ export const WarehouseManagement: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(3px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 9999,
-            padding: '16px'
+            padding: '16px',
+            fontFamily: "'Nunito', sans-serif"
           }}
         >
           <div
@@ -1181,31 +1144,31 @@ export const WarehouseManagement: React.FC = () => {
               maxHeight: 'min(90vh, 740px)',
               display: 'flex',
               flexDirection: 'column',
-              borderRadius: '16px',
+              borderRadius: '4px',
               backgroundColor: '#ffffff',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #cbd5e1',
+              boxShadow: 'none',
               overflow: 'hidden'
             }}
           >
-            {/* Modal Header (Sticky) */}
+            {/* Modal Header */}
             <div
               style={{
-                padding: '16px 22px',
-                borderBottom: '1px solid #f1f5f9',
+                padding: '14px 20px',
+                borderBottom: '1px solid #e2e8f0',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                backgroundColor: '#ffffff',
+                backgroundColor: '#f8fafc',
                 flexShrink: 0
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div
                   style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '4px',
                     backgroundColor:
                       modalType === 'inward'
                         ? '#d1fae5'
@@ -1233,13 +1196,13 @@ export const WarehouseManagement: React.FC = () => {
                   {modalType === 'transfer_to_shop' && <ArrowLeftRight size={18} />}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                     {modalType === 'inward' && 'Record Inward Stock Arrival'}
                     {modalType === 'sale' && 'Record Warehouse Direct Sale'}
                     {modalType === 'damage' && 'Log Warehouse Damage / Spoilage'}
                     {modalType === 'transfer_to_shop' && 'Dispatch Stock to Shop Counter'}
                   </h3>
-                  <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0 0' }}>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0 0' }}>
                     {modalType === 'inward' && 'Increments central warehouse stock count'}
                     {modalType === 'sale' && 'Deducts warehouse stock and records bulk sales revenue'}
                     {modalType === 'damage' && 'Deducts warehouse stock and calculates spoilage financial loss'}
@@ -1251,9 +1214,9 @@ export const WarehouseManagement: React.FC = () => {
                 type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={() => setModalType(null)}
-                style={{ padding: '6px', color: '#64748b', borderRadius: '8px' }}
+                style={{ padding: '6px', color: '#64748b', borderRadius: '4px', border: '1px solid #cbd5e1' }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
@@ -1263,21 +1226,21 @@ export const WarehouseManagement: React.FC = () => {
                 style={{
                   flex: '1 1 auto',
                   overflowY: 'auto',
-                  padding: '18px 22px',
+                  padding: '16px 20px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '14px'
                 }}
               >
                 {formError && (
-                  <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '0.84rem' }}>
+                  <div style={{ padding: '8px 12px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', color: '#b91c1c', fontSize: '0.8rem' }}>
                     {formError}
                   </div>
                 )}
 
                 {/* Select Plant */}
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label required" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                  <label className="form-label required" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
                     Select Botanical / Inventory Item
                   </label>
                   <ProductSearchSelect
@@ -1302,8 +1265,8 @@ export const WarehouseManagement: React.FC = () => {
                     style={{
                       padding: '10px 14px',
                       backgroundColor: '#f8fafc',
-                      borderRadius: '8px',
-                      border: '1px solid #e2e8f0',
+                      borderRadius: '4px',
+                      border: '1px solid #cbd5e1',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -1312,24 +1275,24 @@ export const WarehouseManagement: React.FC = () => {
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem' }}>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>
                         {selectedProduct.name}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                        SKU: <code>{selectedProduct.sku}</code> &bull; Retail MRP: ₹{Number(selectedProduct.sale_price).toFixed(2)}
+                        SKU: <span className="cust-code-text">{selectedProduct.sku}</span> &bull; Retail MRP: ₹{Number(selectedProduct.sale_price).toFixed(2)}
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '14px', textAlign: 'right' }}>
                       <div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Warehouse Stock</div>
-                        <div style={{ fontWeight: 700, color: currentSelectedWhItem.warehouse_stock <= 5 ? '#dc2626' : '#4f46e5', fontSize: '0.84rem' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Warehouse Stock</div>
+                        <div style={{ fontWeight: 800, color: currentSelectedWhItem.warehouse_stock <= 5 ? '#dc2626' : '#047857', fontSize: '0.82rem' }}>
                           {currentSelectedWhItem.warehouse_stock} units
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Shop Stock</div>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Shop Stock</div>
+                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.82rem' }}>
                           {currentSelectedWhItem.shop_stock} units
                         </div>
                       </div>
@@ -1340,7 +1303,7 @@ export const WarehouseManagement: React.FC = () => {
                 {/* Quantity & Date */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label required" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                    <label className="form-label required" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
                       Quantity ({modalType === 'inward' ? 'Units Received' : modalType === 'sale' ? 'Units Sold' : modalType === 'damage' ? 'Damaged Units' : 'Units to Dispatch'})
                     </label>
                     <input
@@ -1350,7 +1313,7 @@ export const WarehouseManagement: React.FC = () => {
                       value={quantity}
                       onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
                       required
-                      style={{ fontSize: '0.85rem' }}
+                      style={{ fontSize: '0.82rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                     />
                     {currentSelectedWhItem && ['sale', 'damage', 'transfer_to_shop'].includes(modalType) && (
                       <div style={{ fontSize: '0.72rem', marginTop: '3px', color: quantity > currentSelectedWhItem.warehouse_stock ? '#dc2626' : '#64748b' }}>
@@ -1364,7 +1327,7 @@ export const WarehouseManagement: React.FC = () => {
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label required" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                    <label className="form-label required" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
                       Date
                     </label>
                     <input
@@ -1373,7 +1336,7 @@ export const WarehouseManagement: React.FC = () => {
                       value={transactionDate}
                       onChange={(e) => setTransactionDate(e.target.value)}
                       required
-                      style={{ fontSize: '0.85rem' }}
+                      style={{ fontSize: '0.82rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                     />
                   </div>
                 </div>
@@ -1382,7 +1345,7 @@ export const WarehouseManagement: React.FC = () => {
                 {modalType === 'sale' && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label required" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                      <label className="form-label required" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
                         Buyer / Customer / Project
                       </label>
                       <input
@@ -1392,12 +1355,12 @@ export const WarehouseManagement: React.FC = () => {
                         onChange={(e) => setBuyerName(e.target.value)}
                         placeholder="e.g. Kaveri Landscaping / Walk-in"
                         required
-                        style={{ fontSize: '0.85rem' }}
+                        style={{ fontSize: '0.82rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                       />
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label required" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                      <label className="form-label required" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
                         Selling Price / Unit (₹)
                       </label>
                       <input
@@ -1408,7 +1371,7 @@ export const WarehouseManagement: React.FC = () => {
                         value={unitPrice}
                         onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
                         required
-                        style={{ fontSize: '0.85rem' }}
+                        style={{ fontSize: '0.82rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                       />
                     </div>
                   </div>
@@ -1417,7 +1380,7 @@ export const WarehouseManagement: React.FC = () => {
                 {/* Damage Reason Selector */}
                 {modalType === 'damage' && (
                   <div>
-                    <label className="form-label required" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    <label className="form-label required" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                       Cause of Damage / Spoilage
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
@@ -1435,8 +1398,8 @@ export const WarehouseManagement: React.FC = () => {
                               alignItems: 'flex-start',
                               gap: '4px',
                               padding: '8px 10px',
-                              borderRadius: '8px',
-                              border: isSelected ? `2px solid ${cfg.color}` : '1px solid #e2e8f0',
+                              borderRadius: '4px',
+                              border: isSelected ? `2px solid ${cfg.color}` : '1px solid #cbd5e1',
                               backgroundColor: isSelected ? cfg.bg : '#ffffff',
                               color: isSelected ? cfg.color : '#334155',
                               cursor: 'pointer',
@@ -1447,7 +1410,7 @@ export const WarehouseManagement: React.FC = () => {
                               <IconComp size={14} />
                               {isSelected && <Check size={10} strokeWidth={3} />}
                             </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: isSelected ? 700 : 500, lineHeight: 1.2 }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: isSelected ? 700 : 600, lineHeight: 1.2 }}>
                               {cfg.label}
                             </span>
                           </button>
@@ -1460,7 +1423,7 @@ export const WarehouseManagement: React.FC = () => {
                 {/* Reference & Notes */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
                       Reference #
                     </label>
                     <input
@@ -1469,12 +1432,12 @@ export const WarehouseManagement: React.FC = () => {
                       value={referenceNo}
                       onChange={(e) => setReferenceNo(e.target.value)}
                       placeholder="e.g. WH-SO-1029 / PO-45"
-                      style={{ fontSize: '0.85rem' }}
+                      style={{ fontSize: '0.82rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                     />
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
                       Notes / Remarks
                     </label>
                     <input
@@ -1483,7 +1446,7 @@ export const WarehouseManagement: React.FC = () => {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="e.g. Dispatched for Saturday sales"
-                      style={{ fontSize: '0.85rem' }}
+                      style={{ fontSize: '0.82rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                     />
                   </div>
                 </div>
@@ -1495,7 +1458,7 @@ export const WarehouseManagement: React.FC = () => {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '12px 22px',
+                  padding: '12px 20px',
                   borderTop: '1px solid #e2e8f0',
                   backgroundColor: '#f8fafc',
                   flexShrink: 0
@@ -1504,27 +1467,27 @@ export const WarehouseManagement: React.FC = () => {
                 <div>
                   {modalType === 'sale' && (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Total Revenue:</span>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Total Revenue:</span>
+                      <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#047857' }}>
                         ₹{(quantity * unitPrice).toFixed(2)}
                       </span>
                     </div>
                   )}
                   {modalType === 'damage' && (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Estimated Loss:</span>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#dc2626' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Estimated Loss:</span>
+                      <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#b91c1c' }}>
                         ₹{(quantity * unitPrice).toFixed(2)}
                       </span>
                     </div>
                   )}
                   {modalType === 'transfer_to_shop' && selectedProduct && (
-                    <div style={{ fontSize: '0.78rem', color: '#d97706', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: 700 }}>
                       Shop stock will become: {((currentSelectedWhItem?.shop_stock || 0) + quantity)} units
                     </div>
                   )}
                   {modalType === 'inward' && (
-                    <div style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 700 }}>
                       + {quantity} units adding to warehouse stock
                     </div>
                   )}
@@ -1536,7 +1499,7 @@ export const WarehouseManagement: React.FC = () => {
                     className="btn btn-secondary"
                     onClick={() => setModalType(null)}
                     disabled={isSubmitting}
-                    style={{ padding: '7px 14px', fontSize: '0.82rem' }}
+                    style={{ padding: '6px 14px', fontSize: '0.82rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                   >
                     Cancel
                   </button>
@@ -1546,16 +1509,16 @@ export const WarehouseManagement: React.FC = () => {
                     style={{
                       backgroundColor:
                         modalType === 'inward'
-                          ? '#059669'
+                          ? '#047857'
                           : modalType === 'sale'
                           ? '#4f46e5'
                           : modalType === 'damage'
-                          ? '#dc2626'
+                          ? '#b91c1c'
                           : '#d97706',
                       color: '#ffffff',
                       border: 'none',
-                      borderRadius: '7px',
-                      padding: '7px 18px',
+                      borderRadius: '4px',
+                      padding: '6px 16px',
                       fontSize: '0.82rem',
                       fontWeight: 700,
                       display: 'inline-flex',

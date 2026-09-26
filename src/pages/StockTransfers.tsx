@@ -343,7 +343,7 @@ export const StockTransfers: React.FC = () => {
         <div className="prod-page-title-group">
           <h1>Stock Transfers & Dispatch</h1>
           <p>
-            Move inventory smoothly between central greenhouse / warehouse and retail shop counters with live tracking & stock reconciliation.
+            Move inventory between warehouse and retail shop counters with live stock tracking.
           </p>
         </div>
 
@@ -371,7 +371,7 @@ export const StockTransfers: React.FC = () => {
             className="prod-add-btn"
             onClick={() => handleOpenTransferModal('transfer_to_shop')}
           >
-            <Plus size={16} /> New Warehouse ➔ Shop Transfer
+            <Plus size={15} /> Warehouse ➔ Shop Transfer
           </button>
         </div>
       </div>
@@ -380,9 +380,9 @@ export const StockTransfers: React.FC = () => {
       {notification && (
         <div
           style={{
-            padding: '12px 16px',
+            padding: '10px 14px',
             borderRadius: '4px',
-            marginBottom: '18px',
+            marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
@@ -394,13 +394,13 @@ export const StockTransfers: React.FC = () => {
             boxShadow: 'none',
           }}
         >
-          {notification.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          {notification.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
           <span>{notification.message}</span>
         </div>
       )}
 
       {/* 2. Key Metrics Stat Cards (Dashboard Style) */}
-      <div className="dash-stats-grid" style={{ marginBottom: '20px' }}>
+      <div className="dash-stats-grid" style={{ marginBottom: '12px' }}>
         {/* Card 1: Warehouse to Shop */}
         <div className="dash-white-card">
           <div className="dash-white-top">
@@ -526,13 +526,13 @@ export const StockTransfers: React.FC = () => {
           <table className="prod-spacious-table">
             <thead>
               <tr>
-                <th style={{ minWidth: '160px' }}>Date & Slip #</th>
-                <th style={{ minWidth: '240px' }}>Product & Category</th>
-                <th style={{ minWidth: '180px', textAlign: 'center' }}>Direction</th>
-                <th style={{ minWidth: '140px', textAlign: 'right' }}>Transferred Qty</th>
-                <th style={{ minWidth: '140px', textAlign: 'center' }}>Warehouse Stock</th>
-                <th style={{ minWidth: '180px' }}>Handler & Notes</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>Actions</th>
+                <th style={{ minWidth: '130px' }}>Date & Slip #</th>
+                <th style={{ minWidth: '200px' }}>Product & Category</th>
+                <th style={{ minWidth: '150px', textAlign: 'center' }}>Direction</th>
+                <th style={{ minWidth: '120px', textAlign: 'right' }}>Transferred Qty</th>
+                <th style={{ minWidth: '120px', textAlign: 'center' }}>Warehouse Stock</th>
+                <th style={{ minWidth: '150px' }}>Handler & Notes</th>
+                <th style={{ width: '80px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -597,7 +597,7 @@ export const StockTransfers: React.FC = () => {
                       {/* Product */}
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div className="prod-thumb-box" style={{ width: '36px', height: '36px' }}>
+                          <div className="prod-thumb-box" style={{ width: '32px', height: '32px' }}>
                             {tx.product_image_url ? (
                               <img src={tx.product_image_url} alt="" />
                             ) : (
