@@ -311,59 +311,34 @@ export const LossTracking: React.FC = () => {
   const liveLossTotal = Number((quantity * unitVal).toFixed(2));
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '60px' }}>
+    <div className="prod-page-container">
       {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div
-              style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                color: '#dc2626',
-                border: '1px solid rgba(220, 38, 38, 0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.12)'
-              }}
-            >
-              <FileWarning size={22} strokeWidth={2} />
-            </div>
-            <div>
-              <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.02em' }}>
-                Inventory Loss & Damage Tracking
-              </h1>
-              <p style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary, #64748b)', margin: '3px 0 0 0' }}>
-                Audit daily plant mortality, decay, and damage with automatic stock deductions for <strong>{activeBusiness.name}</strong>
-              </p>
-            </div>
-          </div>
+      <div className="prod-page-header">
+        <div className="prod-page-title-group">
+          <h1>Inventory Loss & Damage Tracking</h1>
+          <p>
+            Audit daily plant mortality, decay, and damage with automatic stock deductions for <strong>{activeBusiness.name}</strong>
+          </p>
         </div>
 
-        <button
-          type="button"
-          className="btn"
-          onClick={handleOpenModal}
-          style={{
-            backgroundColor: '#dc2626',
-            color: '#ffffff',
-            borderColor: '#dc2626',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '9px 18px',
-            fontSize: '0.875rem',
-            fontWeight: 700,
-            borderRadius: '10px',
-            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)'
-          }}
-        >
-          <Plus size={16} /> Record Damage Entry
-        </button>
+        <div className="prod-header-actions">
+          <button
+            type="button"
+            className="prod-icon-btn"
+            onClick={fetchData}
+            title="Refresh Data"
+          >
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          </button>
+
+          <button
+            type="button"
+            className="prod-add-btn"
+            onClick={handleOpenModal}
+          >
+            <Plus size={16} /> Record Damage Entry
+          </button>
+        </div>
       </div>
 
       {/* Notification Toast */}
@@ -373,14 +348,15 @@ export const LossTracking: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '12px 18px',
-            marginBottom: '20px',
-            backgroundColor: notification.type === 'success' ? '#f0fdf4' : '#fef2f2',
-            border: `1px solid ${notification.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-            borderRadius: '12px',
-            color: notification.type === 'success' ? '#166534' : '#991b1b',
-            fontSize: '0.875rem',
-            fontWeight: 500
+            padding: '12px 16px',
+            marginBottom: '18px',
+            backgroundColor: notification.type === 'success' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(220, 38, 38, 0.12)',
+            border: `1px solid ${notification.type === 'success' ? 'rgba(22, 163, 74, 0.25)' : 'rgba(220, 38, 38, 0.25)'}`,
+            borderRadius: '4px',
+            color: notification.type === 'success' ? '#15803d' : '#b91c1c',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            boxShadow: 'none',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -397,157 +373,133 @@ export const LossTracking: React.FC = () => {
         </div>
       )}
 
-      {/* KPI Cards Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      {/* KPI Cards Row (Dashboard Style) */}
+      <div className="dash-stats-grid" style={{ marginBottom: '20px' }}>
         {/* KPI 1: Total Loss */}
-        <div
-          className="card"
-          style={{
-            padding: '20px',
-            backgroundColor: '#ffffff',
-            borderRadius: '14px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>Total Financial Loss</span>
-            <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', color: '#dc2626', border: '1px solid rgba(220, 38, 38, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IndianRupee size={17} strokeWidth={2.2} />
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Total Financial Loss</span>
+              <span className="dash-white-amount" style={{ color: '#dc2626' }}>
+                ₹{Number(metrics?.total_loss_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="dash-soft-icon icon-coral">
+              <IndianRupee size={18} strokeWidth={2.2} />
             </div>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#dc2626' }}>
-            ₹{Number(metrics?.total_loss_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
             Across {metrics?.total_records || 0} damage audit logs
           </div>
         </div>
 
         {/* KPI 2: Total Units Lost */}
-        <div
-          className="card"
-          style={{
-            padding: '20px',
-            backgroundColor: '#ffffff',
-            borderRadius: '14px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>Total Damaged Units</span>
-            <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#d97706', border: '1px solid rgba(217, 119, 6, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <PackageX size={17} strokeWidth={2} />
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Total Damaged Units</span>
+              <span className="dash-white-amount">
+                {metrics?.total_items_lost || 0}{' '}
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#64748b' }}>units</span>
+              </span>
+            </div>
+            <div className="dash-soft-icon icon-amber">
+              <PackageX size={18} strokeWidth={2} />
             </div>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a' }}>
-            {metrics?.total_items_lost || 0} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#64748b' }}>units</span>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
             Subtracted from active catalog inventory
           </div>
         </div>
 
         {/* KPI 3: Today's Damage */}
-        <div
-          className="card"
-          style={{
-            padding: '20px',
-            backgroundColor: '#ffffff',
-            borderRadius: '14px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>Today's Spoilage</span>
-            <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)', color: '#4f46e5', border: '1px solid rgba(79, 70, 229, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CalendarDays size={17} strokeWidth={2} />
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Today's Spoilage</span>
+              <span className="dash-white-amount">
+                ₹{Number(metrics?.today_loss_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="dash-soft-icon icon-purple">
+              <CalendarDays size={18} strokeWidth={2} />
             </div>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a' }}>
-            ₹{Number(metrics?.today_loss_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '4px', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 }}>
             {metrics?.today_items_lost || 0} unit(s) recorded today
           </div>
         </div>
 
         {/* KPI 4: Top Cause */}
-        <div
-          className="card"
-          style={{
-            padding: '20px',
-            backgroundColor: '#ffffff',
-            borderRadius: '14px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>Primary Spoilage Cause</span>
-            <div style={{ width: '34px', height: '34px', borderRadius: '9px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ShieldAlert size={17} strokeWidth={2} />
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Primary Spoilage Cause</span>
+              <span className="dash-white-amount" style={{ fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {metrics?.top_reasons && metrics.top_reasons[0] ? (
+                  (() => {
+                    const rCfg = REASON_CONFIG[metrics.top_reasons[0].reason as LossReason] || REASON_CONFIG.other;
+                    const IconComponent = rCfg.icon;
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <IconComponent size={16} style={{ color: rCfg.color }} />
+                        <span>{rCfg.label}</span>
+                      </span>
+                    );
+                  })()
+                ) : (
+                  'None Recorded'
+                )}
+              </span>
+            </div>
+            <div className="dash-soft-icon icon-mint">
+              <ShieldAlert size={18} strokeWidth={2} />
             </div>
           </div>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {metrics?.top_reasons && metrics.top_reasons[0] ? (
-              (() => {
-                const rCfg = REASON_CONFIG[metrics.top_reasons[0].reason as LossReason] || REASON_CONFIG.other;
-                const IconComponent = rCfg.icon;
-                return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <IconComponent size={18} style={{ color: rCfg.color }} />
-                    <span>{rCfg.label}</span>
-                  </span>
-                );
-              })()
-            ) : (
-              'None Recorded'
-            )}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
             {metrics?.top_reasons && metrics.top_reasons[0] ? `${metrics.top_reasons[0].units_lost} units lost to this cause` : 'No logs recorded'}
           </div>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div
-        className="card"
-        style={{
-          padding: '14px 18px',
-          backgroundColor: '#ffffff',
-          borderRadius: '14px',
-          border: '1px solid #e2e8f0',
-          marginBottom: '20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
-          <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+      {/* Integrated Table Card */}
+      <div className="prod-table-card">
+        {/* Toolbar */}
+        <div className="prod-table-toolbar">
+          <div className="prod-search-box">
+            <Search size={15} className="prod-search-icon" />
             <input
               type="text"
-              className="form-input"
+              className="prod-search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by plant name, SKU, or reporter..."
-              style={{ paddingLeft: '36px', fontSize: '0.875rem' }}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#94a3b8',
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
-          <div style={{ minWidth: '190px' }}>
+          <div className="prod-toolbar-filters">
             <select
-              className="form-input"
+              className="prod-filter-select"
               value={selectedReason}
               onChange={(e) => setSelectedReason(e.target.value)}
-              style={{ fontSize: '0.875rem' }}
             >
               <option value="all">All Spoilage Causes</option>
               {Object.entries(REASON_CONFIG).map(([key, cfg]) => (
@@ -556,84 +508,60 @@ export const LossTracking: React.FC = () => {
                 </option>
               ))}
             </select>
+
+            <select
+              className="prod-filter-select"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value as any)}
+            >
+              <option value="month">Timeframe: This Month</option>
+              <option value="today">Timeframe: Today Only</option>
+              <option value="7days">Timeframe: Last 7 Days</option>
+              <option value="all">Timeframe: All Time</option>
+            </select>
           </div>
         </div>
 
-        {/* Date Filter Buttons */}
-        <div style={{ display: 'flex', gap: '4px', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '10px' }}>
-          <button
-            type="button"
-            className={`btn btn-sm ${dateFilter === 'today' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setDateFilter('today')}
-            style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '7px' }}
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${dateFilter === '7days' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setDateFilter('7days')}
-            style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '7px' }}
-          >
-            7 Days
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${dateFilter === 'month' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setDateFilter('month')}
-            style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '7px' }}
-          >
-            This Month
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${dateFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setDateFilter('all')}
-            style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '7px' }}
-          >
-            All Time
-          </button>
-        </div>
-      </div>
-
-      {/* Losses Table */}
-      <div
-        className="card"
-        style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '14px',
-          border: '1px solid #e2e8f0',
-          overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)'
-        }}
-      >
-        <div style={{ overflowX: 'auto' }}>
-          <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+        {/* Table Content */}
+        <div className="prod-table-responsive">
+          <table className="prod-spacious-table">
             <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <th style={{ padding: '14px 18px', textAlign: 'left' }}>Date</th>
-                <th style={{ padding: '14px 18px', textAlign: 'left' }}>Plant / Item Details</th>
-                <th style={{ padding: '14px 18px', textAlign: 'right' }}>Damaged Qty</th>
-                <th style={{ padding: '14px 18px', textAlign: 'right' }}>Unit Cost</th>
-                <th style={{ padding: '14px 18px', textAlign: 'right' }}>Total Loss Amount</th>
-                <th style={{ padding: '14px 18px', textAlign: 'left' }}>Cause / Reason</th>
-                <th style={{ padding: '14px 18px', textAlign: 'left' }}>Reported By</th>
-                <th style={{ padding: '14px 18px', textAlign: 'center' }}>Action</th>
+              <tr>
+                <th style={{ minWidth: '150px' }}>Date</th>
+                <th style={{ minWidth: '240px' }}>Plant / Item Details</th>
+                <th style={{ minWidth: '130px', textAlign: 'right' }}>Damaged Qty</th>
+                <th style={{ minWidth: '120px', textAlign: 'right' }}>Unit Cost</th>
+                <th style={{ minWidth: '140px', textAlign: 'right' }}>Total Loss</th>
+                <th style={{ minWidth: '180px' }}>Cause / Reason</th>
+                <th style={{ minWidth: '150px' }}>Reported By</th>
+                <th style={{ width: '80px', textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                    <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', color: '#16a34a' }} />
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                    <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', color: '#ff9f43' }} />
                     <div>Loading inventory damage logs...</div>
                   </td>
                 </tr>
               ) : filteredLosses.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
-                      <Trees size={24} style={{ color: '#94a3b8' }} />
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                    <div
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '4px',
+                        backgroundColor: 'rgba(255, 159, 67, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 12px auto',
+                        color: '#ff9f43',
+                      }}
+                    >
+                      <Trees size={24} />
                     </div>
                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>No damage logs found</div>
                     <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: '4px' }}>
@@ -645,51 +573,54 @@ export const LossTracking: React.FC = () => {
                 filteredLosses.map((item) => {
                   const reasonCfg = REASON_CONFIG[item.reason] || REASON_CONFIG.other;
                   const ReasonIcon = reasonCfg.icon;
+                  const formattedDate = new Date(item.damage_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  const formattedTime = item.created_at ? new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+
                   return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={item.id}>
                       {/* Date */}
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap', color: '#334155' }}>
-                        <div style={{ fontWeight: 600 }}>
-                          {new Date(item.damage_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      <td>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8125rem' }}>
+                          {formattedDate}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                          {item.created_at ? new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
-                        </div>
+                        {formattedTime && (
+                          <div className="cust-email-text" style={{ marginTop: '2px', fontSize: '0.72rem' }}>
+                            {formattedTime}
+                          </div>
+                        )}
                       </td>
 
                       {/* Product Name & SKU */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          {item.product_image_url ? (
-                            <img
-                              src={item.product_image_url}
-                              alt={item.product_name}
-                              style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
-                            />
-                          ) : (
-                            <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
-                              <Trees size={18} />
-                            </div>
-                          )}
+                          <div className="prod-thumb-box" style={{ width: '36px', height: '36px' }}>
+                            {item.product_image_url ? (
+                              <img src={item.product_image_url} alt={item.product_name} />
+                            ) : (
+                              <Trees size={18} color="#16a34a" />
+                            )}
+                          </div>
                           <div>
-                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.product_name || 'Plant'}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                              SKU: <code>{item.product_sku || 'N/A'}</code>
+                            <div className="prod-name-text" style={{ fontSize: '0.8125rem' }}>
+                              {item.product_name || 'Plant'}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                              SKU: <span className="cust-code-text">{item.product_sku || 'N/A'}</span>
                             </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Damaged Quantity */}
-                      <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         <span
                           style={{
                             fontWeight: 700,
                             color: '#b91c1c',
                             backgroundColor: '#fee2e2',
                             padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.8125rem'
+                            borderRadius: '3px',
+                            fontSize: '0.75rem',
                           }}
                         >
                           -{item.quantity} units
@@ -697,32 +628,32 @@ export const LossTracking: React.FC = () => {
                       </td>
 
                       {/* Unit Cost */}
-                      <td style={{ padding: '14px 18px', textAlign: 'right', color: '#64748b' }} className="tabular">
+                      <td style={{ textAlign: 'right', color: '#64748b', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                         ₹{Number(item.unit_cost || item.unit_price).toFixed(2)}
                       </td>
 
                       {/* Total Loss Amount */}
-                      <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#dc2626', fontSize: '0.95rem' }} className="tabular">
+                      <td style={{ textAlign: 'right', fontWeight: 800, color: '#dc2626', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' }}>
                         ₹{Number(item.loss_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
 
                       {/* Cause / Reason */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td>
                         <span
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '6px',
+                            gap: '5px',
                             fontSize: '0.75rem',
-                            fontWeight: 600,
+                            fontWeight: 700,
                             padding: '3px 9px',
-                            borderRadius: '6px',
+                            borderRadius: '3px',
                             backgroundColor: reasonCfg.bg,
                             color: reasonCfg.color,
-                            border: `1px solid ${reasonCfg.border}`
+                            border: `1px solid ${reasonCfg.border}`,
                           }}
                         >
-                          <ReasonIcon size={13} />
+                          <ReasonIcon size={12} />
                           <span>{reasonCfg.label}</span>
                         </span>
                         {item.notes && (
@@ -733,22 +664,25 @@ export const LossTracking: React.FC = () => {
                       </td>
 
                       {/* Reported By */}
-                      <td style={{ padding: '14px 18px', color: '#334155', fontSize: '0.8125rem' }}>
-                        {item.reported_by || 'Staff Member'}
+                      <td>
+                        <span className="cust-company-text">
+                          {item.reported_by || 'Staff Member'}
+                        </span>
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => handleDeleteLoss(item.id, item.product_name)}
-                          disabled={deletingId === item.id}
-                          title="Rollback damage entry and restore stock"
-                          style={{ color: '#dc2626', padding: '6px' }}
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="cust-actions-group">
+                          <button
+                            type="button"
+                            className="cust-action-btn delete"
+                            onClick={() => handleDeleteLoss(item.id, item.product_name)}
+                            disabled={deletingId === item.id}
+                            title="Rollback damage entry and restore stock"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -757,6 +691,16 @@ export const LossTracking: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Footer info */}
+        {!loading && filteredLosses.length > 0 && (
+          <div className="cust-table-footer">
+            <span>
+              Showing {filteredLosses.length} of {losses.length} total damage audit logs
+            </span>
+            <span style={{ fontWeight: 600 }}>Automatic catalog stock deduction active</span>
+          </div>
+        )}
       </div>
 
       {/* Record Damage / Loss Modal */}

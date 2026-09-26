@@ -324,83 +324,54 @@ export const StockTransfers: React.FC = () => {
     };
   }, [transactions]);
 
+  // Date Formatter (e.g. 23 Sep 2026)
+  const formatTransferDate = (dateStr?: string) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr.slice(0, 10);
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return dateStr.slice(0, 10);
+    }
+  };
+
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '40px' }}>
-      {/* 1. Header Banner */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '20px',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '34px',
-                height: '34px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(79, 70, 229, 0.12)',
-                color: '#4f46e5',
-              }}
-            >
-              <ArrowLeftRight size={20} />
-            </span>
-            <h1 className="page-title" style={{ margin: 0, fontSize: '1.4rem' }}>
-              Stock Transfers & Dispatch
-            </h1>
-            <span
-              style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                color: '#4f46e5',
-                border: '1px solid rgba(79, 70, 229, 0.2)',
-              }}
-            >
-              {activeBusiness?.name}
-            </span>
-          </div>
-          <p className="page-description" style={{ marginTop: '4px', fontSize: '0.82rem' }}>
+    <div className="prod-page-container">
+      {/* 1. Page Header */}
+      <div className="prod-page-header">
+        <div className="prod-page-title-group">
+          <h1>Stock Transfers & Dispatch</h1>
+          <p>
             Move inventory smoothly between central greenhouse / warehouse and retail shop counters with live tracking & stock reconciliation.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="prod-header-actions">
           <button
             type="button"
-            className="btn btn-secondary"
+            className="prod-icon-btn"
             onClick={fetchData}
             title="Refresh Data"
-            style={{ padding: '8px 12px', gap: '6px', fontSize: '0.8125rem' }}
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
 
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={() => handleOpenTransferModal('transfer_to_shop')}
-            style={{
-              padding: '8px 16px',
-              gap: '6px',
-              fontSize: '0.8125rem',
-              backgroundColor: '#4f46e5',
-              borderColor: '#4338ca',
-            }}
+            className="prod-import-btn"
+            onClick={() => handleOpenTransferModal('transfer_from_shop')}
+            title="Return shop counter items back into warehouse"
           >
-            <Plus size={16} />
-            + New Warehouse ➔ Shop Transfer
+            <ArrowDownLeft size={15} /> Return to Warehouse
+          </button>
+
+          <button
+            type="button"
+            className="prod-add-btn"
+            onClick={() => handleOpenTransferModal('transfer_to_shop')}
+          >
+            <Plus size={16} /> New Warehouse ➔ Shop Transfer
           </button>
         </div>
       </div>
@@ -410,7 +381,7 @@ export const StockTransfers: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            borderRadius: '8px',
+            borderRadius: '4px',
             marginBottom: '18px',
             display: 'flex',
             alignItems: 'center',
@@ -418,8 +389,9 @@ export const StockTransfers: React.FC = () => {
             backgroundColor: notification.type === 'success' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(220, 38, 38, 0.12)',
             color: notification.type === 'success' ? '#15803d' : '#b91c1c',
             border: `1px solid ${notification.type === 'success' ? 'rgba(22, 163, 74, 0.25)' : 'rgba(220, 38, 38, 0.25)'}`,
-            fontWeight: 500,
-            fontSize: '0.875rem',
+            fontWeight: 600,
+            fontSize: '0.8125rem',
+            boxShadow: 'none',
           }}
         >
           {notification.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
@@ -427,185 +399,82 @@ export const StockTransfers: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Key Metrics Stat Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '14px',
-          marginBottom: '22px',
-        }}
-      >
+      {/* 2. Key Metrics Stat Cards (Dashboard Style) */}
+      <div className="dash-stats-grid" style={{ marginBottom: '20px' }}>
         {/* Card 1: Warehouse to Shop */}
-        <div
-          className="card"
-          style={{
-            padding: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            borderLeft: '4px solid #4f46e5',
-          }}
-        >
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(79, 70, 229, 0.1)',
-              color: '#4f46e5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Store size={22} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Dispatched to Shop
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Dispatched to Shop</span>
+              <span className="dash-white-amount">
+                {metrics.toShopUnits.toLocaleString()}{' '}
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#64748b' }}>units</span>
+              </span>
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#4f46e5', marginTop: '2px' }}>
-              {metrics.toShopUnits.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>units</span>
+            <div className="dash-soft-icon icon-purple">
+              <Store size={18} />
             </div>
           </div>
         </div>
 
         {/* Card 2: Returned from Shop */}
-        <div
-          className="card"
-          style={{
-            padding: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            borderLeft: '4px solid #0d9488',
-          }}
-        >
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(13, 148, 136, 0.1)',
-              color: '#0d9488',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Building2 size={22} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Returned to Warehouse
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Returned to Warehouse</span>
+              <span className="dash-white-amount">
+                {metrics.fromShopUnits.toLocaleString()}{' '}
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#64748b' }}>units</span>
+              </span>
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0d9488', marginTop: '2px' }}>
-              {metrics.fromShopUnits.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>units</span>
+            <div className="dash-soft-icon icon-cyan">
+              <Building2 size={18} />
             </div>
           </div>
         </div>
 
         {/* Card 3: Total Transfer Records */}
-        <div
-          className="card"
-          style={{
-            padding: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            borderLeft: '4px solid #16a34a',
-          }}
-        >
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(22, 163, 74, 0.1)',
-              color: '#16a34a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Boxes size={22} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Transfer Actions Logged
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Transfer Actions Logged</span>
+              <span className="dash-white-amount">
+                {metrics.transfersCount}{' '}
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#64748b' }}>entries</span>
+              </span>
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '2px' }}>
-              {metrics.transfersCount}{' '}
-              <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>entries</span>
+            <div className="dash-soft-icon icon-mint">
+              <Boxes size={18} />
             </div>
           </div>
         </div>
 
         {/* Card 4: Transferred Valuation */}
-        <div
-          className="card"
-          style={{
-            padding: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            borderLeft: '4px solid #d97706',
-          }}
-        >
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(217, 119, 6, 0.1)',
-              color: '#d97706',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Truck size={22} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Total Stock Value Moved
+        <div className="dash-white-card">
+          <div className="dash-white-top">
+            <div className="dash-white-val-group">
+              <span className="dash-white-label">Total Stock Value Moved</span>
+              <span className="dash-white-amount">
+                ₹{metrics.valuation.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </span>
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#d97706', marginTop: '2px' }}>
-              ₹{metrics.valuation.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            <div className="dash-soft-icon icon-amber">
+              <Truck size={18} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Filter and Action Bar */}
-      <div className="card" style={{ marginBottom: '18px', padding: '14px 18px' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
-          {/* Search Box */}
-          <div style={{ position: 'relative', minWidth: '280px', flex: 1 }}>
-            <Search
-              size={16}
-              style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--color-text-muted)',
-              }}
-            />
+      {/* 3. Integrated Table Card & Toolbar */}
+      <div className="prod-table-card">
+        {/* Toolbar */}
+        <div className="prod-table-toolbar">
+          <div className="prod-search-box">
+            <Search size={15} className="prod-search-icon" />
             <input
               type="text"
-              className="form-input"
-              style={{ paddingLeft: '36px', fontSize: '0.8125rem' }}
-              placeholder="Search by product, SKU, transfer #, or handler..."
+              className="prod-search-input"
+              placeholder="Search by product, SKU, slip #, handler..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -621,7 +490,7 @@ export const StockTransfers: React.FC = () => {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: 'var(--color-text-muted)',
+                  color: '#94a3b8',
                 }}
               >
                 <X size={14} />
@@ -629,98 +498,78 @@ export const StockTransfers: React.FC = () => {
             )}
           </div>
 
-          {/* Direction Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              type="button"
-              className={`btn btn-sm ${directionFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setDirectionFilter('all')}
-              style={{ fontSize: '0.78rem' }}
+          <div className="prod-toolbar-filters">
+            <select
+              className="prod-filter-select"
+              value={directionFilter}
+              onChange={(e) => setDirectionFilter(e.target.value as any)}
             >
-              All Movements ({transferTransactions.length})
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm ${directionFilter === 'transfer_to_shop' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setDirectionFilter('transfer_to_shop')}
-              style={{ fontSize: '0.78rem' }}
+              <option value="all">Direction: All Movements ({transferTransactions.length})</option>
+              <option value="transfer_to_shop">📦 Warehouse ➔ Shop</option>
+              <option value="transfer_from_shop">🏬 Shop ➔ Warehouse</option>
+            </select>
+
+            <select
+              className="prod-filter-select"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
             >
-              📦 Warehouse ➔ Shop
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm ${directionFilter === 'transfer_from_shop' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setDirectionFilter('transfer_from_shop')}
-              style={{ fontSize: '0.78rem' }}
-            >
-              🏬 Shop ➔ Warehouse
-            </button>
+              <option value="all">Date: All Dates</option>
+              <option value="today">Today Only</option>
+              <option value="this_month">This Month</option>
+            </select>
           </div>
-
-          {/* Date Filter */}
-          <select
-            className="form-select"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            style={{ width: '150px', fontSize: '0.8125rem' }}
-          >
-            <option value="all">All Dates</option>
-            <option value="today">Today Only</option>
-            <option value="this_month">This Month</option>
-          </select>
-
-          {/* Secondary Return Button */}
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => handleOpenTransferModal('transfer_from_shop')}
-            title="Return shop counter items back into warehouse"
-            style={{ fontSize: '0.78rem', gap: '4px' }}
-          >
-            <ArrowDownLeft size={14} />
-            + Return to Warehouse
-          </button>
         </div>
-      </div>
 
-      {/* 4. Transfer Transactions Table */}
-      <div className="card" style={{ overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+        {/* Table Content */}
+        <div className="prod-table-responsive">
+          <table className="prod-spacious-table">
             <thead>
-              <tr style={{ backgroundColor: 'var(--color-bg-surface-secondary)', borderBottom: '1px solid var(--color-border)' }}>
-                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600 }}>Date & Slip #</th>
-                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600 }}>Product & Category</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600 }}>Direction</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600 }}>Transferred Qty</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600 }}>Warehouse Stock</th>
-                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600 }}>Handler & Notes</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600 }}>Actions</th>
+              <tr>
+                <th style={{ minWidth: '160px' }}>Date & Slip #</th>
+                <th style={{ minWidth: '240px' }}>Product & Category</th>
+                <th style={{ minWidth: '180px', textAlign: 'center' }}>Direction</th>
+                <th style={{ minWidth: '140px', textAlign: 'right' }}>Transferred Qty</th>
+                <th style={{ minWidth: '140px', textAlign: 'center' }}>Warehouse Stock</th>
+                <th style={{ minWidth: '180px' }}>Handler & Notes</th>
+                <th style={{ width: '100px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--color-text-muted)' }}>
-                    <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', color: '#4f46e5' }} />
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                    <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', color: '#ff9f43' }} />
                     <div>Loading transfer ledger...</div>
                   </td>
                 </tr>
               ) : transferTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--color-text-muted)' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                    <div
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '4px',
+                        backgroundColor: 'rgba(255, 159, 67, 0.1)',
+                        color: '#ff9f43',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 12px auto',
+                      }}
+                    >
                       <ArrowLeftRight size={24} />
                     </div>
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a', marginBottom: '4px' }}>
                       No Stock Transfers Recorded
                     </div>
-                    <div style={{ fontSize: '0.8rem', maxWidth: '380px', margin: '0 auto 16px auto' }}>
-                      Click "+ New Warehouse ➔ Shop Transfer" above to dispatch products from warehouse stock directly to the shop counter.
+                    <div style={{ fontSize: '0.8125rem', maxWidth: '380px', margin: '0 auto 16px auto', color: '#64748b' }}>
+                      Click "New Warehouse ➔ Shop Transfer" above to dispatch products from warehouse stock directly to the shop counter.
                     </div>
                     <button
                       type="button"
-                      className="btn btn-primary btn-sm"
+                      className="prod-add-btn"
                       onClick={() => handleOpenTransferModal('transfer_to_shop')}
                     >
                       <Plus size={14} /> Create First Transfer
@@ -730,74 +579,56 @@ export const StockTransfers: React.FC = () => {
               ) : (
                 transferTransactions.map((tx) => {
                   const isToShop = tx.type === 'transfer_to_shop';
+                  const formattedDate = formatTransferDate(tx.transaction_date || tx.created_at);
+                  const slipCode = tx.reference_no || `TRF-${tx.id.slice(-6).toUpperCase()}`;
+
                   return (
-                    <tr
-                      key={tx.id}
-                      style={{
-                        borderBottom: '1px solid var(--color-border)',
-                        transition: 'background-color var(--transition-fast)',
-                      }}
-                    >
+                    <tr key={tx.id}>
                       {/* Date & Slip # */}
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          {tx.transaction_date || (tx.created_at ? tx.created_at.slice(0, 10) : '—')}
+                      <td>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8125rem' }}>
+                          {formattedDate}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>
-                          {tx.reference_no || `TRF-${tx.id.slice(-6).toUpperCase()}`}
+                        <div className="cust-code-text" style={{ marginTop: '2px' }}>
+                          {slipCode}
                         </div>
                       </td>
 
                       {/* Product */}
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {tx.product_image_url ? (
-                            <img
-                              src={tx.product_image_url}
-                              alt=""
-                              style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            <div
-                              style={{
-                                width: '28px',
-                                height: '28px',
-                                borderRadius: '4px',
-                                backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                                color: '#4f46e5',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <Package size={14} />
-                            </div>
-                          )}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div className="prod-thumb-box" style={{ width: '36px', height: '36px' }}>
+                            {tx.product_image_url ? (
+                              <img src={tx.product_image_url} alt="" />
+                            ) : (
+                              <Package size={16} color="#64748b" />
+                            )}
+                          </div>
                           <div>
-                            <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            <div className="prod-name-text" style={{ fontSize: '0.8125rem' }}>
                               {tx.product_name || 'Product'}
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
-                              SKU: <span style={{ fontFamily: 'monospace' }}>{tx.product_sku || '—'}</span>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                              SKU: <span className="cust-code-text">{tx.product_sku || '—'}</span>
                             </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Direction */}
-                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <span
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '5px',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            backgroundColor: isToShop ? 'rgba(79, 70, 229, 0.1)' : 'rgba(13, 148, 136, 0.1)',
-                            color: isToShop ? '#4f46e5' : '#0d9488',
-                            border: `1px solid ${isToShop ? 'rgba(79, 70, 229, 0.25)' : 'rgba(13, 148, 136, 0.25)'}`,
+                            padding: '3px 10px',
+                            borderRadius: '3px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: isToShop ? '#eff6ff' : '#f0fdf4',
+                            color: isToShop ? '#2563eb' : '#16a34a',
+                            border: `1px solid ${isToShop ? '#bfdbfe' : '#bbf7d0'}`,
                           }}
                         >
                           {isToShop ? (
@@ -812,60 +643,64 @@ export const StockTransfers: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Quantity */}
-                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: isToShop ? '#4f46e5' : '#0d9488' }}>
+                      {/* Transferred Quantity */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            fontSize: '0.875rem',
+                            color: isToShop ? '#2563eb' : '#16a34a',
+                          }}
+                        >
                           {isToShop ? `+${tx.quantity}` : `-${tx.quantity}`} units
                         </div>
                         {tx.total_amount > 0 && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
                             Val: ₹{Number(tx.total_amount).toLocaleString('en-IN')}
                           </div>
                         )}
                       </td>
 
-                      {/* Warehouse Stock Changes */}
-                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                      {/* Warehouse Stock */}
+                      <td style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.8125rem', color: '#64748b', fontWeight: 600 }}>
                           {tx.previous_stock}
                         </span>{' '}
-                        <span style={{ color: 'var(--color-text-muted)' }}>➔</span>{' '}
-                        <strong style={{ fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
+                        <span style={{ color: '#94a3b8', margin: '0 2px' }}>➔</span>{' '}
+                        <strong style={{ fontSize: '0.8125rem', color: '#0f172a', fontWeight: 800 }}>
                           {tx.new_stock}
                         </strong>
                       </td>
 
                       {/* Handler & Notes */}
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                      <td>
+                        <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.8125rem' }}>
                           {tx.performed_by ? `By: ${tx.performed_by}` : 'Store Staff'}
                         </div>
                         {tx.notes && (
-                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
                             {tx.notes}
                           </div>
                         )}
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="cust-actions-group">
                           <button
                             type="button"
-                            className="btn btn-ghost btn-icon-only"
+                            className="cust-action-btn edit"
                             onClick={() => handlePrintSlip(tx)}
-                            title="Print Transfer Voucher / Slip"
-                            style={{ width: '28px', height: '28px', padding: 0 }}
+                            title="Print Transfer Slip"
                           >
                             <Printer size={14} />
                           </button>
                           <button
                             type="button"
-                            className="btn btn-ghost btn-icon-only"
+                            className="cust-action-btn delete"
                             onClick={() => handleRevertTransaction(tx)}
                             disabled={deletingId === tx.id}
                             title="Revert Transfer (Rollback Stock)"
-                            style={{ width: '28px', height: '28px', padding: 0, color: '#dc2626' }}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -878,6 +713,16 @@ export const StockTransfers: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Footer info */}
+        {!loading && transferTransactions.length > 0 && (
+          <div className="cust-table-footer">
+            <span>
+              Showing {transferTransactions.length} of {transactions.length} movement records
+            </span>
+            <span style={{ fontWeight: 600 }}>Real-time stock reconciliation active</span>
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
