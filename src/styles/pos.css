@@ -1031,9 +1031,15 @@
 }
 
 .pos-customer-label {
-=======
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
 .pos-order-header-right {
->>>>>>> 8b67ca83090e02287f390325f686b98e916c2b89
   display: flex;
   align-items: center;
   gap: 6px;
