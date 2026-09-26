@@ -680,7 +680,7 @@
 }
 
 /* ==========================================================================
-   RIGHT COLUMN: ACTIVE CART & CHECKOUT PANEL
+   RIGHT COLUMN: ACTIVE CART & CHECKOUT PANEL (Whole Order List Scrollable)
    ========================================================================== */
 .pos-cart-panel {
   width: 440px;
@@ -691,22 +691,46 @@
   border-radius: var(--radius-xl);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.pos-cart-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pos-cart-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pos-cart-panel::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.pos-cart-panel::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 
 /* ==========================================================================
    ORDER LIST HEADER & ACTIONS
    ========================================================================== */
 .pos-order-header {
-  padding: 10px 16px 8px 16px;
+  padding: 12px 16px 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background-color: var(--color-bg-surface);
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .pos-order-title {
@@ -1392,34 +1416,24 @@
 }
 
 /* ==========================================================================
-   CART LINE ITEMS LIST (Clean one-by-one stacking with hidden scrollbar)
+   CART LINE ITEMS LIST (Extends naturally one by one; whole panel scrolls)
    ========================================================================== */
 .pos-cart-items-wrapper {
-  flex: 1 1 0%;
-  min-height: 0;
-  max-height: none;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 8px 12px;
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: visible;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   background-color: #ffffff;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE / Edge */
-}
-
-.pos-cart-items-wrapper::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-  width: 0;
-  height: 0;
 }
 
 .pos-cart-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 7px 10px;
+  padding: 8px 12px;
   background-color: #ffffff;
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
@@ -1534,6 +1548,7 @@
   flex-direction: column;
   gap: 5px;
   flex-shrink: 0;
+  margin-top: auto;
 }
 
 .summary-row {
