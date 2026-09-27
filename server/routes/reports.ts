@@ -156,8 +156,8 @@ router.get('/dashboard', async (req: Request, res: Response) => {
 
       // 4. Returns
       const refundRes = await db.query(
-        `SELECT COALESCE(SUM(total_refund), 0.00) as total_returns
-         FROM invoice_refunds`
+        `SELECT COALESCE(SUM(total_refund_amount), 0.00) as total_returns
+         FROM refunds`
       );
 
       // 5. Invoices Due
@@ -443,8 +443,8 @@ router.get('/dashboard', async (req: Request, res: Response) => {
     );
 
     const refundRes = await db.query(
-      `SELECT COALESCE(SUM(total_refund), 0.00) as total_returns
-       FROM invoice_refunds
+      `SELECT COALESCE(SUM(total_refund_amount), 0.00) as total_returns
+       FROM refunds
        WHERE business_id = $1`,
       [businessId]
     );
@@ -487,8 +487,8 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       [businessId]
     );
 
-    const suppCountRes = await db.query(`SELECT COUNT(id) as count FROM suppliers WHERE business_id = $1`, [businessId]);
-    const custCountRes = await db.query(`SELECT COUNT(id) as count FROM customers WHERE business_id = $1`, [businessId]);
+    const suppCountRes = await db.query(`SELECT COUNT(id) as count FROM suppliers`);
+    const custCountRes = await db.query(`SELECT COUNT(id) as count FROM customers`);
     const totalOrdersRes = await db.query(`SELECT COUNT(id) as count FROM invoices WHERE business_id = $1`, [businessId]);
 
     const topProductsRes = await db.query(
