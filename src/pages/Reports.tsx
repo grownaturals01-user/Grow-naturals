@@ -249,7 +249,7 @@ export const Reports: React.FC = () => {
       return { label: 'Debit / Credit Card', icon: CreditCard, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.25)' };
     }
     if (m.includes('split')) {
-      return { label: 'Split Payment (Cash + UPI)', icon: Scale, color: '#0369a1', bg: 'rgba(3, 105, 161, 0.12)', border: 'rgba(3, 105, 161, 0.25)' };
+      return { label: 'Split Payment', icon: Scale, color: '#0369a1', bg: 'rgba(3, 105, 161, 0.12)', border: 'rgba(3, 105, 161, 0.25)' };
     }
     return { label: method || 'Other Mode', icon: Layers, color: '#64748b', bg: 'rgba(100, 116, 139, 0.12)', border: 'rgba(100, 116, 139, 0.25)' };
   };

@@ -47,7 +47,8 @@ router.post('/checkout', async (req: Request, res: Response) => {
     const invoiceId = `inv-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     // Compute totals
-    let calculatedSubtotal = 0;
+    let grossSubtotal = 0;
+    let totalLineDiscount = 0;
     let calculatedTax = 0;
     const processedItems: any[] = [];
 
@@ -61,7 +62,8 @@ router.post('/checkout', async (req: Request, res: Response) => {
       const lineTax = isTaxable ? Number(((lineSubtotal * gstRate) / 100).toFixed(2)) : 0.00;
       const lineTotal = Number((lineSubtotal + lineTax).toFixed(2));
 
-      calculatedSubtotal += lineSubtotal;
+      grossSubtotal += (qty * price);
+      totalLineDiscount += disc;
       calculatedTax += lineTax;
 
       processedItems.push({
@@ -81,10 +83,10 @@ router.post('/checkout', async (req: Request, res: Response) => {
       });
     }
 
-    const totalDiscount = Number(discount_amount) || 0;
+    const totalDiscount = discount_amount !== undefined && discount_amount !== null ? Number(discount_amount) : totalLineDiscount;
     const cgst = isTaxable ? Number((calculatedTax / 2).toFixed(2)) : 0.00;
     const sgst = isTaxable ? Number((calculatedTax / 2).toFixed(2)) : 0.00;
-    const finalTotal = Math.max(0, Number((calculatedSubtotal + calculatedTax - totalDiscount).toFixed(2)));
+    const finalTotal = Math.max(0, Number((grossSubtotal - totalDiscount + calculatedTax).toFixed(2)));
 
     // Insert Invoice
     await db.query(
@@ -101,7 +103,7 @@ router.post('/checkout', async (req: Request, res: Response) => {
         customer_name || 'Walk-in Customer',
         customer_phone || '',
         project_id || null,
-        calculatedSubtotal,
+        grossSubtotal,
         totalDiscount,
         calculatedTax,
         cgst,
@@ -256,7 +258,7 @@ router.post('/checkout', async (req: Request, res: Response) => {
         customer_name: customer_name || 'Walk-in Customer',
         customer_phone: customer_phone || '',
         project_id: project_id || null,
-        subtotal: calculatedSubtotal,
+        subtotal: grossSubtotal,
         discount_amount: totalDiscount,
         tax_amount: calculatedTax,
         cgst_amount: cgst,

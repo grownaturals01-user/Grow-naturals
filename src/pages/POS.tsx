@@ -344,6 +344,23 @@ export const POS: React.FC = () => {
     };
   };
 
+  // Helper to safely extract discount parameters and attributes from product
+  const getProductDiscountInfo = (p: Product) => {
+    let attr: any = {};
+    if (typeof p.attributes === 'string') {
+      try {
+        attr = JSON.parse(p.attributes);
+      } catch (e) {
+        attr = {};
+      }
+    } else if (p.attributes && typeof p.attributes === 'object') {
+      attr = p.attributes;
+    }
+    const discPieces = Number(p.discount_pieces !== undefined && p.discount_pieces !== null ? p.discount_pieces : attr.discount_pieces) || 0;
+    const discPercent = Number(p.discount_percent !== undefined && p.discount_percent !== null ? p.discount_percent : attr.discount_percent) || 0;
+    return { discPieces, discPercent, attr };
+  };
+
   // Add product to cart (Supports Shop Counter vs Main Inventory selection and Size variants)
   const addToCart = (product: Product, forcedSource?: 'shop' | 'inventory', forcedSize?: string) => {
     const shopStock = Number(product.shop_stock !== undefined ? product.shop_stock : product.stock_quantity) || 0;
@@ -359,10 +376,7 @@ export const POS: React.FC = () => {
     const chosenSize = forcedSize || defaultSize;
     const chosenPrice = chosenSize ? getProductSizePrice(product, chosenSize) : Number(product.sale_price);
 
-    const discPieces = Number(product.discount_pieces) || Number(product.attributes?.discount_pieces) || 0;
-    const discPercent = Number(product.discount_percent) || Number(product.attributes?.discount_percent) || 0;
-
-    const attr = typeof product.attributes === 'string' ? JSON.parse(product.attributes) : (product.attributes || {});
+    const { discPieces, discPercent, attr } = getProductDiscountInfo(product);
 
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
@@ -587,8 +601,27 @@ export const POS: React.FC = () => {
     updateQuantity(product.id, -1, chosenSource, defaultSize);
   };
 
+<<<<<<< HEAD
   const incrementCardQuantity = (product: Product, e: React.MouseEvent) => {
     e.stopPropagation();
+=======
+  const handleProductCardClick = (product: Product) => {
+    const shopStock = Number(product.shop_stock !== undefined ? product.shop_stock : product.stock_quantity) || 0;
+    const warehouseStock = Number(product.warehouse_stock) || 0;
+    const activeStock = defaultStockSource === 'shop' ? shopStock : warehouseStock;
+    if (activeStock <= 0) return;
+
+    addToCart(product, defaultStockSource);
+  };
+
+  const incrementCardQuantity = (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shopStock = Number(product.shop_stock !== undefined ? product.shop_stock : product.stock_quantity) || 0;
+    const warehouseStock = Number(product.warehouse_stock) || 0;
+    const activeStock = defaultStockSource === 'shop' ? shopStock : warehouseStock;
+    if (activeStock <= 0) return;
+
+>>>>>>> 7fbe72a (Fix POS split payment error, product discount calculations, and stepper UI)
     addToCart(product, defaultStockSource);
   };
 
@@ -606,31 +639,30 @@ export const POS: React.FC = () => {
     return removeListener;
   }, [products]);
 
-  // Volume discount calculation per item
+  // Discount calculation per item (supports direct product discount or tiered volume discount based on discount_pieces)
   const getItemDiscount = (item: POSCartItem) => {
+    const minPieces = item.discount_pieces && item.discount_pieces > 0 ? item.discount_pieces : 1;
     if (
-      item.discount_pieces &&
-      item.discount_pieces > 0 &&
       item.discount_percent &&
       item.discount_percent > 0 &&
-      item.quantity >= item.discount_pieces
+      item.quantity >= minPieces
     ) {
-      return (item.quantity * item.unit_price * item.discount_percent) / 100;
+      return Number(((item.quantity * item.unit_price * item.discount_percent) / 100).toFixed(2));
     }
-    return item.discount || 0;
+    return Number((item.discount || 0).toFixed(2));
   };
 
-  const autoDiscountTotal = cart.reduce((acc, item) => acc + getItemDiscount(item), 0);
+  const autoDiscountTotal = Number(cart.reduce((acc, item) => acc + getItemDiscount(item), 0).toFixed(2));
 
-  // Identify qualifying products for bulk discount
-  const qualifyingItems = cart.filter(
-    (item) =>
-      item.discount_pieces &&
-      item.discount_pieces > 0 &&
+  // Identify qualifying products for discount
+  const qualifyingItems = cart.filter((item) => {
+    const minPieces = item.discount_pieces && item.discount_pieces > 0 ? item.discount_pieces : 1;
+    return (
       item.discount_percent &&
       item.discount_percent > 0 &&
-      item.quantity >= item.discount_pieces
-  );
+      item.quantity >= minPieces
+    );
+  });
 
   let discountBadgeLabel = '';
   if (qualifyingItems.length === 1) {
@@ -1147,15 +1179,24 @@ export const POS: React.FC = () => {
                       </div>
 
                       {/* Top-Left Must Try / Discount Badge */}
-                      {p.discount_percent && p.discount_percent > 0 ? (
-                        <span className="pos-prod-badge-must-try">
-                          🔥 {p.discount_percent}% Off
-                        </span>
-                      ) : p.attributes?.is_featured || p.attributes?.must_try ? (
-                        <span className="pos-prod-badge-must-try">
-                          🔥 Must Try
-                        </span>
-                      ) : null}
+                      {(() => {
+                        const { discPieces, discPercent, attr: prodAttr } = getProductDiscountInfo(p);
+                        if (discPercent > 0) {
+                          return (
+                            <span className="pos-prod-badge-must-try">
+                              🔥 {discPercent}% Off{discPieces > 1 ? ` (${discPieces}+ pcs)` : ''}
+                            </span>
+                          );
+                        }
+                        if (prodAttr.is_featured || prodAttr.must_try) {
+                          return (
+                            <span className="pos-prod-badge-must-try">
+                              🔥 Must Try
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
 
                       {/* Out-of-Stock Overlay */}
                       {isOutOfStock && (
@@ -1187,12 +1228,13 @@ export const POS: React.FC = () => {
                         <div className="pos-prod-price-wrap">
                           {(() => {
                             const { price: leastPrice } = getProductLeastPrice(p);
-                            if (p.discount_percent && p.discount_percent > 0) {
+                            const { discPieces, discPercent } = getProductDiscountInfo(p);
+                            if (discPercent > 0 && discPieces <= 1) {
                               return (
                                 <>
                                   <span className="pos-prod-price-old">₹{leastPrice.toFixed(0)}</span>
                                   <span className="pos-prod-price-current">
-                                    ₹{(leastPrice * (1 - p.discount_percent / 100)).toFixed(0)}
+                                    ₹{(leastPrice * (1 - discPercent / 100)).toFixed(0)}
                                   </span>
                                 </>
                               );
@@ -1694,7 +1736,8 @@ export const POS: React.FC = () => {
               cart.map((item) => {
                 const itemDisc = getItemDiscount(item);
                 const isDiscounted = itemDisc > 0;
-                const needsMorePieces = !isDiscounted && item.discount_pieces && item.discount_pieces > 0 && item.discount_percent && item.discount_percent > 0;
+                const minPieces = item.discount_pieces && item.discount_pieces > 0 ? item.discount_pieces : 1;
+                const needsMorePieces = !isDiscounted && item.discount_percent && item.discount_percent > 0 && item.discount_pieces && item.discount_pieces > 1;
                 const currentSource = item.stock_source || 'shop';
                 const itemKey = `${item.product_id}-${currentSource}-${item.size || 'default'}`;
 
@@ -1724,7 +1767,7 @@ export const POS: React.FC = () => {
 
                         {isDiscounted && (
                           <span className="pos-cart-applied-discount">
-                            🏷️ {item.discount_percent}% off ({item.discount_pieces}+ pcs)
+                            🏷️ {item.discount_percent}% off{item.discount_pieces && item.discount_pieces > 1 ? ` (${item.discount_pieces}+ pcs)` : ''}
                           </span>
                         )}
                       </div>
@@ -1741,7 +1784,20 @@ export const POS: React.FC = () => {
 
                     {/* Middle Row: Unit Price & GST Info */}
                     <div className="pos-cart-item-meta">
-                      <span>₹{item.unit_price.toFixed(2)} / unit</span>
+                      <span>
+                        {isDiscounted ? (
+                          <>
+                            <span style={{ textDecoration: 'line-through', color: '#94a3b8', marginRight: '4px' }}>
+                              ₹{item.unit_price.toFixed(2)}
+                            </span>
+                            <span style={{ color: '#059669', fontWeight: 700 }}>
+                              ₹{(item.unit_price * (1 - (item.discount_percent || 0) / 100)).toFixed(2)} / unit
+                            </span>
+                          </>
+                        ) : (
+                          `₹${item.unit_price.toFixed(2)} / unit`
+                        )}
+                      </span>
                       {isTaxable && item.gst_rate > 0 ? <span>• {item.gst_rate}% GST</span> : null}
                       {needsMorePieces ? (
                         <span className="pos-cart-upsell-text">
@@ -1768,7 +1824,7 @@ export const POS: React.FC = () => {
                           onClick={() => updateQuantity(item.product_id, -1, currentSource, item.size)}
                           title="Decrease"
                         >
-                          <Minus size={11} />
+                          <Minus size={11} strokeWidth={2.5} />
                         </button>
                         <span className="pos-cart-qty-count tabular">{item.quantity}</span>
                         <button
@@ -1778,7 +1834,7 @@ export const POS: React.FC = () => {
                           title="Increase"
                           disabled={item.quantity >= item.stock_quantity}
                         >
-                          <Plus size={11} />
+                          <Plus size={11} strokeWidth={2.5} />
                         </button>
                       </div>
                     </div>
@@ -1846,33 +1902,34 @@ export const POS: React.FC = () => {
                                       <ArrowLeftRight size={10} /> Switch
                                     </button>
                                   )}
-
-                                  {qtyInCart > 0 ? (
-                                    <div className="pos-size-stepper">
+                                  {existingCartItem ? (
+                                    <div className="pos-cart-qty-stepper compact">
                                       <button
                                         type="button"
-                                        className="pos-size-step-btn minus"
+                                        className="pos-cart-qty-btn minus"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           updateQuantity(item.product_id, -1, currentSource, sz);
                                         }}
-                                        title="Decrease"
+                                        title="Decrease quantity"
                                       >
-                                        <Minus size={11} />
+                                        <Minus size={10} strokeWidth={2.5} />
                                       </button>
-                                      <span className="pos-size-step-qty tabular">{qtyInCart}</span>
+                                      <span className="pos-cart-qty-count tabular">
+                                        {existingCartItem.quantity}
+                                      </span>
                                       <button
                                         type="button"
-                                        className="pos-size-step-btn plus"
+                                        className="pos-cart-qty-btn plus"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           if (matchedProd) {
                                             addToCart(matchedProd, currentSource, sz);
                                           }
                                         }}
-                                        title="Add another"
+                                        title="Increase quantity"
                                       >
-                                        <Plus size={11} />
+                                        <Plus size={10} strokeWidth={2.5} />
                                       </button>
                                     </div>
                                   ) : (
@@ -2012,7 +2069,7 @@ export const POS: React.FC = () => {
                 <div className="pos-split-panel-header">
                   <div className="pos-split-title">
                     <ArrowLeftRight size={13} />
-                    <span>Split Payment (Cash + UPI)</span>
+                    <span>Split Payment</span>
                   </div>
                   <div className="pos-split-quick-actions">
                     <button
@@ -2220,6 +2277,122 @@ export const POS: React.FC = () => {
         onCustomerCreated={handleCustomerCreated}
         initialName={newCustomerInitialName}
       />
+<<<<<<< HEAD
+=======
+
+      {/* Quick Size Variant & Quantity Picker Modal */}
+      {sizePickerProduct && (
+        <div className="dialog-overlay" onClick={() => setSizePickerProduct(null)}>
+          <div
+            className="dialog-content"
+            style={{ maxWidth: '460px', width: '90%', borderRadius: '10px', padding: '18px 20px', backgroundColor: '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '6px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                  <Tag size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a', textTransform: 'capitalize' }}>
+                    {sizePickerProduct.name}
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    Choose quantity for each size variant:
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSizePickerProduct(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
+              {getProductSizes(sizePickerProduct).map((sz) => {
+                const szPrice = getProductSizePrice(sizePickerProduct, sz);
+                const cartItem = cart.find(
+                  (it) =>
+                    it.product_id === sizePickerProduct.id &&
+                    (it.stock_source || 'shop') === defaultStockSource &&
+                    it.size === sz
+                );
+                const qtyInCart = cartItem?.quantity || 0;
+
+                return (
+                  <div
+                    key={sz}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: qtyInCart > 0 ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                      backgroundColor: qtyInCart > 0 ? '#f0fdf4' : '#f8fafc',
+                      transition: 'all 0.12s ease'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.78rem', color: '#065f46', backgroundColor: '#d1fae5', padding: '2px 7px', borderRadius: '4px' }}>
+                          Size {sz}
+                        </span>
+                        <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
+                          ₹{szPrice.toFixed(2)}
+                        </span>
+                      </div>
+                      {qtyInCart > 0 && (
+                        <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#059669', marginTop: '2px', display: 'inline-block' }}>
+                          ✓ {qtyInCart} in cart (₹{(qtyInCart * szPrice).toFixed(2)})
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="pos-cart-qty-stepper">
+                      <button
+                        type="button"
+                        className="pos-cart-qty-btn minus"
+                        onClick={() => updateQuantity(sizePickerProduct.id, -1, defaultStockSource, sz)}
+                        disabled={qtyInCart <= 0}
+                        title="Decrease"
+                      >
+                        <Minus size={12} strokeWidth={2.5} />
+                      </button>
+                      <span className="pos-cart-qty-count tabular">
+                        {qtyInCart}
+                      </span>
+                      <button
+                        type="button"
+                        className="pos-cart-qty-btn plus"
+                        onClick={() => addToCart(sizePickerProduct, defaultStockSource, sz)}
+                        title={`Add 1 × Size ${sz}`}
+                      >
+                        <Plus size={12} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '9px', fontSize: '0.85rem', fontWeight: 700 }}
+                onClick={() => setSizePickerProduct(null)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
