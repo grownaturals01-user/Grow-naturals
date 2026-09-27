@@ -238,8 +238,8 @@ export const DeliveryChallanDetail: React.FC = () => {
     setSendWithAmount(initialMode);
     setWhatsappMessage(buildWhatsAppMessage(initialMode));
     if (challan?.customer_phone) {
-      const digits = challan.customer_phone.replace(/\D/g, '');
-      setWhatsappPhone(digits.length === 10 ? `91${digits}` : digits);
+      const digits = challan.customer_phone.replace(/\D/g, '').slice(-10);
+      setWhatsappPhone(digits);
     }
     setSendModalOpen(true);
   };
@@ -252,7 +252,10 @@ export const DeliveryChallanDetail: React.FC = () => {
 
   // Direct WhatsApp send
   const handleSendWhatsAppDirect = () => {
-    const cleanPhone = whatsappPhone.replace(/\D/g, '');
+    let cleanPhone = whatsappPhone.replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    }
     const encoded = encodeURIComponent(whatsappMessage);
     const url = cleanPhone
       ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`
@@ -1350,18 +1353,17 @@ export const DeliveryChallanDetail: React.FC = () => {
               {/* Recipient Phone */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontWeight: 600 }}>
-                  Recipient Mobile / WhatsApp Number
+                  Recipient Mobile / WhatsApp Number (10 Digits)
                 </label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   className="form-input"
                   value={whatsappPhone}
-                  onChange={(e) => setWhatsappPhone(e.target.value)}
-                  placeholder="e.g. 919876543210"
+                  onChange={(e) => setWhatsappPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="e.g. 9876543210"
                 />
-                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  Include country code (e.g. 91 for India)
-                </span>
               </div>
 
               {/* Message Text Preview */}

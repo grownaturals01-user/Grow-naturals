@@ -214,10 +214,12 @@ export const StaffNew: React.FC = () => {
                   <Phone size={16} className="input-icon" />
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     className="form-input"
-                    placeholder="+91 98234 56789"
+                    placeholder="e.g. 9823456789"
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   />
                 </div>
               </div>

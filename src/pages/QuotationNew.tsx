@@ -606,11 +606,13 @@ export const QuotationNew: React.FC = () => {
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Phone Number</label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   className="form-input tabular"
-                  placeholder="+91 98220 12345"
+                  placeholder="e.g. 9822012345"
                   value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 />
               </div>
 

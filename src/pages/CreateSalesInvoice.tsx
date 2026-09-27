@@ -1050,9 +1050,11 @@ export const CreateSalesInvoice: React.FC = () => {
                       <div>
                         <label className="csi-field-label">Phone Number</label>
                         <input
-                          type="text"
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
                           value={partyPhone}
-                          onChange={(e) => setPartyPhone(e.target.value)}
+                          onChange={(e) => setPartyPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           placeholder="10-digit mobile"
                           className="csi-input"
                         />

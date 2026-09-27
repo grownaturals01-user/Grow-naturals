@@ -261,9 +261,12 @@ export const CustomerDetail: React.FC = () => {
                   <label className="form-label">Phone Number</label>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     className="form-input"
+                    placeholder="e.g. 9876543210"
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   />
                 </div>
                 <div className="form-group">

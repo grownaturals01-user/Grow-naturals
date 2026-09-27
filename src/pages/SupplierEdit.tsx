@@ -107,10 +107,13 @@ export const SupplierEdit: React.FC = () => {
             <div className="form-group">
               <label className="form-label">Phone Number</label>
               <input
-                type="text"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 className="form-input tabular"
+                placeholder="e.g. 9845011223"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
               />
             </div>
           </div>

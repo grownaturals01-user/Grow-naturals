@@ -308,9 +308,11 @@ export const CustomerCreateModal: React.FC<CustomerCreateModalProps> = ({
                 <Phone size={15} style={{ position: 'absolute', left: '10px', color: '#94a3b8' }} />
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   placeholder="e.g. 9876543210"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   style={{
                     width: '100%',
                     height: '38px',

@@ -208,15 +208,18 @@ export const QuotationDetail: React.FC = () => {
     setWhatsappMessage(msg);
 
     if (quotation.customer_phone) {
-      const digits = quotation.customer_phone.replace(/\D/g, '');
-      setWhatsappPhone(digits.length === 10 ? `91${digits}` : digits);
+      const digits = quotation.customer_phone.replace(/\D/g, '').slice(-10);
+      setWhatsappPhone(digits);
     }
 
     setWhatsappModalOpen(true);
   };
 
   const handleSendWhatsAppDirect = () => {
-    const cleanPhone = whatsappPhone.replace(/\D/g, '');
+    let cleanPhone = whatsappPhone.replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    }
     const encoded = encodeURIComponent(whatsappMessage);
     const url = cleanPhone
       ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`
@@ -993,11 +996,13 @@ export const QuotationDetail: React.FC = () => {
                 <div className="input-addon-group">
                   <span className="input-addon-prefix">📱</span>
                   <input
-                    type="text"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     className="form-input"
-                    placeholder="e.g. 919822012345 (with country code)"
+                    placeholder="e.g. 9822012345"
                     value={whatsappPhone}
-                    onChange={(e) => setWhatsappPhone(e.target.value)}
+                    onChange={(e) => setWhatsappPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   />
                 </div>
               </div>

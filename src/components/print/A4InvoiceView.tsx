@@ -59,7 +59,10 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
   };
 
   const handleSendWhatsAppDirect = () => {
-    const cleanPhone = whatsappPhone.replace(/\D/g, '');
+    let cleanPhone = whatsappPhone.replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    }
     const encoded = encodeURIComponent(whatsappMessage);
     const url = cleanPhone
       ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`
@@ -374,14 +377,16 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
-                  Recipient Mobile Number (with country code)
+                  Recipient Mobile Number (10 Digits)
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   className="input"
-                  placeholder="e.g. 919822012345"
+                  placeholder="e.g. 9822012345"
                   value={whatsappPhone}
-                  onChange={(e) => setWhatsappPhone(e.target.value)}
+                  onChange={(e) => setWhatsappPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   style={{ width: '100%', fontSize: '0.875rem', fontWeight: 600 }}
                 />
               </div>

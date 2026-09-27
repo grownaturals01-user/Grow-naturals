@@ -294,11 +294,13 @@ export const DeliveryChallanNew: React.FC = () => {
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Phone / Contact</label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   className="form-input"
                   placeholder="e.g. 9876543210"
                   value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 />
               </div>
             </div>

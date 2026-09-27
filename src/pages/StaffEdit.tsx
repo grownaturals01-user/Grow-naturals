@@ -203,9 +203,12 @@ export const StaffEdit: React.FC = () => {
                 <label className="form-label">Phone Number</label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   className="form-input"
+                  placeholder="e.g. 9822012345"
                   value={phone}
-                  onChange={e => setPhone(e.target.value)}
+                  onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 />
               </div>
 

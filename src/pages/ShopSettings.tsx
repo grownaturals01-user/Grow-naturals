@@ -641,11 +641,13 @@ export const ShopSettings: React.FC = () => {
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Phone Number</label>
                   <input
-                    type="text"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     className="form-input"
                     value={editForm.phone || ''}
-                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
-                    placeholder="+91 98220 12345"
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="e.g. 9822012345"
                   />
                 </div>
 
@@ -993,11 +995,13 @@ export const ShopSettings: React.FC = () => {
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label">Phone Number</label>
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       className="form-input"
                       value={newBiz.phone || ''}
-                      onChange={e => setNewBiz({ ...newBiz, phone: e.target.value })}
-                      placeholder="+91 98220 00000"
+                      onChange={e => setNewBiz({ ...newBiz, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      placeholder="e.g. 9822012345"
                     />
                   </div>
 
