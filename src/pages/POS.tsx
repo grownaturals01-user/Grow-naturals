@@ -386,7 +386,6 @@ export const POS: React.FC = () => {
         return updated;
       } else {
         return [
-          ...prevCart,
           {
             product_id: product.id,
             product_name: product.name,
@@ -406,6 +405,7 @@ export const POS: React.FC = () => {
             available_sizes: availableSizes,
             size_pricing: attr.size_pricing,
           },
+          ...prevCart,
         ];
       }
     });
