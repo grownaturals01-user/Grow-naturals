@@ -1787,16 +1787,18 @@ export const POS: React.FC = () => {
                     {openSizeDropdownKey === itemKey && item.available_sizes && item.available_sizes.length > 0 && (
                       <div className="pos-cart-size-dropdown" onClick={(e) => e.stopPropagation()}>
                         <div className="pos-cart-size-dropdown-header">
-                          <span className="pos-cart-size-dropdown-title">
-                            <Tag size={11} color="#059669" /> Size Variants ({item.product_name}):
-                          </span>
+                          <div className="pos-cart-size-title-wrap">
+                            <Tag size={12} className="pos-cart-size-tag-icon" />
+                            <span className="pos-cart-size-dropdown-title">Choose Size Variant</span>
+                            <span className="pos-cart-size-prod-name">({item.product_name})</span>
+                          </div>
                           <button
                             type="button"
                             className="pos-cart-size-close-btn"
                             onClick={() => setOpenSizeDropdownKey(null)}
-                            title="Close size selector"
+                            title="Close"
                           >
-                            <X size={12} />
+                            <X size={13} />
                           </button>
                         </div>
 
@@ -1811,77 +1813,79 @@ export const POS: React.FC = () => {
                                 (it.stock_source || 'shop') === currentSource &&
                                 it.size === sz
                             );
+                            const qtyInCart = existingCartItem ? existingCartItem.quantity : 0;
 
                             return (
-                              <div key={sz} className={`pos-size-dropdown-item ${isCurrent ? 'is-active' : ''}`}>
-                                <div className="pos-size-item-info">
-                                  <span className="pos-size-badge">Size {sz}</span>
-                                  <span className="pos-size-price">₹{szPrice.toFixed(2)}</span>
-                                  {existingCartItem && (
-                                    <span className="pos-size-cart-count">
-                                      ({existingCartItem.quantity} in cart)
-                                    </span>
+                              <div key={sz} className={`pos-size-row ${isCurrent ? 'is-current-line' : ''}`}>
+                                {/* Left: Size Badge & Price */}
+                                <div className="pos-size-row-left">
+                                  <span className={`pos-size-pill-tag ${isCurrent ? 'active' : ''}`}>
+                                    Size {sz}
+                                  </span>
+                                  <span className="pos-size-price-text">
+                                    ₹{szPrice.toFixed(2)}
+                                  </span>
+                                  {isCurrent && (
+                                    <span className="pos-size-current-indicator">Current</span>
                                   )}
                                 </div>
 
-                                <div className="pos-size-item-btns">
+                                {/* Right: Actions */}
+                                <div className="pos-size-row-right">
                                   {!isCurrent && (
                                     <button
                                       type="button"
-                                      className="pos-size-btn-switch"
+                                      className="pos-size-switch-btn"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         changeCartItemSize(item.product_id, currentSource, item.size, sz);
                                         setOpenSizeDropdownKey(null);
                                       }}
-                                      title={`Switch this line to Size ${sz}`}
+                                      title={`Switch current item to Size ${sz}`}
                                     >
                                       <ArrowLeftRight size={10} /> Switch
                                     </button>
                                   )}
-                                  {existingCartItem ? (
-                                    <div className="cart-qty-controls" style={{ padding: '1px' }}>
+
+                                  {qtyInCart > 0 ? (
+                                    <div className="pos-size-stepper">
                                       <button
                                         type="button"
-                                        className="cart-qty-btn"
-                                        style={{ width: '20px', height: '20px' }}
+                                        className="pos-size-step-btn minus"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           updateQuantity(item.product_id, -1, currentSource, sz);
                                         }}
                                         title="Decrease"
                                       >
-                                        <Minus size={10} />
+                                        <Minus size={11} />
                                       </button>
-                                      <span className="cart-qty-val tabular" style={{ minWidth: '18px', fontSize: '0.72rem' }}>
-                                        {existingCartItem.quantity}
-                                      </span>
+                                      <span className="pos-size-step-qty tabular">{qtyInCart}</span>
                                       <button
                                         type="button"
-                                        className="cart-qty-btn"
-                                        style={{ width: '20px', height: '20px' }}
+                                        className="pos-size-step-btn plus"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           if (matchedProd) {
                                             addToCart(matchedProd, currentSource, sz);
                                           }
                                         }}
-                                        title="Increase"
+                                        title="Add another"
                                       >
-                                        <Plus size={10} />
+                                        <Plus size={11} />
                                       </button>
                                     </div>
                                   ) : (
                                     <button
                                       type="button"
-                                      className="pos-size-btn-add"
+                                      className="pos-size-add-btn"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (matchedProd) {
                                           addToCart(matchedProd, currentSource, sz);
                                         }
                                       }}
-                                      title={`Add 1 × Size ${sz} to cart`}
+                                      title={`Add Size ${sz} to cart`}
                                     >
                                       <Plus size={11} /> Add 1
                                     </button>
