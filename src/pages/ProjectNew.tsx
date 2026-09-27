@@ -42,7 +42,7 @@ export const ProjectNew: React.FC = () => {
         supervisor_id: supervisorId || null,
         start_date: startDate || null,
         end_date: endDate || null,
-        budget: Number(budget) || 0,
+        budget: Math.round(Number(budget)) || 0,
         description: description.trim(),
         status,
       });
@@ -157,11 +157,25 @@ export const ProjectNew: React.FC = () => {
               <label className="form-label">Estimated Budget / Contract Value (₹)</label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
+                min="0"
                 className="form-input tabular"
-                placeholder="0.00"
+                placeholder="0"
                 value={budget}
-                onChange={(e) => setBudget(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === '.' || e.key === ',') {
+                    e.preventDefault();
+                  }
+                }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setBudget('');
+                  } else {
+                    const num = parseInt(val, 10);
+                    setBudget(isNaN(num) ? '0' : String(num));
+                  }
+                }}
               />
             </div>
 
