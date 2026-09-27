@@ -601,10 +601,6 @@ export const POS: React.FC = () => {
     updateQuantity(product.id, -1, chosenSource, defaultSize);
   };
 
-<<<<<<< HEAD
-  const incrementCardQuantity = (product: Product, e: React.MouseEvent) => {
-    e.stopPropagation();
-=======
   const handleProductCardClick = (product: Product) => {
     const shopStock = Number(product.shop_stock !== undefined ? product.shop_stock : product.stock_quantity) || 0;
     const warehouseStock = Number(product.warehouse_stock) || 0;
@@ -621,7 +617,6 @@ export const POS: React.FC = () => {
     const activeStock = defaultStockSource === 'shop' ? shopStock : warehouseStock;
     if (activeStock <= 0) return;
 
->>>>>>> 7fbe72a (Fix POS split payment error, product discount calculations, and stepper UI)
     addToCart(product, defaultStockSource);
   };
 
@@ -2277,122 +2272,6 @@ export const POS: React.FC = () => {
         onCustomerCreated={handleCustomerCreated}
         initialName={newCustomerInitialName}
       />
-<<<<<<< HEAD
-=======
-
-      {/* Quick Size Variant & Quantity Picker Modal */}
-      {sizePickerProduct && (
-        <div className="dialog-overlay" onClick={() => setSizePickerProduct(null)}>
-          <div
-            className="dialog-content"
-            style={{ maxWidth: '460px', width: '90%', borderRadius: '10px', padding: '18px 20px', backgroundColor: '#ffffff' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '6px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
-                  <Tag size={18} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a', textTransform: 'capitalize' }}>
-                    {sizePickerProduct.name}
-                  </h3>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    Choose quantity for each size variant:
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSizePickerProduct(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
-                title="Close"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
-              {getProductSizes(sizePickerProduct).map((sz) => {
-                const szPrice = getProductSizePrice(sizePickerProduct, sz);
-                const cartItem = cart.find(
-                  (it) =>
-                    it.product_id === sizePickerProduct.id &&
-                    (it.stock_source || 'shop') === defaultStockSource &&
-                    it.size === sz
-                );
-                const qtyInCart = cartItem?.quantity || 0;
-
-                return (
-                  <div
-                    key={sz}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '9px 12px',
-                      borderRadius: '6px',
-                      border: qtyInCart > 0 ? '1.5px solid #10b981' : '1px solid #e2e8f0',
-                      backgroundColor: qtyInCart > 0 ? '#f0fdf4' : '#f8fafc',
-                      transition: 'all 0.12s ease'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 800, fontSize: '0.78rem', color: '#065f46', backgroundColor: '#d1fae5', padding: '2px 7px', borderRadius: '4px' }}>
-                          Size {sz}
-                        </span>
-                        <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
-                          ₹{szPrice.toFixed(2)}
-                        </span>
-                      </div>
-                      {qtyInCart > 0 && (
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#059669', marginTop: '2px', display: 'inline-block' }}>
-                          ✓ {qtyInCart} in cart (₹{(qtyInCart * szPrice).toFixed(2)})
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="pos-cart-qty-stepper">
-                      <button
-                        type="button"
-                        className="pos-cart-qty-btn minus"
-                        onClick={() => updateQuantity(sizePickerProduct.id, -1, defaultStockSource, sz)}
-                        disabled={qtyInCart <= 0}
-                        title="Decrease"
-                      >
-                        <Minus size={12} strokeWidth={2.5} />
-                      </button>
-                      <span className="pos-cart-qty-count tabular">
-                        {qtyInCart}
-                      </span>
-                      <button
-                        type="button"
-                        className="pos-cart-qty-btn plus"
-                        onClick={() => addToCart(sizePickerProduct, defaultStockSource, sz)}
-                        title={`Add 1 × Size ${sz}`}
-                      >
-                        <Plus size={12} strokeWidth={2.5} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '9px', fontSize: '0.85rem', fontWeight: 700 }}
-                onClick={() => setSizePickerProduct(null)}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
