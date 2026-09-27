@@ -55,6 +55,7 @@ import {
   ScanLine,
   UserPlus,
   Scan,
+  Tag,
 } from 'lucide-react';
 import { CactusIcon, PlanterIcon, getCategoryIcon, renderModuleIcon } from '../components/common/CategoryIcons';
 
@@ -131,6 +132,8 @@ export const POS: React.FC = () => {
   const [completedInvoice, setCompletedInvoice] = useState<Invoice | null>(null);
   const [printModalMode, setPrintModalMode] = useState<'receipt' | 'a4' | null>(null);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState<boolean>(false);
+  const [openSizeDropdownKey, setOpenSizeDropdownKey] = useState<string | null>(null);
+  const [sizePickerProduct, setSizePickerProduct] = useState<Product | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
@@ -161,7 +164,6 @@ export const POS: React.FC = () => {
     if (!categoryScrollRef.current) return;
     const container = categoryScrollRef.current;
     const firstPill = container.querySelector<HTMLElement>('.category-pill');
-    // Scroll step is exactly 1 card width + gap (10px)
     const cardStep = firstPill ? firstPill.offsetWidth + 10 : 160;
 
     if (direction === 'right') {
@@ -188,7 +190,6 @@ export const POS: React.FC = () => {
         const data = await api.get('/products', { business_id: businessId });
         setProducts(data);
         setFilteredProducts(data);
-        // Cache to IndexedDB for offline counter access
         await posQueueService.cacheProducts(data);
       } else {
         const cached = await posQueueService.getCachedProducts(businessId);
@@ -196,7 +197,6 @@ export const POS: React.FC = () => {
         setFilteredProducts(cached);
       }
     } catch {
-      // Fallback to cache if network fails
       const cached = await posQueueService.getCachedProducts(businessId);
       setProducts(cached);
       setFilteredProducts(cached);
@@ -297,8 +297,56 @@ export const POS: React.FC = () => {
     return counts;
   }, [products, modules]);
 
-  // Add product to cart (Supports Shop Counter vs Main Inventory selection)
-  const addToCart = (product: Product, forcedSource?: 'shop' | 'inventory') => {
+  // --- Plant Size & Pricing Helper Functions ---
+  const getProductSizes = (product: Product): string[] => {
+    const attr = typeof product.attributes === 'string' ? JSON.parse(product.attributes) : (product.attributes || {});
+    if (attr.sizes && Array.isArray(attr.sizes) && attr.sizes.length > 0) {
+      return attr.sizes;
+    }
+    if (attr.size_pricing && typeof attr.size_pricing === 'object') {
+      return Object.keys(attr.size_pricing);
+    }
+    if (attr.size_prices && typeof attr.size_prices === 'object') {
+      return Object.keys(attr.size_prices);
+    }
+    return [];
+  };
+
+  const getProductSizePrice = (product: Product, size: string): number => {
+    const attr = typeof product.attributes === 'string' ? JSON.parse(product.attributes) : (product.attributes || {});
+    if (attr.size_pricing && attr.size_pricing[size] !== undefined) {
+      const p = attr.size_pricing[size];
+      return Number(typeof p === 'object' ? p.sale_price : p) || Number(product.sale_price) || 0;
+    }
+    if (attr.size_prices && attr.size_prices[size] !== undefined) {
+      return Number(attr.size_prices[size]) || Number(product.sale_price) || 0;
+    }
+    return Number(product.sale_price) || 0;
+  };
+
+  const getProductLeastPrice = (product: Product): { price: number; defaultSize?: string; availableSizes: string[] } => {
+    const sizes = getProductSizes(product);
+    if (sizes.length === 0) {
+      return { price: Number(product.sale_price) || 0, availableSizes: [] };
+    }
+    let minPrice = Infinity;
+    let minSize = sizes[0];
+    for (const sz of sizes) {
+      const pr = getProductSizePrice(product, sz);
+      if (pr < minPrice) {
+        minPrice = pr;
+        minSize = sz;
+      }
+    }
+    return {
+      price: minPrice !== Infinity ? minPrice : Number(product.sale_price) || 0,
+      defaultSize: minSize,
+      availableSizes: sizes,
+    };
+  };
+
+  // Add product to cart (Supports Shop Counter vs Main Inventory selection and Size variants)
+  const addToCart = (product: Product, forcedSource?: 'shop' | 'inventory', forcedSize?: string) => {
     const shopStock = Number(product.shop_stock !== undefined ? product.shop_stock : product.stock_quantity) || 0;
     const warehouseStock = Number(product.warehouse_stock) || 0;
 
@@ -308,12 +356,21 @@ export const POS: React.FC = () => {
 
     if (availableStock <= 0) return;
 
+    const { price: leastPrice, defaultSize, availableSizes } = getProductLeastPrice(product);
+    const chosenSize = forcedSize || defaultSize;
+    const chosenPrice = chosenSize ? getProductSizePrice(product, chosenSize) : Number(product.sale_price);
+
     const discPieces = Number(product.discount_pieces) || Number(product.attributes?.discount_pieces) || 0;
     const discPercent = Number(product.discount_percent) || Number(product.attributes?.discount_percent) || 0;
 
+    const attr = typeof product.attributes === 'string' ? JSON.parse(product.attributes) : (product.attributes || {});
+
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
-        (item) => item.product_id === product.id && (item.stock_source || 'shop') === chosenSource
+        (item) =>
+          item.product_id === product.id &&
+          (item.stock_source || 'shop') === chosenSource &&
+          (item.size || '') === (chosenSize || '')
       );
       if (existingIndex > -1) {
         const item = prevCart[existingIndex];
@@ -337,7 +394,7 @@ export const POS: React.FC = () => {
             sku: product.sku,
             hsn_code: product.hsn_code || (isTaxable ? '0602' : ''),
             quantity: 1,
-            unit_price: Number(product.sale_price),
+            unit_price: chosenPrice,
             discount: 0,
             gst_rate: isTaxable ? Number(product.gst_rate || 0) : 0,
             stock_quantity: availableStock,
@@ -346,19 +403,83 @@ export const POS: React.FC = () => {
             warehouse_stock: warehouseStock,
             discount_pieces: discPieces,
             discount_percent: discPercent,
+            size: chosenSize,
+            available_sizes: availableSizes,
+            size_pricing: attr.size_pricing,
           },
         ];
       }
     });
   };
 
+  // Switch cart item size from Order List
+  const changeCartItemSize = (
+    productId: string,
+    currentSource: 'shop' | 'inventory',
+    oldSize: string | undefined,
+    newSize: string
+  ) => {
+    setCart((prev) => {
+      const itemIndex = prev.findIndex(
+        (it) =>
+          it.product_id === productId &&
+          (it.stock_source || 'shop') === currentSource &&
+          (it.size || '') === (oldSize || '')
+      );
+      if (itemIndex === -1) return prev;
+
+      const currentItem = prev[itemIndex];
+      const matchedProduct = products.find((p) => p.id === productId);
+      const newUnitPrice = matchedProduct ? getProductSizePrice(matchedProduct, newSize) : currentItem.unit_price;
+
+      // Check if target item with newSize already exists
+      const existingTargetIndex = prev.findIndex(
+        (it, idx) =>
+          idx !== itemIndex &&
+          it.product_id === productId &&
+          (it.stock_source || 'shop') === currentSource &&
+          it.size === newSize
+      );
+
+      if (existingTargetIndex > -1) {
+        // Merge into target
+        const targetItem = prev[existingTargetIndex];
+        const mergedQty = Math.min(targetItem.quantity + currentItem.quantity, targetItem.stock_quantity);
+        const updated = prev.filter((_, idx) => idx !== itemIndex);
+        const newTargetIdx = updated.findIndex(
+          (it) =>
+            it.product_id === productId &&
+            (it.stock_source || 'shop') === currentSource &&
+            it.size === newSize
+        );
+        updated[newTargetIdx] = {
+          ...targetItem,
+          quantity: mergedQty,
+          unit_price: newUnitPrice,
+        };
+        return updated;
+      } else {
+        const updated = [...prev];
+        updated[itemIndex] = {
+          ...currentItem,
+          size: newSize,
+          unit_price: newUnitPrice,
+        };
+        return updated;
+      }
+    });
+  };
+
   // Switch cart item source between Shop and Inventory
-  const switchCartItemSource = (productId: string, currentSource: 'shop' | 'inventory', targetSource: 'shop' | 'inventory') => {
+  const switchCartItemSource = (productId: string, currentSource: 'shop' | 'inventory', targetSource: 'shop' | 'inventory', size?: string) => {
     if (currentSource === targetSource) return;
 
     setCart((prev) => {
       const itemIndex = prev.findIndex(
-        (it) => it.product_id === productId && (it.stock_source || 'shop') === currentSource
+        (it) =>
+          it.product_id === productId &&
+          (it.stock_source || 'shop') === currentSource &&
+          (it.size || '') === (size || '')
       );
       if (itemIndex === -1) return prev;
 
@@ -370,9 +491,13 @@ export const POS: React.FC = () => {
         return prev;
       }
 
-      // Check if an item already exists with targetSource
+      // Check if an item already exists with targetSource & size
       const existingTargetIndex = prev.findIndex(
-        (it, idx) => idx !== itemIndex && it.product_id === productId && (it.stock_source || 'shop') === targetSource
+        (it, idx) =>
+          idx !== itemIndex &&
+          it.product_id === productId &&
+          (it.stock_source || 'shop') === targetSource &&
+          (it.size || '') === (size || '')
       );
 
       if (existingTargetIndex > -1) {
@@ -381,7 +506,10 @@ export const POS: React.FC = () => {
         const newMergedQty = Math.min(existingTarget.quantity + item.quantity, targetAvailStock);
         const updated = prev.filter((_, idx) => idx !== itemIndex);
         const targetNewIndex = updated.findIndex(
-          (it) => it.product_id === productId && (it.stock_source || 'shop') === targetSource
+          (it) =>
+            it.product_id === productId &&
+            (it.stock_source || 'shop') === targetSource &&
+            (it.size || '') === (size || '')
         );
         updated[targetNewIndex] = {
           ...existingTarget,
@@ -403,12 +531,16 @@ export const POS: React.FC = () => {
     });
   };
 
-  // Update item quantity (respects specific stock_source)
-  const updateQuantity = (productId: string, delta: number, source: 'shop' | 'inventory' = 'shop') => {
+  // Update item quantity (respects specific stock_source & size)
+  const updateQuantity = (productId: string, delta: number, source: 'shop' | 'inventory' = 'shop', size?: string) => {
     setCart((prev) =>
       prev
         .map((item) => {
-          if (item.product_id === productId && (item.stock_source || 'shop') === source) {
+          if (
+            item.product_id === productId &&
+            (item.stock_source || 'shop') === source &&
+            (item.size || '') === (size || '')
+          ) {
             const newQty = item.quantity + delta;
             if (newQty <= 0) return null;
             if (newQty > item.stock_quantity) return item;
@@ -420,26 +552,64 @@ export const POS: React.FC = () => {
     );
   };
 
-  // Remove item from cart (respects specific stock_source)
-  const removeFromCart = (productId: string, source: 'shop' | 'inventory' = 'shop') => {
+  // Remove item from cart (respects specific stock_source & size)
+  const removeFromCart = (productId: string, source: 'shop' | 'inventory' = 'shop', size?: string) => {
     setCart((prev) =>
-      prev.filter((item) => !(item.product_id === productId && (item.stock_source || 'shop') === source))
+      prev.filter(
+        (item) =>
+          !(
+            item.product_id === productId &&
+            (item.stock_source || 'shop') === source &&
+            (item.size || '') === (size || '')
+          )
+      )
     );
   };
 
   const decrementCardQuantity = (product: Product, e: React.MouseEvent) => {
     e.stopPropagation();
     const chosenSource = defaultStockSource;
+    const { defaultSize } = getProductLeastPrice(product);
     const cartItem = cart.find(
-      (i) => i.product_id === product.id && (i.stock_source || 'shop') === chosenSource
+      (i) =>
+        i.product_id === product.id &&
+        (i.stock_source || 'shop') === chosenSource &&
+        (i.size || '') === (defaultSize || '')
     );
-    if (!cartItem) return;
-    updateQuantity(product.id, -1, chosenSource);
+    if (!cartItem) {
+      const anyCartItem = [...cart].reverse().find(
+        (i) => i.product_id === product.id && (i.stock_source || 'shop') === chosenSource
+      );
+      if (anyCartItem) {
+        updateQuantity(product.id, -1, chosenSource, anyCartItem.size);
+      }
+      return;
+    }
+    updateQuantity(product.id, -1, chosenSource, defaultSize);
+  };
+
+  const handleProductCardClick = (product: Product) => {
+    const shopStock = Number(product.shop_stock !== undefined ? product.shop_stock : product.stock_quantity) || 0;
+    const warehouseStock = Number(product.warehouse_stock) || 0;
+    const activeStock = defaultStockSource === 'shop' ? shopStock : warehouseStock;
+    if (activeStock <= 0) return;
+
+    const sizes = getProductSizes(product);
+    if (sizes.length > 1) {
+      setSizePickerProduct(product);
+    } else {
+      addToCart(product, defaultStockSource);
+    }
   };
 
   const incrementCardQuantity = (product: Product, e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(product, defaultStockSource);
+    const sizes = getProductSizes(product);
+    if (sizes.length > 1) {
+      setSizePickerProduct(product);
+    } else {
+      addToCart(product, defaultStockSource);
+    }
   };
 
   // Hardware USB Barcode Scanner listener
@@ -650,7 +820,7 @@ export const POS: React.FC = () => {
         const itemDisc = getItemDiscount(i);
         return {
           product_id: i.product_id,
-          product_name: i.product_name,
+          product_name: i.size ? `${i.product_name} (${i.size})` : i.product_name,
           sku: i.sku,
           hsn_code: i.hsn_code,
           quantity: i.quantity,
@@ -658,6 +828,7 @@ export const POS: React.FC = () => {
           discount: itemDisc,
           gst_rate: i.gst_rate,
           stock_source: i.stock_source || 'shop',
+          size: i.size,
         };
       }),
       discount_amount: totalDiscount,
@@ -944,9 +1115,9 @@ export const POS: React.FC = () => {
                 const warehouseStock = Number(p.warehouse_stock) || 0;
                 const activeStock = defaultStockSource === 'shop' ? shopStock : warehouseStock;
                 const isOutOfStock = activeStock <= 0;
-                const cartShopMatch = cart.find((it) => it.product_id === p.id && (it.stock_source || 'shop') === 'shop');
-                const cartInvMatch = cart.find((it) => it.product_id === p.id && it.stock_source === 'inventory');
-                const totalInCart = defaultStockSource === 'shop' ? (cartShopMatch?.quantity || 0) : (cartInvMatch?.quantity || 0);
+                const totalInCart = cart
+                  .filter((it) => it.product_id === p.id && (it.stock_source || 'shop') === defaultStockSource)
+                  .reduce((sum, it) => sum + it.quantity, 0);
                 const isLowStock = !isOutOfStock && activeStock <= (p.low_stock_threshold || 10);
                 const productImg = p.image_url || p.attributes?.image_url || (p as any).image || (p as any).photo;
 
@@ -954,7 +1125,7 @@ export const POS: React.FC = () => {
                   <div
                     key={p.id}
                     className={`pos-product-card ${isOutOfStock ? 'out-of-stock' : ''} ${totalInCart > 0 ? 'in-cart' : ''}`}
-                    onClick={() => !isOutOfStock && totalInCart < activeStock && addToCart(p, defaultStockSource)}
+                    onClick={() => !isOutOfStock && handleProductCardClick(p)}
                   >
                     {/* Full-bleed Top Image (0 padding top/left/right) */}
                     <div className="pos-prod-image-container">
@@ -1016,6 +1187,11 @@ export const POS: React.FC = () => {
 
                     {/* Product Details Body */}
                     <div className="pos-prod-body">
+                      {/* Product Name */}
+                      <h4 className="pos-prod-name" title={p.name}>
+                        {p.name || 'Product'}
+                      </h4>
+
                       {/* Meta Subtitle Row: Category & Live Stock */}
                       <div className="pos-prod-meta-row">
                         <span className="pos-prod-category-text">
@@ -1026,24 +1202,23 @@ export const POS: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Product Name */}
-                      <h4 className="pos-prod-name" title={p.name}>
-                        {p.name}
-                      </h4>
-
                       {/* Footer: Price & Circular Stepper */}
                       <div className="pos-prod-footer">
                         <div className="pos-prod-price-wrap">
-                          {p.discount_percent && p.discount_percent > 0 ? (
-                            <>
-                              <span className="pos-prod-price-old">₹{Number(p.sale_price).toFixed(0)}</span>
-                              <span className="pos-prod-price-current">
-                                ₹{(Number(p.sale_price) * (1 - p.discount_percent / 100)).toFixed(0)}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="pos-prod-price-current">₹{Number(p.sale_price).toFixed(2)}</span>
-                          )}
+                          {(() => {
+                            const { price: leastPrice } = getProductLeastPrice(p);
+                            if (p.discount_percent && p.discount_percent > 0) {
+                              return (
+                                <>
+                                  <span className="pos-prod-price-old">₹{leastPrice.toFixed(0)}</span>
+                                  <span className="pos-prod-price-current">
+                                    ₹{(leastPrice * (1 - p.discount_percent / 100)).toFixed(0)}
+                                  </span>
+                                </>
+                              );
+                            }
+                            return <span className="pos-prod-price-current">₹{leastPrice.toFixed(2)}</span>;
+                          })()}
                         </div>
 
                         {/* Stepper with Minus, Quantity, Plus */}
@@ -1541,67 +1716,203 @@ export const POS: React.FC = () => {
                 const isDiscounted = itemDisc > 0;
                 const needsMorePieces = !isDiscounted && item.discount_pieces && item.discount_pieces > 0 && item.discount_percent && item.discount_percent > 0;
                 const currentSource = item.stock_source || 'shop';
+                const itemKey = `${item.product_id}-${currentSource}-${item.size || 'default'}`;
 
                 return (
-                  <div key={`${item.product_id}-${currentSource}`} className="pos-cart-item">
-                    <div className="cart-item-info">
-                      <div className="cart-item-name" title={item.product_name} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                        <span>{item.product_name}</span>
+                  <div key={itemKey} className="pos-cart-item">
+                    {/* Top Row: Product Name + Size Pill on Left, Total Price on Right */}
+                    <div className="pos-cart-item-top">
+                      <div className="pos-cart-item-title-group">
+                        <span className="pos-cart-item-name" title={item.product_name}>{item.product_name}</span>
+
+                        {/* Interactive Size Badge Button */}
+                        {item.size && (
+                          <button
+                            type="button"
+                            className={`pos-cart-size-pill ${openSizeDropdownKey === itemKey ? 'open' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenSizeDropdownKey((prev) => (prev === itemKey ? null : itemKey));
+                            }}
+                            title="Click to view or add size variants"
+                          >
+                            <Tag size={10} />
+                            <span>Size: {item.size}</span>
+                            <ChevronDown size={10} style={{ transform: openSizeDropdownKey === itemKey ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                          </button>
+                        )}
+
                         {isDiscounted && (
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '1px 5px', background: '#ecfdf5', color: '#047857', borderRadius: '4px', border: '1px solid #a7f3d0' }}>
+                          <span className="pos-cart-applied-discount">
                             🏷️ {item.discount_percent}% off ({item.discount_pieces}+ pcs)
                           </span>
                         )}
                       </div>
 
-                      <div className="cart-item-price-desc">
-                        ₹{item.unit_price.toFixed(2)} / unit{isTaxable && item.gst_rate > 0 ? ` • ${item.gst_rate}% GST` : ''}
-                        {needsMorePieces ? (
-                          <span style={{ marginLeft: '4px', color: '#059669', fontSize: '0.7rem', fontWeight: 600 }}>
-                            (Add {item.discount_pieces! - item.quantity} more for {item.discount_percent}% off)
+                      <div className="pos-cart-item-total tabular">
+                        <span className="pos-cart-total-amount">₹{(item.quantity * item.unit_price - itemDisc).toFixed(2)}</span>
+                        {isDiscounted && (
+                          <span className="pos-cart-orig-amount">
+                            ₹{(item.quantity * item.unit_price).toFixed(2)}
                           </span>
-                        ) : null}
+                        )}
                       </div>
                     </div>
 
-                    <div className="cart-qty-controls">
-                      <button
-                        type="button"
-                        className="cart-qty-btn"
-                        onClick={() => updateQuantity(item.product_id, -1, currentSource)}
-                        title="Decrease"
-                      >
-                        <Minus size={11} />
-                      </button>
-                      <span className="cart-qty-val tabular">{item.quantity}</span>
-                      <button
-                        type="button"
-                        className="cart-qty-btn"
-                        onClick={() => updateQuantity(item.product_id, 1, currentSource)}
-                        title="Increase"
-                        disabled={item.quantity >= item.stock_quantity}
-                      >
-                        <Plus size={11} />
-                      </button>
-                    </div>
-
-                    <div className="cart-item-total tabular" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                      <span style={{ fontWeight: 700 }}>₹{(item.quantity * item.unit_price - itemDisc).toFixed(2)}</span>
-                      {isDiscounted && (
-                        <span style={{ fontSize: '0.68rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                          ₹{(item.quantity * item.unit_price).toFixed(2)}
+                    {/* Middle Row: Unit Price & GST Info */}
+                    <div className="pos-cart-item-meta">
+                      <span>₹{item.unit_price.toFixed(2)} / unit</span>
+                      {isTaxable && item.gst_rate > 0 ? <span>• {item.gst_rate}% GST</span> : null}
+                      {needsMorePieces ? (
+                        <span className="pos-cart-upsell-text">
+                          (Add {item.discount_pieces! - item.quantity} more for {item.discount_percent}% off)
                         </span>
-                      )}
+                      ) : null}
                     </div>
 
-                    <button
-                      type="button"
-                      className="cart-item-delete"
-                      onClick={() => removeFromCart(item.product_id, currentSource)}
-                      title="Remove item"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {/* Bottom Row: Delete on Left, Stepper on Right */}
+                    <div className="pos-cart-item-bottom">
+                      <button
+                        type="button"
+                        className="pos-cart-delete-btn"
+                        onClick={() => removeFromCart(item.product_id, currentSource, item.size)}
+                        title="Remove item"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+
+                      <div className="pos-cart-qty-stepper">
+                        <button
+                          type="button"
+                          className="pos-cart-qty-btn minus"
+                          onClick={() => updateQuantity(item.product_id, -1, currentSource, item.size)}
+                          title="Decrease"
+                        >
+                          <Minus size={11} />
+                        </button>
+                        <span className="pos-cart-qty-count tabular">{item.quantity}</span>
+                        <button
+                          type="button"
+                          className="pos-cart-qty-btn plus"
+                          onClick={() => updateQuantity(item.product_id, 1, currentSource, item.size)}
+                          title="Increase"
+                          disabled={item.quantity >= item.stock_quantity}
+                        >
+                          <Plus size={11} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Interactive Size Switcher & Multi-Size Adder Popover */}
+                    {openSizeDropdownKey === itemKey && item.available_sizes && item.available_sizes.length > 0 && (
+                      <div className="pos-cart-size-dropdown" onClick={(e) => e.stopPropagation()}>
+                        <div className="pos-cart-size-dropdown-header">
+                          <span className="pos-cart-size-dropdown-title">
+                            <Tag size={11} color="#059669" /> Size Variants ({item.product_name}):
+                          </span>
+                          <button
+                            type="button"
+                            className="pos-cart-size-close-btn"
+                            onClick={() => setOpenSizeDropdownKey(null)}
+                            title="Close size selector"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+
+                        <div className="pos-cart-size-list">
+                          {item.available_sizes.map((sz) => {
+                            const matchedProd = products.find((p) => p.id === item.product_id);
+                            const szPrice = matchedProd ? getProductSizePrice(matchedProd, sz) : item.unit_price;
+                            const isCurrent = item.size === sz;
+                            const existingCartItem = cart.find(
+                              (it) =>
+                                it.product_id === item.product_id &&
+                                (it.stock_source || 'shop') === currentSource &&
+                                it.size === sz
+                            );
+
+                            return (
+                              <div key={sz} className={`pos-size-dropdown-item ${isCurrent ? 'is-active' : ''}`}>
+                                <div className="pos-size-item-info">
+                                  <span className="pos-size-badge">Size {sz}</span>
+                                  <span className="pos-size-price">₹{szPrice.toFixed(2)}</span>
+                                  {existingCartItem && (
+                                    <span className="pos-size-cart-count">
+                                      ({existingCartItem.quantity} in cart)
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="pos-size-item-btns">
+                                  {!isCurrent && (
+                                    <button
+                                      type="button"
+                                      className="pos-size-btn-switch"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        changeCartItemSize(item.product_id, currentSource, item.size, sz);
+                                        setOpenSizeDropdownKey(null);
+                                      }}
+                                      title={`Switch this line to Size ${sz}`}
+                                    >
+                                      <ArrowLeftRight size={10} /> Switch
+                                    </button>
+                                  )}
+                                  {existingCartItem ? (
+                                    <div className="cart-qty-controls" style={{ padding: '1px' }}>
+                                      <button
+                                        type="button"
+                                        className="cart-qty-btn"
+                                        style={{ width: '20px', height: '20px' }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          updateQuantity(item.product_id, -1, currentSource, sz);
+                                        }}
+                                        title="Decrease"
+                                      >
+                                        <Minus size={10} />
+                                      </button>
+                                      <span className="cart-qty-val tabular" style={{ minWidth: '18px', fontSize: '0.72rem' }}>
+                                        {existingCartItem.quantity}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        className="cart-qty-btn"
+                                        style={{ width: '20px', height: '20px' }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (matchedProd) {
+                                            addToCart(matchedProd, currentSource, sz);
+                                          }
+                                        }}
+                                        title="Increase"
+                                      >
+                                        <Plus size={10} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="pos-size-btn-add"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (matchedProd) {
+                                          addToCart(matchedProd, currentSource, sz);
+                                        }
+                                      }}
+                                      title={`Add 1 × Size ${sz} to cart`}
+                                    >
+                                      <Plus size={11} /> Add 1
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -1925,6 +2236,122 @@ export const POS: React.FC = () => {
         onCustomerCreated={handleCustomerCreated}
         initialName={newCustomerInitialName}
       />
+
+      {/* Quick Size Variant & Quantity Picker Modal */}
+      {sizePickerProduct && (
+        <div className="dialog-overlay" onClick={() => setSizePickerProduct(null)}>
+          <div
+            className="dialog-content"
+            style={{ maxWidth: '460px', width: '90%', borderRadius: '10px', padding: '18px 20px', backgroundColor: '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '6px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                  <Tag size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a', textTransform: 'capitalize' }}>
+                    {sizePickerProduct.name}
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    Choose quantity for each size variant:
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSizePickerProduct(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
+              {getProductSizes(sizePickerProduct).map((sz) => {
+                const szPrice = getProductSizePrice(sizePickerProduct, sz);
+                const cartItem = cart.find(
+                  (it) =>
+                    it.product_id === sizePickerProduct.id &&
+                    (it.stock_source || 'shop') === defaultStockSource &&
+                    it.size === sz
+                );
+                const qtyInCart = cartItem?.quantity || 0;
+
+                return (
+                  <div
+                    key={sz}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: qtyInCart > 0 ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                      backgroundColor: qtyInCart > 0 ? '#f0fdf4' : '#f8fafc',
+                      transition: 'all 0.12s ease'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.78rem', color: '#065f46', backgroundColor: '#d1fae5', padding: '2px 7px', borderRadius: '4px' }}>
+                          Size {sz}
+                        </span>
+                        <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
+                          ₹{szPrice.toFixed(2)}
+                        </span>
+                      </div>
+                      {qtyInCart > 0 && (
+                        <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#059669', marginTop: '2px', display: 'inline-block' }}>
+                          ✓ {qtyInCart} in cart (₹{(qtyInCart * szPrice).toFixed(2)})
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        className="cart-qty-btn"
+                        style={{ width: '26px', height: '26px', borderRadius: '4px' }}
+                        onClick={() => updateQuantity(sizePickerProduct.id, -1, defaultStockSource, sz)}
+                        disabled={qtyInCart <= 0}
+                        title="Decrease"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="tabular" style={{ minWidth: '24px', textAlign: 'center', fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
+                        {qtyInCart}
+                      </span>
+                      <button
+                        type="button"
+                        className="cart-qty-btn"
+                        style={{ width: '26px', height: '26px', borderRadius: '4px', backgroundColor: '#059669', color: '#ffffff', borderColor: '#059669' }}
+                        onClick={() => addToCart(sizePickerProduct, defaultStockSource, sz)}
+                        title={`Add 1 × Size ${sz}`}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '9px', fontSize: '0.85rem', fontWeight: 700 }}
+                onClick={() => setSizePickerProduct(null)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

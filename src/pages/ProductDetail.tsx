@@ -234,21 +234,67 @@ export const ProductDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Specialized Attributes Card */}
+          {/* Specialized Attributes Card / Size Variants Card */}
           <div className="card">
             <div className="card-header">
               <h3 className="card-title">
                 <Package size={18} color="var(--module-inv-accent)" />
-                {product.type.toUpperCase()} Specifications
+                {attributes.sizes || attributes.size_pricing || attributes.size_prices || product.type === 'plants' || product.type === 'nursery-plants' || product.type === 'fruit-trees'
+                  ? 'Size Variants & Botanical Pricing'
+                  : `${product.type.toUpperCase()} Specifications`}
               </h3>
             </div>
             <div className="card-body">
-              {Object.keys(attributes).filter(k => k !== 'discount_pieces' && k !== 'discount_percent').length === 0 ? (
+              {(attributes.sizes || attributes.size_pricing || attributes.size_prices || product.type === 'plants' || product.type === 'nursery-plants' || product.type === 'fruit-trees') ? (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px', marginBottom: '14px' }}>
+                    {((attributes.sizes as string[]) || ['S', 'M', 'L', 'XL', 'XXL']).map((sz) => {
+                      const pricing = attributes.size_pricing?.[sz] || { sale_price: attributes.size_prices?.[sz] ?? product.sale_price, cost_price: product.cost_price };
+                      const sp = Number(pricing.sale_price ?? pricing) || Number(product.sale_price);
+                      const cp = pricing.cost_price !== undefined ? Number(pricing.cost_price) : undefined;
+                      return (
+                        <div
+                          key={sz}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: '1.5px solid #a7f3d0',
+                            backgroundColor: '#ecfdf5',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#047857' }}>
+                              Size {sz}
+                            </span>
+                            <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#059669', color: '#ffffff', fontWeight: 700 }}>
+                              Active
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#065f46', marginTop: '2px' }}>
+                            ₹{sp.toFixed(2)}
+                          </div>
+                          {cp !== undefined && (
+                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                              Cost: ₹{cp.toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#047857', background: '#f0fdf4', padding: '8px 12px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                    🌿 <strong>POS Integration:</strong> The least amount is pre-selected by default in the POS Order List. Cashiers can change sizes with 1 click on the size badge.
+                  </div>
+                </div>
+              ) : Object.keys(attributes).filter(k => k !== 'discount_pieces' && k !== 'discount_percent' && k !== 'sizes' && k !== 'size_pricing' && k !== 'size_prices').length === 0 ? (
                 <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-sm)' }}>No category attributes specified.</p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
                   {Object.entries(attributes)
-                    .filter(([k]) => k !== 'discount_pieces' && k !== 'discount_percent')
+                    .filter(([k]) => k !== 'discount_pieces' && k !== 'discount_percent' && k !== 'sizes' && k !== 'size_pricing' && k !== 'size_prices')
                     .map(([key, val]) => (
                     <div key={key} style={{ borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '8px' }}>
                       <div style={{ fontSize: 'var(--font-xs)', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>

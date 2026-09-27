@@ -302,7 +302,7 @@ export const CustomersList: React.FC = () => {
             <table className="cust-spacious-table">
               <thead>
                 <tr>
-                  <th style={{ width: '40px', textAlign: 'center' }}>
+                  <th style={{ width: '44px', textAlign: 'center' }}>
                     <input
                       type="checkbox"
                       className="cust-checkbox"
@@ -311,14 +311,14 @@ export const CustomersList: React.FC = () => {
                       style={{ margin: '0 auto' }}
                     />
                   </th>
-                  <th style={{ width: '80px' }}>Code</th>
+                  <th style={{ width: '100px', minWidth: '90px' }}>Code</th>
                   <th style={{ minWidth: '180px' }}>Biller</th>
                   <th style={{ minWidth: '180px' }}>Company Name</th>
                   <th style={{ minWidth: '180px' }}>Email</th>
                   <th style={{ minWidth: '130px' }}>Phone</th>
                   <th style={{ minWidth: '110px' }}>Country</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Status</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -346,7 +346,7 @@ export const CustomersList: React.FC = () => {
                       </td>
 
                       {/* Code */}
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         <span className="cust-code-text">{code}</span>
                       </td>
 

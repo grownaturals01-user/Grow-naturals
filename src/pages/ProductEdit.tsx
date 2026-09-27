@@ -19,8 +19,17 @@ import {
   Loader2,
   Leaf,
   BadgePercent,
-  Sparkles
+  Sparkles,
+  Trees,
+  CheckCircle2,
+  Plus,
+  Trash2,
+  Boxes,
+  FlaskConical,
+  Flower2,
+  Wheat
 } from 'lucide-react';
+import { isPlantCategoryType } from './ProductNew';
 
 export const ProductEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +62,82 @@ export const ProductEdit: React.FC = () => {
   const [discountPercent, setDiscountPercent] = useState<string>('');
   const [attributes, setAttributes] = useState<Record<string, any>>({});
 
+  // Plant Sizes and Size-Based Pricing
+  const ALL_PLANT_SIZES = [
+    { key: 'S', label: 'S (Small)', desc: 'Small pot / young sapling / 4-6 inch' },
+    { key: 'M', label: 'M (Medium)', desc: 'Medium / 6-8 inch pot / polybag' },
+    { key: 'L', label: 'L (Large)', desc: 'Large floor plant / 10-12 inch pot' },
+    { key: 'XL', label: 'XL (Extra Large)', desc: 'Extra large specimen / 3-5 ft' },
+    { key: 'XXL', label: 'XXL (Double Extra Large)', desc: 'Full landscape tree / 5+ ft' },
+  ];
+
+  const [selectedPlantSizes, setSelectedPlantSizes] = useState<string[]>(['S', 'M', 'L', 'XL', 'XXL']);
+  const [customSizeInput, setCustomSizeInput] = useState<string>('');
+  const [plantSizePricing, setPlantSizePricing] = useState<Record<string, { sale_price: string; cost_price: string }>>({
+    S: { sale_price: '100', cost_price: '60' },
+    M: { sale_price: '180', cost_price: '100' },
+    L: { sale_price: '300', cost_price: '180' },
+    XL: { sale_price: '500', cost_price: '300' },
+    XXL: { sale_price: '850', cost_price: '500' },
+  });
+  const [isSameAmountForAll, setIsSameAmountForAll] = useState<boolean>(false);
+  const [unifiedSizePrice, setUnifiedSizePrice] = useState<string>('');
+  const [unifiedCostPrice, setUnifiedCostPrice] = useState<string>('');
+
+  const isSizedProduct =
+    isPlantCategoryType(type) ||
+    Boolean(attributes.sizes && attributes.sizes.length > 0) ||
+    Boolean(attributes.size_pricing && Object.keys(attributes.size_pricing).length > 0) ||
+    Boolean(attributes.size_prices && Object.keys(attributes.size_prices).length > 0);
+
+  // Toggle plant size selection
+  const togglePlantSize = (sizeKey: string) => {
+    setSelectedPlantSizes((prev) => {
+      if (prev.includes(sizeKey)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((s) => s !== sizeKey);
+      } else {
+        const order = ['S', 'M', 'L', 'XL', 'XXL', '4"', '6"', '8"', '10"', '12"', '16"'];
+        const next = [...prev, sizeKey];
+        return next.sort((a, b) => {
+          const idxA = order.indexOf(a);
+          const idxB = order.indexOf(b);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          return a.localeCompare(b);
+        });
+      }
+    });
+  };
+
+  // Add custom size
+  const handleAddCustomSize = () => {
+    const trimmed = customSizeInput.trim();
+    if (!trimmed) return;
+    if (!selectedPlantSizes.includes(trimmed)) {
+      setSelectedPlantSizes((prev) => [...prev, trimmed]);
+      setPlantSizePricing((prev) => ({
+        ...prev,
+        [trimmed]: { sale_price: unifiedSizePrice || salePrice || '100', cost_price: unifiedCostPrice || costPrice || '50' }
+      }));
+    }
+    setCustomSizeInput('');
+  };
+
+  // Apply unified price to all sizes
+  const handleApplyUnifiedPrice = () => {
+    if (!unifiedSizePrice) return;
+    setPlantSizePricing((prev) => {
+      const updated = { ...prev };
+      selectedPlantSizes.forEach((sz) => {
+        updated[sz] = {
+          sale_price: unifiedSizePrice,
+          cost_price: unifiedCostPrice || (updated[sz]?.cost_price || '0'),
+        };
+      });
+      return updated;
+    });
+  };
+
   useEffect(() => {
     setIsLoading(true);
     Promise.all([
@@ -76,7 +161,44 @@ export const ProductEdit: React.FC = () => {
         setSupplierId(prod.supplier_id || '');
         setDiscountPieces(prod.discount_pieces ? String(prod.discount_pieces) : (prod.attributes?.discount_pieces ? String(prod.attributes.discount_pieces) : ''));
         setDiscountPercent(prod.discount_percent ? String(prod.discount_percent) : (prod.attributes?.discount_percent ? String(prod.attributes.discount_percent) : ''));
-        setAttributes(typeof prod.attributes === 'string' ? JSON.parse(prod.attributes) : (prod.attributes || {}));
+        
+        const attr = typeof prod.attributes === 'string' ? JSON.parse(prod.attributes) : (prod.attributes || {});
+        setAttributes(attr);
+
+        if (attr.sizes && Array.isArray(attr.sizes) && attr.sizes.length > 0) {
+          setSelectedPlantSizes(attr.sizes);
+        }
+
+        if (attr.size_pricing && typeof attr.size_pricing === 'object') {
+          const loadedPricing: Record<string, { sale_price: string; cost_price: string }> = {};
+          Object.entries(attr.size_pricing).forEach(([sz, p]: [string, any]) => {
+            loadedPricing[sz] = {
+              sale_price: String(p.sale_price ?? prod.sale_price),
+              cost_price: String(p.cost_price ?? prod.cost_price ?? '0'),
+            };
+          });
+          setPlantSizePricing((prev) => ({ ...prev, ...loadedPricing }));
+        } else if (attr.size_prices && typeof attr.size_prices === 'object') {
+          const loadedPricing: Record<string, { sale_price: string; cost_price: string }> = {};
+          Object.entries(attr.size_prices).forEach(([sz, p]: [string, any]) => {
+            loadedPricing[sz] = {
+              sale_price: String(p ?? prod.sale_price),
+              cost_price: String(prod.cost_price ?? '0'),
+            };
+          });
+          setPlantSizePricing((prev) => ({ ...prev, ...loadedPricing }));
+        } else if (isPlantCategoryType(prod.type)) {
+          // Initialize from current product price
+          const baseSale = String(prod.sale_price || '150');
+          const baseCost = String(prod.cost_price || '80');
+          setPlantSizePricing({
+            S: { sale_price: baseSale, cost_price: baseCost },
+            M: { sale_price: String(Number(baseSale) * 1.5), cost_price: String(Number(baseCost) * 1.5) },
+            L: { sale_price: String(Number(baseSale) * 2), cost_price: String(Number(baseCost) * 2) },
+            XL: { sale_price: String(Number(baseSale) * 3), cost_price: String(Number(baseCost) * 3) },
+            XXL: { sale_price: String(Number(baseSale) * 4.5), cost_price: String(Number(baseCost) * 4.5) },
+          });
+        }
 
         setCategories(cats);
         setSuppliers(supps);
@@ -95,6 +217,36 @@ export const ProductEdit: React.FC = () => {
     setIsSubmitting(true);
     setErrorMessage(null);
 
+    let updatedAttributes = { ...attributes };
+    let finalSalePrice = Number(salePrice) || 0;
+    let finalCostPrice = Number(costPrice) || 0;
+
+    if (isSizedProduct) {
+      const activeSizePricing: Record<string, { sale_price: number; cost_price?: number }> = {};
+      const activeSizePrices: Record<string, number> = {};
+      let minSale = Infinity;
+      let minCost = Infinity;
+
+      selectedPlantSizes.forEach((sz) => {
+        const sp = Number(plantSizePricing[sz]?.sale_price) || 0;
+        const cp = Number(plantSizePricing[sz]?.cost_price) || 0;
+        activeSizePricing[sz] = { sale_price: sp, cost_price: cp };
+        activeSizePrices[sz] = sp;
+        if (sp < minSale) minSale = sp;
+        if (cp < minCost) minCost = cp;
+      });
+
+      finalSalePrice = minSale !== Infinity ? minSale : (Number(salePrice) || 0);
+      finalCostPrice = minCost !== Infinity ? minCost : (Number(costPrice) || 0);
+
+      updatedAttributes = {
+        ...updatedAttributes,
+        sizes: selectedPlantSizes,
+        size_pricing: activeSizePricing,
+        size_prices: activeSizePrices,
+      };
+    }
+
     const payload = {
       name: name.trim(),
       image_url: imageUrl.trim(),
@@ -102,9 +254,9 @@ export const ProductEdit: React.FC = () => {
       category_id: categoryId || null,
       sku: sku.trim(),
       barcode: barcode.trim() || sku.trim(),
-      cost_price: Number(costPrice) || 0,
-      sale_price: Number(salePrice) || 0,
-      gst_rate: isTaxable ? Number(gstRate) || 0 : 0,
+      cost_price: finalCostPrice,
+      sale_price: finalSalePrice,
+      gst_rate: (businessId === 'nikhlesh-nursery' || !isTaxable) ? 0 : (Number(gstRate) || 0),
       hsn_code: hsnCode.trim(),
       stock_quantity: Number(stockQuantity) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 5,
@@ -112,7 +264,7 @@ export const ProductEdit: React.FC = () => {
       discount_pieces: Number(discountPieces) || 0,
       discount_percent: Number(discountPercent) || 0,
       attributes: {
-        ...attributes,
+        ...updatedAttributes,
         discount_pieces: Number(discountPieces) || 0,
         discount_percent: Number(discountPercent) || 0,
       },
@@ -139,9 +291,9 @@ export const ProductEdit: React.FC = () => {
   }
 
   return (
-    <div style={{ maxWidth: '980px', margin: '0 auto', paddingBottom: '40px' }}>
-      {/* Top Breadcrumb & Header */}
-      <div className="page-header" style={{ marginBottom: '20px' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '32px' }}>
+      {/* Top Header */}
+      <div className="page-header" style={{ marginBottom: '16px' }}>
         <div className="page-title-group">
           <Link
             to={`/products/${id}`}
@@ -149,38 +301,37 @@ export const ProductEdit: React.FC = () => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              fontSize: 'var(--font-sm)',
+              fontSize: '0.8125rem',
               fontWeight: 500,
-              color: 'var(--color-text-secondary)',
-              marginBottom: '8px',
-              transition: 'color var(--transition-fast)'
+              color: 'var(--color-text-muted)',
+              marginBottom: '6px'
             }}
           >
-            <ArrowLeft size={16} /> Back to Product Details
+            <ArrowLeft size={15} /> Back to Product Details
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <h1 className="page-title" style={{ margin: 0 }}>
-              Edit Product: {name}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1 className="page-title" style={{ fontSize: '1.35rem', margin: 0 }}>
+              Edit Product: {name || 'Untitled'}
             </h1>
             <span
               style={{
-                fontSize: 'var(--font-xs)',
+                fontSize: '0.75rem',
                 fontWeight: 700,
-                padding: '4px 10px',
+                padding: '3px 9px',
                 borderRadius: 'var(--radius-full)',
                 backgroundColor: businessId === 'grow-naturals' ? 'var(--color-botanical-100)' : 'var(--module-sell-subtle)',
                 color: businessId === 'grow-naturals' ? 'var(--color-botanical-900)' : 'var(--module-sell-text)',
                 border: `1px solid ${businessId === 'grow-naturals' ? 'var(--color-botanical-300)' : 'var(--module-sell-border)'}`,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '5px'
               }}
             >
-              <Leaf size={12} /> {business?.name}
+              <Leaf size={12} /> {business?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery')}
             </span>
           </div>
-          <p className="page-description" style={{ marginTop: '4px' }}>
-            Update inventory specifications and stock records for {business?.name}.
+          <p className="page-description" style={{ fontSize: '0.8125rem', marginTop: '3px' }}>
+            Modify product details, category attributes, size variants, and pricing.
           </p>
         </div>
       </div>
@@ -191,33 +342,33 @@ export const ProductEdit: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            padding: '14px 18px',
+            padding: '10px 14px',
             backgroundColor: 'var(--color-danger-subtle)',
             color: 'var(--color-danger-text)',
             border: '1px solid var(--color-danger-border)',
-            borderRadius: 'var(--radius-xl)',
-            marginBottom: '24px',
-            boxShadow: 'var(--shadow-xs)'
+            borderRadius: 'var(--radius-lg)',
+            marginBottom: '16px'
           }}
         >
-          <AlertCircle size={20} style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 'var(--font-sm)', fontWeight: 500 }}>{errorMessage}</span>
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{errorMessage}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="card" style={{ boxShadow: 'var(--shadow-md)' }}>
-        <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      {/* Main Edit Form */}
+      <form onSubmit={handleSubmit} className="card" style={{ boxShadow: 'var(--shadow-sm)' }}>
+        <div className="card-body" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           
-          {/* Section 1: Core Details */}
+          {/* Section 1: Basic Information */}
           <div>
-            <h3 style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Tag size={16} style={{ color: 'var(--module-inv-accent)' }} /> Product Information
+            <h3 style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Tag size={14} style={{ color: 'var(--module-inv-accent)' }} /> Basic Information
             </h3>
 
-            <div className="form-grid-3" style={{ marginBottom: '14px' }}>
+            <div className="form-grid-2" style={{ gap: '12px 16px', marginBottom: '14px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">
-                  Product Name <span className="required">*</span>
+                  Product / Plant Name <span className="required">*</span>
                 </label>
                 <input
                   type="text"
@@ -229,34 +380,25 @@ export const ProductEdit: React.FC = () => {
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Category Type <span className="required">*</span></label>
+                <label className="form-label">Category Type</label>
                 <select
                   className="form-select"
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                 >
-                  {modules.length > 0 ? (
-                    modules.map((m) => (
-                      <option key={m.id} value={m.slug}>
-                        {m.name}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="plants">Plants & Trees</option>
-                      <option value="cactus">Cactus & Succulents</option>
-                      <option value="pots">Pots & Planters</option>
-                      <option value="fertilizers">Fertilizers & Care</option>
-                      <option value="flowers">Flowers & Decor</option>
-                    </>
-                  )}
-                  {/* If product type is not in current business modules, keep it visible */}
-                  {type && !modules.some((m) => m.slug === type) && (
-                    <option value={type}>{type.toUpperCase()}</option>
+                  {modules.map((m) => (
+                    <option key={m.slug} value={m.slug}>
+                      {m.name} ({m.slug})
+                    </option>
+                  ))}
+                  {!modules.some((m) => m.slug === type) && (
+                    <option value={type}>{type}</option>
                   )}
                 </select>
               </div>
+            </div>
 
+            <div className="form-grid-2" style={{ gap: '12px 16px', marginBottom: '14px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Subcategory</label>
                 <select
@@ -264,13 +406,28 @@ export const ProductEdit: React.FC = () => {
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                 >
-                  <option value="">Select Subcategory (Optional)</option>
-                  {(categories.filter((c) => !c.type || c.type === type).length > 0
-                    ? categories.filter((c) => !c.type || c.type === type)
-                    : categories
-                  ).map((c) => (
+                  <option value="">None (Top-Level)</option>
+                  {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name} {c.type ? `(${c.type})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">
+                  <Building2 size={13} style={{ color: 'var(--color-text-muted)' }} /> Supplier Partner
+                </label>
+                <select
+                  className="form-select"
+                  value={supplierId}
+                  onChange={(e) => setSupplierId(e.target.value)}
+                >
+                  <option value="">None / Internal Nursery Propagation</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
                     </option>
                   ))}
                 </select>
@@ -286,13 +443,15 @@ export const ProductEdit: React.FC = () => {
             />
           </div>
 
-          {/* Section 2: SKU, Barcode & Supplier */}
+          <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: 0 }} />
+
+          {/* Section 2: SKU & Barcode */}
           <div>
-            <h3 style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BarcodeIcon size={16} style={{ color: 'var(--module-inv-accent)' }} /> SKU & Identification
+            <h3 style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <BarcodeIcon size={14} style={{ color: 'var(--module-inv-accent)' }} /> SKU & Identification
             </h3>
 
-            <div className="form-grid-3">
+            <div className="form-grid-2" style={{ gap: '12px 16px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">
                   SKU Code <span className="required">*</span>
@@ -313,103 +472,460 @@ export const ProductEdit: React.FC = () => {
                   className="form-input tabular"
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  placeholder="Leave blank to match SKU"
                 />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  <Building2 size={13} style={{ color: 'var(--color-text-muted)' }} /> Supplier Partner
-                </label>
-                <select
-                  className="form-select"
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                >
-                  <option value="">None / Direct</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: 0 }} />
 
-          {/* Section 3: Pricing & Tax Structure */}
-          <div>
-            <h3 style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <IndianRupee size={16} style={{ color: 'var(--module-inv-accent)' }} /> Pricing & Taxation
-            </h3>
-
-            <div className={isTaxable ? "form-grid-4" : "form-grid-3"}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Cost Price</label>
-                <div className="input-addon-group">
-                  <span className="input-addon-prefix">₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input tabular"
-                    value={costPrice}
-                    onChange={(e) => setCostPrice(e.target.value)}
-                  />
+          {/* Section 3: Specialized Category Attributes & Size Variants */}
+          {isSizedProduct ? (
+            <div className="form-section-card" style={{ padding: '14px 18px' }}>
+              <div className="form-section-header" style={{ marginBottom: '12px', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="form-section-title" style={{ fontSize: '0.8125rem' }}>
+                  <SlidersHorizontal size={16} style={{ color: 'var(--module-inv-accent)' }} />
+                  <span>Size Variants & Botanical Specifications</span>
                 </div>
+                <span className="form-section-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Trees size={13} style={{ color: '#15803d' }} /> Live Stock Sizes ({selectedPlantSizes.length} active)
+                </span>
               </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  Sale Price <span className="required">*</span>
-                </label>
-                <div className="input-addon-group">
-                  <span className="input-addon-prefix">₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input tabular"
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              {isTaxable && (
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">
-                    GST Rate (%)
+              <div>
+                <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                  <label className="form-label" style={{ marginBottom: 0, fontWeight: 700 }}>
+                    Select Available Plant Sizes:
                   </label>
-                  <div className="input-addon-group">
-                    <span className="input-addon-prefix">%</span>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlantSizes(['S', 'M', 'L', 'XL', 'XXL'])}
+                      className="btn btn-sm btn-ghost"
+                      style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#059669', backgroundColor: '#ecfdf5', borderRadius: '4px' }}
+                    >
+                      All Sizes (S to XXL)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlantSizes(['S', 'M', 'L'])}
+                      className="btn btn-sm btn-ghost"
+                      style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#64748b', backgroundColor: '#f1f5f9', borderRadius: '4px' }}
+                    >
+                      Standard (S, M, L)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlantSizes(['4"', '6"', '8"', '10"', '12"', '16"'])}
+                      className="btn btn-sm btn-ghost"
+                      style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#c2410c', backgroundColor: '#fff7ed', borderRadius: '4px' }}
+                    >
+                      Pot Sizes (4" to 16")
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
+                  {ALL_PLANT_SIZES.map((sz) => {
+                    const isSelected = selectedPlantSizes.includes(sz.key);
+                    return (
+                      <button
+                        key={sz.key}
+                        type="button"
+                        onClick={() => togglePlantSize(sz.key)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: `1.5px solid ${isSelected ? '#059669' : '#e2e8f0'}`,
+                          backgroundColor: isSelected ? '#ecfdf5' : '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                          position: 'relative'
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            backgroundColor: isSelected ? '#059669' : '#f1f5f9',
+                            color: isSelected ? '#ffffff' : '#475569',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: '0.85rem',
+                            flexShrink: 0
+                          }}
+                        >
+                          {sz.key}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: isSelected ? '#065f46' : '#1e293b' }}>
+                            {sz.label}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {sz.desc}
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom size input */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Add custom size (e.g. 14 inch, 4-5 ft)"
+                    value={customSizeInput}
+                    onChange={(e) => setCustomSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomSize();
+                      }
+                    }}
+                    style={{ maxWidth: '300px', height: '32px', fontSize: '0.78rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomSize}
+                    className="btn btn-sm btn-secondary"
+                    style={{ height: '32px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Plus size={13} /> Add Custom Size
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : Object.keys(attributes).filter(k => k !== 'discount_pieces' && k !== 'discount_percent' && k !== 'sizes' && k !== 'size_pricing' && k !== 'size_prices').length > 0 ? (
+            <div className="form-section-card">
+              <div className="form-section-header">
+                <div className="form-section-title">
+                  <SlidersHorizontal size={16} style={{ color: 'var(--module-inv-accent)' }} />
+                  <span>Specialized Attributes ({type.toUpperCase()})</span>
+                </div>
+                <span className="form-section-badge">Custom Specifications</span>
+              </div>
+
+              <div className="form-grid-3">
+                {Object.entries(attributes)
+                  .filter(([key]) => key !== 'discount_pieces' && key !== 'discount_percent' && key !== 'sizes' && key !== 'size_pricing' && key !== 'size_prices')
+                  .map(([key, val]) => (
+                  <div key={key} className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ textTransform: 'capitalize' }}>
+                      {key.replace(/_/g, ' ')}
+                    </label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      className="form-input"
+                      value={String(val)}
+                      onChange={(e) => setAttributes({ ...attributes, [key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: 0 }} />
+
+          {/* Section 4: Pricing & Taxation */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <h3 style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IndianRupee size={16} style={{ color: 'var(--module-inv-accent)' }} /> Pricing & Taxation
+              </h3>
+              {isSizedProduct && (
+                <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Sparkles size={12} /> Size-Based Pricing Active ({selectedPlantSizes.length} sizes selected)
+                </span>
+              )}
+            </div>
+
+            {isSizedProduct ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Fast Action: Set Same Amount For All Sizes */}
+                <div style={{ padding: '12px 16px', background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="checkbox"
+                      id="sameAmountToggleEdit"
+                      className="cust-checkbox"
+                      checked={isSameAmountForAll}
+                      onChange={(e) => {
+                        setIsSameAmountForAll(e.target.checked);
+                        if (e.target.checked && unifiedSizePrice) {
+                          handleApplyUnifiedPrice();
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <label htmlFor="sameAmountToggleEdit" style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', margin: 0 }}>
+                      Set amount for all sizes
+                    </label>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      (Applies the exact same sale price across {selectedPlantSizes.join(', ')})
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="input-addon-group" style={{ width: '130px' }}>
+                      <span className="input-addon-prefix">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="form-input tabular"
+                        placeholder="Amount"
+                        value={unifiedSizePrice}
+                        onChange={(e) => {
+                          setUnifiedSizePrice(e.target.value);
+                          if (isSameAmountForAll) {
+                            const val = e.target.value;
+                            setPlantSizePricing((prev) => {
+                              const next = { ...prev };
+                              selectedPlantSizes.forEach((sz) => {
+                                next[sz] = {
+                                  sale_price: val,
+                                  cost_price: next[sz]?.cost_price || '0',
+                                };
+                              });
+                              return next;
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={handleApplyUnifiedPrice}
+                      style={{ fontSize: '0.75rem', padding: '6px 12px', fontWeight: 600, color: '#059669', borderColor: '#a7f3d0', backgroundColor: '#ecfdf5' }}
+                    >
+                      Apply to All Sizes
+                    </button>
+                  </div>
+                </div>
+
+                {/* Per-Size Pricing Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+                  {selectedPlantSizes.map((sz) => {
+                    const priceObj = plantSizePricing[sz] || { sale_price: '0', cost_price: '0' };
+                    return (
+                      <div
+                        key={sz}
+                        style={{
+                          padding: '10px 12px',
+                          border: '1.5px solid #e2e8f0',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ display: 'inline-block', minWidth: '24px', height: '24px', padding: '0 4px', borderRadius: '4px', backgroundColor: '#ecfdf5', textAlign: 'center', lineHeight: '24px', border: '1px solid #a7f3d0' }}>
+                              {sz}
+                            </span>
+                            <span>Size {sz}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => togglePlantSize(sz)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
+                            title="Remove size"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.72rem', marginBottom: '2px' }}>
+                            Sale Price <span className="required">*</span>
+                          </label>
+                          <div className="input-addon-group">
+                            <span className="input-addon-prefix" style={{ fontSize: '0.75rem' }}>₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="form-input tabular"
+                              style={{ fontSize: '0.8125rem', height: '32px' }}
+                              value={priceObj.sale_price}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPlantSizePricing((prev) => ({
+                                  ...prev,
+                                  [sz]: {
+                                    sale_price: val,
+                                    cost_price: prev[sz]?.cost_price || '0',
+                                  },
+                                }));
+                              }}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.72rem', marginBottom: '2px' }}>
+                            Cost Price (Optional)
+                          </label>
+                          <div className="input-addon-group">
+                            <span className="input-addon-prefix" style={{ fontSize: '0.75rem' }}>₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="form-input tabular"
+                              style={{ fontSize: '0.8125rem', height: '32px' }}
+                              value={priceObj.cost_price}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPlantSizePricing((prev) => ({
+                                  ...prev,
+                                  [sz]: {
+                                    sale_price: prev[sz]?.sale_price || '0',
+                                    cost_price: val,
+                                  },
+                                }));
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Lowest / Default POS Price Notice & Tax Fields */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 600 }}>
+                    🌿 <strong>Catalog Default:</strong> Least amount (
+                    ₹{selectedPlantSizes.length > 0 ? Math.min(...selectedPlantSizes.map((s) => Number(plantSizePricing[s]?.sale_price) || 0)).toFixed(2) : '0.00'}
+                    ) will be displayed as the default price in the POS Catalog & Order List.
+                  </span>
+                </div>
+
+                <div className="form-grid-2" style={{ gap: '12px 16px', marginTop: '4px' }}>
+                  {isTaxable && businessId !== 'nikhlesh-nursery' ? (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">GST Rate (%)</label>
+                      <div className="input-addon-group">
+                        <span className="input-addon-prefix">%</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-input tabular"
+                          value={gstRate}
+                          onChange={(e) => setGstRate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">GST Tax Status</label>
+                      <input
+                        type="text"
+                        className="form-input tabular"
+                        value="0% (Nursery Agricultural / Non-taxable)"
+                        disabled
+                        style={{ backgroundColor: '#f8fafc', color: '#64748b' }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">HSN Code</label>
+                    <input
+                      type="text"
                       className="form-input tabular"
-                      value={gstRate}
-                      onChange={(e) => setGstRate(e.target.value)}
+                      value={hsnCode}
+                      onChange={(e) => setHsnCode(e.target.value)}
                     />
                   </div>
                 </div>
-              )}
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">HSN Code</label>
-                <input
-                  type="text"
-                  className="form-input tabular"
-                  value={hsnCode}
-                  onChange={(e) => setHsnCode(e.target.value)}
-                />
               </div>
-            </div>
+            ) : (
+              <div className={isTaxable ? "form-grid-4" : "form-grid-3"}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Cost Price</label>
+                  <div className="input-addon-group">
+                    <span className="input-addon-prefix">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input tabular"
+                      value={costPrice}
+                      onChange={(e) => setCostPrice(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">
+                    Sale Price <span className="required">*</span>
+                  </label>
+                  <div className="input-addon-group">
+                    <span className="input-addon-prefix">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input tabular"
+                      value={salePrice}
+                      onChange={(e) => setSalePrice(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {isTaxable && businessId !== 'nikhlesh-nursery' && (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">
+                      GST Rate (%)
+                    </label>
+                    <div className="input-addon-group">
+                      <span className="input-addon-prefix">%</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="form-input tabular"
+                        value={gstRate}
+                        onChange={(e) => setGstRate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">HSN Code</label>
+                  <input
+                    type="text"
+                    className="form-input tabular"
+                    value={hsnCode}
+                    onChange={(e) => setHsnCode(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Section 4: Stock Quantity */}
+          <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: 0 }} />
+
+          {/* Section 5: Stock Quantity */}
           <div>
             <h3 style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <PackageCheck size={16} style={{ color: 'var(--module-inv-accent)' }} /> Stock & Inventory Levels
@@ -443,37 +959,6 @@ export const ProductEdit: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Section 5: Specialized Category Attributes */}
-          {Object.keys(attributes).filter(k => k !== 'discount_pieces' && k !== 'discount_percent').length > 0 && (
-            <div className="form-section-card">
-              <div className="form-section-header">
-                <div className="form-section-title">
-                  <SlidersHorizontal size={16} style={{ color: 'var(--module-inv-accent)' }} />
-                  <span>Specialized Attributes ({type.toUpperCase()})</span>
-                </div>
-                <span className="form-section-badge">Custom Specifications</span>
-              </div>
-
-              <div className="form-grid-3">
-                {Object.entries(attributes)
-                  .filter(([key]) => key !== 'discount_pieces' && key !== 'discount_percent')
-                  .map(([key, val]) => (
-                  <div key={key} className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ textTransform: 'capitalize' }}>
-                      {key.replace(/_/g, ' ')}
-                    </label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={String(val)}
-                      onChange={(e) => setAttributes({ ...attributes, [key]: e.target.value })}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Section 6: Add Discount / Volume Discount (Optional) */}
           <div className="form-section-card" style={{ padding: '14px 18px', border: '1px solid #e2e8f0', borderRadius: '10px' }}>

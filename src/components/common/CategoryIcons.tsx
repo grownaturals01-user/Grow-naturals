@@ -214,6 +214,36 @@ export const CATEGORY_THEMES: Record<string, CategoryThemeMeta> = {
     borderColor: 'rgba(22, 163, 74, 0.25)',
     name: 'Plants & Trees'
   },
+  'nursery-plants': {
+    color: '#15803d', // Green 700
+    bgColor: 'rgba(22, 163, 74, 0.1)',
+    borderColor: 'rgba(22, 163, 74, 0.25)',
+    name: 'Nursery Plants'
+  },
+  'fruit-trees': {
+    color: '#16a34a', // Green 600
+    bgColor: 'rgba(22, 163, 74, 0.12)',
+    borderColor: 'rgba(22, 163, 74, 0.28)',
+    name: 'Fruit Trees'
+  },
+  'seeds-bulbs': {
+    color: '#b45309', // Amber 700
+    bgColor: 'rgba(180, 83, 9, 0.1)',
+    borderColor: 'rgba(180, 83, 9, 0.25)',
+    name: 'Seeds & Bulbs'
+  },
+  'soil-manure': {
+    color: '#854d0e', // Yellow-Brown 800
+    bgColor: 'rgba(133, 77, 14, 0.1)',
+    borderColor: 'rgba(133, 77, 14, 0.25)',
+    name: 'Soil & Manure'
+  },
+  'nursery-pots': {
+    color: '#c2410c', // Orange 700
+    bgColor: 'rgba(234, 88, 12, 0.1)',
+    borderColor: 'rgba(234, 88, 12, 0.25)',
+    name: 'Nursery Pots'
+  },
   cactus: {
     color: '#0d9488', // Teal 700
     bgColor: 'rgba(13, 148, 136, 0.1)',

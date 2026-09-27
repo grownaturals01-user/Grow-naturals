@@ -133,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
                 {showAddMenu && (
                   <div className="dash-add-menu-dropdown">
                     <Link
-                      to="/invoices/new"
+                      to="/invoices/create"
                       className="dash-add-menu-item"
                       onClick={() => setShowAddMenu(false)}
                     >

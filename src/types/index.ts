@@ -105,7 +105,15 @@ export interface Category {
   product_count?: number;
 }
 
+export interface PlantSizePricing {
+  sale_price: number;
+  cost_price?: number;
+}
+
 export interface PlantAttributes {
+  sizes?: string[];
+  size_pricing?: Record<string, PlantSizePricing>;
+  size_prices?: Record<string, number>;
   pot_size?: string;
   height?: string;
   sunlight?: string;
@@ -516,6 +524,9 @@ export interface POSCartItem {
   warehouse_stock?: number;
   discount_pieces?: number;
   discount_percent?: number;
+  size?: string;
+  available_sizes?: string[];
+  size_pricing?: Record<string, PlantSizePricing>;
 }
 
 export interface OfflineSaleQueueItem {

@@ -396,7 +396,7 @@ export const ProductsList: React.FC = () => {
             <table className="prod-spacious-table">
               <thead>
                 <tr>
-                  <th style={{ width: '40px', textAlign: 'center' }}>
+                  <th style={{ width: '44px', textAlign: 'center' }}>
                     <input
                       type="checkbox"
                       className="cust-checkbox"
@@ -405,15 +405,15 @@ export const ProductsList: React.FC = () => {
                       style={{ margin: '0 auto' }}
                     />
                   </th>
-                  <th style={{ width: '90px' }}>SKU</th>
-                  <th style={{ minWidth: '220px' }}>Product Name</th>
-                  <th style={{ minWidth: '140px' }}>Category</th>
-                  <th style={{ minWidth: '130px' }}>Brand</th>
-                  <th style={{ minWidth: '100px' }}>Price</th>
-                  <th style={{ minWidth: '80px' }}>Unit</th>
-                  <th style={{ minWidth: '80px' }}>Qty</th>
-                  <th style={{ minWidth: '150px' }}>Created By</th>
-                  <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+                  <th style={{ width: '130px', minWidth: '120px' }}>SKU</th>
+                  <th style={{ minWidth: '240px' }}>Product Name</th>
+                  <th style={{ minWidth: '150px' }}>Category</th>
+                  <th style={{ minWidth: '140px' }}>Brand</th>
+                  <th style={{ minWidth: '110px' }}>Price</th>
+                  <th style={{ minWidth: '70px', textAlign: 'center' }}>Unit</th>
+                  <th style={{ minWidth: '80px', textAlign: 'center' }}>Qty</th>
+                  <th style={{ minWidth: '160px' }}>Created By</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -451,7 +451,7 @@ export const ProductsList: React.FC = () => {
                       </td>
 
                       {/* SKU */}
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         <span className="cust-code-text">{sku}</span>
                       </td>
 
@@ -488,19 +488,19 @@ export const ProductsList: React.FC = () => {
                       </td>
 
                       {/* Price */}
-                      <td>
-                        <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>
                           ₹{price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </span>
                       </td>
 
                       {/* Unit */}
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <span className="cust-email-text">{unit}</span>
                       </td>
 
                       {/* Qty */}
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <span
                           style={{
                             fontWeight: 700,
@@ -531,8 +531,8 @@ export const ProductsList: React.FC = () => {
                       </td>
 
                       {/* Actions */}
-                      <td>
-                        <div className="cust-actions-group">
+                      <td style={{ textAlign: 'center' }}>
+                        <div className="cust-actions-group" style={{ justifyContent: 'center' }}>
                           {/* View */}
                           <Link
                             to={`/products/${p.id}`}

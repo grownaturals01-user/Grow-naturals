@@ -20,15 +20,33 @@ import {
   SlidersHorizontal,
   CheckCircle2,
   Loader2,
-  Image as ImageIcon,
+  Plus,
+  Trash2,
   BadgePercent,
-  Percent,
   Trees,
   FlaskConical,
   Flower2,
-  Boxes
+  Boxes,
+  Sprout,
+  Shovel,
+  Wheat
 } from 'lucide-react';
 import { CategoryIconBadge, CactusIcon, PlanterIcon } from '../components/common/CategoryIcons';
+
+export const isPlantCategoryType = (t: string): boolean => {
+  const norm = (t || '').toLowerCase().trim();
+  return (
+    norm === 'plants' ||
+    norm === 'nursery-plants' ||
+    norm === 'fruit-trees' ||
+    norm === 'saplings' ||
+    norm === 'trees' ||
+    norm === 'plants-flora' ||
+    norm.includes('plant') ||
+    norm.includes('tree') ||
+    norm.includes('sapling')
+  );
+};
 
 export const ProductNew: React.FC = () => {
   const { businessId, business, activeBusiness, isTaxable } = useBusiness();
@@ -60,15 +78,41 @@ export const ProductNew: React.FC = () => {
   const [discountPieces, setDiscountPieces] = useState<string>('');
   const [discountPercent, setDiscountPercent] = useState<string>('');
 
-  // Specialized Attributes per Category
-  const [plantAttributes, setPlantAttributes] = useState({
-    pot_size: '8 inch',
-    height: '1.5 ft',
-    sunlight: 'Bright indirect',
-    watering: '2x weekly',
-    difficulty: 'Easy',
-  });
+  // Plant Sizes and Size-Based Pricing
+  const ALL_PLANT_SIZES = [
+    { key: 'S', label: 'S (Small)', desc: 'Small pot / young sapling / 4-6 inch' },
+    { key: 'M', label: 'M (Medium)', desc: 'Medium / 6-8 inch pot / polybag' },
+    { key: 'L', label: 'L (Large)', desc: 'Large floor plant / 10-12 inch pot' },
+    { key: 'XL', label: 'XL (Extra Large)', desc: 'Extra large specimen / 3-5 ft' },
+    { key: 'XXL', label: 'XXL (Double Extra Large)', desc: 'Full landscape tree / 5+ ft' },
+  ];
 
+  const POT_SIZE_PRESETS = [
+    { key: '4"', label: '4 Inch Pot', desc: 'Mini nursery starter pot' },
+    { key: '6"', label: '6 Inch Pot', desc: 'Standard tabletop / polybag' },
+    { key: '8"', label: '8 Inch Pot', desc: 'Medium patio pot / nursery bag' },
+    { key: '10"', label: '10 Inch Pot', desc: 'Large decorative planter' },
+    { key: '12"', label: '12 Inch Pot', desc: 'Extra large floor planter' },
+    { key: '16"', label: '16 Inch Pot', desc: 'Heavy specimen tub / grow bag' },
+  ];
+
+  // Size workflow toggle (enabled by default for plants & nursery plants)
+  const [enableSizePricing, setEnableSizePricing] = useState<boolean>(true);
+  const [selectedPlantSizes, setSelectedPlantSizes] = useState<string[]>(['S', 'M', 'L', 'XL', 'XXL']);
+  const [customSizeInput, setCustomSizeInput] = useState<string>('');
+  const [plantSizePricing, setPlantSizePricing] = useState<Record<string, { sale_price: string; cost_price: string }>>({
+    S: { sale_price: '100', cost_price: '60' },
+    M: { sale_price: '180', cost_price: '100' },
+    L: { sale_price: '300', cost_price: '180' },
+    XL: { sale_price: '500', cost_price: '300' },
+    XXL: { sale_price: '850', cost_price: '500' },
+  });
+  const [isSameAmountForAll, setIsSameAmountForAll] = useState<boolean>(false);
+  const [unifiedSizePrice, setUnifiedSizePrice] = useState<string>('200');
+  const [unifiedCostPrice, setUnifiedCostPrice] = useState<string>('100');
+
+  // Specialized Attributes per Category
+  // 1. Grow Naturals: Cactus
   const [cactusAttributes, setCactusAttributes] = useState({
     pot_size: '4 inch',
     variety_type: 'Desert Spiny',
@@ -77,6 +121,7 @@ export const ProductNew: React.FC = () => {
     difficulty: 'Very Easy',
   });
 
+  // 2. Grow Naturals: Pots
   const [potAttributes, setPotAttributes] = useState({
     material: 'Ceramic',
     size: '10 inch',
@@ -84,6 +129,7 @@ export const ProductNew: React.FC = () => {
     drainage: 'Yes',
   });
 
+  // 3. Grow Naturals: Fertilizers
   const [fertilizerAttributes, setFertilizerAttributes] = useState({
     composition: 'Organic seaweed extract',
     unit_size: '500 ml',
@@ -91,6 +137,7 @@ export const ProductNew: React.FC = () => {
     safety_notes: 'Non-toxic, safe for pets',
   });
 
+  // 4. Grow Naturals: Flowers
   const [flowerAttributes, setFlowerAttributes] = useState({
     occasion: 'Gifting / Celebration',
     arrangement_style: 'Vase Bouquet',
@@ -98,12 +145,106 @@ export const ProductNew: React.FC = () => {
     vase_included: 'Yes',
   });
 
+  // 5. Nikhlesh Nursery: Nursery Plants
+  const [nurseryPlantAttributes, setNurseryPlantAttributes] = useState({
+    bag_type: '8 inch Polybag',
+    sunlight: 'Full Sunlight',
+    watering: 'Daily in summer',
+    growth_habit: 'Flowering Shrub / Ornamental',
+    difficulty: 'Easy',
+  });
+
+  // 6. Nikhlesh Nursery: Fruit Trees
+  const [fruitTreeAttributes, setFruitTreeAttributes] = useState({
+    graft_type: 'Grafted (High Yield)',
+    fruiting_season: '1st Year / Summer Season',
+    container_type: '10x12 inch Heavy Polybag',
+    mature_height: 'Dwarf / Pot-friendly (6-8 ft)',
+    pollination: 'Self-fertile',
+  });
+
+  // 7. Nikhlesh Nursery: Seeds & Bulbs
+  const [seedsBulbsAttributes, setSeedsBulbsAttributes] = useState({
+    variety: 'F1 Hybrid / High Germination',
+    sowing_season: 'All Season / Kharif',
+    pack_quantity: '50 seeds pack',
+    germination_days: '6-10 days',
+  });
+
+  // 8. Nikhlesh Nursery: Soil & Manure
+  const [soilManureAttributes, setSoilManureAttributes] = useState({
+    composition: '100% Organic Vermicompost',
+    pack_weight: '5 kg Bag',
+    is_organic: 'Yes (Certified Natural)',
+    usage_notes: 'Apply 200g per pot monthly',
+  });
+
+  // 9. Nikhlesh Nursery: Nursery Pots
+  const [nurseryPotAttributes, setNurseryPotAttributes] = useState({
+    material: 'Heavy Duty Plastic Nursery Bag',
+    pot_size: '8 inch Diameter',
+    color: 'Black',
+    drainage: 'Yes',
+  });
+
+  // Custom / Fallback Category
   const [customAttributes, setCustomAttributes] = useState({
     specification: '',
     size_or_dimension: '',
     material_or_origin: '',
     notes: '',
   });
+
+  // Whether sizes workflow should be active for current product
+  const isSizedProduct = isPlantCategoryType(type) || enableSizePricing;
+
+  // Toggle plant size selection
+  const togglePlantSize = (sizeKey: string) => {
+    setSelectedPlantSizes((prev) => {
+      if (prev.includes(sizeKey)) {
+        if (prev.length === 1) return prev; // Keep at least one size
+        return prev.filter((s) => s !== sizeKey);
+      } else {
+        const order = ['S', 'M', 'L', 'XL', 'XXL', '4"', '6"', '8"', '10"', '12"', '16"'];
+        const next = [...prev, sizeKey];
+        return next.sort((a, b) => {
+          const idxA = order.indexOf(a);
+          const idxB = order.indexOf(b);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          return a.localeCompare(b);
+        });
+      }
+    });
+  };
+
+  // Add custom size
+  const handleAddCustomSize = () => {
+    const trimmed = customSizeInput.trim();
+    if (!trimmed) return;
+    if (!selectedPlantSizes.includes(trimmed)) {
+      setSelectedPlantSizes((prev) => [...prev, trimmed]);
+      setPlantSizePricing((prev) => ({
+        ...prev,
+        [trimmed]: { sale_price: unifiedSizePrice || '100', cost_price: unifiedCostPrice || '50' }
+      }));
+    }
+    setCustomSizeInput('');
+  };
+
+  // Apply unified price to all sizes
+  const handleApplyUnifiedPrice = () => {
+    if (!unifiedSizePrice) return;
+    setPlantSizePricing((prev) => {
+      const updated = { ...prev };
+      selectedPlantSizes.forEach((sz) => {
+        updated[sz] = {
+          sale_price: unifiedSizePrice,
+          cost_price: unifiedCostPrice || (updated[sz]?.cost_price || '0'),
+        };
+      });
+      return updated;
+    });
+  };
 
   // Preselect from URL query param if present, or fallback to first business module
   useEffect(() => {
@@ -135,12 +276,20 @@ export const ProductNew: React.FC = () => {
 
   const handleCategoryTypeChange = (newType: CategoryType) => {
     setType(newType);
-    if (newType === 'plants' || newType === 'cactus' || newType === 'nursery-plants') setHsnCode('0602');
-    else if (newType === 'pots' || newType === 'nursery-pots') setHsnCode('6913');
-    else if (newType === 'fertilizers' || newType === 'soil-manure') setHsnCode('3101');
-    else if (newType === 'flowers') setHsnCode('0603');
-    else if (newType === 'seeds-bulbs') setHsnCode('1209');
-    else if (newType === 'fruit-trees') setHsnCode('0602');
+    const isPlant = isPlantCategoryType(newType);
+    setEnableSizePricing(isPlant);
+
+    if (newType === 'plants' || newType === 'cactus' || newType === 'nursery-plants' || newType === 'fruit-trees') {
+      setHsnCode('0602');
+    } else if (newType === 'pots' || newType === 'nursery-pots') {
+      setHsnCode('6913');
+    } else if (newType === 'fertilizers' || newType === 'soil-manure') {
+      setHsnCode('3101');
+    } else if (newType === 'flowers') {
+      setHsnCode('0603');
+    } else if (newType === 'seeds-bulbs') {
+      setHsnCode('1209');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -158,12 +307,58 @@ export const ProductNew: React.FC = () => {
     setErrorMessage(null);
 
     let attributes: any = {};
-    if (type === 'plants') attributes = plantAttributes;
-    else if (type === 'cactus') attributes = cactusAttributes;
-    else if (type === 'pots') attributes = potAttributes;
-    else if (type === 'fertilizers') attributes = fertilizerAttributes;
-    else if (type === 'flowers') attributes = flowerAttributes;
-    else attributes = customAttributes;
+    let finalSalePrice = Number(salePrice) || 0;
+    let finalCostPrice = Number(costPrice) || 0;
+
+    if (isSizedProduct) {
+      const activeSizePricing: Record<string, { sale_price: number; cost_price?: number }> = {};
+      const activeSizePrices: Record<string, number> = {};
+      let minSale = Infinity;
+      let minCost = Infinity;
+
+      selectedPlantSizes.forEach((sz) => {
+        const sp = Number(plantSizePricing[sz]?.sale_price) || 0;
+        const cp = Number(plantSizePricing[sz]?.cost_price) || 0;
+        activeSizePricing[sz] = { sale_price: sp, cost_price: cp };
+        activeSizePrices[sz] = sp;
+        if (sp < minSale) minSale = sp;
+        if (cp < minCost) minCost = cp;
+      });
+
+      finalSalePrice = minSale !== Infinity ? minSale : (Number(salePrice) || 0);
+      finalCostPrice = minCost !== Infinity ? minCost : (Number(costPrice) || 0);
+
+      // Collect category-specific attributes
+      let categoryExtra: any = {};
+      if (type === 'nursery-plants') categoryExtra = nurseryPlantAttributes;
+      else if (type === 'fruit-trees') categoryExtra = fruitTreeAttributes;
+      else if (type === 'cactus') categoryExtra = cactusAttributes;
+      else if (type === 'pots') categoryExtra = potAttributes;
+      else if (type === 'fertilizers') categoryExtra = fertilizerAttributes;
+      else if (type === 'flowers') categoryExtra = flowerAttributes;
+      else if (type === 'seeds-bulbs') categoryExtra = seedsBulbsAttributes;
+      else if (type === 'soil-manure') categoryExtra = soilManureAttributes;
+      else if (type === 'nursery-pots') categoryExtra = nurseryPotAttributes;
+      else if (type !== 'plants') categoryExtra = customAttributes;
+
+      attributes = {
+        ...categoryExtra,
+        sizes: selectedPlantSizes,
+        size_pricing: activeSizePricing,
+        size_prices: activeSizePrices,
+      };
+    } else {
+      if (type === 'cactus') attributes = cactusAttributes;
+      else if (type === 'pots') attributes = potAttributes;
+      else if (type === 'fertilizers') attributes = fertilizerAttributes;
+      else if (type === 'flowers') attributes = flowerAttributes;
+      else if (type === 'nursery-plants') attributes = nurseryPlantAttributes;
+      else if (type === 'fruit-trees') attributes = fruitTreeAttributes;
+      else if (type === 'seeds-bulbs') attributes = seedsBulbsAttributes;
+      else if (type === 'soil-manure') attributes = soilManureAttributes;
+      else if (type === 'nursery-pots') attributes = nurseryPotAttributes;
+      else attributes = customAttributes;
+    }
 
     const payload = {
       business_id: businessId,
@@ -173,9 +368,9 @@ export const ProductNew: React.FC = () => {
       category_id: categoryId || null,
       sku: sku.trim(),
       barcode: barcode.trim() || sku.trim(),
-      cost_price: Number(costPrice) || 0,
-      sale_price: Number(salePrice) || 0,
-      gst_rate: isTaxable ? Number(gstRate) || 0 : 0,
+      cost_price: finalCostPrice,
+      sale_price: finalSalePrice,
+      gst_rate: (businessId === 'nikhlesh-nursery' || !isTaxable) ? 0 : (Number(gstRate) || 0),
       hsn_code: hsnCode.trim(),
       stock_quantity: Number(stockQuantity) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 5,
@@ -215,6 +410,11 @@ export const ProductNew: React.FC = () => {
       }))
     : [
         { type: 'plants' as CategoryType, label: 'Plants & Trees', desc: 'Live botanical stock' },
+        { type: 'nursery-plants' as CategoryType, label: 'Nursery Plants', desc: 'Outdoor garden saplings & shrubs' },
+        { type: 'fruit-trees' as CategoryType, label: 'Fruit Trees', desc: 'Grafted fruit saplings & orchard trees' },
+        { type: 'seeds-bulbs' as CategoryType, label: 'Seeds & Bulbs', desc: 'Vegetable seeds, flower bulbs' },
+        { type: 'soil-manure' as CategoryType, label: 'Soil & Manure', desc: 'Vermicompost, red soil, cocopeat' },
+        { type: 'nursery-pots' as CategoryType, label: 'Nursery Pots', desc: 'Grow bags, terracotta pots' },
         { type: 'cactus' as CategoryType, label: 'Cactus & Succulents', desc: 'Desert flora, low water' },
         { type: 'pots' as CategoryType, label: 'Pots & Planters', desc: 'Ceramic, fiber, clay' },
         { type: 'fertilizers' as CategoryType, label: 'Fertilizers', desc: 'Nutrients, pest care' },
@@ -261,11 +461,11 @@ export const ProductNew: React.FC = () => {
                 gap: '5px'
               }}
             >
-              <Leaf size={12} /> {business?.name || 'Grow Naturals'}
+              <Leaf size={12} /> {business?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery')}
             </span>
           </div>
           <p className="page-description" style={{ fontSize: '0.8125rem', marginTop: '3px' }}>
-            Create a distinct stock record scoped strictly to {business?.name}.
+            Create a distinct stock record scoped strictly to {business?.name || 'this business'}.
           </p>
         </div>
       </div>
@@ -301,7 +501,7 @@ export const ProductNew: React.FC = () => {
                 <Layers size={15} style={{ color: 'var(--module-inv-accent)' }} /> Category Type <span className="required">*</span>
               </label>
               <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
-                Defines specialized product specifications
+                Defines specialized product specifications & size workflows
               </span>
             </div>
 
@@ -360,7 +560,7 @@ export const ProductNew: React.FC = () => {
                   className="form-input"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Ficus Bonsai S-Shape, 10 inch Glazed Pot"
+                  placeholder="e.g. Mango Banganapalli Grafted, Hibiscus Double Red, 10 inch Terracotta Pot"
                   required
                 />
               </div>
@@ -426,7 +626,7 @@ export const ProductNew: React.FC = () => {
                   className="form-input tabular"
                   value={sku}
                   onChange={(e) => setSku(e.target.value)}
-                  placeholder="e.g. GN-PL-1001"
+                  placeholder="e.g. NN-NP-1001"
                   required
                 />
               </div>
@@ -451,7 +651,7 @@ export const ProductNew: React.FC = () => {
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value)}
                 >
-                  <option value="">None / Internal Propagation</option>
+                  <option value="">None / Internal Nursery Propagation</option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
@@ -464,79 +664,935 @@ export const ProductNew: React.FC = () => {
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: 0 }} />
 
-          {/* Section 4: Pricing & Taxes */}
-          <div>
-            <h3 style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <IndianRupee size={14} style={{ color: 'var(--module-inv-accent)' }} /> Pricing & Taxation
-            </h3>
-
-            <div className={isTaxable ? "form-grid-4" : "form-grid-3"} style={{ gap: '12px 16px' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Cost Price</label>
-                <div className="input-addon-group">
-                  <span className="input-addon-prefix">₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input tabular"
-                    value={costPrice}
-                    onChange={(e) => setCostPrice(e.target.value)}
-                  />
-                </div>
+          {/* Section 4: Size Selection & Specialized Category Attributes */}
+          <div className="form-section-card" style={{ padding: '14px 18px', marginTop: '2px' }}>
+            <div className="form-section-header" style={{ marginBottom: '12px', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="form-section-title" style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <SlidersHorizontal size={15} style={{ color: 'var(--module-inv-accent)' }} />
+                <span>Specialized {type.toUpperCase().replace(/-/g, ' ')} Specifications</span>
               </div>
+              <span
+                className="form-section-badge"
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '3px 9px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {isPlantCategoryType(type) ? (
+                  <>
+                    <Trees size={13} style={{ color: '#15803d' }} /> Live Stock & Size Variants Active
+                  </>
+                ) : type === 'cactus' ? (
+                  <>
+                    <CactusIcon size={13} style={{ color: '#0d9488' }} /> Desert Flora & Succulents
+                  </>
+                ) : type === 'pots' || type === 'nursery-pots' ? (
+                  <>
+                    <PlanterIcon size={13} style={{ color: '#c2410c' }} /> Container & Bag Specs
+                  </>
+                ) : type === 'fertilizers' || type === 'soil-manure' ? (
+                  <>
+                    <FlaskConical size={13} style={{ color: '#4f46e5' }} /> Organic Soil & Nutrients
+                  </>
+                ) : type === 'seeds-bulbs' ? (
+                  <>
+                    <Wheat size={13} style={{ color: '#b45309' }} /> Seeds & Germination
+                  </>
+                ) : type === 'flowers' ? (
+                  <>
+                    <Flower2 size={13} style={{ color: '#e11d48' }} /> Floral Freshness
+                  </>
+                ) : (
+                  <>
+                    <Boxes size={13} /> Custom Module Specs
+                  </>
+                )}
+              </span>
+            </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  Sale Price <span className="required">*</span>
-                </label>
-                <div className="input-addon-group">
-                  <span className="input-addon-prefix">₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input tabular"
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              {isTaxable && (
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">
-                    GST Rate (%)
+            {/* Plant Size Selection Container (Available for any plant/tree type or when size pricing enabled) */}
+            {isSizedProduct && (
+              <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px dashed #e2e8f0' }}>
+                <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                  <label className="form-label" style={{ marginBottom: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Trees size={14} color="#059669" /> Select Available Plant / Sapling Sizes:
                   </label>
-                  <div className="input-addon-group">
-                    <span className="input-addon-prefix">%</span>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlantSizes(['S', 'M', 'L', 'XL', 'XXL'])}
+                      className="btn btn-sm btn-ghost"
+                      style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#059669', backgroundColor: '#ecfdf5', borderRadius: '4px' }}
+                    >
+                      All Sapling Sizes (S, M, L, XL, XXL)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlantSizes(['S', 'M', 'L'])}
+                      className="btn btn-sm btn-ghost"
+                      style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#475569', backgroundColor: '#f1f5f9', borderRadius: '4px' }}
+                    >
+                      Standard (S, M, L)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlantSizes(['4"', '6"', '8"', '10"', '12"', '16"'])}
+                      className="btn btn-sm btn-ghost"
+                      style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#c2410c', backgroundColor: '#fff7ed', borderRadius: '4px' }}
+                    >
+                      Pot Sizes (4" to 16")
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
+                  {ALL_PLANT_SIZES.map((sz) => {
+                    const isSelected = selectedPlantSizes.includes(sz.key);
+                    return (
+                      <button
+                        key={sz.key}
+                        type="button"
+                        onClick={() => togglePlantSize(sz.key)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: `1.5px solid ${isSelected ? '#059669' : '#e2e8f0'}`,
+                          backgroundColor: isSelected ? '#ecfdf5' : '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                          position: 'relative'
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            backgroundColor: isSelected ? '#059669' : '#f1f5f9',
+                            color: isSelected ? '#ffffff' : '#475569',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: '0.85rem',
+                            flexShrink: 0
+                          }}
+                        >
+                          {sz.key}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: isSelected ? '#065f46' : '#1e293b' }}>
+                            {sz.label}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {sz.desc}
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Optional Custom Size Add */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Add custom size (e.g. 14 inch, 4-5 ft, 25 kg bag)"
+                    value={customSizeInput}
+                    onChange={(e) => setCustomSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomSize();
+                      }
+                    }}
+                    style={{ maxWidth: '320px', height: '32px', fontSize: '0.78rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomSize}
+                    className="btn btn-sm btn-secondary"
+                    style={{ height: '32px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Plus size={13} /> Add Custom Size
+                  </button>
+                </div>
+
+                <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#64748b' }}>
+                  💡 <em>You can set individual prices for each size or apply a unified price across all sizes in Section 5 below.</em>
+                </div>
+              </div>
+            )}
+
+            {/* Specialized Category Fields based on selected Type */}
+            {/* 1. Nursery Plants (Nikhlesh Nursery) */}
+            {type === 'nursery-plants' && (
+              <div className="form-grid-3" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Container / Bag Type</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={nurseryPlantAttributes.bag_type}
+                    onChange={(e) => setNurseryPlantAttributes({ ...nurseryPlantAttributes, bag_type: e.target.value })}
+                    placeholder="e.g. 8 inch Black Polybag, Bare Root, Terracotta"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Sunlight Requirement</label>
+                  <select
+                    className="form-select"
+                    value={nurseryPlantAttributes.sunlight}
+                    onChange={(e) => setNurseryPlantAttributes({ ...nurseryPlantAttributes, sunlight: e.target.value })}
+                  >
+                    <option value="Full Sunlight">Full Direct Sun (6+ hrs)</option>
+                    <option value="Partial Shade">Partial Shade / Morning Sun</option>
+                    <option value="Bright Indirect">Bright Indirect Light</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Watering Schedule</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={nurseryPlantAttributes.watering}
+                    onChange={(e) => setNurseryPlantAttributes({ ...nurseryPlantAttributes, watering: e.target.value })}
+                    placeholder="e.g. Daily in summer, 2x weekly in winter"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Growth / Plant Usage</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={nurseryPlantAttributes.growth_habit}
+                    onChange={(e) => setNurseryPlantAttributes({ ...nurseryPlantAttributes, growth_habit: e.target.value })}
+                    placeholder="e.g. Flowering Shrub, Hedge & Boundary, Avenue Tree"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Maintenance Difficulty</label>
+                  <select
+                    className="form-select"
+                    value={nurseryPlantAttributes.difficulty}
+                    onChange={(e) => setNurseryPlantAttributes({ ...nurseryPlantAttributes, difficulty: e.target.value })}
+                  >
+                    <option value="Easy">Easy / Hardy Garden Stock</option>
+                    <option value="Moderate">Moderate Care</option>
+                    <option value="High">High / Specialist Care</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* 2. Fruit Trees (Nikhlesh Nursery) */}
+            {type === 'fruit-trees' && (
+              <div className="form-grid-3" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Graft / Propagation Type</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={fruitTreeAttributes.graft_type}
+                    onChange={(e) => setFruitTreeAttributes({ ...fruitTreeAttributes, graft_type: e.target.value })}
+                    placeholder="e.g. Grafted (High Yield), Air Layered, Hybrid"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Fruiting Season & Age</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={fruitTreeAttributes.fruiting_season}
+                    onChange={(e) => setFruitTreeAttributes({ ...fruitTreeAttributes, fruiting_season: e.target.value })}
+                    placeholder="e.g. 1st Year Fruiting, Summer Season"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Polybag / Container Size</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={fruitTreeAttributes.container_type}
+                    onChange={(e) => setFruitTreeAttributes({ ...fruitTreeAttributes, container_type: e.target.value })}
+                    placeholder="e.g. 10x12 inch Heavy Polybag, Drum"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Mature Tree Height</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={fruitTreeAttributes.mature_height}
+                    onChange={(e) => setFruitTreeAttributes({ ...fruitTreeAttributes, mature_height: e.target.value })}
+                    placeholder="e.g. Dwarf / Pot-friendly (6-8 ft), Standard (15-20 ft)"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Pollination</label>
+                  <select
+                    className="form-select"
+                    value={fruitTreeAttributes.pollination}
+                    onChange={(e) => setFruitTreeAttributes({ ...fruitTreeAttributes, pollination: e.target.value })}
+                  >
+                    <option value="Self-fertile">Self-fertile (Single plant yields fruit)</option>
+                    <option value="Cross-pollinated">Cross-pollinated (Requires partner plant)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Seeds & Bulbs (Nikhlesh Nursery) */}
+            {type === 'seeds-bulbs' && (
+              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Seed Variety / Quality</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={seedsBulbsAttributes.variety}
+                    onChange={(e) => setSeedsBulbsAttributes({ ...seedsBulbsAttributes, variety: e.target.value })}
+                    placeholder="e.g. F1 Hybrid, Desi Heirloom, Export Quality"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Sowing Season</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={seedsBulbsAttributes.sowing_season}
+                    onChange={(e) => setSeedsBulbsAttributes({ ...seedsBulbsAttributes, sowing_season: e.target.value })}
+                    placeholder="e.g. All Season, Kharif (June-July), Rabi (Oct-Nov)"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Packet Packaging / Quantity</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={seedsBulbsAttributes.pack_quantity}
+                    onChange={(e) => setSeedsBulbsAttributes({ ...seedsBulbsAttributes, pack_quantity: e.target.value })}
+                    placeholder="e.g. 50 seeds pack, 10g pouch, 1 bulb"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Germination Time</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={seedsBulbsAttributes.germination_days}
+                    onChange={(e) => setSeedsBulbsAttributes({ ...seedsBulbsAttributes, germination_days: e.target.value })}
+                    placeholder="e.g. 5-8 days, 10-14 days"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 4. Soil & Manure (Nikhlesh Nursery) */}
+            {type === 'soil-manure' && (
+              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Composition / Soil Formulation</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={soilManureAttributes.composition}
+                    onChange={(e) => setSoilManureAttributes({ ...soilManureAttributes, composition: e.target.value })}
+                    placeholder="e.g. 100% Organic Vermicompost, Red Soil & Cocopeat Mix"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Packaging / Unit Weight</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={soilManureAttributes.pack_weight}
+                    onChange={(e) => setSoilManureAttributes({ ...soilManureAttributes, pack_weight: e.target.value })}
+                    placeholder="e.g. 5 kg Bag, 25 kg Nursery Sack, 50 kg Bulk Bag"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">100% Organic?</label>
+                  <select
+                    className="form-select"
+                    value={soilManureAttributes.is_organic}
+                    onChange={(e) => setSoilManureAttributes({ ...soilManureAttributes, is_organic: e.target.value })}
+                  >
+                    <option value="Yes (Certified Natural)">Yes (100% Natural / Organic)</option>
+                    <option value="Enriched Mix">Enriched with NPK Boosters</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Application Notes / Dosage</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={soilManureAttributes.usage_notes}
+                    onChange={(e) => setSoilManureAttributes({ ...soilManureAttributes, usage_notes: e.target.value })}
+                    placeholder="e.g. Apply 200g per pot monthly, mix 1:1 with soil"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 5. Nursery Pots (Nikhlesh Nursery) */}
+            {type === 'nursery-pots' && (
+              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Material</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={nurseryPotAttributes.material}
+                    onChange={(e) => setNurseryPotAttributes({ ...nurseryPotAttributes, material: e.target.value })}
+                    placeholder="e.g. Heavy Duty UV Plastic, Terracotta Clay, Fabric Grow Bag"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Pot Size / Diameter</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={nurseryPotAttributes.pot_size}
+                    onChange={(e) => setNurseryPotAttributes({ ...nurseryPotAttributes, pot_size: e.target.value })}
+                    placeholder="e.g. 8 inch, 10 inch, 12x12 inch"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Color / Finish</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={nurseryPotAttributes.color}
+                    onChange={(e) => setNurseryPotAttributes({ ...nurseryPotAttributes, color: e.target.value })}
+                    placeholder="e.g. Black, Terracotta / Brick Red, Green"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Drainage Holes</label>
+                  <select
+                    className="form-select"
+                    value={nurseryPotAttributes.drainage}
+                    onChange={(e) => setNurseryPotAttributes({ ...nurseryPotAttributes, drainage: e.target.value })}
+                  >
+                    <option value="Yes">Yes (Multiple drainage holes)</option>
+                    <option value="No">No (Solid container / Cachepot)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* 6. Cactus & Succulents (Grow Naturals) */}
+            {type === 'cactus' && (
+              <div className="form-grid-3" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Pot / Container Size</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={cactusAttributes.pot_size}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, pot_size: e.target.value })}
+                    placeholder="e.g. 3 inch terracotta, 4 inch pot"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Cactus Variety / Spine Type</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={cactusAttributes.variety_type}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, variety_type: e.target.value })}
+                    placeholder="e.g. Desert Spiny, Haworthia, Echeveria"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Sunlight Requirement</label>
+                  <select
+                    className="form-select"
+                    value={cactusAttributes.sunlight}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, sunlight: e.target.value })}
+                  >
+                    <option value="Direct sun">Full / Direct Sunlight</option>
+                    <option value="Bright indirect">Bright Indirect Sun</option>
+                    <option value="Partial shade">Partial Shade</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Watering Frequency</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={cactusAttributes.watering}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, watering: e.target.value })}
+                    placeholder="e.g. 1x every 2-3 weeks, When dry"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Maintenance Difficulty</label>
+                  <select
+                    className="form-select"
+                    value={cactusAttributes.difficulty}
+                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, difficulty: e.target.value })}
+                  >
+                    <option value="Very Easy">Very Easy / Hardy</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Moderate">Moderate</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* 7. Pots & Planters (Grow Naturals) */}
+            {type === 'pots' && (
+              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Material</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={potAttributes.material}
+                    onChange={(e) => setPotAttributes({ ...potAttributes, material: e.target.value })}
+                    placeholder="e.g. Glazed Ceramic, Terracotta, Fiberstone"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Pot Size / Diameter</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={potAttributes.size}
+                    onChange={(e) => setPotAttributes({ ...potAttributes, size: e.target.value })}
+                    placeholder="e.g. 10 inch, 12x12 inch"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Color / Finish</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={potAttributes.color}
+                    onChange={(e) => setPotAttributes({ ...potAttributes, color: e.target.value })}
+                    placeholder="e.g. Royal Indigo, Matte Black"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Drainage Hole</label>
+                  <select
+                    className="form-select"
+                    value={potAttributes.drainage}
+                    onChange={(e) => setPotAttributes({ ...potAttributes, drainage: e.target.value })}
+                  >
+                    <option value="Yes">Yes (Has drainage hole)</option>
+                    <option value="No">No (Cachepot / Indoor self-watering)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* 8. Fertilizers (Grow Naturals) */}
+            {type === 'fertilizers' && (
+              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Composition / Formulation</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={fertilizerAttributes.composition}
+                    onChange={(e) => setFertilizerAttributes({ ...fertilizerAttributes, composition: e.target.value })}
+                    placeholder="e.g. Cold pressed seaweed, NPK 19:19:19"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Unit Size / Packaging</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={fertilizerAttributes.unit_size}
+                    onChange={(e) => setFertilizerAttributes({ ...fertilizerAttributes, unit_size: e.target.value })}
+                    placeholder="e.g. 500 ml bottle, 25 kg bag"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0, gridColumn: 'span 2' }}>
+                  <label className="form-label">Safety & Dosage Notes</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={fertilizerAttributes.safety_notes}
+                    onChange={(e) => setFertilizerAttributes({ ...fertilizerAttributes, safety_notes: e.target.value })}
+                    placeholder="e.g. Dilute 2ml per 1L water, Store in shade"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 9. Flowers & Decor (Grow Naturals) */}
+            {type === 'flowers' && (
+              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Occasion / Theme</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={flowerAttributes.occasion}
+                    onChange={(e) => setFlowerAttributes({ ...flowerAttributes, occasion: e.target.value })}
+                    placeholder="e.g. Anniversary, Celebration, Sympathy"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Arrangement Style</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={flowerAttributes.arrangement_style}
+                    onChange={(e) => setFlowerAttributes({ ...flowerAttributes, arrangement_style: e.target.value })}
+                    placeholder="e.g. Hand-tied bouquet, Glass vase, Basket"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Vase Included?</label>
+                  <select
+                    className="form-select"
+                    value={flowerAttributes.vase_included}
+                    onChange={(e) => setFlowerAttributes({ ...flowerAttributes, vase_included: e.target.value })}
+                  >
+                    <option value="Yes">Yes (Vase included in bundle)</option>
+                    <option value="No">No (Bouquet / Stems only)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Fallback for other custom categories */}
+            {!['plants', 'nursery-plants', 'fruit-trees', 'cactus', 'pots', 'fertilizers', 'flowers', 'seeds-bulbs', 'soil-manure', 'nursery-pots'].includes(type) && (
+              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Specification / Type</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={customAttributes.specification}
+                    onChange={(e) => setCustomAttributes({ ...customAttributes, specification: e.target.value })}
+                    placeholder="e.g. Variety, grade, model"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Size or Dimensions</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={customAttributes.size_or_dimension}
+                    onChange={(e) => setCustomAttributes({ ...customAttributes, size_or_dimension: e.target.value })}
+                    placeholder="e.g. 500g, 10x12 inches, Standard"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: 0 }} />
+
+          {/* Section 5: Pricing & Taxation */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <h3 style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <IndianRupee size={14} style={{ color: 'var(--module-inv-accent)' }} /> Pricing & Taxation
+              </h3>
+              {isSizedProduct && (
+                <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Sparkles size={12} /> Size-Based Pricing Active ({selectedPlantSizes.length} sizes selected)
+                </span>
+              )}
+            </div>
+
+            {isSizedProduct ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Fast Action: Set Same Amount For All Sizes */}
+                <div style={{ padding: '12px 16px', background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="checkbox"
+                      id="sameAmountToggle"
+                      className="cust-checkbox"
+                      checked={isSameAmountForAll}
+                      onChange={(e) => {
+                        setIsSameAmountForAll(e.target.checked);
+                        if (e.target.checked && unifiedSizePrice) {
+                          handleApplyUnifiedPrice();
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <label htmlFor="sameAmountToggle" style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', margin: 0 }}>
+                      Set same amount for all sizes
+                    </label>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      (Applies the exact same price across {selectedPlantSizes.join(', ')})
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="input-addon-group" style={{ width: '130px' }}>
+                      <span className="input-addon-prefix">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="form-input tabular"
+                        placeholder="Amount"
+                        value={unifiedSizePrice}
+                        onChange={(e) => {
+                          setUnifiedSizePrice(e.target.value);
+                          if (isSameAmountForAll) {
+                            const val = e.target.value;
+                            setPlantSizePricing((prev) => {
+                              const next = { ...prev };
+                              selectedPlantSizes.forEach((sz) => {
+                                next[sz] = {
+                                  sale_price: val,
+                                  cost_price: next[sz]?.cost_price || '0',
+                                };
+                              });
+                              return next;
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={handleApplyUnifiedPrice}
+                      style={{ fontSize: '0.75rem', padding: '6px 12px', fontWeight: 600, color: '#059669', borderColor: '#a7f3d0', backgroundColor: '#ecfdf5' }}
+                    >
+                      Apply to All Sizes
+                    </button>
+                  </div>
+                </div>
+
+                {/* Per-Size Pricing Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+                  {selectedPlantSizes.map((sz) => {
+                    const priceObj = plantSizePricing[sz] || { sale_price: '0', cost_price: '0' };
+                    return (
+                      <div
+                        key={sz}
+                        style={{
+                          padding: '10px 12px',
+                          border: '1.5px solid #e2e8f0',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ display: 'inline-block', minWidth: '24px', height: '24px', padding: '0 4px', borderRadius: '4px', backgroundColor: '#ecfdf5', textAlign: 'center', lineHeight: '24px', border: '1px solid #a7f3d0' }}>
+                              {sz}
+                            </span>
+                            <span>Size {sz}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => togglePlantSize(sz)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
+                            title="Remove size"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.72rem', marginBottom: '2px' }}>
+                            Sale Price <span className="required">*</span>
+                          </label>
+                          <div className="input-addon-group">
+                            <span className="input-addon-prefix" style={{ fontSize: '0.75rem' }}>₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="form-input tabular"
+                              style={{ fontSize: '0.8125rem', height: '32px' }}
+                              value={priceObj.sale_price}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPlantSizePricing((prev) => ({
+                                  ...prev,
+                                  [sz]: {
+                                    sale_price: val,
+                                    cost_price: prev[sz]?.cost_price || '0',
+                                  },
+                                }));
+                              }}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.72rem', marginBottom: '2px' }}>
+                            Cost Price (Optional)
+                          </label>
+                          <div className="input-addon-group">
+                            <span className="input-addon-prefix" style={{ fontSize: '0.75rem' }}>₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="form-input tabular"
+                              style={{ fontSize: '0.8125rem', height: '32px' }}
+                              value={priceObj.cost_price}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPlantSizePricing((prev) => ({
+                                  ...prev,
+                                  [sz]: {
+                                    sale_price: prev[sz]?.sale_price || '0',
+                                    cost_price: val,
+                                  },
+                                }));
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Lowest / Default POS Price Notice & Tax Fields */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 600 }}>
+                    🌿 <strong>Catalog Default:</strong> Least amount (
+                    ₹{selectedPlantSizes.length > 0 ? Math.min(...selectedPlantSizes.map((s) => Number(plantSizePricing[s]?.sale_price) || 0)).toFixed(2) : '0.00'}
+                    ) will be displayed as the default price in the POS Catalog & Order List.
+                  </span>
+                </div>
+
+                <div className="form-grid-2" style={{ gap: '12px 16px', marginTop: '4px' }}>
+                  {isTaxable && businessId !== 'nikhlesh-nursery' ? (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">GST Rate (%)</label>
+                      <div className="input-addon-group">
+                        <span className="input-addon-prefix">%</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-input tabular"
+                          value={gstRate}
+                          onChange={(e) => setGstRate(e.target.value)}
+                          placeholder="0, 5, 12, 18"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">GST Tax Status</label>
+                      <input
+                        type="text"
+                        className="form-input tabular"
+                        value="0% (Nursery Agricultural / Non-taxable)"
+                        disabled
+                        style={{ backgroundColor: '#f8fafc', color: '#64748b' }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">HSN Code</label>
+                    <input
+                      type="text"
                       className="form-input tabular"
-                      value={gstRate}
-                      onChange={(e) => setGstRate(e.target.value)}
-                      placeholder="0, 5, 12, 18"
+                      value={hsnCode}
+                      onChange={(e) => setHsnCode(e.target.value)}
+                      placeholder="e.g. 0602"
                     />
                   </div>
                 </div>
-              )}
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">HSN Code</label>
-                <input
-                  type="text"
-                  className="form-input tabular"
-                  value={hsnCode}
-                  onChange={(e) => setHsnCode(e.target.value)}
-                  placeholder="e.g. 0602"
-                />
               </div>
-            </div>
+            ) : (
+              <div className={isTaxable ? "form-grid-4" : "form-grid-3"} style={{ gap: '12px 16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Cost Price</label>
+                  <div className="input-addon-group">
+                    <span className="input-addon-prefix">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input tabular"
+                      value={costPrice}
+                      onChange={(e) => setCostPrice(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">
+                    Sale Price <span className="required">*</span>
+                  </label>
+                  <div className="input-addon-group">
+                    <span className="input-addon-prefix">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input tabular"
+                      value={salePrice}
+                      onChange={(e) => setSalePrice(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {isTaxable && businessId !== 'nikhlesh-nursery' && (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">
+                      GST Rate (%)
+                    </label>
+                    <div className="input-addon-group">
+                      <span className="input-addon-prefix">%</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="form-input tabular"
+                        value={gstRate}
+                        onChange={(e) => setGstRate(e.target.value)}
+                        placeholder="0, 5, 12, 18"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">HSN Code</label>
+                  <input
+                    type="text"
+                    className="form-input tabular"
+                    value={hsnCode}
+                    onChange={(e) => setHsnCode(e.target.value)}
+                    placeholder="e.g. 0602"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Section 5: Stock Quantities */}
+          <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: 0 }} />
+
+          {/* Section 6: Stock Quantities */}
           <div>
             <h3 style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <PackageCheck size={14} style={{ color: 'var(--module-inv-accent)' }} /> Stock & Inventory Levels
@@ -570,309 +1626,6 @@ export const ProductNew: React.FC = () => {
                 <span className="form-helper">Alert triggers when count falls below this</span>
               </div>
             </div>
-          </div>
-
-          {/* Section 6: Specialized Category Attribute Container */}
-          <div className="form-section-card" style={{ padding: '14px 18px', marginTop: '2px' }}>
-            <div className="form-section-header" style={{ marginBottom: '12px', paddingBottom: '8px' }}>
-              <div className="form-section-title" style={{ fontSize: '0.8125rem' }}>
-                <SlidersHorizontal size={15} style={{ color: 'var(--module-inv-accent)' }} />
-                <span>Specialized {type.toUpperCase()} Attributes</span>
-              </div>
-              <span
-                className="form-section-badge"
-                style={{
-                  fontSize: '0.72rem',
-                  padding: '3px 9px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                {type === 'plants' && (
-                  <>
-                    <Trees size={13} style={{ color: '#15803d' }} /> Live Botany
-                  </>
-                )}
-                {type === 'cactus' && (
-                  <>
-                    <CactusIcon size={13} style={{ color: '#0d9488' }} /> Desert Flora & Succulents
-                  </>
-                )}
-                {type === 'pots' && (
-                  <>
-                    <PlanterIcon size={13} style={{ color: '#c2410c' }} /> Container Specs
-                  </>
-                )}
-                {type === 'fertilizers' && (
-                  <>
-                    <FlaskConical size={13} style={{ color: '#4f46e5' }} /> Chemical Profile
-                  </>
-                )}
-                {type === 'flowers' && (
-                  <>
-                    <Flower2 size={13} style={{ color: '#e11d48' }} /> Floral Freshness
-                  </>
-                )}
-                {!['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(type) && (
-                  <>
-                    <Boxes size={13} /> Custom Category Specs
-                  </>
-                )}
-              </span>
-            </div>
-
-            {type === 'plants' && (
-              <div className="form-grid-3" style={{ gap: '12px 16px' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Pot Size / Container</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={plantAttributes.pot_size}
-                    onChange={(e) => setPlantAttributes({ ...plantAttributes, pot_size: e.target.value })}
-                    placeholder="e.g. 8 inch ceramic, Polybag 5L"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Plant Height</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={plantAttributes.height}
-                    onChange={(e) => setPlantAttributes({ ...plantAttributes, height: e.target.value })}
-                    placeholder="e.g. 1.5 ft, 2-3 ft"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Sunlight Requirement</label>
-                  <select
-                    className="form-select"
-                    value={plantAttributes.sunlight}
-                    onChange={(e) => setPlantAttributes({ ...plantAttributes, sunlight: e.target.value })}
-                  >
-                    <option value="Bright indirect">Bright Indirect Light</option>
-                    <option value="Full sun">Full Sun</option>
-                    <option value="Partial shade">Partial Shade</option>
-                    <option value="Low light">Low Light Tolerant</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Watering Frequency</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={plantAttributes.watering}
-                    onChange={(e) => setPlantAttributes({ ...plantAttributes, watering: e.target.value })}
-                    placeholder="e.g. 2x weekly, Daily, When dry"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Maintenance Difficulty</label>
-                  <select
-                    className="form-select"
-                    value={plantAttributes.difficulty}
-                    onChange={(e) => setPlantAttributes({ ...plantAttributes, difficulty: e.target.value })}
-                  >
-                    <option value="Very Easy">Very Easy / Beginner</option>
-                    <option value="Easy">Easy</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Expert">Expert / Delicate</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {type === 'cactus' && (
-              <div className="form-grid-3" style={{ gap: '12px 16px' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Pot / Container Size</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={cactusAttributes.pot_size}
-                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, pot_size: e.target.value })}
-                    placeholder="e.g. 3 inch terracotta, 4 inch pot"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Cactus Variety / Spine Type</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={cactusAttributes.variety_type}
-                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, variety_type: e.target.value })}
-                    placeholder="e.g. Desert Spiny, Haworthia, Echeveria"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Sunlight Requirement</label>
-                  <select
-                    className="form-select"
-                    value={cactusAttributes.sunlight}
-                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, sunlight: e.target.value })}
-                  >
-                    <option value="Direct sun">Full / Direct Sunlight</option>
-                    <option value="Bright indirect">Bright Indirect Sun</option>
-                    <option value="Partial shade">Partial Shade</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Watering Frequency</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={cactusAttributes.watering}
-                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, watering: e.target.value })}
-                    placeholder="e.g. 1x every 2-3 weeks, When completely dry"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Maintenance Difficulty</label>
-                  <select
-                    className="form-select"
-                    value={cactusAttributes.difficulty}
-                    onChange={(e) => setCactusAttributes({ ...cactusAttributes, difficulty: e.target.value })}
-                  >
-                    <option value="Very Easy">Very Easy / Hardy</option>
-                    <option value="Easy">Easy</option>
-                    <option value="Moderate">Moderate</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {type === 'pots' && (
-              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Material</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={potAttributes.material}
-                    onChange={(e) => setPotAttributes({ ...potAttributes, material: e.target.value })}
-                    placeholder="e.g. Glazed Ceramic, Terracotta, Fiberstone"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Pot Size / Diameter</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={potAttributes.size}
-                    onChange={(e) => setPotAttributes({ ...potAttributes, size: e.target.value })}
-                    placeholder="e.g. 10 inch, 12x12 inch"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Color / Finish</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={potAttributes.color}
-                    onChange={(e) => setPotAttributes({ ...potAttributes, color: e.target.value })}
-                    placeholder="e.g. Royal Indigo, Matte Black"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Drainage Hole</label>
-                  <select
-                    className="form-select"
-                    value={potAttributes.drainage}
-                    onChange={(e) => setPotAttributes({ ...potAttributes, drainage: e.target.value })}
-                  >
-                    <option value="Yes">Yes (Has drainage hole)</option>
-                    <option value="No">No (Cachepot / Indoor self-watering)</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {type === 'fertilizers' && (
-              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Composition / Formulation</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={fertilizerAttributes.composition}
-                    onChange={(e) => setFertilizerAttributes({ ...fertilizerAttributes, composition: e.target.value })}
-                    placeholder="e.g. Cold pressed seaweed, NPK 19:19:19"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Unit Size / Packaging</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={fertilizerAttributes.unit_size}
-                    onChange={(e) => setFertilizerAttributes({ ...fertilizerAttributes, unit_size: e.target.value })}
-                    placeholder="e.g. 500 ml bottle, 25 kg bag"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0, gridColumn: 'span 2' }}>
-                  <label className="form-label">Safety & Dosage Notes</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={fertilizerAttributes.safety_notes}
-                    onChange={(e) => setFertilizerAttributes({ ...fertilizerAttributes, safety_notes: e.target.value })}
-                    placeholder="e.g. Dilute 2ml per 1L water, Store in shade"
-                  />
-                </div>
-              </div>
-            )}
-
-            {type === 'flowers' && (
-              <div className="form-grid-2" style={{ gap: '12px 16px' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Occasion / Theme</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={flowerAttributes.occasion}
-                    onChange={(e) => setFlowerAttributes({ ...flowerAttributes, occasion: e.target.value })}
-                    placeholder="e.g. Anniversary, Celebration, Sympathy"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Arrangement Style</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={flowerAttributes.arrangement_style}
-                    onChange={(e) => setFlowerAttributes({ ...flowerAttributes, arrangement_style: e.target.value })}
-                    placeholder="e.g. Hand-tied bouquet, Glass vase, Basket"
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Vase Included?</label>
-                  <select
-                    className="form-select"
-                    value={flowerAttributes.vase_included}
-                    onChange={(e) => setFlowerAttributes({ ...flowerAttributes, vase_included: e.target.value })}
-                  >
-                    <option value="Yes">Yes (Vase included in bundle)</option>
-                    <option value="No">No (Bouquet / Stems only)</option>
-                  </select>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Section 7: Add Discount / Volume Discount (Optional) */}

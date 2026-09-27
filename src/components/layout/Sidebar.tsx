@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useInventoryModules } from '../../context/InventoryModulesContext';
 import gnLogo from '../../assets/grownaturalslogo.jpeg';
@@ -71,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { canAccess } = useAuth();
   const { modules } = useInventoryModules();
+  const location = useLocation();
 
   const handleLinkClick = () => {
     if (window.innerWidth <= 768) {
@@ -128,13 +129,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
             )}
             {canAccess('invoices') && (
-              <NavLink to="/invoices/create" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Create Sales Invoice">
+              <NavLink
+                to="/invoices/create"
+                className={() => {
+                  const isCreateActive = location.pathname.startsWith('/invoices/create') || location.pathname.startsWith('/invoices/new');
+                  return `nav-link ${isCreateActive ? 'active' : ''}`;
+                }}
+                onClick={handleLinkClick}
+                title="Create Sales Invoice"
+              >
                 <FilePlus2 className="nav-icon" />
                 {!collapsed && <span>Create Sales Invoice</span>}
               </NavLink>
             )}
             {canAccess('invoices') && (
-              <NavLink to="/invoices" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Past Invoices">
+              <NavLink
+                to="/invoices"
+                end
+                className={() => {
+                  const isCreateActive = location.pathname.startsWith('/invoices/create') || location.pathname.startsWith('/invoices/new');
+                  const isPastActive = (location.pathname === '/invoices' || location.pathname.startsWith('/invoices/')) && !isCreateActive;
+                  return `nav-link ${isPastActive ? 'active' : ''}`;
+                }}
+                onClick={handleLinkClick}
+                title="Past Invoices"
+              >
                 <ReceiptText className="nav-icon" />
                 {!collapsed && <span>Past Invoices</span>}
               </NavLink>

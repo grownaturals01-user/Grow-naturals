@@ -2487,23 +2487,28 @@
 .prod-table-responsive {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .prod-spacious-table {
   width: 100%;
+  min-width: 1060px;
   border-collapse: collapse;
   text-align: left;
   font-family: 'Nunito', sans-serif;
 }
 
 .prod-spacious-table th {
-  padding: 8px 12px;
-  font-size: 0.75rem;
+  padding: 10px 14px;
+  font-size: 0.72rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: #64748b;
   border-bottom: 1px solid #cbd5e1;
   background: #fafafa;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 [data-theme="dark"] .prod-spacious-table th {
@@ -2513,7 +2518,7 @@
 }
 
 .prod-spacious-table td {
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 0.8125rem;
   color: #334155;
   border-bottom: 1px solid #e2e8f0;
@@ -2839,7 +2844,7 @@
 /* ==========================================================================
    GLOBAL APP-WIDE MODERN SHARP DESIGN SYSTEM UNIFICATION
    Applied to ALL pages across GrowNaturals Billing:
-   - Fonts: 'Nunito', sans-serif everywhere
+   - Fonts: 'Plus Jakarta Sans', 'Inter', sans-serif everywhere
    - Borders: 1px solid #cbd5e1 (sharp, bright borders)
    - Radii: 4px sharp border-radius across all cards, tables, inputs, buttons
    - Shadows: Completely remove blurry drop-shadows (box-shadow: none !important)
@@ -2850,7 +2855,7 @@
 html, body, #root,
 button, input, select, textarea,
 h1, h2, h3, h4, h5, h6, p, span, div, a, label, table, th, td {
-  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 /* Sharp 4px borders & shadow removal for cards and containers */
@@ -2916,11 +2921,32 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15) !important;
 }
 
-/* Universal Table Header & Row Styling */
+/* Universal Table Header & Row Styling - Unified across ALL pages */
+table,
+table.table,
+.table,
+.prod-spacious-table,
+.cust-spacious-table,
+.dash-tx-table,
+.invoice-items-table,
+.csi-table,
+.table-sticky-header {
+  width: 100%;
+  border-collapse: collapse !important;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  text-align: left;
+}
+
+table th,
 table.table th,
+.table th,
 .prod-spacious-table th,
-.table th {
-  font-family: 'Nunito', sans-serif !important;
+.cust-spacious-table th,
+.dash-tx-table th,
+.invoice-items-table th,
+.csi-table th,
+.table-sticky-header th {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   font-size: 0.72rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
@@ -2930,35 +2956,145 @@ table.table th,
   border-bottom: 1px solid #cbd5e1 !important;
   border-top: none !important;
   padding: 10px 14px !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
 }
 
+[data-theme="dark"] table th,
+[data-theme="dark"] table.table th,
+[data-theme="dark"] .table th,
+[data-theme="dark"] .prod-spacious-table th,
+[data-theme="dark"] .cust-spacious-table th,
+[data-theme="dark"] .dash-tx-table th,
+[data-theme="dark"] .invoice-items-table th,
+[data-theme="dark"] .csi-table th {
+  background-color: #0f172a !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #334155 !important;
+}
+
+table td,
 table.table td,
+.table td,
 .prod-spacious-table td,
-.table td {
-  font-family: 'Nunito', sans-serif !important;
+.cust-spacious-table td,
+.dash-tx-table td,
+.invoice-items-table td,
+.csi-table td,
+.table-sticky-header td {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   font-size: 0.8125rem !important;
   color: #1e293b !important;
   border-bottom: 1px solid #f1f5f9 !important;
   padding: 10px 14px !important;
+  vertical-align: middle !important;
+  transition: background-color 0.12s ease !important;
 }
 
-table.table tbody tr:hover,
-.prod-spacious-table tbody tr:hover,
-.table tbody tr:hover {
+[data-theme="dark"] table td,
+[data-theme="dark"] table.table td,
+[data-theme="dark"] .table td,
+[data-theme="dark"] .prod-spacious-table td,
+[data-theme="dark"] .cust-spacious-table td,
+[data-theme="dark"] .dash-tx-table td,
+[data-theme="dark"] .invoice-items-table td,
+[data-theme="dark"] .csi-table td {
+  color: #cbd5e1 !important;
+  border-bottom-color: #1e293b !important;
+}
+
+table tbody tr:hover td,
+table.table tbody tr:hover td,
+.table tbody tr:hover td,
+.prod-spacious-table tbody tr:hover td,
+.cust-spacious-table tbody tr:hover td,
+.dash-tx-table tbody tr:hover td,
+.invoice-items-table tbody tr:hover td,
+.csi-table tbody tr:hover td {
   background-color: #f8fafc !important;
 }
 
-/* Universal Code / SKU Pill */
+[data-theme="dark"] table tbody tr:hover td,
+[data-theme="dark"] table.table tbody tr:hover td,
+[data-theme="dark"] .table tbody tr:hover td,
+[data-theme="dark"] .prod-spacious-table tbody tr:hover td,
+[data-theme="dark"] .cust-spacious-table tbody tr:hover td,
+[data-theme="dark"] .dash-tx-table tbody tr:hover td,
+[data-theme="dark"] .invoice-items-table tbody tr:hover td,
+[data-theme="dark"] .csi-table tbody tr:hover td {
+  background-color: #1e293b !important;
+}
+
+/* Universal Table Wrapper & Responsive Containers */
+.table-container,
+.table-responsive,
+.prod-table-responsive,
+.cust-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background-color: #ffffff;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .table-container,
+[data-theme="dark"] .table-responsive,
+[data-theme="dark"] .prod-table-responsive,
+[data-theme="dark"] .cust-table-responsive {
+  border-color: #475569;
+  background-color: #1e293b;
+}
+
+/* Universal Code / SKU / Identification Pill */
 code,
 .sku,
-.cust-code-text {
+.cust-code-text,
+.inv-code,
+.badge-code,
+.po-number,
+.challan-number {
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 0.75rem !important;
   background-color: #f1f5f9 !important;
   color: #334155 !important;
-  padding: 1px 5px !important;
-  border-radius: 3px !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
   border: 1px solid #e2e8f0 !important;
+  white-space: nowrap !important;
+  display: inline-block !important;
+  word-break: keep-all !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1.4 !important;
+}
+
+[data-theme="dark"] code,
+[data-theme="dark"] .sku,
+[data-theme="dark"] .cust-code-text,
+[data-theme="dark"] .inv-code,
+[data-theme="dark"] .badge-code,
+[data-theme="dark"] .po-number,
+[data-theme="dark"] .challan-number {
+  background-color: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+/* Universal Status Pills & Badges across Tables */
+.status-pill,
+.badge,
+.cust-status-pill,
+.inv-status-pill {
+  font-family: 'Nunito', sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  border-radius: 4px !important;
+  padding: 2px 8px !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
 }
 
 /* Modals & Dialogs Across All Pages */
