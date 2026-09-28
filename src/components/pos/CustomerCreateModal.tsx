@@ -186,7 +186,7 @@ export const CustomerCreateModal: React.FC<CustomerCreateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="dialog-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
+    <div className="dialog-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
       <div
         className="dialog-content"
         onClick={(e) => e.stopPropagation()}
