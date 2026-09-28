@@ -103,6 +103,8 @@ export interface Category {
   description: string;
   sort_order: number;
   product_count?: number;
+  icon?: string;
+  image_url?: string;
 }
 
 export interface PlantSizePricing {

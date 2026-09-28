@@ -91,6 +91,28 @@ export const CategoriesManager: React.FC = () => {
   const [subMainCategorySlug, setSubMainCategorySlug] = useState<string>('plants');
   const [subSort, setSubSort] = useState<string>('0');
   const [subDesc, setSubDesc] = useState<string>('');
+  const [subIcon, setSubIcon] = useState<string>('');
+  const subIconFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubIconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Icon image must be less than 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      const dataUrl = loadEvent.target?.result as string;
+      if (dataUrl) {
+        setSubIcon(dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // Delete Module Modal State
   const [moduleToDelete, setModuleToDelete] = useState<MainCategoryItem | null>(null);
@@ -347,6 +369,7 @@ export const CategoriesManager: React.FC = () => {
     setSubMainCategorySlug(preselectedSlug || allMainCategories[0]?.slug || 'plants');
     setSubSort(String(categories.length + 1));
     setSubDesc('');
+    setSubIcon('');
     setIsSubCategoryModalOpen(true);
   };
 
@@ -356,6 +379,7 @@ export const CategoriesManager: React.FC = () => {
     setSubMainCategorySlug(subcat.type);
     setSubSort(String(subcat.sort_order || 0));
     setSubDesc(subcat.description || '');
+    setSubIcon(subcat.icon || subcat.image_url || '');
     setIsSubCategoryModalOpen(true);
   };
 
@@ -370,6 +394,8 @@ export const CategoriesManager: React.FC = () => {
           type: subMainCategorySlug as CategoryType,
           description: subDesc.trim(),
           sort_order: Number(subSort) || 0,
+          icon: subIcon || '',
+          image_url: subIcon || '',
         });
       } else {
         await api.post('/categories', {
@@ -378,6 +404,8 @@ export const CategoriesManager: React.FC = () => {
           type: subMainCategorySlug as CategoryType,
           description: subDesc.trim(),
           sort_order: Number(subSort) || 0,
+          icon: subIcon || '',
+          image_url: subIcon || '',
         });
       }
 
@@ -791,7 +819,7 @@ export const CategoriesManager: React.FC = () => {
                           {/* Image Box */}
                           <td>
                             <div className="prod-thumb-box" style={{ width: '34px', height: '34px' }}>
-                              {renderModuleIcon(subcat.type, 18)}
+                              {renderModuleIcon(subcat.icon || subcat.image_url || subcat.type, 18)}
                             </div>
                           </td>
 
@@ -1185,6 +1213,152 @@ export const CategoriesManager: React.FC = () => {
                     required
                     autoFocus
                   />
+                </div>
+
+                {/* Sub Category Icon Selector (Upload from Local + Presets) */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Sub Category Icon</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>
+                      Upload local file or pick preset
+                    </span>
+                  </label>
+
+                  {/* Hidden file input */}
+                  <input
+                    type="file"
+                    ref={subIconFileInputRef}
+                    accept="image/*,.svg,.png,.jpg,.jpeg,.webp,.ico,.gif"
+                    style={{ display: 'none' }}
+                    onChange={handleSubIconFileChange}
+                  />
+
+                  {/* Icon Upload & Preview Card */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1.5px solid #e2e8f0',
+                    }}
+                  >
+                    {/* Live Icon Preview */}
+                    <div
+                      style={{
+                        width: '46px',
+                        height: '46px',
+                        borderRadius: '8px',
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid #cbd5e1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      }}
+                    >
+                      {subIcon ? (
+                        renderModuleIcon(subIcon, 28)
+                      ) : (
+                        renderModuleIcon(subMainCategorySlug, 28)
+                      )}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => subIconFileInputRef.current?.click()}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            backgroundColor: '#ffffff',
+                            border: '1.5px solid #cbd5e1',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Upload size={14} color="#ff9f43" />
+                          <span>{subIcon ? 'Change Local Icon' : 'Upload Local Icon'}</span>
+                        </button>
+
+                        {subIcon && (
+                          <button
+                            type="button"
+                            onClick={() => setSubIcon('')}
+                            style={{
+                              padding: '6px 10px',
+                              fontSize: '0.75rem',
+                              color: '#ef4444',
+                              backgroundColor: '#fee2e2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Reset to Default
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+                        Supports PNG, SVG, JPG, WEBP from your local computer
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preset Botanical & Retail Icons */}
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                      Or choose from standard icons:
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      {CATEGORY_ICON_PRESETS.map((preset) => {
+                        const isSelected = subIcon === preset.key || subIcon === preset.name;
+                        return (
+                          <button
+                            key={preset.key}
+                            type="button"
+                            onClick={() => setSubIcon(preset.key)}
+                            title={preset.label}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '6px',
+                              border: isSelected ? '2px solid #ff9f43' : '1px solid #e2e8f0',
+                              backgroundColor: isSelected ? '#fff7ed' : '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              padding: 0,
+                              transition: 'all 0.15s ease',
+                              boxShadow: isSelected ? '0 0 0 2px rgba(255, 159, 67, 0.2)' : 'none',
+                            }}
+                          >
+                            {renderModuleIcon(preset.key, 16)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
