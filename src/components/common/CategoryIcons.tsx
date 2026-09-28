@@ -435,6 +435,21 @@ export const MODULE_ICON_PRESETS: ModulePresetIcon[] = [
   },
 ];
 
+export const CATEGORY_ICON_PRESETS = [
+  { key: '🌱', label: 'Plants', name: 'sprout' },
+  { key: '🪴', label: 'Planters', name: 'planter' },
+  { key: '🌵', label: 'Succulents', name: 'cactus' },
+  { key: '🌺', label: 'Flowers', name: 'flower' },
+  { key: '🧪', label: 'Nutrients', name: 'fertilizer' },
+  { key: '🌲', label: 'Trees', name: 'tree' },
+  { key: '🌾', label: 'Seeds', name: 'seeds' },
+  { key: '🍂', label: 'Foliage', name: 'foliage' },
+  { key: '🎋', label: 'Bonsai', name: 'bonsai' },
+  { key: '🏺', label: 'Vases', name: 'vase' },
+  { key: '🛠️', label: 'Tools', name: 'tools' },
+  { key: '📦', label: 'Supplies', name: 'package' },
+];
+
 /**
  * Universal renderer that translates icon keys, legacy emojis, and custom inputs
  * into crisp modern vector icons across the entire application.
@@ -445,6 +460,34 @@ export const renderModuleIcon = (
   style?: React.CSSProperties
 ): React.ReactNode => {
   if (!iconKeyOrEmoji) return <Boxes size={size} style={style} />;
+
+  // Support local uploaded image icon / SVG / data URL / URL
+  if (
+    iconKeyOrEmoji.startsWith('data:image/') ||
+    iconKeyOrEmoji.startsWith('blob:') ||
+    iconKeyOrEmoji.startsWith('http://') ||
+    iconKeyOrEmoji.startsWith('https://') ||
+    iconKeyOrEmoji.startsWith('/')
+  ) {
+    return (
+      <img
+        src={iconKeyOrEmoji}
+        alt=""
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          maxWidth: `${size}px`,
+          maxHeight: `${size}px`,
+          objectFit: 'contain',
+          borderRadius: '4px',
+          display: 'inline-block',
+          verticalAlign: 'middle',
+          flexShrink: 0,
+          ...style,
+        }}
+      />
+    );
+  }
 
   const key = iconKeyOrEmoji.toLowerCase().trim();
 

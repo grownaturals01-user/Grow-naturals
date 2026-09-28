@@ -179,11 +179,14 @@ export async function initDb(): Promise<void> {
       name VARCHAR(128) NOT NULL,
       slug VARCHAR(64) NOT NULL,
       caption TEXT DEFAULT '',
-      icon VARCHAR(64) DEFAULT '📦',
+      icon TEXT DEFAULT '📦',
       image_url TEXT DEFAULT '',
       sort_order INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
+    `ALTER TABLE inventory_modules ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
+    `ALTER TABLE categories ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT '';`,
+    `ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
     `CREATE INDEX IF NOT EXISTS idx_inv_modules_biz ON inventory_modules(business_id);`,
     `CREATE INDEX IF NOT EXISTS idx_inv_modules_slug ON inventory_modules(slug);`,
     `INSERT INTO warehouse_stocks (id, business_id, product_id, stock_quantity, location_bin)

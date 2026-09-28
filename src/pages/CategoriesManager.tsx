@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useBusiness } from '../context/BusinessContext';
 import { useInventoryModules } from '../context/InventoryModulesContext';
 import { api } from '../services/api';
@@ -16,10 +16,12 @@ import {
   FileSpreadsheet,
   Loader2,
   AlertTriangle,
-  Package
+  Package,
+  Upload,
+  Image
 } from 'lucide-react';
 import { DeleteModuleModal } from '../components/common/DeleteModuleModal';
-import { renderModuleIcon } from '../components/common/CategoryIcons';
+import { renderModuleIcon, CATEGORY_ICON_PRESETS } from '../components/common/CategoryIcons';
 import { EmptyState } from '../components/common/EmptyState';
 
 interface MainCategoryItem {
@@ -31,6 +33,8 @@ interface MainCategoryItem {
   is_builtin: boolean;
   product_count?: number;
   created_at?: string;
+  icon?: string;
+  image_url?: string;
 }
 
 export const CategoriesManager: React.FC = () => {
@@ -57,6 +61,28 @@ export const CategoriesManager: React.FC = () => {
   const [catName, setCatName] = useState<string>('');
   const [catSort, setCatSort] = useState<string>('0');
   const [catDesc, setCatDesc] = useState<string>('');
+  const [catIcon, setCatIcon] = useState<string>('');
+  const iconFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleIconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Icon image must be less than 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      const dataUrl = loadEvent.target?.result as string;
+      if (dataUrl) {
+        setCatIcon(dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // Sub Category Modal State
   const [isSubCategoryModalOpen, setIsSubCategoryModalOpen] = useState<boolean>(false);
@@ -111,6 +137,8 @@ export const CategoriesManager: React.FC = () => {
           is_builtin: false,
           product_count: count,
           created_at: m.created_at,
+          icon: m.icon || m.image_url || '',
+          image_url: m.image_url,
         };
       })
       .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
@@ -253,6 +281,7 @@ export const CategoriesManager: React.FC = () => {
     setCatName('');
     setCatSort(String(allMainCategories.length + 1));
     setCatDesc('');
+    setCatIcon('');
     setIsCategoryModalOpen(true);
   };
 
@@ -261,6 +290,7 @@ export const CategoriesManager: React.FC = () => {
     setCatName(item.name);
     setCatSort(String(item.sort_order));
     setCatDesc(item.description);
+    setCatIcon(item.icon || item.image_url || '');
     setIsCategoryModalOpen(true);
   };
 
@@ -273,12 +303,16 @@ export const CategoriesManager: React.FC = () => {
         await updateModule(editingCategory.id, {
           name: catName.trim(),
           caption: catDesc.trim(),
+          icon: catIcon || undefined,
+          image_url: catIcon || undefined,
           sort_order: Number(catSort) || 0,
         });
       } else {
         await addModule({
           name: catName.trim(),
           caption: catDesc.trim(),
+          icon: catIcon || '📦',
+          image_url: catIcon || '',
           sort_order: Number(catSort) || 0,
         });
       }
@@ -525,9 +559,25 @@ export const CategoriesManager: React.FC = () => {
                             />
                           </td>
 
-                          {/* Category Name */}
+                          {/* Category Name & Icon */}
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#f8fafc',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  overflow: 'hidden',
+                                  border: '1px solid #e2e8f0',
+                                }}
+                              >
+                                {renderModuleIcon(cat.icon || cat.slug, 18)}
+                              </div>
                               <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem' }}>
                                 {cat.name}
                               </span>
@@ -865,6 +915,152 @@ export const CategoriesManager: React.FC = () => {
                     required
                     autoFocus
                   />
+                </div>
+
+                {/* Category Icon Selector (Upload from Local + Presets) */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Category Icon</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>
+                      Upload local file or pick preset
+                    </span>
+                  </label>
+
+                  {/* Hidden file input */}
+                  <input
+                    type="file"
+                    ref={iconFileInputRef}
+                    accept="image/*,.svg,.png,.jpg,.jpeg,.webp,.ico,.gif"
+                    style={{ display: 'none' }}
+                    onChange={handleIconFileChange}
+                  />
+
+                  {/* Icon Upload & Preview Card */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1.5px solid #e2e8f0',
+                    }}
+                  >
+                    {/* Live Icon Preview */}
+                    <div
+                      style={{
+                        width: '46px',
+                        height: '46px',
+                        borderRadius: '8px',
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid #cbd5e1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      }}
+                    >
+                      {catIcon ? (
+                        renderModuleIcon(catIcon, 28)
+                      ) : (
+                        <Image size={22} color="#94a3b8" />
+                      )}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => iconFileInputRef.current?.click()}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            backgroundColor: '#ffffff',
+                            border: '1.5px solid #cbd5e1',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Upload size={14} color="#ff9f43" />
+                          <span>{catIcon ? 'Change Local Icon' : 'Upload Local Icon'}</span>
+                        </button>
+
+                        {catIcon && (
+                          <button
+                            type="button"
+                            onClick={() => setCatIcon('')}
+                            style={{
+                              padding: '6px 10px',
+                              fontSize: '0.75rem',
+                              color: '#ef4444',
+                              backgroundColor: '#fee2e2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+                        Supports PNG, SVG, JPG, WEBP from your local computer
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preset Botanical & Retail Icons */}
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                      Or choose from standard icons:
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      {CATEGORY_ICON_PRESETS.map((preset) => {
+                        const isSelected = catIcon === preset.key || catIcon === preset.name;
+                        return (
+                          <button
+                            key={preset.key}
+                            type="button"
+                            onClick={() => setCatIcon(preset.key)}
+                            title={preset.label}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '6px',
+                              border: isSelected ? '2px solid #ff9f43' : '1px solid #e2e8f0',
+                              backgroundColor: isSelected ? '#fff7ed' : '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              padding: 0,
+                              transition: 'all 0.15s ease',
+                              boxShadow: isSelected ? '0 0 0 2px rgba(255, 159, 67, 0.2)' : 'none',
+                            }}
+                          >
+                            {renderModuleIcon(preset.key, 16)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>

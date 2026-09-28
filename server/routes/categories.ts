@@ -75,7 +75,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const businessId = req.body.business_id || getBusinessId(req);
-    const { name, type, description, sort_order } = req.body;
+    const { name, type, description, sort_order, icon, image_url } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Subcategory name is required' });
@@ -85,10 +85,19 @@ router.post('/', async (req: Request, res: Response) => {
     const id = `cat-${businessId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     const result = await db.query(
-      `INSERT INTO categories (id, business_id, name, type, description, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO categories (id, business_id, name, type, description, sort_order, icon, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [id, businessId, name.trim(), type || 'general', description ? description.trim() : '', Number(sort_order) || 0]
+      [
+        id,
+        businessId,
+        name.trim(),
+        type || 'general',
+        description ? description.trim() : '',
+        Number(sort_order) || 0,
+        icon || '',
+        image_url || ''
+      ]
     );
 
     res.status(201).json(result.rows[0]);
@@ -101,7 +110,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, type, description, sort_order } = req.body;
+    const { name, type, description, sort_order, icon, image_url } = req.body;
 
     const db = await getDb();
     const result = await db.query(
@@ -109,14 +118,18 @@ router.put('/:id', async (req: Request, res: Response) => {
         name = COALESCE($1, name),
         type = COALESCE($2, type),
         description = COALESCE($3, description),
-        sort_order = COALESCE($4, sort_order)
-       WHERE id = $5
+        sort_order = COALESCE($4, sort_order),
+        icon = COALESCE($5, icon),
+        image_url = COALESCE($6, image_url)
+       WHERE id = $7
        RETURNING *`,
       [
         name ? name.trim() : undefined,
         type ? type.trim() : undefined,
         description !== undefined ? description.trim() : undefined,
         sort_order !== undefined ? Number(sort_order) : undefined,
+        icon !== undefined ? icon : undefined,
+        image_url !== undefined ? image_url : undefined,
         id
       ]
     );
