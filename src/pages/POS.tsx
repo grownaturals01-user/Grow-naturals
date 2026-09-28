@@ -12,6 +12,7 @@ import { BarcodeScannerModal } from '../components/pos/BarcodeScannerModal';
 import { PosHoldBills } from '../components/pos/PosHoldBills';
 import { CustomerCreateModal } from '../components/pos/CustomerCreateModal';
 import { CustomerSidebarDrawer } from '../components/pos/CustomerSidebarDrawer';
+import { ProjectSidebarDrawer } from '../components/pos/ProjectSidebarDrawer';
 import { A4InvoiceView } from '../components/print/A4InvoiceView';
 import { Receipt80mmView } from '../components/print/Receipt80mmView';
 import confetti from 'canvas-confetti';
@@ -81,30 +82,12 @@ export const POS: React.FC = () => {
   const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] = useState<boolean>(false);
   const [newCustomerInitialName, setNewCustomerInitialName] = useState<string>('');
 
-  // Client Projects State & Tabs
+  // Client Projects State & Drawer
   const [customerTab, setCustomerTab] = useState<'customer' | 'project'>('customer');
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [projectSearchQuery, setProjectSearchQuery] = useState<string>('');
-  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState<boolean>(false);
-  const projectDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close project dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        projectDropdownRef.current &&
-        !projectDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsProjectDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  const [isProjectDrawerOpen, setIsProjectDrawerOpen] = useState<boolean>(false);
 
   // Cart State
   const [cart, setCart] = useState<POSCartItem[]>([]);
@@ -175,14 +158,6 @@ export const POS: React.FC = () => {
     setTimeout(checkScrollBounds, 350);
   };
 
-  // Filter projects by search query
-  const filteredProjects = allProjects.filter(
-    (p) =>
-      p.name.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
-      p.client_name.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
-      (p.company && p.company.toLowerCase().includes(projectSearchQuery.toLowerCase()))
-  );
-
   // Load products (online-first, fallback to IndexedDB cache when offline)
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
@@ -227,8 +202,7 @@ export const POS: React.FC = () => {
     setCustomerTab('customer');
     setSelectedProjectId('');
     setSelectedProject(null);
-    setProjectSearchQuery('');
-    setIsProjectDropdownOpen(false);
+    setIsProjectDrawerOpen(false);
   }, [businessId, loadProducts, loadHeldBills]);
 
   // Dynamic Customer Search Filtering
@@ -1331,6 +1305,7 @@ export const POS: React.FC = () => {
                 onClick={() => {
                   setCustomerTab('project');
                   setIsCustomerDrawerOpen(false);
+                  setIsProjectDrawerOpen(true);
                 }}
               >
                 <FolderKanban size={14} />
@@ -1356,6 +1331,12 @@ export const POS: React.FC = () => {
                       border: '1.5px solid #0d9488',
                       boxShadow: '0 2px 6px rgba(13, 148, 136, 0.08)',
                       gap: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onClick={() => {
+                      setCustomerDrawerInitialTab('existing');
+                      setIsCustomerDrawerOpen(true);
                     }}
                   >
                     <div
@@ -1365,11 +1346,6 @@ export const POS: React.FC = () => {
                         gap: '10px',
                         flex: 1,
                         minWidth: 0,
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => {
-                        setCustomerDrawerInitialTab('existing');
-                        setIsCustomerDrawerOpen(true);
                       }}
                     >
                       <div
@@ -1435,7 +1411,7 @@ export const POS: React.FC = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => {
@@ -1476,216 +1452,278 @@ export const POS: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  /* Standard / Walk-in Trigger Row */
-                  <div className="pos-customer-select-row">
-                    <div
-                      className="pos-customer-trigger"
-                      onClick={() => {
-                        setCustomerDrawerInitialTab('existing');
-                        setIsCustomerDrawerOpen(true);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        Walk in Customer
-                      </span>
-                      <ChevronDown size={16} style={{ color: '#64748b' }} />
+                  /* Walk-in Customer Trigger Card -> Clicking opens Customer Drawer */
+                  <div
+                    onClick={() => {
+                      setCustomerDrawerInitialTab('existing');
+                      setIsCustomerDrawerOpen(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '10px',
+                      border: '1.5px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#0d9488';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(13, 148, 136, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          backgroundColor: '#f1f5f9',
+                          color: '#475569',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <User size={16} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>
+                          Walk in Customer
+                        </div>
+                        <div style={{ fontSize: '0.73rem', color: '#94a3b8', marginTop: '1px' }}>
+                          Tap to select or add customer
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Customer Create Button -> opens drawer with Add New tab */}
-                    <button
-                      type="button"
-                      className="pos-cust-action-btn pos-cust-create-btn"
-                      onClick={() => {
-                        setCustomerDrawerInitialTab('new');
-                        setIsCustomerDrawerOpen(true);
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: '#0d9488',
+                        backgroundColor: '#f0fdf4',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        flexShrink: 0,
                       }}
-                      title="Add New Customer"
                     >
-                      <UserPlus size={18} />
-                    </button>
-
-                    {/* Scan Customer / Barcode Button */}
-                    <button
-                      type="button"
-                      className="pos-cust-action-btn pos-cust-scan-btn"
-                      onClick={() => setIsScannerOpen(true)}
-                      title="Scan Customer Card / QR Code"
-                    >
-                      <Scan size={18} />
-                    </button>
+                      <span>Select</span>
+                      <ChevronRight size={13} />
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
-              /* --- PROJECT SELECTION WORKFLOW --- */
-              <div className="pos-project-select-container">
-                <div className="pos-customer-card-header">
-                  <div className="pos-customer-label">
-                    <FolderKanban size={13} color="#16a34a" />
-                    <span>Select Client Project</span>
-                  </div>
-                  {selectedProject && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => {
-                        setSelectedProjectId('');
-                        setSelectedProject(null);
-                        setProjectSearchQuery('');
-                        setSelectedCustomer({ name: 'Walk-in Customer', phone: '' });
-                      }}
-                      style={{ fontSize: '0.72rem', padding: '2px 6px', height: '22px', color: '#64748b' }}
-                    >
-                      Clear Selection
-                    </button>
-                  )}
-                </div>
-
-                {/* Custom Searchable Project Select Dropdown */}
-                <div className="pos-project-select-wrap" ref={projectDropdownRef}>
+              /* --- PROJECT SELECTION WORKFLOW (Drawer-based, No Dropdown) --- */
+              <div className="pos-project-select-container" style={{ padding: 0 }}>
+                {selectedProject ? (
+                  /* Selected Project Card */
                   <div
-                    className={`pos-project-search-input-box ${isProjectDropdownOpen ? 'focused' : ''} ${selectedProject ? 'has-selection' : ''}`}
-                    onClick={() => setIsProjectDropdownOpen((prev) => !prev)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '10px',
+                      border: '1.5px solid #16a34a',
+                      boxShadow: '0 2px 6px rgba(22, 163, 74, 0.08)',
+                    }}
                   >
-                    <Building size={15} className="pos-proj-field-icon" />
-                    
-                    <input
-                      type="text"
-                      className="pos-project-search-input"
-                      value={
-                        isProjectDropdownOpen
-                          ? projectSearchQuery
-                          : selectedProject
-                          ? selectedProject.name
-                          : projectSearchQuery
-                      }
-                      onChange={(e) => {
-                        setProjectSearchQuery(e.target.value);
-                        if (!isProjectDropdownOpen) setIsProjectDropdownOpen(true);
-                      }}
-                      onFocus={() => {
-                        setIsProjectDropdownOpen(true);
-                        if (selectedProject) setProjectSearchQuery('');
-                      }}
-                      placeholder={selectedProject ? selectedProject.name : 'Search or choose client project...'}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          flex: 1,
+                          minWidth: 0,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setIsProjectDrawerOpen(true)}
+                      >
+                        <div
+                          style={{
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '50%',
+                            backgroundColor: '#dcfce7',
+                            color: '#16a34a',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: '0.8rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Building size={16} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: '0.875rem',
+                              fontWeight: 700,
+                              color: '#0f172a',
+                              lineHeight: 1.2,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {selectedProject.name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.75rem',
+                              color: '#64748b',
+                              marginTop: '2px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            👤 {selectedProject.client_name} {selectedProject.company && `• 🏢 ${selectedProject.company}`}
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="pos-project-input-actions" onClick={(e) => e.stopPropagation()}>
-                      {selectedProject && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                         <button
                           type="button"
-                          className="pos-proj-clear-btn"
+                          onClick={() => setIsProjectDrawerOpen(true)}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: '#16a34a',
+                            backgroundColor: '#f0fdf4',
+                            border: '1px solid #bbf7d0',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Change
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             setSelectedProjectId('');
                             setSelectedProject(null);
-                            setProjectSearchQuery('');
-                            setSelectedCustomer({ name: 'Walk-in Customer', phone: '' });
+                            setSelectedCustomer({ name: 'Walk in Customer', phone: '' });
                           }}
-                          title="Clear project"
-                        >
-                          <X size={13} />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="pos-proj-chevron-btn"
-                        onClick={() => setIsProjectDropdownOpen((prev) => !prev)}
-                        title="Toggle projects dropdown"
-                      >
-                        <ChevronDown
-                          size={14}
                           style={{
-                            transform: isProjectDropdownOpen ? 'rotate(180deg)' : 'none',
-                            transition: 'transform 0.2s ease'
+                            padding: '4px',
+                            background: 'none',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
                           }}
-                        />
-                      </button>
+                          title="Remove project"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Floating Custom Dropdown List */}
-                  {isProjectDropdownOpen && (
-                    <div className="pos-project-dropdown-list">
-                      <div className="pos-project-dropdown-header">
-                        <span>Projects Directory ({filteredProjects.length})</span>
-                        <span className="pos-project-dropdown-close" onClick={() => setIsProjectDropdownOpen(false)}>✕ Close</span>
-                      </div>
-                      <div className="pos-project-dropdown-items">
-                        {filteredProjects.length === 0 ? (
-                          <div className="pos-project-no-match">
-                            {allProjects.length === 0
-                              ? 'No client projects found. Create projects in Client Projects.'
-                              : `No projects match "${projectSearchQuery}"`}
-                          </div>
-                        ) : (
-                          filteredProjects.map((p) => {
-                            const isSelected = selectedProjectId === p.id;
-                            return (
-                              <div
-                                key={p.id}
-                                className={`pos-project-option-item ${isSelected ? 'selected' : ''}`}
-                                onClick={() => {
-                                  setSelectedProjectId(p.id);
-                                  setSelectedProject(p);
-                                  setProjectSearchQuery('');
-                                  setIsProjectDropdownOpen(false);
-                                  setSelectedCustomer({
-                                    id: undefined,
-                                    name: p.client_name ? `${p.client_name} (${p.name})` : p.name,
-                                    phone: p.supervisor_phone || ''
-                                  });
-                                }}
-                              >
-                                <div className="pos-option-main">
-                                  <div className="pos-option-title-row">
-                                    <span className="pos-option-name">{p.name}</span>
-                                    <span className={`pos-option-status-pill ${p.status}`}>
-                                      {p.status}
-                                    </span>
-                                  </div>
-                                  <div className="pos-option-sub">
-                                    <span>👤 {p.client_name} {p.company ? `• 🏢 ${p.company}` : ''}</span>
-                                    {p.supervisor_name && (
-                                      <span>• 👷 {p.supervisor_name}</span>
-                                    )}
-                                  </div>
-                                </div>
-                                {isSelected && <Check size={16} className="pos-option-check" />}
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {selectedProject ? (
-                  <div className="pos-selected-project-card">
-                    <div className="pos-project-meta-grid">
-                      <div className="pos-project-meta-item">
-                        <span className="meta-label">Client:</span>
-                        <span className="meta-val">{selectedProject.client_name} {selectedProject.company && `(${selectedProject.company})`}</span>
-                      </div>
-                      {selectedProject.supervisor_name && (
-                        <div className="pos-project-meta-item">
-                          <span className="meta-label">Supervisor:</span>
-                          <span className="meta-val">{selectedProject.supervisor_name}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="pos-project-sync-hint">
-                      ✨ Billed amount will automatically credit <strong>Project Expenses</strong> & add to <strong>Billed Invoices</strong>.
+                    <div
+                      style={{
+                        fontSize: '0.7rem',
+                        color: '#15803d',
+                        backgroundColor: '#f0fdf4',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #dcfce7',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      ✨ Sale maps to <strong>{selectedProject.name}</strong> expense & billing ledger.
                     </div>
                   </div>
                 ) : (
-                  <div className="pos-project-empty-hint">
-                    {allProjects.length === 0 ? (
-                      <span>No client projects found. Create projects under Client Projects menu.</span>
-                    ) : (
-                      <span>Search or pick a project from the dropdown above to map sale.</span>
-                    )}
+                  /* No Project Selected Trigger Card -> Clicking opens Project Drawer */
+                  <div
+                    onClick={() => setIsProjectDrawerOpen(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '10px',
+                      border: '1.5px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#16a34a';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(22, 163, 74, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          backgroundColor: '#f0fdf4',
+                          color: '#16a34a',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Building size={16} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>
+                          Direct Retail Sale
+                        </div>
+                        <div style={{ fontSize: '0.73rem', color: '#94a3b8', marginTop: '1px' }}>
+                          Tap to map to a client project
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: '#16a34a',
+                        backgroundColor: '#f0fdf4',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span>Select Project</span>
+                      <ChevronRight size={13} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -2265,7 +2303,44 @@ export const POS: React.FC = () => {
           setIsCustomerDrawerOpen(false);
         }}
         onCustomerCreated={handleCustomerCreated}
+        onOpenScanner={() => setIsScannerOpen(true)}
         initialTab={customerDrawerInitialTab}
+      />
+
+      {/* Project Sidebar Drawer */}
+      <ProjectSidebarDrawer
+        isOpen={isProjectDrawerOpen}
+        onClose={() => setIsProjectDrawerOpen(false)}
+        projects={allProjects}
+        selectedProjectId={selectedProjectId}
+        onSelectProject={(proj) => {
+          if (!proj) {
+            setSelectedProjectId('');
+            setSelectedProject(null);
+            setSelectedCustomer({ name: 'Walk in Customer', phone: '' });
+          } else {
+            setSelectedProjectId(proj.id);
+            setSelectedProject(proj);
+            setSelectedCustomer({
+              id: undefined,
+              name: proj.client_name ? `${proj.client_name} (${proj.name})` : proj.name,
+              phone: proj.supervisor_phone || ''
+            });
+          }
+          setIsProjectDrawerOpen(false);
+        }}
+        onProjectCreated={(newProj) => {
+          setAllProjects((prev) => [newProj, ...prev]);
+          setSelectedProjectId(newProj.id);
+          setSelectedProject(newProj);
+          setSelectedCustomer({
+            id: undefined,
+            name: newProj.client_name ? `${newProj.client_name} (${newProj.name})` : newProj.name,
+            phone: newProj.supervisor_phone || ''
+          });
+          setIsProjectDrawerOpen(false);
+        }}
+        businessId={businessId}
       />
 
       {/* Customer Quick Create Popup Modal */}
