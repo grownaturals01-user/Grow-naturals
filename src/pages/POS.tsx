@@ -11,6 +11,7 @@ import type { Product, POSCartItem, Customer, HeldBill, Invoice, Project } from 
 import { BarcodeScannerModal } from '../components/pos/BarcodeScannerModal';
 import { PosHoldBills } from '../components/pos/PosHoldBills';
 import { CustomerCreateModal } from '../components/pos/CustomerCreateModal';
+import { CustomerSidebarDrawer } from '../components/pos/CustomerSidebarDrawer';
 import { A4InvoiceView } from '../components/print/A4InvoiceView';
 import { Receipt80mmView } from '../components/print/Receipt80mmView';
 import confetti from 'canvas-confetti';
@@ -72,9 +73,10 @@ export const POS: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Registered Customers Lookup
+  // Registered Customers Lookup & Drawer State
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState<boolean>(false);
+  const [isCustomerDrawerOpen, setIsCustomerDrawerOpen] = useState<boolean>(false);
+  const [customerDrawerInitialTab, setCustomerDrawerInitialTab] = useState<'existing' | 'new'>('existing');
   const [customerSearchQuery, setCustomerSearchQuery] = useState<string>('');
   const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] = useState<boolean>(false);
   const [newCustomerInitialName, setNewCustomerInitialName] = useState<string>('');
@@ -255,7 +257,7 @@ export const POS: React.FC = () => {
       total_spent: newCust.total_spent || 0,
       customer_type: newCust.customer_type || 'customer',
     });
-    setShowCustomerDropdown(false);
+    setIsCustomerDrawerOpen(false);
     setCustomerSearchQuery('');
   };
 
@@ -1316,6 +1318,8 @@ export const POS: React.FC = () => {
                   setCustomerTab('customer');
                   setSelectedProjectId('');
                   setSelectedProject(null);
+                  setCustomerDrawerInitialTab('existing');
+                  setIsCustomerDrawerOpen(true);
                 }}
               >
                 <UserCheck size={14} />
@@ -1326,7 +1330,7 @@ export const POS: React.FC = () => {
                 className={`pos-mapping-tab ${customerTab === 'project' ? 'active proj' : ''}`}
                 onClick={() => {
                   setCustomerTab('project');
-                  setShowCustomerDropdown(false);
+                  setIsCustomerDrawerOpen(false);
                 }}
               >
                 <FolderKanban size={14} />
@@ -1339,192 +1343,176 @@ export const POS: React.FC = () => {
 
             {customerTab === 'customer' ? (
               <div className="pos-customer-section" style={{ padding: 0 }}>
-                <div className="pos-customer-select-row">
+                {selectedCustomer.name && selectedCustomer.name !== 'Walk in Customer' && selectedCustomer.name !== 'Walk-in Customer' ? (
+                  /* Selected Billed Customer Card */
                   <div
-                    className={`pos-customer-trigger ${showCustomerDropdown ? 'open' : ''}`}
-                    onClick={() => setShowCustomerDropdown((prev) => !prev)}
-                  >
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {selectedCustomer.name || 'Walk in Customer'}
-                    </span>
-                    <ChevronDown
-                      size={16}
-                      style={{
-                        color: '#64748b',
-                        transform: showCustomerDropdown ? 'rotate(180deg)' : 'none',
-                        transition: 'transform 0.15s ease',
-                      }}
-                    />
-                  </div>
-
-                  {/* Customer Create Button */}
-                  <button
-                    type="button"
-                    className="pos-cust-action-btn pos-cust-create-btn"
-                    onClick={() => {
-                      setNewCustomerInitialName(customerSearchQuery);
-                      setIsCreateCustomerModalOpen(true);
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '10px',
+                      border: '1.5px solid #0d9488',
+                      boxShadow: '0 2px 6px rgba(13, 148, 136, 0.08)',
+                      gap: '8px',
                     }}
-                    title="Add New Customer"
                   >
-                    <UserPlus size={18} />
-                  </button>
-
-                  {/* Scan Customer / Barcode Button */}
-                  <button
-                    type="button"
-                    className="pos-cust-action-btn pos-cust-scan-btn"
-                    onClick={() => setIsScannerOpen(true)}
-                    title="Scan Customer Card / QR Code"
-                  >
-                    <Scan size={18} />
-                  </button>
-
-                  {/* Customer Search & Select Dropdown Menu */}
-                  {showCustomerDropdown && (
-                    <div className="pos-customer-menu">
-                      <div className="pos-customer-menu-search">
-                        <Search size={14} color="#94a3b8" />
-                        <input
-                          type="text"
-                          placeholder="Search customer name, phone, or GST..."
-                          value={customerSearchQuery}
-                          onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                          autoFocus
-                        />
-                        {customerSearchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setCustomerSearchQuery('')}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
-                          >
-                            ✕
-                          </button>
-                        )}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        flex: 1,
+                        minWidth: 0,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => {
+                        setCustomerDrawerInitialTab('existing');
+                        setIsCustomerDrawerOpen(true);
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          backgroundColor: '#ccfbf1',
+                          color: '#0d9488',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '0.8rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <User size={16} />
                       </div>
-
-                      <div className="pos-customer-menu-list">
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div
-                          className={`pos-customer-menu-item ${selectedCustomer.name === 'Walk in Customer' || selectedCustomer.name === 'Walk-in Customer' ? 'active' : ''}`}
-                          onClick={() => {
-                            setSelectedCustomer({ name: 'Walk in Customer', phone: '' });
-                            setShowCustomerDropdown(false);
-                            setCustomerSearchQuery('');
+                          style={{
+                            fontSize: '0.875rem',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            lineHeight: 1.2,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
                           }}
                         >
-                          <div>
-                            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>Walk in Customer</strong>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Standard counter customer</div>
-                          </div>
-                          {(selectedCustomer.name === 'Walk in Customer' || selectedCustomer.name === 'Walk-in Customer') && (
-                            <Check size={16} color="#16a34a" />
+                          {selectedCustomer.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.75rem',
+                            color: '#64748b',
+                            marginTop: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <span>{selectedCustomer.phone ? `+91 ${selectedCustomer.phone.slice(-10)}` : 'No mobile'}</span>
+                          {selectedCustomer.gstin && (
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                color: '#0369a1',
+                                backgroundColor: '#e0f2fe',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                              }}
+                            >
+                              GST
+                            </span>
                           )}
                         </div>
-
-                        {filteredCustomers.map((c) => (
-                          <div
-                            key={c.id}
-                            className={`pos-customer-menu-item ${selectedCustomer.id === c.id ? 'active' : ''}`}
-                            onClick={() => {
-                              setSelectedCustomer({
-                                id: c.id,
-                                name: c.name,
-                                phone: c.phone || '',
-                                gstin: c.gstin || '',
-                                credit_limit: c.credit_limit || 0,
-                                total_spent: c.total_spent || 0,
-                                customer_type: c.customer_type || 'customer',
-                              });
-                              setShowCustomerDropdown(false);
-                              setCustomerSearchQuery('');
-                            }}
-                          >
-                            <div>
-                              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{c.name}</strong>
-                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                                {c.phone || 'No mobile listed'} {c.gstin ? `• GST: ${c.gstin}` : ''}
-                              </div>
-                            </div>
-                            {selectedCustomer.id === c.id ? (
-                              <Check size={16} color="#16a34a" />
-                            ) : (
-                              <span
-                                style={{
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  color: '#0d9488',
-                                  backgroundColor: '#ccfbf1',
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                }}
-                              >
-                                Select
-                              </span>
-                            )}
-                          </div>
-                        ))}
-
-                        {filteredCustomers.length === 0 && customerSearchQuery && (
-                          <div style={{ padding: '14px', textAlign: 'center' }}>
-                            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 8px 0' }}>
-                              No customer found for "{customerSearchQuery}"
-                            </p>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-primary"
-                              onClick={() => {
-                                setShowCustomerDropdown(false);
-                                setNewCustomerInitialName(customerSearchQuery);
-                                setIsCreateCustomerModalOpen(true);
-                              }}
-                              style={{ backgroundColor: '#0d9488', borderColor: '#0d9488', borderRadius: '6px' }}
-                            >
-                              + Create "{customerSearchQuery}"
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Selected Customer Banner Card */}
-                {selectedCustomer.name && selectedCustomer.name !== 'Walk in Customer' && selectedCustomer.name !== 'Walk-in Customer' && (
-                  <div className="pos-selected-cust-banner" style={{ marginTop: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomerDrawerInitialTab('existing');
+                          setIsCustomerDrawerOpen(true);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: '#0d9488',
+                          backgroundColor: '#f0fdf4',
+                          border: '1px solid #ccfbf1',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCustomer({ name: 'Walk in Customer', phone: '' })}
+                        style={{
+                          padding: '4px',
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '50%',
+                        }}
+                        title="Remove customer"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Standard / Walk-in Trigger Row */
+                  <div className="pos-customer-select-row">
+                    <div
+                      className="pos-customer-trigger"
+                      onClick={() => {
+                        setCustomerDrawerInitialTab('existing');
+                        setIsCustomerDrawerOpen(true);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Walk in Customer
+                      </span>
+                      <ChevronDown size={16} style={{ color: '#64748b' }} />
+                    </div>
+
+                    {/* Customer Create Button -> opens drawer with Add New tab */}
                     <button
                       type="button"
-                      className="pos-banner-close-btn"
-                      onClick={() => setSelectedCustomer({ name: 'Walk in Customer', phone: '' })}
-                      title="Remove customer"
+                      className="pos-cust-action-btn pos-cust-create-btn"
+                      onClick={() => {
+                        setCustomerDrawerInitialTab('new');
+                        setIsCustomerDrawerOpen(true);
+                      }}
+                      title="Add New Customer"
                     >
-                      <X size={12} />
+                      <UserPlus size={18} />
                     </button>
 
-                    <div className="pos-banner-info">
-                      <div className="pos-banner-name">
-                        {selectedCustomer.name}
-                      </div>
-                      <div className="pos-banner-tags">
-                        <span>
-                          Phone: <strong style={{ color: '#0f172a' }}>{selectedCustomer.phone || 'N/A'}</strong>
-                        </span>
-                        {selectedCustomer.gstin && (
-                          <>
-                            <span style={{ color: '#cbd5e1' }}>|</span>
-                            <span>
-                              GST: <span className="pos-tag-pill loyalty">{selectedCustomer.gstin}</span>
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
+                    {/* Scan Customer / Barcode Button */}
                     <button
                       type="button"
-                      className="pos-banner-apply-btn"
-                      onClick={() => setShowCustomerDropdown(false)}
+                      className="pos-cust-action-btn pos-cust-scan-btn"
+                      onClick={() => setIsScannerOpen(true)}
+                      title="Scan Customer Card / QR Code"
                     >
-                      Applied
+                      <Scan size={18} />
                     </button>
                   </div>
                 )}
@@ -2264,6 +2252,21 @@ export const POS: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Customer Sidebar Drawer (Matching Screenshot 3) */}
+      <CustomerSidebarDrawer
+        isOpen={isCustomerDrawerOpen}
+        onClose={() => setIsCustomerDrawerOpen(false)}
+        customers={allCustomers}
+        selectedCustomerId={selectedCustomer.id}
+        selectedCustomerName={selectedCustomer.name}
+        onSelectCustomer={(cust) => {
+          setSelectedCustomer(cust);
+          setIsCustomerDrawerOpen(false);
+        }}
+        onCustomerCreated={handleCustomerCreated}
+        initialTab={customerDrawerInitialTab}
+      />
 
       {/* Customer Quick Create Popup Modal */}
       <CustomerCreateModal
