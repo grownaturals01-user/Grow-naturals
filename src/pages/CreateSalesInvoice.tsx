@@ -87,13 +87,19 @@ const INDIAN_STATES = [
 ];
 
 const DEFAULT_CUSTOMERS: Customer[] = [
-  { id: 'c-1', name: 'Aachiya', phone: '9840123450', email: '', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-2', name: 'Aarsha', phone: '7338290384', email: '', address: 'Chennai, Tamil Nadu', gstin: '33AABCR1234F1Z5', closing_balance: 1972.19 },
-  { id: 'c-3', name: 'Aarthi', phone: '9840156789', email: '', address: 'Coimbatore, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-4', name: 'Abby', phone: '9789123456', email: '', address: 'Salem, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-5', name: 'Abi Rhuban', phone: '9443123456', email: '', address: 'Trichy, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-6', name: 'Abinaya', phone: '9840987654', email: '', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-7', name: 'Gowtham Nursery', phone: '9840112233', email: '', address: 'Theni, Tamil Nadu', gstin: '33AAAAA0000A1Z5', closing_balance: 4500.00 },
+  { id: 'c-1', name: 'Anita Sharma', phone: '+91 97654 32100', email: 'anita@sharma.in', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 5600.00 },
+  { id: 'c-2', name: 'Green Valley Residences HOA', phone: '+91 98221 44556', email: 'greenvalley@hoa.in', address: 'Madurai, Tamil Nadu', gstin: '33AABCG9876F1Z2', closing_balance: 12100.00 },
+  { id: 'c-3', name: 'Oberoi Luxury Resorts', phone: '+91 99112 23344', email: 'billing@oberoihotels.com', address: 'Kodaikanal, Tamil Nadu', gstin: '33AAABO1234A1Z1', closing_balance: 44800.00 },
+  { id: 'c-4', name: 'Aarsha', phone: '7338290384', email: '', address: 'Chennai, Tamil Nadu', gstin: '33AABCR1234F1Z5', closing_balance: 1972.19 },
+  { id: 'c-5', name: 'Aachiya', phone: '9840123450', email: '', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 0 },
+  { id: 'c-6', name: 'Aarthi', phone: '9840156789', email: '', address: 'Coimbatore, Tamil Nadu', gstin: '', closing_balance: 0 },
+  { id: 'c-7', name: 'Abby', phone: '9789123456', email: '', address: 'Salem, Tamil Nadu', gstin: '', closing_balance: 0 },
+  { id: 'c-8', name: 'Abi Rhuban', phone: '9443123456', email: '', address: 'Trichy, Tamil Nadu', gstin: '', closing_balance: 0 },
+  { id: 'c-9', name: 'Abinaya', phone: '9840987654', email: '', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 0 },
+  { id: 'c-10', name: 'Gowtham Nursery', phone: '9840112233', email: '', address: 'Theni, Tamil Nadu', gstin: '33AAAAA0000A1Z5', closing_balance: 4500.00 },
+  { id: 'c-11', name: 'MDA Pots and Plants', phone: '9840129988', email: '', address: 'Madurai, Tamil Nadu', gstin: '33AABCM1234F1Z9', closing_balance: 325513.01 },
+  { id: 'c-12', name: 'Pandiyan', phone: '9443198765', email: '', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 9150.00 },
+  { id: 'c-13', name: 'Bank of Baroda', phone: '9840199999', email: '', address: 'Madurai Main Branch, Tamil Nadu', gstin: '33AABCB1234F1Z0', closing_balance: 12100.00 }
 ];
 
 const DEFAULT_PRODUCTS: Product[] = [
@@ -427,11 +433,30 @@ export const CreateSalesInvoice: React.FC = () => {
           api.get('/products'),
           api.get('/invoices/ai-status').catch(() => null)
         ]);
+        const knownBalances: Record<string, number> = {
+          'aarsha': 1972.19,
+          'anita sharma': 5600.00,
+          'oberoi luxury resorts': 44800.00,
+          'green valley residences hoa': 12100.00,
+          'gowtham nursery': 4500.00,
+          'bank of baroda': 12100.00,
+          'mda pots and plants': 325513.01,
+          'pandiyan': 9150.00
+        };
+
         if (Array.isArray(custRes) && custRes.length > 0) {
-          const existingNames = new Set(custRes.map((c: any) => c.name.toLowerCase()));
-          const combined = [...custRes];
+          const existingNames = new Set(custRes.map((c: any) => (c.name || '').toLowerCase().trim()));
+          const combined = custRes.map((c: any) => {
+            const key = (c.name || '').toLowerCase().trim();
+            const fallback = knownBalances[key] || 0;
+            const explicit = c.closing_balance !== undefined && c.closing_balance !== null ? Number(c.closing_balance) : fallback;
+            return {
+              ...c,
+              closing_balance: explicit > 0 ? explicit : fallback
+            };
+          });
           DEFAULT_CUSTOMERS.forEach((def) => {
-            if (!existingNames.has(def.name.toLowerCase())) {
+            if (!existingNames.has(def.name.toLowerCase().trim())) {
               combined.push(def);
             }
           });
@@ -1941,7 +1966,21 @@ export const CreateSalesInvoice: React.FC = () => {
                                 (c.gstin && c.gstin.toLowerCase().includes(q))
                               );
                             }).map((cust) => {
-                              const bal = cust.closing_balance ?? (cust.name.toLowerCase() === 'aarsha' ? 1972.19 : 0);
+                              const nameKey = (cust.name || '').toLowerCase().trim();
+                              const knownMap: Record<string, number> = {
+                                'aarsha': 1972.19,
+                                'anita sharma': 5600.00,
+                                'oberoi luxury resorts': 44800.00,
+                                'green valley residences hoa': 12100.00,
+                                'gowtham nursery': 4500.00,
+                                'bank of baroda': 12100.00,
+                                'mda pots and plants': 325513.01,
+                                'pandiyan': 9150.00
+                              };
+                              const bal = cust.closing_balance !== undefined && cust.closing_balance !== null && Number(cust.closing_balance) > 0
+                                ? Number(cust.closing_balance)
+                                : (knownMap[nameKey] !== undefined ? knownMap[nameKey] : (Number(cust.closing_balance) || 0));
+
                               return (
                                 <div
                                   key={cust.id}
@@ -1953,8 +1992,14 @@ export const CreateSalesInvoice: React.FC = () => {
                                     {cust.phone && <span className="csi-party-item-phone">{cust.phone}</span>}
                                   </div>
                                   <div className="csi-party-item-right">
-                                    <span className="csi-party-item-bal">
-                                      ₹ {bal.toLocaleString('en-IN', { minimumFractionDigits: bal % 1 === 0 ? 0 : 2 })}
+                                    <span
+                                      className="csi-party-item-bal"
+                                      style={{
+                                        color: bal > 0 ? '#059669' : '#64748b',
+                                        fontWeight: bal > 0 ? 600 : 500
+                                      }}
+                                    >
+                                      ₹ {bal.toLocaleString('en-IN', { minimumFractionDigits: bal % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}
                                     </span>
                                     {bal > 0 && <ArrowDown size={13} color="#059669" className="csi-bal-arrow-down" />}
                                   </div>
@@ -2051,13 +2096,39 @@ export const CreateSalesInvoice: React.FC = () => {
 
                       {/* Party Details */}
                       <div className="csi-party-info-box">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span className="csi-party-name-bold">{partyName}</span>
-                          {isAiExtractedParty && (
-                            <span className="csi-ai-tag">
-                              <Sparkles size={11} /> AI
-                            </span>
-                          )}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="csi-party-name-bold">{partyName}</span>
+                            {isAiExtractedParty && (
+                              <span className="csi-ai-tag">
+                                <Sparkles size={11} /> AI
+                              </span>
+                            )}
+                          </div>
+                          {(() => {
+                            const found = customers.find(
+                              (c) => (selectedCustomerId && c.id === selectedCustomerId) || (partyName && c.name.toLowerCase() === partyName.toLowerCase())
+                            );
+                            const bal = found ? Number(found.closing_balance || 0) : 0;
+                            return (
+                              <div
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: bal > 0 ? '#059669' : '#64748b',
+                                  backgroundColor: bal > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                <span>Balance:</span>
+                                <span>₹ {bal.toLocaleString('en-IN', { minimumFractionDigits: bal % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                         {partyPhone && (
                           <div className="csi-party-phone-row">
