@@ -2869,11 +2869,11 @@
    - Tables: Clean header typography, uppercase labels, tabular-nums
    ========================================================================== */
 
-/* Universal font family enforcement */
+/* Universal font family enforcement - DreamsPOS Signature Nunito Font */
 html, body, #root,
 button, input, select, textarea,
 h1, h2, h3, h4, h5, h6, p, span, div, a, label, table, th, td {
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Nunito', sans-serif !important;
 }
 
 /* Sharp 4px borders & shadow removal for cards and containers */
@@ -2950,7 +2950,7 @@ table.table:not(.csi-table),
 .table-sticky-header {
   width: 100%;
   border-collapse: collapse !important;
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Nunito', sans-serif !important;
   text-align: left;
 }
 
@@ -2962,7 +2962,7 @@ table.table:not(.csi-table) th,
 .dash-tx-table th,
 .invoice-items-table th,
 .table-sticky-header th {
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Nunito', sans-serif !important;
   font-size: 0.72rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
@@ -2996,7 +2996,7 @@ table.table:not(.csi-table) td,
 .dash-tx-table td,
 .invoice-items-table td,
 .table-sticky-header td {
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Nunito', sans-serif !important;
   font-size: 0.8125rem !important;
   color: #1e293b !important;
   border-bottom: 1px solid #f1f5f9 !important;
