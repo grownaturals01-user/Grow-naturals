@@ -15,7 +15,11 @@ import {
   Sparkles,
   Search,
   X,
-  Eye
+  Eye,
+  MapPin,
+  RotateCcw,
+  Tag,
+  PauseCircle
 } from 'lucide-react';
 import '../styles/projects-list.css';
 
@@ -195,7 +199,7 @@ export const ProjectsList: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">All Projects ({totalProjectsCount})</option>
-            <option value="in_progress">⚡ In Progress</option>
+            <option value="in_progress">In Progress</option>
             <option value="active">Active Execution</option>
             <option value="planning">Planning Phase</option>
             <option value="completed">Completed</option>
@@ -263,7 +267,9 @@ export const ProjectsList: React.FC = () => {
                             <div className="proj-client-meta">
                               <span><strong>Client:</strong> {p.client_name} {p.company && `(${p.company})`}</span>
                               {p.location && (
-                                <span>• 📍 {p.location}</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  • <MapPin size={11} style={{ flexShrink: 0 }} /> {p.location}
+                                </span>
                               )}
                             </div>
                             {p.referred_by && (
@@ -289,17 +295,17 @@ export const ProjectsList: React.FC = () => {
                           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                             {p.work_nature === 'rework' ? (
                               <span className="proj-pill-rework">
-                                🔄 Rework {p.rework_source === 'our_existing' ? '(Our)' : p.rework_source ? '(Other)' : ''}
+                                <RotateCcw size={10} /> Rework {p.rework_source === 'our_existing' ? '(Our)' : p.rework_source ? '(Other)' : ''}
                               </span>
                             ) : (
                               <span className="proj-pill-new">
-                                🌱 New Work
+                                <Sparkles size={10} /> New Work
                               </span>
                             )}
 
                             {p.category_name && (
-                              <span className="proj-pill-cat">
-                                {p.category_name}
+                              <span className="proj-pill-cat" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <Tag size={10} /> {p.category_name}
                               </span>
                             )}
                           </div>
@@ -372,7 +378,7 @@ export const ProjectsList: React.FC = () => {
                         {p.status === 'in_progress' ? (
                           <span className="proj-status-badge in_progress">
                             <span className="proj-status-dot" />
-                            ⚡ IN PROGRESS
+                            IN PROGRESS
                           </span>
                         ) : p.status === 'active' ? (
                           <span className="proj-status-badge active">
@@ -385,11 +391,11 @@ export const ProjectsList: React.FC = () => {
                           </span>
                         ) : p.status === 'on_hold' ? (
                           <span className="proj-status-badge on_hold">
-                            ON HOLD
+                            <PauseCircle size={11} /> ON HOLD
                           </span>
                         ) : (
                           <span className="proj-status-badge planning">
-                            PLANNING
+                            <Clock size={11} /> PLANNING
                           </span>
                         )}
                       </td>
