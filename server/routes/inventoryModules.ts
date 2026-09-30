@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -47,7 +47,7 @@ router.get('/', async (req: Request, res: Response) => {
     );
 
     // Auto-seed default modules if this business has none in DB
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 && businessId !== 'all' && businessId !== 'combined') {
       const defaults = DEFAULT_BUSINESS_MODULES[businessId] || [
         { name: 'Plants & Flora', slug: 'plants-flora', caption: 'Botanical and garden plants', icon: 'Trees', sort_order: 1 },
         { name: 'Pots & Planters', slug: 'pots-planters', caption: 'Pots, containers and nursery bags', icon: 'Box', sort_order: 2 },
@@ -81,7 +81,6 @@ router.get('/', async (req: Request, res: Response) => {
 // POST /api/inventory-modules
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
     const { name, caption, icon, image_url, sort_order } = req.body;
 
     if (!name || !name.trim()) {
@@ -93,6 +92,7 @@ router.post('/', async (req: Request, res: Response) => {
     if (!slug) slug = `mod-${Date.now()}`;
 
     const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
     const id = `inv-mod-${businessId}-${slug}-${Date.now().toString(36)}`;
 
     const result = await db.query(

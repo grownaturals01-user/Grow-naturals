@@ -33,7 +33,8 @@ import {
   Sprout,
   Plus,
   PlusCircle,
-  FilePlus2
+  FilePlus2,
+  X
 } from 'lucide-react';
 import { renderModuleIcon } from '../common/CategoryIcons';
 
@@ -69,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   onCloseMobile
 }) => {
-  const { canAccess } = useAuth();
+  const { canAccess, user } = useAuth();
   const { modules } = useInventoryModules();
   const location = useLocation();
 
@@ -83,7 +84,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Brand Header */}
       <div className="sidebar-header">
-        <NavLink to="/" className="sidebar-brand" onClick={handleLinkClick}>
+        <NavLink
+          to="/"
+          className="sidebar-brand"
+          onClick={(e) => {
+            handleLinkClick();
+            if (collapsed) {
+              e.preventDefault();
+              onToggleCollapse();
+            }
+          }}
+          title={collapsed ? 'Click to expand sidebar' : 'GrowNaturals'}
+        >
           <div className="brand-icon">
             <img src={gnLogo} alt="Grow Naturals Logo" className="brand-logo-img" />
           </div>
@@ -94,14 +106,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </NavLink>
+
+        {/* Desktop Sidebar Toggle Button (visible when expanded) */}
+        {!collapsed && (
+          <button
+            type="button"
+            className="sidebar-toggle-btn"
+            onClick={onToggleCollapse}
+            title="Collapse Sidebar"
+            aria-label="Collapse Sidebar"
+          >
+            <PanelLeftClose size={18} />
+          </button>
+        )}
+
+        {/* Mobile Close Button (visible on mobile only) */}
         <button
           type="button"
-          className="sidebar-toggle-btn"
-          onClick={onToggleCollapse}
-          title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-          aria-label="Toggle Sidebar"
+          className="sidebar-mobile-close-btn"
+          onClick={onCloseMobile}
+          aria-label="Close Sidebar"
+          title="Close Sidebar"
         >
-          {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+          <X size={18} />
         </button>
       </div>
 
@@ -119,13 +146,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {canAccess('dashboard') && (
               <NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Dashboard">
                 <LayoutDashboard className="nav-icon" />
-                {!collapsed && <span>Dashboard</span>}
+                <span className="nav-label">Dashboard</span>
               </NavLink>
             )}
             {canAccess('pos') && (
               <NavLink to="/pos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="POS Counter">
                 <ShoppingCart className="nav-icon" />
-                {!collapsed && <span>POS Counter</span>}
+                <span className="nav-label">POS Counter</span>
               </NavLink>
             )}
             {canAccess('invoices') && (
@@ -139,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title="Create Sales Invoice"
               >
                 <FilePlus2 className="nav-icon" />
-                {!collapsed && <span>Create Sales Invoice</span>}
+                <span className="nav-label">Create Sales Invoice</span>
               </NavLink>
             )}
             {canAccess('invoices') && (
@@ -155,29 +182,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title="Past Invoices"
               >
                 <ReceiptText className="nav-icon" />
-                {!collapsed && <span>Past Invoices</span>}
+                <span className="nav-label">Past Invoices</span>
               </NavLink>
             )}
             <NavLink to="/customers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Customers">
               <Users2 className="nav-icon" />
-              {!collapsed && <span>Customers</span>}
+              <span className="nav-label">Customers</span>
             </NavLink>
             {canAccess('quotations') && (
               <NavLink to="/quotations" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Quotations">
                 <FileSpreadsheet className="nav-icon" />
-                {!collapsed && <span>Quotations</span>}
+                <span className="nav-label">Quotations</span>
               </NavLink>
             )}
             {canAccess('delivery_challans') && (
               <NavLink to="/delivery-challans" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Delivery Challans">
                 <Truck className="nav-icon" />
-                {!collapsed && <span>Delivery Challans</span>}
+                <span className="nav-label">Delivery Challans</span>
               </NavLink>
             )}
             {canAccess('dashboard') && (
               <NavLink to="/reports" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Analytics & Reports">
                 <ReceiptText className="nav-icon" />
-                {!collapsed && <span>Reports & Analytics</span>}
+                <span className="nav-label">Reports & Analytics</span>
               </NavLink>
             )}
           </div>
@@ -216,11 +243,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
             <NavLink to="/products" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="All Products">
               <Package className="nav-icon" />
-              {!collapsed && <span>All Products</span>}
+              <span className="nav-label">All Products</span>
             </NavLink>
             <NavLink to="/categories" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Categories">
               <FolderTree className="nav-icon" />
-              {!collapsed && <span>Categories</span>}
+              <span className="nav-label">Categories</span>
             </NavLink>
             {/* Dynamic Inventory Categories for Active Business */}
             {(modules || []).map((m) => {
@@ -236,25 +263,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={handleLinkClick}
                   title={`${m.name} Inventory`}
                 >
-                  <span className="nav-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="nav-icon">
                     {renderModuleIcon(m.icon || m.slug, 18)}
                   </span>
-                  {!collapsed && <span>{m.name}</span>}
+                  <span className="nav-label">{m.name}</span>
                 </NavLink>
               );
             })}
 
             <NavLink to="/inventory/losses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Loss & Damage Tracking">
               <TrendingDown className="nav-icon" />
-              {!collapsed && <span>Loss Tracking</span>}
+              <span className="nav-label">Loss Tracking</span>
             </NavLink>
             <NavLink to="/warehouse" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Warehouse & Stock Management">
               <Warehouse className="nav-icon" />
-              {!collapsed && <span>Warehouse Stock</span>}
+              <span className="nav-label">Warehouse Stock</span>
             </NavLink>
             <NavLink to="/transfers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Stock Transfers (Warehouse ➔ Shop)">
               <ArrowLeftRight className="nav-icon" />
-              {!collapsed && <span>Stock Transfers</span>}
+              <span className="nav-label">Stock Transfers</span>
             </NavLink>
 
             {/* Add New Inventory Module Button */}
@@ -273,7 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}
             >
               <PlusCircle className="nav-icon" style={{ color: '#34d399' }} />
-              {!collapsed && <span>+ Add Inventory</span>}
+              <span className="nav-label">+ Add Inventory</span>
             </NavLink>
           </div>
         )}
@@ -289,11 +316,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
             <NavLink to="/projects" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Project List">
               <FolderKanban className="nav-icon" />
-              {!collapsed && <span>Project List</span>}
+              <span className="nav-label">Project List</span>
             </NavLink>
             <NavLink to="/supervisors" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Site Supervisors">
               <Users2 className="nav-icon" />
-              {!collapsed && <span>Supervisors Directory</span>}
+              <span className="nav-label">Supervisors Directory</span>
             </NavLink>
           </div>
         )}
@@ -310,19 +337,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {canAccess('purchases') && (
               <NavLink to="/suppliers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Suppliers Directory">
                 <Building2 className="nav-icon" />
-                {!collapsed && <span>Suppliers</span>}
+                <span className="nav-label">Suppliers</span>
               </NavLink>
             )}
             {canAccess('purchases') && (
               <NavLink to="/purchases" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Purchase Orders">
                 <ShoppingBag className="nav-icon" />
-                {!collapsed && <span>Purchase Orders</span>}
+                <span className="nav-label">Purchase Orders</span>
               </NavLink>
             )}
             {canAccess('expenses') && (
               <NavLink to="/expenses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Expenses">
                 <Receipt className="nav-icon" />
-                {!collapsed && <span>Expenses</span>}
+                <span className="nav-label">Expenses</span>
               </NavLink>
             )}
           </div>
@@ -339,7 +366,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
             <NavLink to="/refunds" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Refunds">
               <RotateCcw className="nav-icon" />
-              {!collapsed && <span>Refunds</span>}
+              <span className="nav-label">Refunds</span>
             </NavLink>
           </div>
         )}
@@ -356,13 +383,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {canAccess('staff') && (
               <NavLink to="/staff" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Staff & Roles">
                 <UserCog className="nav-icon" />
-                {!collapsed && <span>Staff & Roles</span>}
+                <span className="nav-label">Staff & Roles</span>
               </NavLink>
             )}
             {canAccess('settings') && (
               <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Shop Settings">
                 <Settings className="nav-icon" />
-                {!collapsed && <span>Shop Preferences</span>}
+                <span className="nav-label">Shop Preferences</span>
               </NavLink>
             )}
           </div>

@@ -16,7 +16,7 @@ html {
 }
 
 body {
-  font-family: var(--font-family-sans);
+  font-family: 'Nunito', sans-serif;
   font-size: var(--font-base);
   line-height: 1.5;
   color: var(--color-text-primary);
@@ -31,9 +31,9 @@ body {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* Headings with Characterful Display Font */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-family-display);
+/* Headings with Dreamforest Nunito Font */
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: 'Nunito', sans-serif;
   color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
   line-height: 1.25;
@@ -49,15 +49,17 @@ h6 { font-size: var(--font-base); }
 
 p {
   color: var(--color-text-secondary);
+  font-family: 'Nunito', sans-serif;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+  font-family: 'Nunito', sans-serif;
 }
 
 button, input, select, textarea {
-  font-family: inherit;
+  font-family: 'Nunito', sans-serif;
   font-size: inherit;
   color: inherit;
 }

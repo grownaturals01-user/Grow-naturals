@@ -62,10 +62,14 @@ import {
 import { CactusIcon, PlanterIcon, getCategoryIcon, renderModuleIcon } from '../components/common/CategoryIcons';
 
 export const POS: React.FC = () => {
-  const { businessId, business, activeBusiness, isTaxable } = useBusiness();
+  const { businessId, business, activeBusiness, businesses, isTaxable } = useBusiness();
   const { user } = useAuth();
   const { modules } = useInventoryModules();
   const { queueOfflineSale, isOnline } = usePosSync();
+
+  const safeBusinessId = (activeBusiness?.id && activeBusiness.id !== 'all')
+    ? activeBusiness.id
+    : (businessId && businessId !== 'all' ? businessId : (businesses[0]?.id || 'grow-naturals'));
 
   // Products and Categories
   const [products, setProducts] = useState<Product[]>([]);
@@ -794,7 +798,7 @@ export const POS: React.FC = () => {
     const effectiveProjectId = customerTab === 'project' ? (selectedProjectId || null) : null;
 
     const payload = {
-      business_id: businessId,
+      business_id: safeBusinessId,
       customer_id: customerTab === 'customer' ? selectedCustomer.id : undefined,
       customer_name: mappedCustomerName,
       customer_phone: mappedPhone,

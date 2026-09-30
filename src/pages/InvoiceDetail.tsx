@@ -9,7 +9,8 @@ import {
   User,
   Calendar,
   Layers,
-  ChevronRight
+  ChevronRight,
+  FolderKanban
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Invoice } from '../types';
@@ -88,6 +89,15 @@ export const InvoiceDetail: React.FC = () => {
               <Badge variant={isGrowNaturals ? 'info' : 'secondary'}>
                 {(invoice.business_name || (isGrowNaturals ? 'GROW NATURALS (GST)' : 'NIKHLESH NURSERY')).toUpperCase()}
               </Badge>
+              {invoice.project_id && (
+                <Link
+                  to={`/projects/${invoice.project_id}`}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, color: 'var(--color-primary)' }}
+                >
+                  <FolderKanban size={12} /> View Linked Project
+                </Link>
+              )}
             </div>
             <p className="page-subtitle">
               Date: {new Date(invoice.created_at).toLocaleString()} &bull; Cashier: {invoice.cashier_name || 'Counter'}

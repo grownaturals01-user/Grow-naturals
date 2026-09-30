@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Scan,
@@ -44,7 +44,8 @@ import {
   Layers,
   PackagePlus,
   Check,
-  Copy
+  Copy,
+  FolderKanban
 } from 'lucide-react';
 import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
@@ -196,6 +197,11 @@ const DEFAULT_PRODUCTS: Product[] = [
 
 export const CreateSalesInvoice: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const paramCustomerName = searchParams.get('customer_name') || '';
+  const paramPhone = searchParams.get('phone') || '';
+  const paramProjectId = searchParams.get('project_id') || '';
+
   const { businessId, activeBusiness, businesses, switchBusiness, isTaxable } = useBusiness();
 
   // Mode: 'edit' | 'preview'
@@ -242,14 +248,15 @@ export const CreateSalesInvoice: React.FC = () => {
   const [repeatInvoice, setRepeatInvoice] = useState(false);
 
   // Party (Bill To) State (MyBillBook style)
-  const [hasSelectedParty, setHasSelectedParty] = useState(false);
+  const [hasSelectedParty, setHasSelectedParty] = useState(() => Boolean(paramCustomerName));
   const [isPartySearchOpen, setIsPartySearchOpen] = useState(false);
   const partySearchRef = useRef<HTMLDivElement | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [partyName, setPartyName] = useState('');
-  const [partyPhone, setPartyPhone] = useState('');
+  const [partyName, setPartyName] = useState(() => paramCustomerName || '');
+  const [partyPhone, setPartyPhone] = useState(() => paramPhone || '');
   const [partyAddress, setPartyAddress] = useState('');
   const [partyGstin, setPartyGstin] = useState('');
+  const [projectId, setProjectId] = useState<string>(() => paramProjectId || '');
   const [placeOfSupply, setPlaceOfSupply] = useState('Tamil Nadu');
   const [posDropdownOpen, setPosDropdownOpen] = useState(false);
   const [posSearchTerm, setPosSearchTerm] = useState('');
@@ -294,6 +301,15 @@ export const CreateSalesInvoice: React.FC = () => {
   const [priceHistoryRowId, setPriceHistoryRowId] = useState<string | null>(null);
   const [priceHistoryData, setPriceHistoryData] = useState<any[]>([]);
   const [isLoadingPriceHistory, setIsLoadingPriceHistory] = useState(false);
+
+  useEffect(() => {
+    if (paramCustomerName) {
+      setPartyName(paramCustomerName);
+      setHasSelectedParty(true);
+    }
+    if (paramPhone) setPartyPhone(paramPhone);
+    if (paramProjectId) setProjectId(paramProjectId);
+  }, [paramCustomerName, paramPhone, paramProjectId]);
 
   // Line items
   const [items, setItems] = useState<FormItem[]>([]);
@@ -1404,8 +1420,12 @@ export const CreateSalesInvoice: React.FC = () => {
         }
       }
 
+      const safeBizId = (activeBusiness?.id && activeBusiness.id !== 'all')
+        ? activeBusiness.id
+        : (businessId && businessId !== 'all' ? businessId : (businesses[0]?.id || 'grow-naturals'));
+
       const payload = {
-        business_id: businessId,
+        business_id: safeBizId,
         invoice_prefix: invoicePrefix,
         invoice_number: `${invoicePrefix}${invoiceNumber}`,
         customer_id: selectedCustomerId || null,
@@ -1452,7 +1472,8 @@ export const CreateSalesInvoice: React.FC = () => {
         show_payment_qr: showPaymentQr,
         payment_status: isMarkAsPaid ? 'paid' : paymentStatus,
         notes: notes,
-        terms: terms
+        terms: terms,
+        project_id: projectId || undefined
       };
 
       const res = await api.post('/invoices', payload);
@@ -1848,7 +1869,37 @@ export const CreateSalesInvoice: React.FC = () => {
                         </button>
                       </div>
 
-                      <div className="csi-party-search-input-box">
+                  {projectId && (
+                    <div
+                      style={{
+                        marginBottom: '8px',
+                        padding: '6px 10px',
+                        background: 'rgba(34, 197, 94, 0.08)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#15803d'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FolderKanban size={14} />
+                        <span>Project Billed Invoice</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setProjectId('')}
+                        style={{ border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: '11px' }}
+                      >
+                        Unlink
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="csi-party-search-input-box">
                         <input
                           type="text"
                           value={searchCustomerQuery}

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -32,8 +32,6 @@ router.get('/categories', async (req: Request, res: Response) => {
 // POST /api/expenses/categories
 router.post('/categories', async (req: Request, res: Response) => {
   try {
-    const rawBizId = req.body.business_id || getBusinessId(req);
-    const businessId = (rawBizId && rawBizId !== 'all' && rawBizId !== 'combined') ? rawBizId : 'grow-naturals';
     const { name, description } = req.body;
 
     if (!name) {
@@ -41,6 +39,7 @@ router.post('/categories', async (req: Request, res: Response) => {
     }
 
     const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
     const id = `expcat-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     const result = await db.query(
@@ -152,7 +151,6 @@ router.get('/', async (req: Request, res: Response) => {
 // POST /api/expenses
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
     const { category_id, project_id, amount, payment_method, date, recipient, reference_no, notes, image_url } = req.body;
 
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
@@ -160,6 +158,7 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
     const id = `exp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     const result = await db.query(

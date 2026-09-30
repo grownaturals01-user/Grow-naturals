@@ -8,7 +8,10 @@ import { ReceiptImageUploader } from '../components/common/ReceiptImageUploader'
 
 export const ExpenseNew: React.FC = () => {
   const navigate = useNavigate();
-  const { activeBusiness } = useBusiness();
+  const { activeBusiness, businessId, businesses } = useBusiness();
+  const safeBusinessId = (activeBusiness?.id && activeBusiness.id !== 'all')
+    ? activeBusiness.id
+    : (businessId && businessId !== 'all' ? businessId : (businesses[0]?.id || 'grow-naturals'));
 
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -60,7 +63,7 @@ export const ExpenseNew: React.FC = () => {
       setSaving(true);
       setError(null);
       await api.post('/expenses', {
-        business_id: activeBusiness.id,
+        business_id: safeBusinessId,
         category_id: categoryId || null,
         project_id: projectId || null,
         amount: Number(amount),

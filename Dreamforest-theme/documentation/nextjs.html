@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="keywords" content="">
+	<meta name="description" content="DreamsPos">
+	<meta name="author" content="dreamstechnologies">
+
+	<title>Dreams POS - Online Documentation.</title>
+
+	<!-- App favicon -->
+	<link rel="shortcut icon" href="assets/img/logo/favicon.png">
+
+	<!-- Vendor -->
+	<link href="assets/css/bootstrap.min.css" rel="stylesheet">
+	<link href="assets/css/prism.css" rel="stylesheet">
+
+	<!-- Fontawesome CSS -->
+	<link rel="stylesheet" href="assets/plugins/fontawesome/css/fontawesome.min.css">
+	<link rel="stylesheet" href="assets/plugins/fontawesome/css/all.min.css">
+
+	<link rel="stylesheet" href="assets/css/magnific-popup.css">
+
+	<!-- Main CSS -->
+	<link id="mainCss" href="assets/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+	<main class="wrapper default-sidebar">
+
+		<!-- Header -->
+		<header class="header">
+			<div class="container-fluid">
+				<div class="header-left">
+					<div class="left-header me-3">
+						<a href="javascript:void(0)" class="sidebar-toggle p-1">
+							<span class="feather-icon"><i data-feather="sidebar"></i></span>
+						</a>
+					</div>
+					<ul
+						class="header-top-nav nav col-12 col-lg-auto me-lg-auto gap-3 d-flex align-items-center justify-content-center mb-md-0">
+						<li><a href="https://themeforest.net/user/dreamstechnologies"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="archive"></i></span>Other Products</a></li>
+						<li><a href="mailto:business@dreamstechnologies.com"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="briefcase"></i></span>Hire Us</a></li>
+					</ul>
+					<div class="text-end">
+						<a href="changelog.html" target="_blank" rel="noopener" class="btn btn-white btn-sm me-2"><span
+								class="feather-icon me-2"><i data-feather="refresh-cw"></i></span>Changelog</a>
+						<a href="https://dreamspos.dreamstechnologies.com/" target="_blank" rel="noopener"
+							class="btn btn-primary btn-sm"><span class="feather-icon me-2"><i
+									data-feather="play"></i></span>Live Preview</a>
+					</div>
+				</div>
+			</div>
+		</header>
+
+
+		<div class="doc-progress">
+			<div class="doc-progress-inner" id="scrollProgress">
+
+			</div>
+		</div>
+
+		<div class="sidebar-overlay"></div>
+		<div class="sidebar">
+			<div class="sidebar-logo">
+				<a href="index.html" class="logo-dark"><img src="assets/img/logo/logo.svg" alt="logo"><span
+						class="badge badge-soft-danger fs-14 ms-2">Nextjs</span></a>
+				<a href="index.html" class="small-logo"><img src="assets/img/logo/favicon.png" alt="logo"></a>
+			</div>
+			<div class="sidebar-inner">
+				<div class="sidebar-menu">
+					<ul id="menu-main-menu" class="sidebar-nav">
+						<li class="menu-title menu-text">Main</li>
+						<li class="menu-item submenu">
+							<a href="#instructions" class="page-link">
+								<span class="feather-icon"><i data-feather="layers"></i></span><span
+									class="menu-text"><span class="hover-title">Getting Started</span> </span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#instructions" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Introduction</a></li>
+								<li><a href="#requirement" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Requirement</a></li>
+								<li><a href="#features" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Core Features</a></li>
+								<li><a href="#structure" class="page-link drop"><span
+											class="menu-dash"><span></span></span>File Structure</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Configuration</li>
+						<li class="menu-item submenu">
+							<a href="#local_server" class=" menu-link">
+								<span class="feather-icon"><i data-feather="life-buoy"></i></span>
+								<span class="menu-text">Installation</span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#local_server" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Installation Guide</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Customization</li>
+						<li class="menu-item">
+							<a href="#dark-mode" class="page-link">
+								<span class="feather-icon"><i data-feather="moon"></i></span><span class="menu-text"><span class="hover-title">Dark Mode</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#rtl" class="page-link">
+								<span class="feather-icon"><i data-feather="align-right"></i></span><span class="menu-text"><span class="hover-title">RTL</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#theme-layouts" class="page-link">
+								<span class="feather-icon"><i data-feather="tool"></i></span><span class="menu-text"><span class="hover-title">Theme Setup</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#layoutsetup-layouts" class="page-link">
+								<span class="feather-icon"><i data-feather="layout"></i></span><span class="menu-text"><span class="hover-title">Layout Setup</span> </span>
+							</a>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Info</li>
+						
+						<li class="menu-item">
+							<a href="#support" class="page-link">
+								<span class="feather-icon"><i data-feather="headphones"></i></span><span
+									class="menu-text"><span class="hover-title">Support</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#credits" class="page-link">
+								<span class="feather-icon"><i data-feather="zap"></i></span><span
+									class="menu-text"><span class="hover-title">Credits</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#customwork" class="page-link">
+								<span class="feather-icon"><i data-feather="settings"></i></span><span
+									class="menu-text"><span class="hover-title">Custom Work</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#thanks" class="page-link">
+								<span class="feather-icon"><i data-feather="smile"></i></span><span
+									class="menu-text"><span class="hover-title">Thank
+										You</span> </span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<!-- main content -->
+		<div class="main-content">
+			<div class="container-fluid">
+				<!-- Page title & breadcrumb -->
+				<div class="page-title">
+					<div class="breadcrumb">
+						<h1>Getting Started</h1>
+						<ul>
+							<li><a href="index.html" target="_blank">DreamsPos</a></li>
+							<li>Getting Started</li>
+						</ul>
+					</div>
+				</div>
+				<div class="row sections">
+					<div class="col-xl-12 col-md-12">
+						<!-- Introduction -->
+						<section class="section-block doc-section" id="instructions">
+							<div class="card bg-dark mb-4">
+								<div class="card-body p-4">
+									<div class="intro">
+										<div class="item-details">
+											<div class="row align-items-center row-gap-4">
+												<div class="col-xl-5">
+													<div>
+														<img src="assets/img/banners/banner.png" class="img-fluid"
+															alt="DreamsPOS  Agent Banner">
+													</div>
+												</div>
+												<div class="col-xl-7">
+													<div class="banner-right ps-lg-2 ps-0">
+
+														<h2 class="mb-2 text-white">DreamsPOS - POS & Inventory Management Admin Dashboard Template</h2>
+														<p class="mb-4 text-white">
+															DreamsPOS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business.
+														</p>
+														<div class="info-list info-list-custom mb-4">
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Version <span>: v2.3.5</span> </div>
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Author : <a href="https://dreamstechnologies.com/"
+																	class="text-decoration-underline">Dreams
+																	Technologies </a></div>
+														</div>
+
+														<div
+															class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+															<div class="text-white fs-14 fw-medium"> Support via email :
+																<a href="mailto:support@dreamstechnologies.com"
+																	class="text-decoration-underline fw-normal text-white">
+																	support@dreamstechnologies.com</a>
+															</div>
+															<a href="https://1.envato.market/2rz71O"
+																target="_blank"
+																class="btn btn-primary fs-14 fw-medium d-flex align-items-center gap-2"><span
+																	class="feather-icon" title="Full Screen"><i
+																		data-feather="shopping-bag"></i></span> Buy
+																Now</a>
+														</div>
+
+													</div>
+												</div>
+
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="card mb-4 custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Introduction<a class="anchor-link ms-2"
+											href="#introduction"><i class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<p class="mb-0"><Strong>DreamsPOS</Strong> - POS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business. The template includes fields for items, quantities, prices, and descriptions. It also includes fields for customer information, such as name and address. This information can help the business keep track of its inventory and meet customers’ needs.</p>
+								</div>
+							</div>
+						</section>
+						<!-- /Introduction -->
+
+                        <section class="section-block doc-section" id="requirement">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Requirements</h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i
+													data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div>
+										<ol class="custom-list mb-4">
+											<li>Node js Package</li>
+											<li>Node version = ^20.11.1</li>
+											<li>npm (default, comes with Node.js)</li>
+											<li>Yarn package (Optional)</li>
+											<li>Visual Studio Code</li>
+											<li>Terminal</li>
+										</ol>
+									</div>
+								</div>
+							</div>
+						</section>
+
+
+
+						<section class="section-block doc-section" id="features">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Core Features<a class="anchor-link ms-2" href="#features"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i
+													data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<p class="mb-0">
+										Build with Nextjs 15.5.2<br>
+                                        Build with React 19<br>
+										A file-system based router built<br>
+										Client-side and Server-side Rendering with Client and Server Components. <br>
+                                        Pure Components Based Nextjs<br>
+										Improved support for TypeScript<br>
+										Fully Responsive Design<br>
+										Multiple Layouts<br>
+										Fully Responsive Layout<br>
+										User friendly design<br>
+										Cross Browser Compatible<br>
+										Easy to Customize<br>
+										Clean & Well Commented Codes<br>
+										Compatible to all Mobile Devices<br>
+										Detailed Documentation<br>
+										Developer Friendly<br>
+										And Many More...<br>
+								</div>	
+
+							</div>
+						</section>
+
+						<!-- File Structure -->
+						<section class="section-block doc-section" id="structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">File Structure<a class="anchor-link ms-2"
+											href="#structure"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i
+													data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+										<h5 class="sub-title mb-3"><i
+												class="fa-solid fa-info-circle text-primary me-2"></i>Project Overview
+										</h5>
+										<p class="mb-0">The project follows a modular structure with clear separation of
+											concerns.</p>
+									</div>
+									<pre class="language-markup mb-0">
+retail-pos/
+│
+└── nextjs/
+    │
+    ├── src/
+    │   ├── app/
+    │   │   ├── (auth)/
+    │   │   ├── (features)/
+    │   │   ├── (pos)/
+    │   │   ├── layout.tsx
+    │   │   └── not-found.tsx
+    │   │
+    │   ├── components/
+    │   │   ├── dashboard/
+    │   │   └── inventory/
+    │   │
+    │   ├── data/
+    │   │   └── all_router
+    │   │
+    │   └── style/
+    │       ├── css/
+    │       ├── fonts/
+    │       ├── icons/
+    │       └── scss/
+    │
+    ├── next.config.ts
+    ├── package.json
+    └── eslint.config.mjs
+									</pre>
+								</div>
+							</div>
+						</section>
+
+                        <section class="section-block doc-section" id="local_server">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Installation Guide<a class="anchor-link ms-2"
+											href="#php_config"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i
+													data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="server">
+										<div class="custom-list mb-4">
+											<pre class="language-javascript" tabindex="0"><code class="language-javascript"> After unzipping Template Files, you will find our product DreamsPos ->Nextjs(Source code)</code></pre>
+											<pre class="language-javascript" tabindex="0"><code class="language-javascript">Mandatory are npm and node are needed to run the nextjs project</code></pre>
+											<p>Once unzipped the files,run the command:</p>
+											<pre class="language-javascript" tabindex="0"><code class="language-javascript">npm install (or) npm i</code></pre>
+											<p>For running a project , run the command:</p>
+											<pre class="language-javascript" tabindex="0"><code class="language-javascript">npm run dev</code></pre>
+											<p>If you want to run the project and make the build in the
+												production mode then run the following command in the root
+												directory, otherwise the project will continue to run in the
+												development mode.</p>
+												<pre class="language-javascript" tabindex="0"><code class="language-javascript">npm run build</code></pre>
+												<p>To install any plugins in your application, you have to run the
+													following command</p>
+													<pre class="language-javascript" tabindex="0"><code class="language-javascript">npm install plugin_name --save</code></pre>
+												</div>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<!-- Dark Mode -->
+						<section class="section-block doc-section" id="dark-mode">
+							<div class="custom-card">
+							  <div class="card-header">
+								<h4 class="card-title">
+								  How can I switch to the Dark Mode?<a
+									class="anchor-link ms-2"
+									href="#dark-mode"
+									><i class="fa-solid fa-hashtag"></i
+								  ></a>
+								</h4>
+								<div class="header-tools">
+								  <a href="#" class="card-maximize">
+									<span class="feather-icon" title="Full Screen"
+									  ><i data-feather="maximize"></i></span
+								  ></a>
+								</div>
+							  </div>
+							  <div class="card-body">
+								<div class="dark-mode-content">
+								  <p>
+									If you use Dynamic Theme option. You will see a Light mode and Dark mode  button in
+									the Theme Settings. Choose any one of the option to
+									change website theme.
+								  </p>
+								  <div class="config-images my-4">
+									<img
+									  src="assets/img/react-image/react-dark-mode.png"
+									  alt="dark-image"
+									/>
+								  </div>
+								  <p>
+									If you need to set static Theme to your template please data-theme="dark" in <code class=" language-javascript">
+										&lt;html data-theme="dark"&gt;&lt;/html&gt;
+										</code> at layout.tsx file in app folder.
+								  </p>
+								  
+								</div>
+							  </div>
+							</div>
+						  </section>
+						  <!-- /Dark Mode -->
+
+						  <!-- RTL -->
+						  <section class="section-block doc-section" id="rtl">
+							<div class="custom-card">
+							  <div class="card-header">
+								<h4 class="card-title">
+								  How can I switch to the RTL?<a
+									class="anchor-link ms-2"
+									href="#rtl"
+									><i class="fa-solid fa-hashtag"></i
+								  ></a>
+								</h4>
+								<div class="header-tools">
+								  <a href="#" class="card-maximize">
+									<span class="feather-icon" title="Full Screen"
+									  ><i data-feather="maximize"></i></span
+								  ></a>
+								</div>
+							  </div>
+							  <div class="card-body">
+								<div class="server">
+									<ul>
+										<li>
+											<h6>Add Bootstarp RTL</h6> 
+											<img src="assets/img/nextjs-img/rtl.png" width="800px" alt="pic" > 
+											<p class="mt-2">Please remove marked style in src\app\(layout-pages)\(rtl)\layout.tsx file and replace it with below style </p> 
+											<div class="mb-3">
+												<pre class="language-php"><code>"import "../node_modules/bootstrap/dist/css/bootstrap.rtl.min.css";"</code></pre>
+											</div>
+										</li>
+										<li>
+											<h6>Add Class dynamicaly in Body tag in index.html file</h6>
+											<img src="assets/img/nextjs-img/rtl-2.png" width="800px" alt="pic" > 
+											<div class="mb-3">
+												<pre class="language-php mt-2"><code>class="layout-mode-rtl"</code></pre>
+											</div>
+										</li>
+									</ul>
+															
+																				
+									
+								</div>
+							</div>
+							</div>
+						  </section>
+						  <!-- /RTL -->
+
+						  <!-- Theme layouts -->
+						  <section class="section-block doc-section" id="theme-layouts">
+							<div class="custom-card">
+							  <div class="card-header">
+								<h4 class="card-title">
+								  How Can I Use Theme Layouts?<a
+									class="anchor-link ms-2"
+									href="#rtl"
+									><i class="fa-solid fa-hashtag"></i
+								  ></a>
+								</h4>
+								<div class="header-tools">
+								  <a href="#" class="card-maximize">
+									<span class="feather-icon" title="Full Screen"
+									  ><i data-feather="maximize"></i></span
+								  ></a>
+								</div>
+							  </div>
+							  <div class="card-body">
+								<p class="text-muted">
+								  Please do the below change in the html element at
+								  <code>public/index.html</code>
+								  file. ex:
+								  <code>&lt;html data-theme="default"&gt;</code>
+								</p>
+								<div class="row">
+								  <div class="col-lg-4 col-md-6">
+									<div class="border p-3 text-center mb-3">
+									  <div>
+										<img
+										  src="assets/img/react-image/Layout - Default.png"
+										  alt="image"
+										  class="img-fluid shadow mb-3"
+										/>
+									  </div>
+									  <code>data-layout="default"</code>
+									</div>
+								  </div>
+								  <div class="col-lg-4 col-md-6">
+									<div class="border p-3 text-center mb-3">
+									  <div>
+										<img
+										  src="assets/img/react-image/Layout - Mini.png"
+										  alt="image"
+										  class="img-fluid shadow mb-3"
+										/>
+									  </div>
+									  <code>data-layout="mini"</code>
+									</div>
+								  </div>
+								  <div class="col-lg-4 col-md-6">
+									<div class="border p-3 text-center mb-3">
+									  <div>
+										<img
+										  src="assets/img/react-image/Layout - Horizontal - More.png"
+										  alt="image"
+										  class="img-fluid shadow mb-3"
+										/>
+									  </div>
+									  <code>data-layout="horizontal"</code>
+									</div>
+								  </div>
+								  
+								  <div class="col-lg-4 col-md-6">
+									<div class="border p-3 text-center mb-3">
+									  <div>
+										<img
+										  src="assets/img/react-image/Layout - Detached.png"
+										  alt="image"
+										  class="img-fluid shadow mb-3"
+										/>
+									  </div>
+									  <code>data-layout="detached"</code>
+									</div>
+								  </div>
+								  <div class="col-lg-4 col-md-6">
+									<div class="border p-3 text-center mb-3">
+									  <div>
+										<img
+										  src="assets/img/react-image/Layout - Two Column.png"
+										  alt="image"
+										  class="img-fluid shadow mb-3"
+										/>
+									  </div>
+									  <code>data-layout="twocolumn"</code>
+									</div>
+								  </div>
+								  <div class="col-lg-4 col-md-6">
+									<div class="border p-3 text-center mb-3">
+									  <div>
+										<img
+										  src="assets/img/react-image/Layout - Without Header.png"
+										  alt="image"
+										  class="img-fluid shadow mb-3"
+										/>
+									  </div>
+									  <code>data-layout="without-header"</code>
+									</div>
+								  </div>
+								</div>
+								<div class="my-4">
+									<img src="assets/img/nextjs-img/themesettings.png" width="800px" alt="pic" >
+								  <p>
+									If you didn't want to theme settings go
+									<code
+									  >src\app\(features)\layout.tsx</code
+									>
+									and remove the ThemeSettings component:
+								  </p>
+								</div>
+							  </div>
+							</div>
+						  </section>
+						  <!-- /Theme layouts -->
+
+						  <!-- Layout Setup layouts -->
+						  <section class="section-block doc-section" id="layoutsetup-layouts">
+							<div class="custom-card">
+							  <div class="card-header">
+								<h4 class="card-title">
+								  How Can I Use Layout<a
+									class="anchor-link ms-2"
+									href="#rtl"
+									><i class="fa-solid fa-hashtag"></i
+								  ></a>
+								</h4>
+								<div class="header-tools">
+								  <a href="#" class="card-maximize">
+									<span class="feather-icon" title="Full Screen"
+									  ><i data-feather="maximize"></i></span
+								  ></a>
+								</div>
+							  </div>
+							  <div class="card-body">
+								<div class="mb-2">
+									<h6>Main Layout</h6>
+									<p>In Next.js, a layout component is used to maintain a consistent structure across multiple pages, such as navigation bars, sidebars, and footers. This helps in avoiding code duplication and improving maintainability.</p>
+									<img src="assets/img/nextjs-img/main-layout.png" class="img-fluid mb-2" alt="image">
+									<p>This is the main layout.tsx file, where we will import all the necessary components for the project.</p>
+									<p>File Path : src\app\layout.tsx</p>
+								</div>
+								<div>
+									<h6>Page Layout</h6>
+									<p>In this layout.tsx file, we will import the Sidebar, Header, and Theme Settings.</p>
+									<img src="assets/img/nextjs-img/page-layout.png" class="img-fluid mb-2" alt="image">
+									<p>This is the Page layout.tsx file, where we will import all the necessary components like sidebar,header and themesettings for the project.</p>
+									<p>src\app\(features)\layout.tsx</p>
+								</div>
+							  </div>
+							</div>
+						  </section>
+						  <!-- /Layout Setup layouts -->
+
+					
+
+						<section class="section-block page-block doc-section" id="support">
+							<div class="custom-card support-content">
+								<div class="card-header">
+									<h2 class="card-title">Support<a class="anchor-link ms-2" href="#support"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<h3 class="title fs-200">Need Support?</h3>
+									<p class="mb-4">If this documentation does not address your questions, please feel
+										free to contact us via email at <a
+											class="text-dark text-decoration-underline fw-medium" rel="noopener"
+											href="mailto:business@dreamstechnologies.com">support@dreamstechnologies.com</a>
+									</p>
+									<div class="support-content-one">
+										<p class="mb-3 text-dark fw-medium">Reach the team at GMT+5:30. Typical reply
+											within 12–24 hours on weekdays — rarely up to 48 hrs during holidays.
+											Support is available to verified buyers for template-related issues.</p>
+										<a href="mailto:business@dreamstechnologies.com" class="btn btn-primary"><span
+												class="feather-icon d-flex align-items-center"><i
+													data-feather="phone-outgoing"></i></span> Contact Support</a>
+										<div class="imp-content">
+											<p><span>Important Note :</span> We strive to offer top-notch support, but
+												it's only available to verified buyers and for template-related issues
+												such as bugs and errors. Custom changes and third-party module setups
+												are not covered.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<section class="section-block page-block doc-section" id="license">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">License<a class="anchor-link ms-2" href="#license"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="javascript:void(0)" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i
+													data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<p>Dreams POS is developed by <a
+											href="https://themeforest.net/user/dreamstechnologies/portfolio"
+											target="_blank">Dreams Technologies</a> and is available under both <a
+											href="https://codecanyon.net/licenses/standard" target="_blank">Envato
+											Extended &amp; Regular License</a> options.</p>
+									<h6>Regular License</h6>
+									<p>Usage by either yourself or a single client is permitted for a single end
+										product, provided that end users are not subject to any charges.</p>
+									<h6>Extended License</h6>
+									<p>For use by you or one client in a single end product for which end users may be
+										charged.</p>
+									<p><a href="https://themeforest.net/licenses/faq#main-differences-licenses-a"
+											target="_blank">What are the main differences between the Regular License
+											and the Extended License?</a></p>
+									<div class="alert alert-info mb-0">
+										<span class="badge rounded-pill text-bg-danger text-uppercase">Note</span>
+										<p class="mb-0">If you operate as a freelancer or agency, you have the option to
+											acquire the Extended License, which permits you to utilize the item across
+											multiple projects on behalf of your clients.</p>
+									</div>
+								</div>
+							</div>
+						</section>
+						<section class="section-block page-block doc-section" id="credits">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Credits<a class="anchor-link ms-2" href="#credits"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div class="table-responsive ref-table">
+										<table class="table table-bordered table-striped mb-0">
+											<thead>
+												<tr>
+													<th class="w-20">NAME</th>
+													<th class="w-80">URL</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td><span class="text-high-em">Antd</span></td>
+													<td><a href="https://www.npmjs.com/package/antd" class="link-high-em"
+															target="_blank" rel="noopener">https://www.npmjs.com/package/antd</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">React ApexChart</span></td>
+													<td><a href="https://www.npmjs.com/package/react-apexchart" class="link-high-em"
+															target="_blank" rel="noopener">https://www.npmjs.com/package/react-apexchart</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">React Feather Icon</span></td>
+													<td><a href="https://www.npmjs.com/package/feather-icons-react" class="link-high-em"
+															target="_blank" rel="noopener">https://www.npmjs.com/package/feather-icons-react</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">React Bootstrap</span></td>
+													<td><a href="https://www.npmjs.com/package/react-bootstrap" class="link-high-em"
+															target="_blank" rel="noopener">https://www.npmjs.com/package/react-bootstrap</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Font Awesome</span></td>
+													<td><a href="https://fontawesome.com/" class="link-high-em" target="_blank"
+															rel="noopener">https://fontawesome.com/</a></td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						</section>
+
+
+						<section class="section-block page-block doc-section" id="customwork">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Custom Work<a class="anchor-link ms-2" href="#"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<h5 class="card-title mb-2 fw-bold">Do you need a customized application for your
+										business?</h5>
+									<p>If you need a customized application for your business depends on your specific
+										requirements and goals, Please contact us. Customization can be the key to
+										success, ensuring your project perfectly aligns with your unique goals and
+										requirements.</p>
+									<div class="hire">
+										<h5 class="fw-bold mb-3">Don't Miss Out on the Benefits of Customization!</h5>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Unlock the potential of your
+											project. It's time to ensure your project isn't another cookie-cutter
+											solution but truly unique and effective one.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Discover how customization can make
+											a difference in your project's success. Let's create a solution that's as
+											unique as your vision!</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We'll tailor the application to meet
+											your specific needs and preferences.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We will upload your website to the
+											server and ensure it is live.</p>
+
+										<div class="contact-btn d-flex align-items-center mt-4  flex-wrap gap-2">
+											<a target="_blank" rel="noopener"
+												href="mailto:business@dreamstechnologies.com" class="btn btn-light"><i
+													class="me-2" data-feather="calendar"></i>Book an Appointment</a>
+											<a href="mailto:support@dreamstechnologies.com" class="btn btn-primary"><i
+													class="me-2" data-feather="file-text"></i>Get a Free Quote</a>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+
+
+
+						<!-- Thanks -->
+						<section class="custom-card page-block doc-section  min-h-100 mb-0" id="thanks">
+							<div class="card-body">
+								<div class="thanks">
+									<img src="assets/img/banners/ratings.svg" alt="thanks">
+									<h2>Thank You</h2>
+									<p>Thank you once again for downloading <a href="https://dreamspos.dreamstechnologies.com/"
+											class="text-primary fw-bold text-decoration-underline">DreamsPOS</a>.<br>
+										We hope you're enjoying your experience, and we kindly request that you take a
+										moment to share your valuable review and rating with us.</p>
+									<a href="https://themeforest.net/downloads" target="_blank" rel="noopener"
+										class="btn btn-primary"><i data-feather="link" class="me-2"></i>Review Link</a>
+								</div>
+							</div>
+						</section>
+						<!-- /Thanks -->
+					</div>
+				</div>
+			</div>
+			<footer class="content-footer footer">
+				<div
+					class="container-fluid d-flex flex-wrap justify-content-between align-items-center text-center gap-2 py-3">
+					<div>
+						&copy; 2015 - 2026
+
+						<a href="https://dreamstechnologies.com/" class="footer-text fw-medium text-primary"
+							target="_blank" rel="noopener">Dreams Technologies</a>
+					</div>
+					<div class="social-icons">
+						<a href="https://www.facebook.com/dreamstechnologieslimited/" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-1.svg" alt="social-icon"></a>
+						<a href="https://www.behance.net/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-2.svg" alt="social-icon"></a>
+						<a href="https://dribbble.com/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-3.svg" alt="social-icon"></a>
+						<a href="https://www.instagram.com/dreamstechnologieslimited/" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-4.svg" alt="social-icon"></a>
+					</div>
+				</div>
+            </footer>
+		</div>
+
+	</main>
+
+	<script src="assets/js/bootstrap.bundle.min.js"></script>
+	<script src="assets/js/feather.min.js"></script>
+	<script src="assets/js/prism.js"></script>
+	<script src="assets/js/script.js"></script>
+</body>
+
+
+</html>

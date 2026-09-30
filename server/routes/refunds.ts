@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -104,7 +104,7 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const invoice = invRes.rows[0];
-    const businessId = invoice.business_id;
+    const businessId = await resolveBusinessId(db, invoice.business_id);
 
     // Generate refund number
     const countRes = await db.query(`SELECT COUNT(*) as count FROM refunds WHERE business_id = $1`, [businessId]);

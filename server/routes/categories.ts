@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -42,7 +42,7 @@ router.get('/', async (req: Request, res: Response) => {
     );
 
     // Auto-seed default subcategories if none exist for this business
-    if (result.rows.length === 0 && DEFAULT_BUSINESS_SUBCATEGORIES[businessId]) {
+    if (result.rows.length === 0 && businessId !== 'all' && businessId !== 'combined' && DEFAULT_BUSINESS_SUBCATEGORIES[businessId]) {
       const defaults = DEFAULT_BUSINESS_SUBCATEGORIES[businessId];
       for (const d of defaults) {
         const id = `cat-${businessId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
@@ -74,7 +74,6 @@ router.get('/', async (req: Request, res: Response) => {
 // POST /api/categories
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
     const { name, type, description, sort_order, icon, image_url } = req.body;
 
     if (!name || !name.trim()) {
@@ -82,6 +81,7 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
     const id = `cat-${businessId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     const result = await db.query(

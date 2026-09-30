@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -234,9 +234,11 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const db = await getDb();
     const qRes = await db.query(
-      `SELECT q.*, b.name as business_name, b.legal_name, b.gstin as business_gstin, b.address as business_address, b.phone as business_phone, b.invoice_footer
+      `SELECT q.*, b.name as business_name, b.legal_name, b.gstin as business_gstin, b.address as business_address, b.phone as business_phone, b.invoice_footer,
+              p.name as project_title, p.name as project_name, p.client_name as project_client_name
        FROM quotations q
        LEFT JOIN businesses b ON q.business_id = b.id
+       LEFT JOIN projects p ON q.project_id = p.id
        WHERE q.id = $1`,
       [req.params.id]
     );
@@ -263,8 +265,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/quotations
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
-    const { customer_id, customer_name, customer_phone, customer_gstin, customer_address, valid_until, items, discount, notes } = req.body;
+    const { customer_id, customer_name, customer_phone, customer_gstin, customer_address, valid_until, items, discount, notes, project_id } = req.body;
 
     if (!customer_name) {
       return res.status(400).json({ error: 'Customer name is required' });
@@ -275,14 +276,18 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
+    const bizRes = await db.query(`SELECT invoice_prefix, is_taxable FROM businesses WHERE id = $1`, [businessId]);
+    const bizData = bizRes.rows[0];
+    const prefix = bizData?.invoice_prefix ? `QT-${bizData.invoice_prefix.replace(/[-_]$/, '')}-` : (businessId === 'grow-naturals' ? 'QT-GN-' : 'QT-NN-');
+
     const countRes = await db.query(`SELECT COUNT(*) as count FROM quotations WHERE business_id = $1`, [businessId]);
-    const prefix = businessId === 'grow-naturals' ? 'QT-GN-' : 'QT-NN-';
     const quoteNumber = `${prefix}${1001 + Number(countRes.rows[0]?.count || 0)}`;
     const quoteId = `quote-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     let subtotal = 0;
     let taxAmount = 0;
-    const isTaxable = businessId === 'grow-naturals';
+    const isTaxable = bizData?.is_taxable ?? (businessId === 'grow-naturals');
 
     const processedItems: any[] = [];
     for (const item of items) {
@@ -341,8 +346,8 @@ router.post('/', async (req: Request, res: Response) => {
     await db.query(
       `INSERT INTO quotations (
         id, business_id, quotation_number, customer_id, customer_name, customer_phone, customer_gstin, customer_address,
-        valid_until, subtotal, discount, tax_amount, total_amount, status, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'draft', $14)`,
+        valid_until, subtotal, discount, tax_amount, total_amount, status, notes, project_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'draft', $14, $15)`,
       [
         quoteId,
         businessId,
@@ -357,7 +362,8 @@ router.post('/', async (req: Request, res: Response) => {
         disc,
         taxAmount,
         totalAmount,
-        notes || ''
+        notes || '',
+        project_id || null
       ]
     );
 
@@ -391,16 +397,17 @@ router.put('/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'This quotation has already been converted and is locked from editing.' });
     }
 
-    const { customer_name, customer_phone, valid_until, status, notes } = req.body;
+    const { customer_name, customer_phone, valid_until, status, notes, project_id } = req.body;
     await db.query(
       `UPDATE quotations SET
         customer_name = COALESCE($1, customer_name),
         customer_phone = COALESCE($2, customer_phone),
         valid_until = COALESCE($3, valid_until),
         status = COALESCE($4, status),
-        notes = COALESCE($5, notes)
-       WHERE id = $6`,
-      [customer_name, customer_phone, valid_until, status, notes, id]
+        notes = COALESCE($5, notes),
+        project_id = COALESCE($6, project_id)
+       WHERE id = $7`,
+      [customer_name, customer_phone, valid_until, status, notes, project_id, id]
     );
 
     res.json({ success: true });
@@ -435,31 +442,33 @@ router.post('/:id/convert', async (req: Request, res: Response) => {
 
     let convertedId = '';
     let convertedNumber = '';
+    const targetBizId = await resolveBusinessId(db, quotation.business_id);
 
     if (target_type === 'invoice') {
-      const bizRes = await db.query(`SELECT invoice_prefix FROM businesses WHERE id = $1`, [quotation.business_id]);
-      const prefix = bizRes.rows[0]?.invoice_prefix || (quotation.business_id === 'grow-naturals' ? 'GN-' : 'NN-');
-      const countRes = await db.query(`SELECT COUNT(*) as count FROM invoices WHERE business_id = $1`, [quotation.business_id]);
+      const bizRes = await db.query(`SELECT invoice_prefix, is_taxable FROM businesses WHERE id = $1`, [targetBizId]);
+      const prefix = bizRes.rows[0]?.invoice_prefix || (targetBizId === 'grow-naturals' ? 'GN-' : 'NN-');
+      const countRes = await db.query(`SELECT COUNT(*) as count FROM invoices WHERE business_id = $1`, [targetBizId]);
       convertedNumber = `${prefix}${1001 + Number(countRes.rows[0]?.count || 0)}`;
       convertedId = `inv-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
-      const isTaxable = quotation.business_id === 'grow-naturals';
+      const isTaxable = bizRes.rows[0]?.is_taxable ?? (targetBizId === 'grow-naturals');
       const cgst = isTaxable ? Number((quotation.tax_amount / 2).toFixed(2)) : 0;
       const sgst = isTaxable ? Number((quotation.tax_amount / 2).toFixed(2)) : 0;
 
       await db.query(
         `INSERT INTO invoices (
           id, business_id, invoice_number, customer_id, customer_name, customer_phone,
-          subtotal, discount_amount, tax_amount, cgst_amount, sgst_amount, total_amount,
+          project_id, subtotal, discount_amount, tax_amount, cgst_amount, sgst_amount, total_amount,
           payment_method, payment_status, notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'credit', 'pending', $13)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'credit', 'pending', $14)`,
         [
           convertedId,
-          quotation.business_id,
+          targetBizId,
           convertedNumber,
           quotation.customer_id,
           quotation.customer_name,
           quotation.customer_phone,
+          quotation.project_id || null,
           quotation.subtotal,
           quotation.discount,
           quotation.tax_amount,
@@ -493,22 +502,23 @@ router.post('/:id/convert', async (req: Request, res: Response) => {
       );
     } else {
       // Delivery Challan
-      const countRes = await db.query(`SELECT COUNT(*) as count FROM delivery_challans WHERE business_id = $1`, [quotation.business_id]);
-      const prefix = quotation.business_id === 'grow-naturals' ? 'DC-GN-' : 'DC-NN-';
+      const countRes = await db.query(`SELECT COUNT(*) as count FROM delivery_challans WHERE business_id = $1`, [targetBizId]);
+      const prefix = targetBizId === 'grow-naturals' ? 'DC-GN-' : 'DC-NN-';
       convertedNumber = `${prefix}${1001 + Number(countRes.rows[0]?.count || 0)}`;
       convertedId = `dc-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
       await db.query(
         `INSERT INTO delivery_challans (
-          id, business_id, challan_number, customer_id, customer_name, quotation_id, dispatch_date, status, notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, 'dispatched', $7)`,
+          id, business_id, challan_number, customer_id, customer_name, quotation_id, project_id, dispatch_date, status, notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, 'dispatched', $8)`,
         [
           convertedId,
-          quotation.business_id,
+          targetBizId,
           convertedNumber,
           quotation.customer_id,
           quotation.customer_name,
           id,
+          quotation.project_id || null,
           `Generated from Quotation #${quotation.quotation_number}`
         ]
       );

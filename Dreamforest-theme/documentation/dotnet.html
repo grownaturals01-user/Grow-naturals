@@ -1,0 +1,2055 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="keywords" content="">
+	<meta name="description" content="DreamsPos Management Admin Website Templates | DreamsPos">
+	<meta name="author" content="dreamstechnologies">
+
+	<title>DreamsPOS - Online Documentation.</title>
+
+	<!-- Favicon -->
+	<link rel="shortcut icon" href="assets/img/logo/favicon.png">
+
+	<!-- Vendor -->
+	<link rel="stylesheet" href="assets/css/bootstrap.min.css">
+	<link rel="stylesheet" href="assets/css/prism.css">
+
+	<!-- Fontawesome CSS -->
+	<link rel="stylesheet" href="assets/plugins/fontawesome/css/all.min.css">
+
+	<!-- Main CSS -->
+	<link rel="stylesheet" href="assets/css/style.css">
+
+</head>
+
+<body>
+	<main class="wrapper default-sidebar">
+
+		<!-- Header -->
+		<header class="header">
+			<div class="container-fluid">
+				<div class="header-left">
+					<div class="left-header me-3">
+						<a href="javascript:void(0)" class="sidebar-toggle p-1">
+							<span class="feather-icon"><i data-feather="sidebar"></i></span>
+						</a>
+					</div>
+					<ul
+						class="header-top-nav nav col-12 col-lg-auto me-lg-auto gap-3 d-flex align-items-center justify-content-center mb-md-0">
+						<li><a href="https://themeforest.net/user/dreamstechnologies"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="archive"></i></span>Other Products</a></li>
+						<li><a href="mailto:business@dreamstechnologies.com"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="briefcase"></i></span>Hire Us</a></li>
+					</ul>
+					<div class="text-end">
+						<a href="changelog.html" target="_blank" rel="noopener" class="btn btn-white btn-sm me-2"><span
+								class="feather-icon me-2"><i data-feather="refresh-cw"></i></span>Changelog</a>
+						<a href="https://dreamspos.dreamstechnologies.com/" target="_blank" rel="noopener"
+							class="btn btn-primary btn-sm"><span class="feather-icon me-2"><i
+									data-feather="play"></i></span>Live Preview</a>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- End Header -->
+
+		<div class="doc-progress">
+			<div class="doc-progress-inner" id="scrollProgress">
+
+			</div>
+		</div>
+
+		<div class="sidebar-overlay"></div>
+		<div class="sidebar" data-mode="light">
+			<div class="sidebar-logo">
+				<a href="index.html" class="logo-dark"><img src="assets/img/logo/logo.svg" alt="logo"><span
+						class="badge badge-soft-danger fs-14 ms-2">Dotnet</span></a>
+				<a href="index.html" class="small-logo"><img src="assets/img/logo/favicon.png" alt="logo"></a>
+			</div>
+			 <div class="sidebar-inner">
+				 <div class="sidebar-menu">
+				   <ul id="menu-main-menu" class="sidebar-nav">
+						<li class="menu-item submenu">
+							<a href="#instructions" class="active menu-link">
+								<span class="feather-icon"><i data-feather="box"></i></span>
+								<span class="condense">Getting Started</span>
+							</a>
+							<ul class="sidebar-dropdown condense active">
+								<li>
+									<a href="#instructions" class="page-link drop">
+										<span class="menu-dash"><span></span></span>Introduction
+									</a>
+								</li>
+								<li><a href="#requirement" class="page-link drop"><span class="menu-dash"><span></span></span>Requirement</a></li>
+								<li><a href="#features" class="page-link drop"><span class="menu-dash"><span></span></span>Features</a></li>
+								<li><a href="#file_structure" class="page-link drop"><span class="menu-dash"><span></span></span>File Structure</a></li>
+								<li><a href="#dotnet_structure" class="page-link drop"><span class="menu-dash"><span></span></span>DotNet Structure</a></li>								
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title condense">Configuration</li>
+						<li class="menu-item submenu">
+							<a href="#html_config" class=" menu-link">
+								<span class="feather-icon"><i data-feather="pie-chart"></i></span>
+								<span class="condense">Installation</span>
+							</a>
+							<ul class="sidebar-dropdown condense">
+								<li><a href="#html_config" class="page-link drop"><span class="menu-dash"><span></span></span>Installation Guide</a></li>
+								<li><a href="#scss_install" class="page-link drop"><span class="menu-dash"><span></span></span>Scss Installation</a></li>
+							</ul>
+						</li>
+						<li class="menu-item">
+							<a href="#dynamic_title" class="page-link">
+								<span class="feather-icon"><i data-feather="sliders"></i></span><span class="condense"><span class="hover-title">Dynamic Title</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#rtl_layout" class="page-link">
+								<span class="feather-icon"><i data-feather="globe"></i></span><span class="condense"><span class="hover-title">RTL Layout</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#change_logo" class="page-link">
+								<span class="feather-icon"><i data-feather="command"></i></span><span class="condense"><span class="hover-title">Change Logo</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#typography" class="page-link">
+								<span class="feather-icon"><i data-feather="type"></i></span><span class="condense"><span class="hover-title">Typography</span> </span>
+							</a>
+						</li>
+						<li class="menu-item submenu">
+							<a href="#icon" class=" menu-link">
+								<span class="feather-icon"><i data-feather="database"></i></span>
+								<span class="condense">Base</span>
+							</a>
+							<ul class="sidebar-dropdown condense">
+								<li><a href="#icon" class="page-link drop"><span class="menu-dash"><span></span></span>Icons</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title condense">Info</li>
+						<li class="menu-item">
+							<a href="#support" class="page-link">
+								<span class="feather-icon"><i data-feather="star"></i></span><span class="condense"><span class="hover-title">Support</span> </span>
+							</a>
+						</li>
+						<li class="menu-item submenu">
+							<a href="#license" class="page-link">
+								<span class="feather-icon"><i data-feather="settings"></i></span>
+								<span class="condense">License & Credits</span>
+							</a>
+							<ul class="sidebar-dropdown condense">
+								<li><a href="#license" class="page-link drop"><span class="menu-dash"><span></span></span>License</a></li>
+								<!-- <li><a href="#credits" class="page-link drop"><span class="menu-dash"><span></span></span>Credits</a></li> -->
+								
+							</ul>
+						</li>
+						<li class="menu-item">
+							<a href="#customwork" class="page-link">
+								<span class="feather-icon"><i data-feather="briefcase"></i></span><span class="condense"><span class="hover-title">Custom Work</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#thanks" class="page-link">
+								<span class="feather-icon"><i data-feather="smile"></i></span><span class="condense"><span class="hover-title">Thank
+										You</span> </span>
+							</a>
+						</li>
+				   </ul>
+				 </div>
+			 </div>
+         </div>
+		<!-- main content -->
+		<div class="main-content">
+			<div class="container-fluid">
+				<!-- Page title & breadcrumb -->
+				<div class="page-title">
+					<div class="breadcrumb">
+						<h1>Documentation</h1>
+						<ul>
+							<li><a href="index.html">Home</a></li>
+							<li>Documentation</li>
+						</ul>
+					</div>
+				</div>
+				<div class="row sections">
+					<div class="col-xl-12 col-md-12">
+
+						<!-- Introduction -->
+						<section class="section-block doc-section" id="instructions">
+							<div class="card bg-dark mb-4">
+								<div class="card-body p-4">
+									<div class="intro">
+										<div class="item-details">
+											<div class="row align-items-center row-gap-4">
+												<div class="col-xl-5">
+													<div>
+														<img src="assets/img/banners/banner.png" class="img-fluid"
+															alt="DreamsPOS  Agent Banner">
+													</div>
+												</div>
+												<div class="col-xl-7">
+													<div class="banner-right ps-lg-2 ps-0">
+
+														<h2 class="mb-2 text-white">DreamsPOS - POS & Inventory Management Admin Dashboard Template</h2>
+														<p class="mb-4 text-white">
+															DreamsPOS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business.
+														</p>
+														<div class="info-list info-list-custom mb-4">
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Version <span>: v2.3.4</span> </div>
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Author : <a href="https://dreamstechnologies.com/"
+																	class="text-decoration-underline">Dreams
+																	Technologies </a></div>
+														</div>
+
+														<div
+															class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+															<div class="text-white fs-14 fw-medium"> Support via email :
+																<a href="mailto:support@dreamstechnologies.com"
+																	class="text-decoration-underline fw-normal text-white">
+																	support@dreamstechnologies.com</a>
+															</div>
+															<a href="https://1.envato.market/2rz71O"
+																target="_blank"
+																class="btn btn-primary fs-14 fw-medium d-flex align-items-center gap-2"><span
+																	class="feather-icon" title="Full Screen"><i
+																		data-feather="shopping-bag"></i></span> Buy
+																Now</a>
+														</div>
+
+													</div>
+												</div>
+
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="card mb-4 custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Introduction<a class="anchor-link ms-2"
+											href="#introduction"><i class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<p class="mb-0"><Strong>DreamsPOS</Strong> - POS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business. The template includes fields for items, quantities, prices, and descriptions. It also includes fields for customer information, such as name and address. This information can help the business keep track of its inventory and meet customers’ needs.</p>
+								</div>
+							</div>
+						</section>
+						<!-- /Introduction -->
+
+						<!-- Requirements -->
+						<section class="section-block doc-section" id="requirement">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Requirements<a class="anchor-link ms-2" href="#requirement"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<!-- Overview -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<div class="alert alert-info mb-3">
+												<div class="d-flex align-items-start">
+													<div class="me-3">
+														<i class="fas fa-info-circle text-info fs-4"></i>
+													</div>
+													<div>
+														<h6 class="mb-1">System Overview</h6>
+														<p class="mb-0">The Dreams POS .NET template is built with .NET 9.0 and follows modern web development practices. It uses ASP.NET Core MVC for the web framework and supports OpenAPI for API documentation. The application is designed to be scalable, maintainable, and follows best practices for enterprise application development.</p>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Core Technologies -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<h5 class="mb-2"><i class="fas fa-code text-primary me-2"></i>Core Technologies</h5>
+											<div class="row">
+												<div class="col-md-4 mb-2">
+													<div class="card border-0 bg-light">
+														<div class="card-body text-center">
+															<div class="mb-2">
+																<img src="assets/img/technology/dotnet.svg" alt="Flask" class="img-fluid" style="height: 2.5rem;">
+															</div>
+															<h6 class="mb-1">Backend Framework</h6>
+															<p class="text-muted mb-0">ASP.NET Core MVC</p>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-2">
+													<div class="card border-0 bg-light">
+														<div class="card-body text-center">
+															<div class="mb-2">
+																<i class="fab fa-bootstrap text-primary fs-1"></i>
+															</div>
+															<h6 class="mb-1">Frontend Framework</h6>
+															<p class="text-muted mb-0">Bootstrap 5.3.8</p>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-2">
+													<div class="card border-0 bg-light">
+														<div class="card-body text-center">
+															<div class="mb-2">
+																<i class="fab fa-windows text-success fs-1"></i>
+															</div>
+															<h6 class="mb-1">.NET Runtime</h6>
+															<p class="text-muted mb-0">.NET 9.0</p>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- System Requirements -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<h5 class="mb-3">System Requirements</h5>
+											<div class="row">
+												<div class="col-md-6 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fab fa-microsoft text-primary"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">.NET SDK</h6>
+																<p class="text-muted mb-0">.NET 9.0 SDK or higher</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-server text-warning"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Web Server</h6>
+																<p class="text-muted mb-0">IIS, Kestrel, or any compatible web server</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-database text-danger"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Database (Optional)</h6>
+																<p class="text-muted mb-0">SQL Server, SQLite, PostgreSQL, or MySQL</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fab fa-windows text-success"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Operating System</h6>
+																<p class="text-muted mb-0">Windows, Linux, or macOS</p>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Development Tools -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<h5 class="mb-3"><i class="fas fa-tools text-warning me-2"></i>Development Tools</h5>
+											<div class="row">
+												<div class="col-md-4 mb-3">
+													<div class="card border-0 bg-light h-100">
+														<div class="card-body text-center">
+															<div class="mb-3">
+																<i class="fab fa-microsoft text-primary fs-1"></i>
+															</div>
+															<h6 class="mb-2">IDE</h6>
+															<p class="text-muted mb-0">Visual Studio 2022 or VS Code</p>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-3">
+													<div class="card border-0 bg-light h-100">
+														<div class="card-body text-center">
+															<div class="mb-3">
+																<i class="fas fa-terminal text-warning fs-1"></i>
+															</div>
+															<h6 class="mb-2">.NET CLI</h6>
+															<p class="text-muted mb-0">Command-line interface</p>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-3">
+													<div class="card border-0 bg-light h-100">
+														<div class="card-body text-center">
+															<div class="mb-3">
+																<i class="fab fa-git-alt text-warning fs-1"></i>
+															</div>
+															<h6 class="mb-2">Version Control</h6>
+															<p class="text-muted mb-0">Git</p>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Installation Note -->
+									<div class="row mb-0">
+										<div class="col-12">
+											<div class="alert alert-warning mb-0">
+												<div class="d-flex align-items-start">
+													<div class="me-2">
+														<i class="fas fa-exclamation-triangle text-warning"></i>
+													</div>
+													<div>
+														<h6 class="mb-1">Important Note</h6>
+														<p class="mb-0">For production deployment, it's recommended to use IIS on Windows or a reverse proxy like Nginx/Apache on Linux. Ensure the .NET 9.0 runtime is installed on the production server. You can publish the application using <code>dotnet publish</code> command or Visual Studio's publish feature.</p>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Requirements -->
+
+						<!-- Features -->
+						<section class="section-block doc-section" id="features">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Features<a class="anchor-link ms-2" href="#features"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<!-- Core Features -->
+									<div class="row mb-4">
+										<div class="col-12">
+											<h5 class="mb-3">
+												<i class="fas fa-star text-warning me-2"></i>Core Features
+											</h5>
+											<div class="row">
+											<!-- Product Management -->
+											<div class="col-md-6 mb-3">
+												<div class="card border-0 bg-light h-100">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+													<div class="feature-icon me-3">
+														<i class="fas fa-box text-primary fs-4"></i>
+													</div>
+													<div>
+														<h6 class="mb-2">Product Management</h6>
+														<p class="text-muted mb-0">Seamless product browsing with dynamic search, smart filters, and visually rich catalogs.</p>
+													</div>
+													</div>
+												</div>
+												</div>
+											</div>
+											
+											<!-- Inventory Control -->
+											<div class="col-md-6 mb-3">
+												<div class="card border-0 bg-light h-100">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+													<div class="feature-icon me-3">
+														<i class="fas fa-warehouse text-success fs-4"></i>
+													</div>
+													<div>
+														<h6 class="mb-2">Inventory Control</h6>
+														<p class="text-muted mb-0">Real-time stock tracking, batch management, and low-stock notifications.</p>
+													</div>
+													</div>
+												</div>
+												</div>
+											</div>
+											
+											<!-- Billing & Invoices -->
+											<div class="col-md-6 mb-3">
+												<div class="card border-0 bg-light h-100">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+													<div class="feature-icon me-3">
+														<i class="fas fa-file-invoice-dollar text-warning fs-4"></i>
+													</div>
+													<div>
+														<h6 class="mb-2">Billing & Invoices</h6>
+														<p class="text-muted mb-0">Generate professional invoices, manage payments, and track sales history.</p>
+													</div>
+													</div>
+												</div>
+												</div>
+											</div>
+											
+											<!-- Point of Sale -->
+											<div class="col-md-6 mb-3">
+												<div class="card border-0 bg-light h-100">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+													<div class="feature-icon me-3">
+														<i class="fas fa-cash-register text-danger fs-4"></i>
+													</div>
+													<div>
+														<h6 class="mb-2">Point of Sale</h6>
+														<p class="text-muted mb-0">Fast checkout process with barcode scanning, discounts, and multiple payment options.</p>
+													</div>
+													</div>
+												</div>
+												</div>
+											</div>
+											
+											<!-- Supplier & Purchase Management -->
+											<div class="col-md-6 mb-3">
+												<div class="card border-0 bg-light h-100">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+													<div class="feature-icon me-3">
+														<i class="fa fa-shopping-cart text-info fs-4"></i>
+													</div>
+													<div>
+														<h6 class="mb-2">Supplier & Purchase Management</h6>
+														<p class="text-muted mb-0">Manage suppliers, track purchase orders, and maintain procurement records.</p>
+													</div>
+													</div>
+												</div>
+												</div>
+											</div>
+											
+											<!-- Reports & Analytics -->
+											<div class="col-md-6 mb-3">
+												<div class="card border-0 bg-light h-100">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+													<div class="feature-icon me-3">
+														<i class="fas fa-chart-line text-primary fs-4"></i>
+													</div>
+													<div>
+														<h6 class="mb-2">Reports & Analytics</h6>
+														<p class="text-muted mb-0">Detailed sales, purchase, and inventory reports with real-time business insights.</p>
+													</div>
+													</div>
+												</div>
+												</div>
+											</div>
+											</div>
+											  
+										</div>
+									</div>
+
+									<!-- Technical Features -->
+									<div class="row mb-4">
+										<div class="col-12">
+											<h5 class="mb-3">Technical Features</h5>
+											<div class="row">
+												<div class="col-md-4 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fab fa-microsoft text-primary"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">ASP.NET Core MVC</h6>
+																<p class="text-muted mb-0">Modern web framework with Model-View-Controller pattern</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-3">
+													<div class="feature-item">
+                                                        <div class="d-flex align-items-start">
+                                                            <div class="feature-icon me-3">
+                                                                <i class="fas fa-code text-primary"></i>
+                                                            </div>
+                                                            <div>
+                                                                <h6 class="mb-1">Razor Views</h6>
+                                                                <p class="text-muted mb-0">Powerful Razor templating engine for dynamic HTML rendering</p>
+                                                            </div>
+                                                        </div>
+													</div>
+												</div>												
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+                                                        <div class="d-flex align-items-start">
+                                                            <div class="feature-icon me-3">
+                                                                <i class="fas fa-cogs text-warning"></i>
+                                                            </div>
+                                                            <div>
+                                                                <h6 class="mb-1">Configuration System</h6>
+                                                                <p class="text-muted mb-0">Environment-based appsettings.json configuration</p>
+                                                            </div>
+                                                        </div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-shield text-info"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Security & Middleware</h6>
+																<p class="text-muted mb-0">HTTPS enforcement, authorization, and custom middleware</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+                                                        <div class="d-flex align-items-start">
+                                                            <div class="feature-icon me-3">
+                                                                <i class="fas fa-link text-danger"></i>
+                                                            </div>
+                                                            <div>
+                                                                <h6 class="mb-1">Custom URL Helpers</h6>
+                                                                <p class="text-muted mb-0">Extended URL helpers for active routes and base paths</p>
+                                                            </div>
+                                                        </div>
+													</div>
+												</div>                                                
+												<div class="col-md-4 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-route text-primary"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Flexible Routing</h6>
+																<p class="text-muted mb-0">Attribute routing with path prefix middleware support</p>
+															</div>
+														</div>
+													</div>
+												</div>
+                                                <div class="col-md-4 mb-0">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-puzzle-piece text-info"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">View Layouts</h6>
+																<p class="text-muted mb-0">Layout pages with _ViewStart and _ViewImports</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-file-code text-success"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Static Files</h6>
+																<p class="text-muted mb-0">Built-in static file serving for assets</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-rocket text-danger"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">High Performance</h6>
+																<p class="text-muted mb-0">Optimized with .NET 9.0 runtime</p>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- UI/UX Features -->
+									<div class="row mb-0">
+										<div class="col-12 mb-0">
+											<h5 class="mb-3">UI/UX Features</h5>
+											<div class="row mb-0">
+												<div class="col-md-4 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-paint-brush text-primary"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Modern Design</h6>
+																<p class="text-muted mb-0">Creative and contemporary UI</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-mobile-alt text-success"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Responsive Bootstrap 5.3.8</h6>
+																<p class="text-muted mb-0">Mobile-first responsive design</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fab fa-sass text-danger"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">SCSS Styling</h6>
+																<p class="text-muted mb-0">Advanced CSS preprocessing</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-icons text-info"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Font Awesome & Tabler</h6>
+																<p class="text-muted mb-0">Comprehensive icon libraries</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-palette text-success"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Easy Customization</h6>
+																<p class="text-muted mb-0">Color and font customization</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-0">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-check-circle text-danger"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">W3C Validated</h6>
+																<p class="text-muted mb-0">Cross-browser compatibility</p>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Features -->
+
+						<!-- File Structure -->
+						<section class="section-block doc-section" id="file_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">File Structure<a class="anchor-link ms-2"
+											href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="bg-light p-3 rounded border-start border border-primary mb-4">
+										<h5 class="sub-title mb-3"><i
+												class="fa-solid fa-info-circle text-primary me-2"></i>Project Overview
+										</h5>
+										<p class="mb-0">The Laravel project contains three specialized POS applications located in <code>dreamspos/laravel/</code>: 
+											<code>laundry-pos/</code>, <code>retail-pos/</code>, and <code>restaurant-pos/</code>. 
+											Each application follows standard Laravel directory structure with all necessary components for a complete POS system.</p>
+									</div>
+									<pre class="language-markup mb-0">
+template/
+ │  │
+ │  ├── Controller/
+ │  │
+ │  ├── Extensions/
+ │	│
+ │  ├── Middleware/
+ │  │
+ │  ├── Properties/
+ │  │
+ │  ├── View/
+ │  │
+ │  ├── Shared/
+ │  │
+ │  └── wwwroot/
+ ├── Program.cs/                 
+ ├── template.csproj/
+ ├── template.sln/
+ ├── appsettings.json/
+ ├── appsettings.Development.json/
+ └── template.http/
+
+</pre>
+								</div>
+							</div>
+						</section>
+
+
+						<!-- DotNet Structure -->
+						<section class="section-block doc-section" id="dotnet_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">DotNet Template Structure<a class="anchor-link ms-2" href="#dotnet_structure"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-maximize"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">										
+										<h4 class="mb-2 text-dark fw-bold"><code class="language-markup">views/Shared/base.cshtml</code>: Main Layout Template</h4>
+										<p class="mb-0 text-dark">The template follows Razor templating engine syntax and is organized in a modular way for better maintainability using partial views.</p>
+<pre class="language-php mb-3">
+    <code class="language-php mb-0">
+@{
+    var html_attributes = (ViewData["HTMLAttributes"] as string) ?? "";
+    var html_class = (ViewData["HTMLClass"] as string) ?? "";
+    
+    // Get the current page name from the request path
+    var path = Context?.Request?.Path.Value ?? string.Empty;
+    var fileName = System.IO.Path.GetFileName(path);
+    var pageName = string.IsNullOrEmpty(fileName) ? "index" : System.IO.Path.GetFileNameWithoutExtension(fileName);
+    var route = pageName.ToLowerInvariant();
+    
+    // Determine the body class based on the page route
+    var body_class = route switch
+    {
+        "layout-horizontal" => "menu-horizontal",
+        "layout-hovered" => "mini-sidebar expand-menu",
+        "layout-boxed" => "mini-sidebar layout-box-mode",
+        "layout-rtl" => "layout-mode-rtl",
+        "pos" or "pos-2" or "pos-3" or "pos-4" or "pos-5" => "pos-page",
+        _ => ""
+    };
+    
+    ViewData["BodyClass"] = body_class;
+}
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en" class="@html_class" @Html.Raw(html_attributes)&gt;
+&lt;head&gt;
+    @{
+        var pathBase = Context?.Request?.PathBase.Value ?? string.Empty;
+    }
+    &lt;meta name="base-path" content="@pathBase" /&gt;
+    @await Html.PartialAsync("~/Views/Shared/Partials/_TitleMeta.cshtml")
+    @RenderSection("styles", false)
+    @await Html.PartialAsync("~/Views/Shared/Partials/_HeadCss.cshtml")
+&lt;/head&gt;
+
+&lt;body class="@body_class"&gt;
+    @await Html.PartialAsync("~/Views/Shared/Partials/main-wrapper.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/_Topbar.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/_Sidenav.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/horizontal-sidebar.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/twocolumn-sidebar.cshtml")
+
+    @RenderBody()
+
+    @await Html.PartialAsync("~/Views/Shared/Partials/modal-popup.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/_FooterScripts.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/theme-settings.cshtml")
+    @RenderSection("scripts", required: false)
+&lt;/body&gt;
+&lt;/html&gt;
+    </code>
+</pre>
+
+										<h4 class="mb-2 mt-4 text-dark fw-bold"><code class="language-markup">views/Shared/auth-base.cshtml</code>: Authentication Layout</h4>
+										<p class="mb-0 text-dark">This layout is specifically designed for authentication pages (login, register, password reset, etc.) that don't require the main navigation menu.</p>
+										<p class="mb-0 text-dark">It provides a clean, focused interface without the main navigation elements.</p>
+<pre class="language-php mb-3">
+    <code class="language-php mb-0">
+@{
+    var html_attributes = (ViewData["HTMLAttributes"] as string) ?? "";
+    var html_class = (ViewData["HTMLClass"] as string) ?? "";
+    
+    // Get the current page name from the request path
+    var path = Context?.Request?.Path.Value ?? string.Empty;
+    var fileName = System.IO.Path.GetFileName(path);
+    var pageName = string.IsNullOrEmpty(fileName) ? "index" : System.IO.Path.GetFileNameWithoutExtension(fileName);
+    var route = pageName.ToLowerInvariant();
+    
+    // Determine the body class based on the page route
+    var body_class = route switch
+    {
+        "signin" => "account-page",
+        "register" => "account-page",
+        "forgot-password" => "account-page",
+        "reset-password" => "account-page",
+        _ => ""
+    };
+    
+    ViewData["BodyClass"] = body_class;
+}
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en" class="@html_class" @Html.Raw(html_attributes)&gt;
+&lt;head&gt;
+    @{
+        var pathBase = Context?.Request?.PathBase.Value ?? string.Empty;
+    }
+    &lt;meta name="base-path" content="@pathBase" /&gt;
+    @await Html.PartialAsync("~/Views/Shared/Partials/_TitleMeta.cshtml")
+    @RenderSection("styles", false)
+    @await Html.PartialAsync("~/Views/Shared/Partials/_HeadCss.cshtml")
+&lt;/head&gt;
+
+&lt;body class="@body_class"&gt;
+    @RenderBody()
+
+    @RenderSection("scripts", required: false)
+    @await Html.PartialAsync("~/Views/Shared/Partials/_BasePathScript.cshtml")
+&lt;/body&gt;
+&lt;/html&gt;
+    </code>
+</pre>
+
+										<h4 class="mb-2 text-dark fw-bold"><code class="language-markup">views/dashboard/index.cshtml</code>: Content Page Template</h4>
+										<p class="text-dark">This approach provides clean separation of concerns and maintains consistent layout across all pages while allowing flexible content.</p>
+<pre class="language-php mb-0">
+    <code class="language-php mb-0">
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/views/Shared/base.cshtml";
+}   
+
+@section Styles {
+    &lt;!-- Page-specific styles --&gt;
+}
+
+&lt;div class="page-wrapper"&gt;
+    &lt;div class="content"&gt;
+        
+        &lt;!-- Your specific page content here --&gt;
+        &lt;h1&gt;Welcome, Admin&lt;/h1&gt;
+        &lt;p&gt;You have &lt;span class="text-primary fw-bold"&gt;200+&lt;/span&gt; Orders, Today&lt;/p&gt;
+        
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@section scripts {
+    &lt;!-- Page-specific scripts --&gt;
+}
+    </code>
+</pre>
+										
+                                        <div class="alert alert-info mt-4 mb-0">
+                                            <div class="d-flex align-items-start">
+                                                <div class="me-3">
+                                                    <i class="fas fa-info-circle text-info fs-4"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="alert-heading">ASP.NET Core Razor Template System</h5>
+                                                    <p class="mb-1">This project uses ASP.NET Core's built-in Razor templating engine. Key features include:</p>
+                                                    <ul class="mb-1">
+                                                        <li>Layout pages using <code>Layout = "~/views/Shared/base.cshtml"</code> in <code>_ViewStart.cshtml</code> or individual views</li>
+                                                        <li>Dynamic content rendering with <code>@variable</code> and <code>@(expression)</code> syntax</li>
+                                                        <li>Reusable components via <code>@await Html.PartialAsync("~/Views/Shared/Partials/_Topbar.cshtml")</code></li>
+                                                        <li>View sections with <code>@RenderSection("styles", false)</code> and <code>@section scripts { }</code></li>
+                                                        <li>Support for C# code blocks with <code>@{ }</code>, loops, conditionals, and LINQ queries</li>
+                                                        <li>Tag helpers for form elements, links, and more with <code>@addTagHelper</code></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /DotNet Structure -->
+
+						<!-- Installation -->
+						<section class="section-block doc-section" id="html_config">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Installation Guide<a class="anchor-link ms-2" href="#html_config"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="alert alert-info mb-4">
+										<div class="d-flex align-items-start">
+											<div class="me-3">
+												<i class="fas fa-info-circle text-info fs-4"></i>
+											</div>
+											<div>
+												<p class="mb-0">Follow these steps to set up the DreamsPOS .NET application on your local development environment. This guide covers .NET SDK installation, project setup, and running the application.</p>
+											</div>
+										</div>
+									</div>
+
+                                    <!-- Installation Steps -->
+                                    <div class="row mb-0">
+                                        <div class="col-12">
+                                            <h5 class="mb-3"><i class="fas fa-server text-primary me-2"></i>Installation Steps</h5>
+
+                                            <!-- Step 1 -->
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle p-2">1</span>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2">Install .NET SDK</h6>
+                                                            <p class="text-muted mb-2">Ensure you have the .NET 9.0 SDK or higher installed on your system:</p>
+                                                            <div class="row">
+                                                                <div class="col-md-6 mb-2">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <i class="fab fa-microsoft text-primary me-2"></i>
+                                                                        <span>.NET 9.0 SDK or higher</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-6 mb-2">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <i class="fas fa-code text-info me-2"></i>
+                                                                        <span>Visual Studio 2022 or VS Code (Optional)</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="alert alert-light border-start border-primary border-3 mt-2 mb-0">
+                                                                <div class="d-flex align-items-center">
+                                                                    <i class="fas fa-link text-primary me-2"></i>
+                                                                    <div>
+                                                                        <strong>Download .NET SDK:</strong>
+                                                                        <br><a href="https://dotnet.microsoft.com/download" target="_blank" class="text-primary">https://dotnet.microsoft.com/download</a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <p class="text-muted mt-2 mb-0">Verify installation by running:</p>
+                                                            <pre class="language-bash mb-0 mt-2" style="position: relative;"><code class="language-bash">dotnet --version</code></pre>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Step 2 -->
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle p-2">2</span>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2">Navigate to Project Directory</h6>
+                                                            <p class="text-muted mb-2">Open a terminal/command prompt and navigate to the template directory:</p>
+                                                            <pre class="language-bash mb-2" style="position: relative;"><code class="language-bash">cd template</code></pre>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Step 3 -->
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle p-2">3</span>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2">Restore NuGet Packages</h6>
+                                                            <p class="text-muted mb-2">Restore the project dependencies using the .NET CLI:</p>
+                                                            <pre class="language-bash mb-2" style="position: relative;"><code class="language-bash">dotnet restore</code></pre>
+                                                            <div class="alert alert-light border-start border-info border-3 mt-2 mb-0">
+                                                                <small><i class="fas fa-info-circle text-info me-1"></i><strong>Note:</strong> This will download all NuGet packages specified in <code>template.csproj</code>.</small>
+                                                            </div>
+                                                        </div>                                                           
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Step 4 -->
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle p-2">4</span>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2">Configure Base Path (Production)</h6>
+                                                            <p class="text-muted mb-2">If you need to deploy under a subdirectory, update the base path in <code>Program.cs</code>:</p>
+                                                            <pre class="language-bash mb-2" style="position: relative;"><code class="language-bash">$basePath = "/dotnet/template/";</code></pre>
+                                                            <div class="alert alert-light border-start border-info border-3 mt-2 mb-0">
+                                                                <small><i class="fas fa-info-circle text-info me-1"></i><strong>Note:</strong> For local development, you can set this to <code>"/"</code> or leave it as is. Update it only for production deployment under a subdirectory.</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+											<!-- Step 5 -->
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle p-2">5</span>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2">Build the Project</h6>
+                                                            <p class="text-muted mb-2">Build the project to ensure everything compiles correctly:</p>
+                                                            <pre class="language-bash mb-2" style="position: relative;"><code class="language-bash">dotnet build</code></pre>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Step 6 -->
+                                            <div class="card border-0 bg-light mb-0">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle p-2">6</span>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2">Run the Application</h6>
+                                                            <p class="text-muted mb-2">Start the development server using the .NET CLI:</p>
+                                                            <pre class="language-bash mb-2" style="position: relative;"><code class="language-bash">dotnet run</code></pre>
+
+                                                            <div class="alert alert-success border-start border-success border-3 mt-2 mb-2">
+                                                                <div class="d-flex align-items-center">
+                                                                    <i class="fas fa-link text-success me-2"></i>
+                                                                    <div>
+                                                                        <strong>Access the application at:</strong>
+                                                                        <br><code>http://localhost:7000</code>
+                                                                        <br><small class="text-muted">(If base path is configured: <code>http://localhost:7000/dotnet/template/</code>)</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="alert alert-light border-start border-primary border-3 mb-0">
+                                                                <div class="d-flex align-items-start">
+                                                                    <i class="fas fa-lightbulb text-primary me-2 mt-1"></i>
+                                                                    <div>
+                                                                        <strong>Alternative Methods:</strong>
+                                                                        <ul class="mb-0 mt-2">
+                                                                            <li><strong>Visual Studio:</strong> Press F5 or click the Run button</li>
+                                                                            <li><strong>VS Code:</strong> Use the Run and Debug panel (F5)</li>
+                                                                            <li><strong>Watch Mode:</strong> Use <code>dotnet watch run</code> for automatic reload on file changes</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+								</div>
+							</div>
+						</section>
+						<!-- /Installation -->
+
+						<!-- Scss Installation -->
+						<section class="section-block doc-section" id="scss_install">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Sass/SCSS with Gulp<a class="anchor-link ms-2" href="#scss_install"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+                                    <!-- Overview -->
+                                    <div class="alert alert-info mb-4">
+                                        <div class="d-flex align-items-start">
+                                            <div class="me-3">
+                                                <i class="fas fa-info-circle text-info fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-2">Overview</h6>
+                                                <p class="mb-0">
+                                                    This .NET project uses <strong>Gulp</strong> with <code>gulp-sass</code> (Dart Sass) for processing SCSS files located in
+                                                    <code>webroot/assets/scss/</code>. The output CSS is generated inside
+                                                    <code>webroot/assets/css/</code> with automatic prefixing and minified development builds.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+									<!-- Prerequisites -->
+									<div class="row mb-4">
+										<div class="col-12">
+											<h5 class="mb-3"><i class="fas fa-check-circle text-success me-2"></i>Prerequisites</h5>
+											<div class="card border-0 bg-light">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+														<div class="me-3">
+															<i class="fas fa-download text-primary fs-4"></i>
+														</div>
+														<div class="flex-grow-1">
+															<h6 class="mb-2">Node.js Installation</h6>
+														<p class="text-muted mb-2">Ensure you have Node.js installed on your system:</p>
+															<div class="alert alert-light border-start border-primary border-3 mb-0">
+																<div class="d-flex align-items-center">
+																	<i class="fas fa-link text-primary me-2"></i>
+																	<div>
+																		<strong>Download Node.js:</strong>
+																		<br><a href="https://nodejs.org/en/download/" target="_blank" class="text-decoration-none">https://nodejs.org/en/download/</a>
+																	</div>
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+                                    <!-- Installation Steps -->
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <h5 class="mb-3"><i class="fas fa-cogs text-primary me-2"></i>Installation Steps</h5>
+
+                                            <!-- Step 1 -->
+											<div class="card border-0 bg-light mb-3">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+														<div class="me-3">
+															<span class="badge bg-primary rounded-circle p-2">1</span>
+														</div>
+														<div class="flex-grow-1">
+															<h6 class="mb-2">Install NPM Package Manager</h6>
+															<p class="text-muted mb-2">Install the latest version of npm package manager:</p>
+															<pre class="language-bash mb-2" style="position: relative;"><code class="language-bash">npm install -g npm@latest</code></pre>
+															<div class="alert alert-light border-start border-info border-3 mb-0">
+																<small><i class="fas fa-terminal text-info me-1"></i><strong>Note:</strong> This ensures you have the latest npm version</small>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+
+                                            <!-- Step 2 -->
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle p-2">2</span>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2">Install Project Dependencies</h6>
+                                                            <p class="text-muted mb-2">In your .NET project root (where <code>package.json</code> exists), install all dependencies:</p>
+                                                            <pre class="language-bash mb-2" style="position: relative;"><code class="language-bash">npm install</code></pre>
+                                                            <div class="alert alert-light border-start border-info border-3 mb-0">
+                                                                <small><i class="fas fa-terminal text-info me-1"></i>This will install Gulp and required SCSS build packages listed in <code>package.json</code>.</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Step 3 -->
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle p-2">3</span>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2">Run Development Build</h6>
+                                                            <p class="text-muted mb-2">To compile SCSS files into CSS during development, run:</p>
+                                                            <pre class="language-bash mb-2" style="position: relative;"><code class="language-bash">npm run dev</code></pre>
+                                                            <div class="alert alert-light border-start border-success border-3 mb-0">
+                                                                <small><i class="fas fa-play text-success me-1"></i>Generates <code>style.css</code> in <code>webroot/assets/css/</code></small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+									<!-- Compilation Methods -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<h5 class="mb-3"><i class="fas fa-code text-success me-2"></i>Compilation Methods</h5>
+											
+											<div class="table-responsive">
+												<table class="table table-hover table-bordered">
+													<thead class="table-light">
+														<tr>
+															<th class="text-center" style="width: 80px;">
+																<i class="fas fa-icons text-primary"></i>
+															</th>
+															<th style="width: 140px;" class="text-center align-middle">Method</th>
+															<th style="width: 200px;" class="text-center align-middle">Description</th>
+															<th style="width: 100px;" class="text-center align-middle">Gulp Command</th>
+															<th style="width: 100px;" class="text-center align-middle">npm Script Command</th>
+														</tr>
+													</thead>
+													<tbody>
+														<tr class="align-middle">
+															<td class="text-center">
+																<i class="fas fa-play text-primary fs-4"></i>
+															</td>
+															<td class="align-middle">
+																<strong class="d-block mb-1">One-time Compilation</strong>
+																<small class="text-muted">(Production)</small>
+															</td>
+															<td class="align-middle">
+																<p class="mb-0">Compile SCSS files once for production with minified output</p>
+															</td>
+															<td class="text-start align-middle">
+																<code class="language-bash d-block p-2 bg-light rounded mb-0" style="position: relative;">Gulp build</code>
+															</td>
+															<td class="text-start align-middle">
+																<code class="language-bash d-block p-2 bg-light rounded mb-0" style="position: relative;">npm run build</code>
+															</td>
+														</tr>
+														<tr class="align-middle">
+															<td class="text-center">
+																<i class="fas fa-redo text-success fs-4"></i>
+															</td>
+															<td class="align-middle">
+																<strong class="d-block mb-1">Watch Mode</strong>
+																<small class="text-muted">(Development)</small>
+															</td>
+															<td class="align-middle">
+																<p class="mb-0">Automatically recompile on file changes for real-time development</p>
+															</td>
+															<td class="text-center align-middle">
+																<code class="language-bash d-block p-2 bg-light rounded mb-0" style="position: relative;">Gulp watch</code>
+															</td>
+															<td class="align-middle">
+																<code class="language-bash d-block p-2 bg-light rounded mb-0" style="position: relative;">npm run watch</code>
+															</td>
+														</tr>
+														<tr class="align-middle">
+															<td class="text-center">
+																<i class="fas fa-layer-group text-warning fs-4"></i>
+															</td>
+															<td class="align-middle">
+																<strong class="d-block mb-1">Run Without Minified</strong>
+																<small class="text-muted">(Development)</small>
+															</td>
+															<td class="align-middle">
+																<p class="mb-0">Compile SCSS without generating source maps, ideal for development</p>
+															</td>
+															<td class="text-center align-middle">
+																<code class="language-bash d-block p-2 bg-light rounded mb-0" style="position: relative;">Gulp</code>
+															</td>
+															<td class="align-middle">
+																<code class="language-bash d-block p-2 bg-light rounded mb-0" style="position: relative;">npm run dev</code>
+															</td>
+														</tr>
+														
+													</tbody>
+												</table>
+											</div>
+						
+										</div>
+									</div>
+
+                                    <!-- Best Practices -->
+                                    <div class="row mb-0">
+                                        <div class="col-12">
+                                            <h5 class="mb-3"><i class="fas fa-star text-warning me-2"></i>Best Practices</h5>
+                                            <div class="row mb-0">
+                                                <div class="col-md-6 mb-0">
+                                                    <div class="card border-0 bg-light h-100">
+                                                        <div class="card-body">
+                                                            <div class="d-flex align-items-start">
+                                                                <div class="me-3">
+                                                                    <i class="fas fa-laptop text-primary fs-4"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <h6 class="mb-2">Development</h6>
+                                                                    <ul class="list-unstyled mb-0">
+                                                                        <li><i class="fas fa-check text-success me-1"></i>Use <code>npm run watch</code> for real-time updates</li>
+                                                                        <li><i class="fas fa-check text-success me-1"></i>Keep SCSS partials modular and organized</li>
+                                                                        <li><i class="fas fa-check text-success me-1"></i>Store all styles under <code>webroot/assets/scss/</code></li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 mb-0">
+                                                    <div class="card border-0 bg-light h-100">
+                                                        <div class="card-body">
+                                                            <div class="d-flex align-items-start">
+                                                                <div class="me-3">
+                                                                    <i class="fas fa-rocket text-success fs-4"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <h6 class="mb-2">Production</h6>
+                                                                    <ul class="list-unstyled mb-0">
+                                                                        <li><i class="fas fa-check text-success me-1"></i>Run <code>npm run build</code> before deployment</li>
+                                                                        <li><i class="fas fa-check text-success me-1"></i>Use minified CSS for faster load times</li>
+                                                                        <li><i class="fas fa-check text-success me-1"></i>Clean unused SCSS before pushing live</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+								</div>
+							</div>
+						</section>
+						<!-- /Scss Installation -->
+
+						<!-- Dynamic Title Feature -->
+						<section class="section-block doc-section" id="dynamic_title">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Dynamic Title Feature<a class="anchor-link ms-2" href="#dynamic_title"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="server">
+										<!-- Overview Section -->
+										<div class="row mb-3">
+											<div class="col-12">
+												<h5 class="mb-2">
+													<i class="fas fa-info-circle text-info me-2"></i>
+													Overview
+												</h5>
+												<p class="mb-0">Dreams POS implements a simple and flexible dynamic title system using ASP.NET Core's ViewData. Each page can set its own title, which is then automatically formatted and displayed in the browser tab. This approach gives you full control over page titles while maintaining consistency across the application.</p>
+											</div>
+										</div>
+
+										<div class="row mb-3">
+											<div class="col-md-8">
+												<div class="alert alert-light border-start border-primary border-4 mb-2">
+													<div class="d-flex align-items-start">
+														<i class="fas fa-file-code text-primary me-2 mt-1"></i>
+														<div>
+															<strong>File Location:</strong> <code>views/Shared/Partials/_TitleMeta.cshtml</code>
+															<br><small class="text-muted">Contains the title rendering logic that formats and displays page titles</small>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+
+										<!-- Key Features Section -->
+										<h5 class="mb-3">Key Features</h5>
+										<div class="row mb-3">
+											<div class="col-md-4">
+												<div class="feature-item mb-2">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3">
+															<i class="fas fa-palette text-success"></i>
+														</div>
+														<div>
+															<h6 class="mb-1">Simple Title Setting</h6>
+															<p class="text-muted mb-0">Set titles using ViewData in each Razor view</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="feature-item mb-2">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3">
+															<i class="fas fa-icons text-info"></i>
+														</div>
+														<div>
+															<h6 class="mb-1">Automatic Formatting</h6>
+															<p class="text-muted mb-0">Titles are automatically formatted with suffix</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="feature-item mb-2">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3">
+															<i class="fas fa-edit text-primary"></i>
+														</div>
+														<div>
+															<h6 class="mb-1">Consistent Format</h6>
+															<p class="text-muted mb-0">All titles follow the same format pattern</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="feature-item mb-2">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3">
+															<i class="fas fa-code text-warning"></i>
+														</div>
+														<div>
+															<h6 class="mb-1">Razor Integration</h6>
+															<p class="text-muted mb-0">Easily accessible via ViewData in Razor views</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="feature-item mb-2">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3">
+															<i class="fas fa-shield text-danger"></i>
+														</div>
+														<div>
+															<h6 class="mb-1">Default Fallback</h6>
+															<p class="text-muted mb-0">Provides default title if none is specified</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="feature-item mb-2">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3">
+															<i class="fas fa-star text-warning"></i>
+														</div>
+														<div>
+															<h6 class="mb-1">Professional Appearance</h6>
+															<p class="text-muted mb-0">Consistent and polished title formatting</p>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+
+										<!-- Examples Section -->
+										<div class="row mb-3">
+											<div class="col-md-6">
+												<h5 class="mb-2">
+													<i class="fas fa-code text-secondary me-2"></i>
+													Usage Examples
+												</h5>
+												<div class="alert alert-secondary">
+													<ul class="mb-0">
+														<li class="mt-0">index → "Admin Dashboard"</li>
+														<li class="mb-1">account-statement → "Account Statement"</li>
+														<li class="mb-1">ban-ip-address → "Ban IP Address"</li>
+														<li class="mb-1">ui-alerts → "Alerts"</li>
+														<li class="mb-0">chart-js → "JS Charts"</li>
+														<li class="mb-0">reset-password-1 → "Reset Password"</li>
+													</ul>
+												</div>
+											</div>
+											<div class="col-md-6">
+												<h5 class="mb-2">
+													<i class="fas fa-lightbulb text-warning me-2"></i>
+													How It Works
+												</h5>
+												<div class="alert alert-info">
+                                                    <ol class="mb-0">
+                                                        <li class="my-0">Each view sets <code>ViewData["Title"]</code> at the top</li>
+                                                        <li class="mb-1">The <code>_TitleMeta.cshtml</code> partial reads <code>ViewBag.Title</code> (same as ViewData["Title"])</li>
+														<li class="mb-1">If title exists, formats it as: <code>{Title} | Pos admin template</code></li>
+														<li class="mb-1">If no title is set, defaults to: <code>Pos admin template</code></li>
+														<li class="mb-1">The formatted title is rendered in the <code>&lt;title&gt;</code> tag</li>
+														<li class="mb-0">This partial is included in both <code>base.cshtml</code> and <code>auth-base.cshtml</code> layouts</li>
+                                                    </ol>
+												</div>
+											</div>
+										</div>
+
+										<!-- Title Format Section -->
+										<h5 class="mb-2">
+											<i class="fas fa-tag text-primary me-2"></i>
+											Title Format
+										</h5>
+										<div class="row mb-3">
+											<div class="col-12">
+												<p class="mb-2">All titles follow this consistent format:</p>
+												<pre class="language-html mb-3"><code class="language-html">&lt;title&gt;{Page Title} | Pos admin template&lt;/title&gt;</code></pre>
+												
+												<h6 class="mb-2 mt-3">Implementation Code</h6>
+												<p class="mb-2">The title rendering logic in <code>views/Shared/Partials/_TitleMeta.cshtml</code>:</p>
+												<pre class="language-html mb-3"><code class="language-html">@{
+    var title = ViewBag.Title != null
+        ? ViewBag.Title + " | Pos admin template"
+        : "Pos admin template";
+}
+&lt;title&gt;@title&lt;/title&gt;</code></pre>
+												
+												<div class="card border-primary mt-3">
+													<div class="card-header bg-primary text-white">
+														<i class="fas fa-eye me-2"></i>
+														Example Output
+													</div>
+													<div class="card-body">
+														<p class="text-muted mb-1">For <code>ViewData["Title"] = "Product Details"</code></p>
+														<p class="mb-0 fw-bold">Product Details | Pos admin template</p>
+													</div>
+												</div>
+											</div>
+										</div>
+
+										<div class="alert alert-info mb-0">
+											<span class="badge rounded-pill text-bg-info text-uppercase">
+												<i class="fas fa-info-circle me-1"></i>
+												Note
+											</span>
+											<p class="mb-0 mt-2">To customize the title format or default text, edit the <code>_TitleMeta.cshtml</code> partial view. You can change the suffix "Pos admin template" to match your application name, or modify the formatting logic as needed. The title is set in each individual view using <code>ViewData["Title"]</code> at the top of the Razor file.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Dynamic Title Feature -->
+
+						<!-- RTL Layout Feature -->
+						<section class="section-block doc-section" id="rtl_layout">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">RTL Language Support<a class="anchor-link ms-2" href="#rtl_layout"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="server">
+										<h5 class="mb-2">Overview</h5>
+										<p class="mb-3">The application provides comprehensive RTL (Right-to-Left) language support for languages like Arabic, Hebrew, and Persian. It uses ASP.NET Core Razor views to conditionally load RTL-specific styles and apply RTL layout classes.</p>
+										
+										<h5 class="mb-2">RTL Implementation</h5>
+										<p class="mb-2">RTL support is implemented through the following components:</p>
+										
+										<h6 class="mt-3 mb-2">RTL CSS Loading</h6>
+										<p>The application uses Razor conditionals in <code>views/Shared/Partials/_HeadCss.cshtml</code> to load the appropriate CSS file based on the current page route:</p>
+										<pre class="language-php mb-4"><code class="language-php">@if (!IsPage("layout-rtl")){
+    &lt;!-- Bootstrap CSS --&gt;
+    &lt;link rel = 'stylesheet' href ='~/assets/css/bootstrap.min.css'&gt;
+} 
+
+@if (IsPage("layout-rtl")){
+    &lt;!-- Bootstrap RTL CSS --&gt;
+    &lt;link rel="stylesheet" href="~/assets/css/bootstrap.rtl.min.css"&gt;
+}</code></pre>
+
+										<h6 class="mt-4 mb-2">RTL Body Class</h6>
+										<p>The <code>base.cshtml</code> layout automatically adds the RTL body class when the route is "layout-rtl":</p>
+										<pre class="language-php mb-4"><code class="language-php">var body_class = route switch
+{
+    "layout-rtl" => "layout-mode-rtl",
+    // ... other cases
+    _ => ""
+};
+
+&lt;body class="@body_class"&gt;</code></pre>
+
+										<h6 class="mt-4 mb-2">RTL Layout Structure</h6>
+										<p>The application includes a dedicated RTL layout view at <code>views/layouts/layout-rtl.cshtml</code> that extends the base layout. The RTL layout includes:</p>
+										<ul class="custom-list mb-3">
+											<li>RTL-specific CSS classes and overrides</li>
+											<li>Right-aligned navigation and UI elements</li>
+											<li>Mirrored layout for RTL languages</li>
+											<li>Bootstrap RTL CSS framework integration</li>
+										</ul>
+
+										<h6 class="mt-4 mb-2">RTL Route</h6>
+										<p>The RTL layout is accessible via a dedicated route in the controller:</p>
+										<pre class="language-php mb-4"><code class="language-php">[Route("layout-rtl")]
+public IActionResult LayoutRtl()
+{
+    return View("~/views/layouts/layout-rtl.cshtml");
+}</code></pre>
+
+										<h5 class="mb-2">Key Features</h5>
+										<ul class="custom-list mb-3">									
+											<li><i class="fa-solid fa-check text-success me-2"></i><strong>Razor-Powered Conditional Loading</strong> - Dynamically loads RTL or LTR styles based on the current route using Razor's <code>IsPage()</code> helper function</li>
+											<li><i class="fa-solid fa-check text-success me-2"></i><strong>Bootstrap RTL Support</strong> - Leverages Bootstrap's built-in RTL CSS framework for consistent RTL styling</li>
+											<li><i class="fa-solid fa-check text-success me-2"></i><strong>Automatic Body Class</strong> - Automatically applies "layout-mode-rtl" class to the body element when on RTL pages</li>
+											<li><i class="fa-solid fa-check text-success me-2"></i><strong>Dedicated Layout View</strong> - Uses a dedicated <code>layout-rtl.cshtml</code> view that extends the base layout</li>
+											<li><i class="fa-solid fa-check text-success me-2"></i><strong>Route-Based Detection</strong> - Detects RTL mode based on the route name, making it easy to switch between LTR and RTL</li>
+										</ul>										
+										
+										<div class="alert alert-info mb-0">
+											<span class="badge rounded-pill text-bg-info text-uppercase">Note</span>
+											<p class="mb-0">The conditional CSS loading automatically detects RTL pages using the route name "layout-rtl" and loads the appropriate Bootstrap RTL stylesheet. The <code>IsPage()</code> helper function in <code>_HeadCss.cshtml</code> checks the current route and conditionally loads either the standard Bootstrap CSS or the RTL version. This approach ensures that RTL-specific styles are only loaded when needed, improving performance and maintainability.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /RTL Layout Feature -->
+
+						<!-- Change Logo -->
+						<section class="section-block doc-section" id="change_logo">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">How to change Logo ? <a class="anchor-link ms-2" href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-maximize"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">
+										<p>You can change the logo or replace it from img folder or you can edit it from Html file.</p>
+<pre class="language-php mb-0"><code class="language-php">&lt;div class="header"&gt;
+	&lt;a asp-area="" asp-controller="Home" asp-action="Index" class="logo"&gt;
+		&lt;img src="@(Url.Content("assets/img/logo.svg"))" alt="logo" /&gt;
+	&lt;/a&gt;
+&lt;/div&gt; </code></pre>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<!-- Typography -->
+						<section class="section-block doc-section" id="typography">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Typography<a class="anchor-link ms-2" href="#typography"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="server typography">
+										<h1>h1. Bootstrap heading</h1>
+										<h2>h2. Bootstrap heading</h2>
+										<h3>h3. Bootstrap heading</h3>
+										<h4>h4. Bootstrap heading</h4>
+										<h5>h5. Bootstrap heading</h5>
+										<h6>h6. Bootstrap heading</h6>
+									</div>
+									</div>
+								</div>
+							
+						</section>
+						<!-- /Typography -->
+
+						<!-- Icon -->
+						<section class="section-block doc-section" id="icon">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Icons<a class="anchor-link ms-2" href="#icon"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="server">
+										<p>Use Font Awesome icons with spesific class </p>
+<pre class="language-markup"><code class="language-markup mb-0">
+	&lt;!DOCTYPE html&gt;
+	&lt;html lang="en"&gt;
+		&lt;head&gt;
+			&lt;link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome/css/fontawesome.min.css') }}" &gt;
+			&lt;link rel="stylesheet" href="{{ url_for('static', filename='assets/plugins/fontawesome/css/all.min.css') }}" &gt;
+		&lt;/head&gt;
+	&lt;/html&gt;
+
+</code></pre>
+<pre class="language-markup mb-0"><code>
+	&lt;i class="fas fa-times"&gt;&lt;/i&gt;
+	&lt;i class="fas fa-chevron-down"&gt;&lt;/i&gt;
+	&lt;i class="fa-regular fa-user"&gt;&lt;/i&gt;
+	
+</code></pre>
+									</div>
+									</div>
+								</div>
+							
+						</section>
+						<!-- /Icon -->
+
+						<!-- License -->
+						<section class="section-block page-block doc-section" id="license">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">License<a class="anchor-link ms-2" href="#license"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<p>DreamsPOS is developed by <a
+											href="https://themeforest.net/user/dreamstechnologies/portfolio"
+											target="_blank" rel="noopener">Dreams Technologies</a> and is available
+										under both <a href="https://themeforest.net/licenses/standard" target="_blank"
+											rel="noopener">Envato Extended &amp; Regular License</a> options.</p>
+									<div class="dark-mode-content">
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3">Regular License</h6>
+											<p class="mb-0">Usage by either yourself or a single client is permitted for
+												a single end product, provided that end users are not subject to any
+												charges.</p>
+										</div>
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3">Extended License</h6>
+											<p class="mb-0">For use by you or one client in a single end product for
+												which end users may be charged.</p>
+										</div>
+										<p><a href="https://themeforest.net/licenses/faq#main-differences-licenses-a"
+												target="_blank" rel="noopener">What are the main differences between the
+												Regular License and the Extended License?</a></p>
+										<div class="alert alert-info mb-0">
+											<span class="badge rounded-pill text-bg-danger text-uppercase">Note</span>
+											<p class="mb-0">If you operate as a freelancer or agency, you have the
+												option to acquire the Extended License, which permits you to utilize the
+												item across multiple projects on behalf of your clients.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /License -->
+
+						<!-- Credits -->
+						<section class="section-block page-block doc-section" id="credits">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Credits<a class="anchor-link ms-2" href="#credits"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div class="table-responsive ref-table">
+										<table class="table table-bordered table-striped mb-0">
+											<thead>
+												<tr>
+													<th class="w-20">NAME</th>
+													<th class="w-80">URL</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td><span class="text-high-em">Bootstrap</span></td>
+													<td><a href="https://getbootstrap.com/docs/5.3/getting-started/introduction/" class="link-high-em" target="_blank">https://getbootstrap.com/docs/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">jQuery</span></td>
+													<td><a href="https://jquery.com/" class="link-high-em" target="_blank">https://jquery.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Fontawesome</span></td>
+													<td><a href="https://fontawesome.com/" class="link-high-em" target="_blank">https://fontawesome.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Select2</span></td>
+													<td><a href="https://github.com/select2/select2" class="link-high-em" target="_blank">https://github.com/select2/select2</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Date Timepicker</span></td>
+													<td><a href="https://cdnjs.com/libraries/jquery-datetimepicker" class="link-high-em" target="_blank">https://cdnjs.com/libraries/jquery-datetimepicker</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Google Fonts</span></td>
+													<td><a href="https://fonts.google.com/" class="link-high-em" target="_blank">https://fonts.google.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Fancy Box</span></td>
+													<td><a href="http://fancybox.net/" class="link-high-em" target="_blank">http://fancybox.net/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Moment JS</span></td>
+													<td><a href="https://momentjs.com/" class="link-high-em" target="_blank">https://momentjs.com/</a></td>
+												</tr>
+												<tr>
+                                                    <td><span class="text-high-em">Full Calendar</span></td>
+                                                    <td><a href="https://fullcalendar.io/" class="link-high-em" target="_blank">https://fullcalendar.io/</a></td>
+                                                </tr>
+												<tr>
+                                                    <td><span class="text-high-em">Morris</span></td>
+                                                    <td><a href="https://morrisjs.github.io/morris.js/" class="link-high-em" target="_blank">https://morrisjs.github.io/morris.js/</a></td>
+                                                </tr>
+												<tr>
+                                                    <td><span class="text-high-em">Owl Carousel</span></td>
+                                                    <td><a href="https://www.npmjs.com/package/ngx-owl-carousel-o" class="link-high-em" target="_blank">https://www.npmjs.com/package/ngx-owl-carousel-o</a></td>
+                                                </tr>
+												<tr>
+													<td><span class="text-high-em">Range-Slider</span></td>
+													<td><a href="https://momentjs.com/" class="link-high-em" target="_blank">https://ionicframework.com/docs/api/range</a></td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Credits -->
+
+						<!-- Support -->
+						<section class="section-block page-block doc-section" id="support">
+							<div class="custom-card support-content">
+								<div class="card-header">
+									<h2 class="card-title">Support<a class="anchor-link ms-2" href="#support"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+
+									<h3 class="title fs-200">Need Support?</h3>
+
+									<p class="mb-4">If this documentation does not address your questions, please feel
+										free to contact us via email at <a
+											class="text-dark text-decoration-underline fw-medium" rel="noopener"
+											href="mailto:business@dreamstechnologies.com">support@dreamstechnologies.com</a>
+									</p>
+
+									<div class="support-content-one">
+										<p class="mb-3 text-dark fw-medium">Reach the team at GMT+5:30. Typical reply
+											within 12–24 hours on weekdays — rarely up to 48 hrs during holidays.
+											Support is available to verified buyers for template-related issues.</p>
+										<a href="mailto:business@dreamstechnologies.com" class="btn btn-primary"><span
+												class="feather-icon d-flex align-items-center"><i
+													data-feather="phone-outgoing"></i></span> Contact Support</a>
+										<div class="imp-content">
+											<p><span>Important Note :</span> We strive to offer top-notch support, but
+												it's only available to verified buyers and for template-related issues
+												such as bugs and errors. Custom changes and third-party module setups
+												are not covered.</p>
+										</div>
+									</div>
+
+								</div>
+							</div>
+						</section>
+						<!-- /Support -->
+
+						<!-- Custom Work -->
+						<section class="section-block page-block doc-section" id="customwork">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Custom Work<a class="anchor-link ms-2" href="#"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<h5 class="card-title mb-2 fw-bold">Do you need a customized application for your
+										business?</h5>
+									<p>If you need a customized application for your business depends on your specific
+										requirements and goals, Please contact us. Customization can be the key to
+										success, ensuring your project perfectly aligns with your unique goals and
+										requirements.</p>
+									<div class="hire">
+										<h5 class="fw-bold mb-3">Don't Miss Out on the Benefits of Customization!</h5>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Unlock the potential of your
+											project. It's time to ensure your project isn't another cookie-cutter
+											solution but truly unique and effective one.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Discover how customization can make
+											a difference in your project's success. Let's create a solution that's as
+											unique as your vision!</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We'll tailor the application to meet
+											your specific needs and preferences.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We will upload your website to the
+											server and ensure it is live.</p>
+
+										<div class="contact-btn d-flex align-items-center mt-4  flex-wrap gap-2">
+											<a target="_blank" rel="noopener"
+												href="mailto:business@dreamstechnologies.com" class="btn btn-light"><i
+													class="me-2" data-feather="calendar"></i>Book an Appointment</a>
+											<a href="mailto:support@dreamstechnologies.com" class="btn btn-primary"><i
+													class="me-2" data-feather="file-text"></i>Get a Free Quote</a>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Custom Work -->
+
+						<!-- Thanks -->
+						<section class="custom-card page-block doc-section  min-h-100 mb-0" id="thanks">
+							<div class="card-body">
+								<div class="thanks">
+									<img src="assets/img/banners/ratings.svg" alt="thanks">
+									<h2>Thank You</h2>
+									<p>Thank you once again for downloading <a href="https://dreamspos.dreamstechnologies.com/"
+											class="text-primary fw-bold text-decoration-underline">DreamsPOS</a>.<br>
+										We hope you're enjoying your experience, and we kindly request that you take a
+										moment to share your valuable review and rating with us.</p>
+									<a href="https://themeforest.net/downloads" target="_blank" rel="noopener"
+										class="btn btn-primary"><i data-feather="link" class="me-2"></i>Review Link</a>
+								</div>
+							</div>
+						</section>
+						<!-- /Thanks -->
+					</div>
+				</div>
+			</div>
+			<footer class="content-footer footer">
+				<div
+					class="container-fluid d-flex flex-wrap justify-content-between align-items-center text-center gap-2 py-3">
+					<div>
+						&copy; 2015 - 2026
+
+						<a href="https://dreamstechnologies.com/" class="footer-text fw-medium text-primary"
+							target="_blank" rel="noopener">Dreams Technologies</a>
+					</div>
+					<div class="social-icons">
+						<a href="https://www.facebook.com/dreamstechnologieslimited/" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-1.svg" alt="social-icon"></a>
+						<a href="https://www.behance.net/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-2.svg" alt="social-icon"></a>
+						<a href="https://dribbble.com/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-3.svg" alt="social-icon"></a>
+						<a href="https://www.instagram.com/dreamstechnologieslimited/" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-4.svg" alt="social-icon"></a>
+					</div>
+				</div>
+			</footer>
+		</div>
+
+	</main>
+
+	<script src="assets/js/bootstrap.bundle.min.js"></script>
+	<script src="assets/js/feather.min.js"></script>
+	<script src="assets/js/prism.js"></script>
+	<script src="assets/js/script.js"></script>
+
+</body>
+
+</html>

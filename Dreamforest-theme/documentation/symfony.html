@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="keywords" content="">
+	<meta name="description" content="Dream POS Admin Template | Dream POS Bootstrap Website Template| Dream POS">
+	<meta name="author" content="dreamstechnologies">
+
+	<title>Dreams POS -  Online Documentation.</title>
+
+	<!-- Favicon -->
+	<link rel="shortcut icon" href="assets/img/logo/favicon.png">
+
+	<!-- Vendor -->
+	<link rel="stylesheet" href="assets/css/bootstrap.min.css">
+	<link rel="stylesheet" href="assets/css/prism.css">
+
+	<!-- Fontawesome CSS -->
+	<link rel="stylesheet" href="assets/plugins/fontawesome/css/all.min.css">
+
+	<!-- Main CSS -->
+	<link rel="stylesheet" href="assets/css/style.css">
+	
+</head>
+
+<body>
+	<main class="wrapper default-sidebar">
+
+		<!-- Header -->
+		<header class="header">
+			<div class="container-fluid">
+				<div class="header-left">
+					<div class="left-header me-3">
+						<a href="javascript:void(0)" class="sidebar-toggle p-1">
+							<span class="feather-icon"><i data-feather="sidebar"></i></span>
+						</a>
+					</div>
+					<ul class="header-top-nav nav col-12 col-lg-auto me-lg-auto gap-3 d-flex align-items-center justify-content-center mb-md-0">
+						<li><a href="https://themeforest.net/user/dreamstechnologies" class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank" rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i data-feather="archive"></i></span>Other Products</a></li>
+						<li><a href="mailto:business@dreamstechnologies.com" class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank" rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i data-feather="briefcase"></i></span>Hire Us</a></li>
+					</ul> 
+					<div class="text-end">
+						<a href="changelog.html" target="_blank" rel="noopener" class="btn btn-white btn-sm me-2"><span class="feather-icon me-2"><i data-feather="refresh-cw"></i></span>Changelog</a>
+						<a href="https://dreamspos.dreamstechnologies.com/" target="_blank" rel="noopener" class="btn btn-primary btn-sm"><span class="feather-icon me-2"><i data-feather="play"></i></span>Live Preview</a>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- End Header -->
+
+         <div class="doc-progress">
+           <div class="doc-progress-inner" id="scrollProgress">
+
+           </div>
+         </div>
+		 
+		<div class="sidebar-overlay"></div>
+		<div class="sidebar">
+			<div class="sidebar-logo">
+				<a href="index.html" class="logo-dark"><img src="assets/img/logo/logo.svg" alt="logo"><span class="badge badge-soft-danger fs-14 ms-2 p-2">Symfony</span></a>
+				<a href="index.html" class="small-logo"><img src="assets/img/logo/favicon.png" alt="logo"></a>
+			</div>
+			<div class="sidebar-inner">
+				<div class="sidebar-menu">
+					<ul id="menu-main-menu" class="sidebar-nav">
+						<li class="menu-title menu-text">Main</li>
+						<li class="menu-item submenu">
+							<a href="#instructions" class="page-link">
+								<span class="feather-icon"><i data-feather="layers"></i></span><span
+									class="menu-text"><span class="hover-title">Getting Started</span> </span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#instructions" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Introduction</a></li>
+								<li><a href="#requirement" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Requirement</a></li>
+								<li><a href="#features" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Features</a></li>
+								<li><a href="#file_structure" class="page-link drop"><span
+											class="menu-dash"><span></span></span>File Structure</a></li>
+								<li><a href="#php_structure" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Symfony Structure</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Configuration</li>
+						<li class="menu-item submenu">
+							<a href="#installation" class=" menu-link">
+								<span class="feather-icon"><i data-feather="life-buoy"></i></span>
+								<span class="menu-text">Installation</span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#installation" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Installation Guide</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Customization</li>
+						<li class="menu-item submenu">
+							<a href="#change_logo" class="menu-link">
+								<span class="feather-icon"><i data-feather="shield"></i></span>
+								<span class="menu-text">Customization</span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#change_logo" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Change Logo</a></li>
+								<li><a href="#change_font" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Fonts</a></li>
+								<li><a href="#icon" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Icons</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Info</li>
+						<li class="menu-item">
+							<a href="#support" class="page-link">
+								<span class="feather-icon"><i data-feather="headphones"></i></span><span
+									class="menu-text"><span class="hover-title">Support</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#customwork" class="page-link">
+								<span class="feather-icon"><i data-feather="settings"></i></span><span
+									class="menu-text"><span class="hover-title">Custom Work</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#thanks" class="page-link">
+								<span class="feather-icon"><i data-feather="smile"></i></span><span
+									class="menu-text"><span class="hover-title">Thank
+										You</span> </span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<!-- main content -->
+		<div class="main-content">
+			<div class="container-fluid">
+				<!-- Page title & breadcrumb -->
+				<div class="page-title">
+					<div class="breadcrumb">
+						<h1>Documentation</h1>
+						<ul>
+							<li><a href="index.html">Home</a></li>
+							<li>Documentation</li>
+						</ul>
+					</div>
+				</div>
+				<div class="row sections">
+					<div class="col-xl-12 col-md-12">
+
+						<!-- Introduction -->
+						<section class="section-block doc-section" id="instructions">
+							<div class="card bg-dark mb-4">
+								<div class="card-body p-4">
+									<div class="intro">
+										<div class="item-details">
+											<div class="row align-items-center row-gap-4">
+												<div class="col-xl-5">
+													<div>
+														<img src="assets/img/banners/banner.png" class="img-fluid"
+															alt="DreamsPOS  Agent Banner">
+													</div>
+												</div>
+												<div class="col-xl-7">
+													<div class="banner-right ps-lg-2 ps-0">
+
+														<h2 class="mb-2 text-white">DreamsPOS - POS & Inventory Management Admin Dashboard Template</h2>
+														<p class="mb-4 text-white">
+															DreamsPOS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business.
+														</p>
+														<div class="info-list info-list-custom mb-4">
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Version <span>: v2.3.3</span> </div>
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Author : <a href="https://dreamstechnologies.com/"
+																	class="text-decoration-underline">Dreams
+																	Technologies </a></div>
+														</div>
+
+														<div
+															class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+															<div class="text-white fs-14 fw-medium"> Support via email :
+																<a href="mailto:support@dreamstechnologies.com"
+																	class="text-decoration-underline fw-normal text-white">
+																	support@dreamstechnologies.com</a>
+															</div>
+															<a href="https://1.envato.market/2rz71O"
+																target="_blank"
+																class="btn btn-primary fs-14 fw-medium d-flex align-items-center gap-2"><span
+																	class="feather-icon" title="Full Screen"><i
+																		data-feather="shopping-bag"></i></span> Buy
+																Now</a>
+														</div>
+
+													</div>
+												</div>
+
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="card mb-4 custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Introduction<a class="anchor-link ms-2"
+											href="#introduction"><i class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<p class="mb-0"><Strong>DreamsPOS</Strong> - POS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business. The template includes fields for items, quantities, prices, and descriptions. It also includes fields for customer information, such as name and address. This information can help the business keep track of its inventory and meet customers’ needs.</p>
+								</div>
+							</div>
+						</section>
+						<!-- /Introduction -->
+
+						<!-- Requirements -->
+						<section class="section-block doc-section" id="requirement">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Requirements<a class="anchor-link ms-2"
+											href="#requirement"><i class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<!-- Overview -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<div class="alert alert-info mb-3">
+												<div class="d-flex align-items-start">
+													<div class="me-3">
+														<i class="fas fa-info-circle text-info fs-4"></i>
+													</div>
+													<div>
+														<h6 class="mb-1">System Overview</h6>
+														<p class="mb-0">The Dream POS template requires a modern web server environment with Symfony 8.0+ framework support, PHP 8.2+ compatibility, essential extensions, and development tools for optimal performance and development experience.</p>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Core Technologies -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<h5 class="mb-2">Core Technologies</h5>
+											<div class="row">
+												<div class="col-md-4 mb-2">
+													<div class="card border-0 bg-light">
+														<div class="card-body text-center">
+															<div class="mb-2">
+																<i class="fab fa-symfony text-dark fs-1"></i>
+															</div>
+															<h6 class="mb-1">Backend Framework</h6>
+															<p class="text-muted mb-0">Symfony 8.0.14</p>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-2">
+													<div class="card border-0 bg-light">
+														<div class="card-body text-center">
+															<div class="mb-2">
+																<i  class="fab fa-bootstrap text-primary fs-1"></i>
+															</div>
+															<h6 class="mb-1">Frontend Framework</h6>
+															<p class="text-muted mb-0">Bootstrap 5.3.8</p>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-2">
+													<div class="card border-0 bg-light">
+														<div class="card-body text-center">
+															<div class="mb-2">
+																<i class="fab fa-php text-primary fs-1"></i>
+															</div>
+															<h6 class="mb-1">Programming Language</h6>
+															<p class="text-muted mb-0">PHP 8.4</p>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- System Requirements -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<h5 class="mb-4">System Requirements</h5>
+											<div class="row">
+												<div class="col-md-6 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-box text-danger"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Composer</h6>
+																<p class="text-muted mb-0">For dependency management</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-puzzle-piece text-warning"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">PHP Extensions</h6>
+																<p class="text-muted mb-0">bcmath, ctype, fileinfo,
+																	json, mbstring, openssl, pdo, tokenizer, xml</p>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6 mb-3">
+													<div class="feature-item">
+														<div class="d-flex align-items-start">
+															<div class="feature-icon me-3">
+																<i class="fas fa-edit text-info"></i>
+															</div>
+															<div>
+																<h6 class="mb-1">Text Editor</h6>
+																<p class="text-muted mb-0">VS Code, Sublime Text, or any
+																	code editor</p>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Development Tools -->
+									<div class="row mb-3">
+										<div class="col-12">
+											<h5 class="mb-3"><i class="fas fa-tools text-warning me-2"></i>Development
+												Tools</h5>
+											<div class="row">
+												<div class="col-md-4 mb-3">
+													<div class="card border-0 bg-light h-100">
+														<div class="card-body text-center">
+															<div class="mb-3">
+																<i class="fas fa-database text-warning fs-1"></i>
+															</div>
+															<h6 class="mb-2">Local Server</h6>
+															<p class="text-muted mb-0">XAMPP/WAMP/MAMP</p>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-3">
+													<div class="card border-0 bg-light h-100">
+														<div class="card-body text-center">
+															<div class="mb-3">
+																<i class="fab fa-git-alt text-warning fs-1"></i>
+															</div>
+															<h6 class="mb-2">Version Control</h6>
+															<p class="text-muted mb-0">Git</p>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-4 mb-3">
+													<div class="card border-0 bg-light h-100">
+														<div class="card-body text-center">
+															<div class="mb-3">
+																<i class="fas fa-globe text-warning fs-1"></i>
+															</div>
+															<h6 class="mb-2">Web Browser</h6>
+															<p class="text-muted mb-0">Any modern browser</p>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Installation Note -->
+									<div class="row mb-0">
+										<div class="col-12">
+											<div class="alert alert-warning mb-0">
+												<div class="d-flex align-items-start">
+													<div class="me-2">
+														<i class="fas fa-exclamation-triangle text-warning"></i>
+													</div>
+													<div>
+														<h6 class="mb-1">Important Note</h6>
+														<p class="mb-0">Ensure all PHP extensions are enabled in your
+															server configuration. For production deployment, consider
+															using a managed hosting service that supports Symfony 13.x
+															and PHP 8.3+.</p>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Requirments -->
+
+						<!-- Features -->
+						<section class="section-block doc-section" id="features">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Features<a class="anchor-link ms-2" href="#features"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body pb-0">
+
+									<div class="row">
+										<div class="col-12">
+											<p><strong>Dream POS </strong> offers Several powerful Home page and modern
+												interface.</p>
+											<div class="row">
+												<div class="col-md-6 mb-4">
+													<div class="card bg-light h-100">
+														<div class="card-body">
+															<h5 class="mb-3">Built-in Applications</h5>
+															<ul>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Bootstrap
+																	5.x used</li>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Compatible
+																	Browsers: IE8+, Firefox, Safari, Opera, Chrome</li>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Font
+																	Awesome icons</li>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Google
+																	Fonts</li>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Feather
+																	icons</li>
+															</ul>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6 mb-4">
+													<div class="card bg-light h-100">
+														<div class="card-body">
+															<h5 class="mb-3"> Layout Features</h5>
+															<ul>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Creative
+																	Design</li>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Fully
+																	Responsive</li>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Color
+																	& Fonts is easily changed</li>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>W3C
+																	Validated Code</li>
+																<li><i
+																		class="fa-solid fa-check text-success me-2"></i>Easy
+																	to Customize</li>
+															</ul>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+								</div>
+
+							</div>
+						</section>
+						<!-- /Features -->
+
+						<!-- File Structure -->
+						<section class="section-block doc-section" id="file_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">File Structure<a class="anchor-link ms-2"
+											href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="bg-light p-3 rounded border-start border border-primary mb-4">
+										<h5 class="sub-title mb-3"><i
+												class="fa-solid fa-info-circle text-primary me-2"></i>Project Overview
+										</h5>
+										<p class="mb-0">The Symfony project follows standard Symfony directory structure
+											with the main application located in <code>dreamspos/symfony/</code>. The application includes all
+											standard Symfony directories for a complete application structure.</p>
+									</div>
+									<pre class="language-markup mb-0">
+dream-pos/
+└── symfony/
+    ├── assets /
+    │   └──  frontend assets /
+    │        ├── css /
+    │        ├── img /
+    │        ├── fonts /
+    │        ├── js /
+    │        ├── scss /
+    │        ├── plugins /
+    │        └── app.js /
+    │
+    ├── bin /
+    │   ├── console /
+    │   └── phpunit /
+    │
+    ├── config /
+    │   ├── packages /
+    │   ├── routes /
+    │   ├── bundles.php /
+    │   ├── preload.php /
+    │   ├── routes.yaml /
+    │   └── services.yaml /
+    │
+    ├── migrations /
+    │
+    ├── public /
+    │
+    ├── bulid /
+    │   ├── css /
+    │   ├── img /
+    │   ├── font /
+    │   ├── sass /
+    │   ├── plugins /
+    │   ├── app.js /
+    │   └── index.php /
+    │     
+    │
+    ├── src/
+    │   ├── Controller /
+    │   ├── Entity /
+    │   ├── Repository /
+    │   ├── Twig /
+    │   ├── api.php /
+    │   └── Kernel.php /
+    │
+    ├── templates /
+    │   ├── layout /
+    │   │   └── base.html.twig  /
+    │   └── partials /
+    │       ├── body.html.twig /
+    │       ├── footer.html.twig /
+    │       ├── head-css.html.twig /
+    │       ├── horizontal-sidebar.html.twig /
+    │       ├── loader.html.twig /
+    │       ├── main-wrapper.html.twig /
+    │       ├── modal-popup.html.twig /
+    │       ├── sidebar.html.twig /
+    │       ├── theme-settings.html.twig /
+    │       ├── title-meta.html.twig /
+    │       ├── topbar.html.twig /
+    │       ├── twocolumn-sidebar.html.twig /
+    │       ├── vendor-scripts.html.twig /
+    │       ├── index.html.twig /
+    │       ├── products.html.twig /
+    │       ├── customers.html.twig /
+    │       └── *.html.twig /
+    │  
+    ├── tests/
+    │   ├── Entity /
+    │   ├── Functional /
+    │   ├── bootstrap.php /
+    │   └── WebTestCase.php/
+    │
+    ├── env /
+    ├── composer.json /
+    ├── package.json /
+    ├── phpunit.dist.xml /
+    ├── symfony.lock /
+    ├── vite.config.js /
+    ├── compose.yaml /
+    ├── compose.override.yaml /
+    └── importmap.php /
+
+
+</pre>
+								</div>
+							</div>
+						</section>
+
+						<section class="section-block doc-section" id="php_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h3 class="card-title">Symfony Structure<a class="anchor-link ms-2"
+											href="#php_structure"><i class="fa-solid fa-hashtag"></i></a></h3>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">
+										<div class="alert alert-info mb-4">
+											<div class="d-flex align-items-start">
+												<div class="me-3">
+													<i class="fas fa-info-circle text-info fs-4"></i>
+												</div>
+												<div>
+													<h6 class="mb-2">Symfony Template Structure</h6>
+													<p class="mb-0">This file serves as the main layout template using Symfony's Twig templating engine. It provides the common HTML structure and includes partial views for consistent page elements.</p>
+												</div>
+											</div>
+										</div>
+
+										<!-- Main Layout File -->
+										<div class="row mb-3">
+											<div class="col-12">
+												<h5 class="mb-3"><i class="fas fa-file-code text-primary me-2"></i>Main
+													Layout File</h5>
+
+												<div class="card border-0 bg-light mb-2">
+													<div class="card-body">
+														<p class="mb-2">Uses {% include 'partials/...' %} for partial includes and {% block content %}{% endblock %} for content injection.</p>
+														<pre class="language-php mb-0"><code class="language-php">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+
+{% include 'partials/theme-settings.html.twig' %}
+
+&lt;head&gt;
+    {% include 'partials/title-meta.html.twig' %}
+    {% include 'partials/head-css.html.twig' %}
+&lt;/head&gt;
+
+{% include 'partials/body.html.twig' %}
+
+    &lt;!-- Start Main Wrapper --&gt;
+    {% include 'partials/main-wrapper.html.twig' %}
+
+		{% include 'partials/topbar.html.twig' %}
+		{% include 'partials/sidebar.html.twig' %}
+
+        {% block content %}{% endblock %}
+
+		{% include 'partials/modal-popup.html.twig' %}
+    &lt;/div&gt;
+    &lt;!-- End Main Wrapper --&gt;
+
+    {% include 'partials/vendor-scripts.html.twig' %}
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+													</div>
+												</div>
+											</div>
+											<!-- Sample Page Template -->
+										<div class="row mb-3">
+											<div class="col-12">
+												<h5 class="mb-3"><i class="fas fa-file-alt text-success me-2"></i>Content Page Template</h5>
+												<div class="card border-0 bg-light mb-3">
+													<div class="card-body">
+														<p class="mb-2">Each view extends the main layout using {% extends 'layouts/base.html.twig' %} and defines content blocks with {% block content %}
+															the project that extends the main layout</p>
+														<pre class="language-php mb-0"><code class="language-php">&lt;?php $page = 'blank-page'; ?&gt;
+@extends('layout.mainlayout')
+@section('content')
+
+    &lt;!-- Page content goes here --&gt;
+    &lt;div class="page-wrapper"&gt;
+
+        &lt;div class="content"&gt;
+            &lt;!-- Your page content --&gt;
+        &lt;/div&gt;
+
+		{% include 'partials/footer.html.twig' %}
+
+    &lt;/div&gt;
+
+@endsection</code></pre>
+													</div>
+												</div>
+											</div>
+										</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						
+
+						<!-- Installation -->
+						<section class="section-block doc-section" id="installation">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Installation<a class="anchor-link ms-2"
+											href="#installation"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<!-- Overview -->
+									<div class="alert alert-info mb-4">
+										<div class="d-flex align-items-start">
+											<div class="me-3">
+												<i class="fas fa-info-circle text-info fs-4"></i>
+											</div>
+											<div>
+												<h6 class="mb-2">Symfony Framework Setup</h6>
+												<p class="mb-0">Follow these steps to set up Dream POS Symfony application on your local development environment. This guide covers environment setup, Symfony installation, and configuration.</p>
+											</div>
+										</div>
+									</div>
+
+									<!-- Prerequisites -->
+									<div class="row mb-4">
+										<div class="col-12">
+											<h5 class="mb-3"><i
+													class="fas fa-check-circle text-success me-2"></i>Prerequisites</h5>
+											<div class="row mb-3">
+												<div class="col-md-4 mb-2">
+													<div class="d-flex align-items-center">
+														<i class="fab fa-php text-info me-2"></i>
+														<span>PHP 8.2+</span>
+													</div>
+												</div>
+												<div class="col-md-4 mb-2">
+													<div class="d-flex align-items-center">
+														<i class="fas fa-database text-warning me-2"></i>
+														<span>Database (MySQL/MariaDB)</span>
+													</div>
+												</div>
+												<div class="col-md-4 mb-2">
+													<div class="d-flex align-items-center">
+														<i class="fas fa-cogs text-info me-2"></i>
+														<span>Composer</span>
+													</div>
+												</div>
+											</div>
+											<div class="alert alert-light border-start border-success border mb-0">
+												<small><i
+														class="fas fa-lightbulb text-success me-1"></i><strong>Tip:</strong>
+													Install Symfony CLI for better development experience <i class="fas fa-link text-success mx-1"></i>  https://symfony.com/download</small>
+											</div>
+										</div>
+									</div>
+
+									<!-- Installation Steps -->
+									<div class="row mb-0">
+										<div class="col-12">
+											<h5 class="mb-3"><i class="fas fa-server text-primary me-2"></i>Installation
+												Steps</h5>
+
+											<!-- Step 1 -->
+											<div class="card border-0 bg-light mb-3">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+														<div class="me-3">
+															<span class="badge bg-primary rounded-circle p-2">1</span>
+														</div>
+														<div class="flex-grow-1">
+															<h6 class="mb-2">Project Setup</h6>
+															<p class="text-muted mb-2">Extract the Dream POS Symfony
+																project to your web server directory:</p>
+															<div class="row">
+																<div class="col-md-6">
+																	<div class="d-flex align-items-center mb-2">
+																		<i class="fas fa-folder text-primary me-2"></i>
+																		<span><strong>XAMPP:</strong>
+																			htdocs/dreamspos/symfony/</span>
+																	</div>
+																</div>
+																<div class="col-md-6">
+																	<div class="d-flex align-items-center mb-2">
+																		<i class="fas fa-folder text-success me-2"></i>
+																		<span><strong>WAMP:</strong>
+																			www/dreamspos/symfony/</span>
+																	</div>
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+
+											<!-- Step 2 -->
+											<div class="card border-0 bg-light mb-3">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+														<div class="me-3">
+															<span class="badge bg-primary rounded-circle p-2">2</span>
+														</div>
+														<div class="flex-grow-1">
+															<h6 class="mb-2">Install PHP Dependencies</h6>
+															<p class="text-muted mb-2">Open terminal/command prompt in the project root directory and run:</p>
+															<pre
+																class="language-bash mb-2"><code class="language-bash">composer install</code></pre>
+															<div
+																class="alert alert-light border-start border-info border mb-0">
+																<small><i
+																		class="fas fa-terminal text-info me-1"></i><strong>Note:</strong>
+																	If "composer install" fails due to memory limit issues, clearing the Symfony cache with more memory, then re-run Composer:</small>
+															</div>
+                                                            <div class="flex-grow-1">
+															<pre
+																class="language-bash mb-2"><code class="language-bash">php -d memory_limit=512M bin/console cache:clear</code></pre>
+															<div
+																class="alert alert-light border-start border-info border mb-0">
+																<small><i
+																		class="fas fa-terminal text-info me-1"></i><strong>Note:</strong>
+																	Or fix this permenantly by set composer memory limit globally:</small>
+															</div>
+                                                            <div class="flex-grow-1">
+															<pre
+																class="language-bash mb-2"><code class="language-bash">setx COMPOSER_MEMORY_LIMIT -1</code></pre>
+															</div>
+														</div>
+														</div>
+													</div>
+												</div>
+											</div>
+
+											<!-- Step 3-->
+											<div class="card border-0 bg-light mb-3">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+														<div class="me-3">
+															<span class="badge bg-primary rounded-circle p-2">3</span>
+														</div>
+														<div class="flex-grow-1">
+															<h6 class="mb-2">Start Development Server</h6>
+															<p class="text-muted mb-2">Before starting the server, make sure to configure your database connection in .env or .env.local :</p>
+															<div class="row">
+																<div class="col-md-6">
+																	<pre
+																		class="language-bash mb-2"><code class="language-bash">symfony server:start</code></pre>
+																</div>
+																<div class="col-md-6">
+																	<pre
+																		class="language-bash mb-2"><code class="language-bash">php -S localhost:8000 -t public/</code></pre>
+																</div>
+															</div>
+															<div
+																class="alert alert-light border-start border-warning border mb-0">
+																<small><i
+																		class="fas fa-cog text-warning me-1"></i><strong>Access the application at:</strong>
+																	http://localhost:8000</small>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+
+											<!-- Step 4 -->
+											<div class="card border-0 bg-light mb-3">
+												<div class="card-body">
+													<div class="d-flex align-items-start">
+														<div class="me-3">
+															<span class="badge bg-primary rounded-circle p-2">4</span>
+														</div>
+														<div class="flex-grow-1">
+															<h6 class="mb-2">Build Frontend Assets</h6>
+															<p class="text-muted mb-2">Install Node.js dependencies and build frontend assets:</p>
+                                                            <div class="flex-grow-1">
+															<pre
+																class="language-bash mb-2"><code class="language-bash">npm install npm run build
+                                                                </code></pre>
+															</div>
+															<div
+																class="alert alert-light border-start border-info border mb-0">
+																<small><i
+																		class="fas fa-terminal text-info me-1"></i><strong>Note:</strong>
+																	This will compile all frontend assets (CSS, JavaScript, images) for production</small>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+								</div>
+							</div>
+						</section>
+						<!-- /Installation -->
+
+						<!-- Change Logo -->
+						<section class="section-block doc-section" id="change_logo">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">How to change Logo? <a class="anchor-link ms-2"
+											href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">
+										<p>You can change the logo or replace it from img folder or you can edit it from
+											HTML file.</p>
+										<pre class="language-javascript mb-0"><code class="language-javascript">&lt;div class="header"&gt;
+	&lt;a href="{{ path('index') }}" class="logo"&gt;
+		&lt;img src="{{ asset('build/img/logo.svg') }}" alt="logo"&gt;
+	&lt;a&gt;
+&lt;/div&gt; </code></pre>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<!-- Change Font -->
+						<section class="section-block doc-section" id="change_font">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Fonts <a class="anchor-link ms-2" href="#change_font"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">
+										<p>The default font is <strong>Inter</strong>. To change the font:</p>
+										<p>Update the <code>@import</code> URL and the
+											<code>--font-family-primary</code> variable in <code>style.css</code>:
+										</p>
+
+										<pre class=" language-javascript"><code class="language-javascript">	// Font
+@import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..900&display=swap');
+</code></pre>
+										<pre class=" language-javascript mb-0"><code class="language-javascript">
+	body {
+		font-family: "Golos Text", sans-serif;
+	}
+		</code></pre>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Change Font -->
+
+						<!-- Icon -->
+						<section class="section-block doc-section" id="icon">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Icons<a class="anchor-link ms-2" href="#icon"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div class="server">
+										<p>Use Tabler & Font Awesome icons with spesific class</p>
+										<pre class="language-markup"><code class="language-markup mb-0">
+	&lt;!DOCTYPE html&gt;
+	&lt;html lang="en"&gt;
+		&lt;head&gt;
+			&lt;link rel="stylesheet" href="{{ asset('build/plugins/fontawesome/css/fontawesome.min.css') }}"&gt;
+			&lt;link rel="stylesheet" href="{{ asset('build/plugins/fontawesome/css/all.min.css') }}"&gt;
+		&lt;/head&gt;
+	&lt;/html&gt;
+
+</code></pre>
+										<pre class="language-markup mb-0"><code>
+	&lt;i class="fas fa-times"&gt;&lt;/i&gt;
+	&lt;i class="fas fa-chevron-down"&gt;&lt;/i&gt;
+	&lt;i class="fa-regular fa-user"&gt;&lt;/i&gt;
+	
+</code></pre>
+									</div>
+								</div>
+							</div>
+
+						</section>
+						<!-- /Icon -->
+
+						<section class="section-block page-block doc-section" id="license">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">License<a class="anchor-link ms-2" href="#license"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<p>Dream POS is developed by <a
+											href="https://themeforest.net/user/dreamstechnologies/portfolio"
+											target="_blank" rel="noopener">Dreams Technologies</a> and is available
+										under both <a href="https://themeforest.net/licenses/standard" target="_blank"
+											rel="noopener">Envato Extended &amp; Regular License</a> options.</p>
+									<div class="dark-mode-content">
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3">Regular License</h6>
+											<p class="mb-0">Usage by either yourself or a single client is permitted for
+												a single end product, provided that end users are not subject to any
+												charges.</p>
+										</div>
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3">Extended License</h6>
+											<p class="mb-0">For use by you or one client in a single end product for
+												which end users may be charged.</p>
+										</div>
+										<p><a href="https://themeforest.net/licenses/faq#main-differences-licenses-a"
+												target="_blank" rel="noopener">What are the main differences between the
+												Regular License and the Extended License?</a></p>
+										<div class="alert alert-info mb-0">
+											<span class="badge rounded-pill text-bg-danger text-uppercase">Note</span>
+											<p class="mb-0">If you operate as a freelancer or agency, you have the
+												option to acquire the Extended License, which permits you to utilize the
+												item across multiple projects on behalf of your clients.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<section class="section-block page-block doc-section" id="support">
+							<div class="custom-card support-content">
+								<div class="card-header">
+									<h2 class="card-title">Support<a class="anchor-link ms-2" href="#support"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+
+									<h3 class="title fs-200">Need Support?</h3>
+
+									<p class="mb-4">If this documentation does not address your questions, please feel
+										free to contact us via email at <a
+											class="text-dark text-decoration-underline fw-medium" rel="noopener"
+											href="mailto:business@dreamstechnologies.com">support@dreamstechnologies.com</a>
+									</p>
+
+									<div class="support-content-one">
+										<p class="mb-3 text-dark fw-medium">Reach the team at GMT+5:30. Typical reply
+											within 12–24 hours on weekdays — rarely up to 48 hrs during holidays.
+											Support is available to verified buyers for template-related issues.</p>
+										<a href="mailto:business@dreamstechnologies.com" class="btn btn-primary"><span
+												class="feather-icon d-flex align-items-center"><i
+													data-feather="phone-outgoing"></i></span> Contact Support</a>
+										<div class="imp-content">
+											<p><span>Important Note :</span> We strive to offer top-notch support, but
+												it's only available to verified buyers and for template-related issues
+												such as bugs and errors. Custom changes and third-party module setups
+												are not covered.</p>
+										</div>
+									</div>
+
+								</div>
+							</div>
+						</section>
+
+						<section class="section-block page-block doc-section" id="customwork">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Custom Work<a class="anchor-link ms-2" href="#"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<h5 class="card-title mb-2 fw-bold">Do you need a customized application for your
+										business?</h5>
+									<p>If you need a customized application for your business depends on your specific
+										requirements and goals, Please contact us. Customization can be the key to
+										success, ensuring your project perfectly aligns with your unique goals and
+										requirements.</p>
+									<div class="hire">
+										<h5 class="fw-bold mb-3">Don't Miss Out on the Benefits of Customization!</h5>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Unlock the potential of your
+											project. It's time to ensure your project isn't another cookie-cutter
+											solution but truly unique and effective one.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Discover how customization can make
+											a difference in your project's success. Let's create a solution that's as
+											unique as your vision!</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We'll tailor the application to meet
+											your specific needs and preferences.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We will upload your website to the
+											server and ensure it is live.</p>
+
+										<div class="contact-btn d-flex align-items-center mt-4  flex-wrap gap-2">
+											<a target="_blank" rel="noopener"
+												href="mailto:business@dreamstechnologies.com" class="btn btn-light"><i
+													class="me-2" data-feather="calendar"></i>Book an Appointment</a>
+											<a href="mailto:support@dreamstechnologies.com" class="btn btn-primary"><i
+													class="me-2" data-feather="file-text"></i>Get a Free Quote</a>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<!-- Thanks -->
+						<section class="custom-card page-block doc-section  min-h-100 mb-0" id="thanks">
+							<div class="card-body">
+								<div class="thanks">
+									<img src="assets/img/banners/ratings.svg" alt="thanks">
+									<h2>Thank You</h2>
+									<p>Thank you once again for downloading <a href="https://dreamspos.dreamstechnologies.com/"
+											class="text-primary fw-bold text-decoration-underline">DreamsPOS</a>.<br>
+										We hope you're enjoying your experience, and we kindly request that you take a
+										moment to share your valuable review and rating with us.</p>
+									<a href="https://themeforest.net/downloads" target="_blank" rel="noopener"
+										class="btn btn-primary"><i data-feather="link" class="me-2"></i>Review Link</a>
+								</div>
+							</div>
+						</section>
+						<!-- /Thanks -->
+					</div>
+				</div>
+			</div>
+			<footer class="content-footer footer">
+				<div
+					class="container-fluid d-flex flex-wrap justify-content-between align-items-center text-center gap-2 py-3">
+					<div>
+						&copy; 2015 - 2026
+
+						<a href="https://dreamstechnologies.com/" class="footer-text fw-medium text-primary"
+							target="_blank" rel="noopener">Dreams Technologies</a>
+					</div>
+					<div class="social-icons">
+						<a href="https://www.facebook.com/dreamstechnologieslimited/" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-1.svg" alt="social-icon"></a>
+						<a href="https://www.behance.net/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-2.svg" alt="social-icon"></a>
+						<a href="https://dribbble.com/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-3.svg" alt="social-icon"></a>
+						<a href="https://www.instagram.com/dreamstechnologieslimited/" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-4.svg" alt="social-icon"></a>
+					</div>
+				</div>
+			</footer>
+		</div>	
+
+	</main>
+
+	<script src="assets/js/bootstrap.bundle.min.js"></script>
+	<script src="assets/js/feather.min.js"></script>
+	<script src="assets/js/prism.js"></script>
+	<script src="assets/js/script.js"></script>
+	
+</body>
+
+</html>

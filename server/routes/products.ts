@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -118,7 +118,6 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/products
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
     const {
       name, sku, barcode, category_id, type, cost_price, sale_price,
       gst_rate, hsn_code, stock_quantity, low_stock_threshold,
@@ -130,6 +129,7 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
     const id = `prod-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     // Tax rate for Nikhlesh Nursery is always 0

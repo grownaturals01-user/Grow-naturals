@@ -5,27 +5,31 @@ import { api } from '../services/api';
 import { Link } from 'react-router-dom';
 import {
   Calendar,
-  FileText,
-  RotateCcw,
-  Package,
-  Layers,
-  Clock,
-  Receipt,
-  Users,
-  ShoppingCart,
-  TrendingUp,
-  AlertTriangle,
-  Info,
   ChevronDown,
-  UserCheck,
-  Building,
   ArrowUpRight,
   ArrowDownRight,
-  Flag,
-  Hash,
+  TrendingUp,
+  Users,
+  UserCheck,
   ShoppingBag,
-  Check
+  Building,
+  Check,
+  ShoppingCart,
+  Info,
+  Package,
+  AlertTriangle,
+  Flag
 } from 'lucide-react';
+
+// Dreamforest template SVG Icons
+import dash1Icon from '../assets/icons/dash1.svg';
+import dash2Icon from '../assets/icons/dash2.svg';
+import dash3Icon from '../assets/icons/dash3.svg';
+import dash4Icon from '../assets/icons/dash4.svg';
+import dollarSquareIcon from '../assets/icons/dollar-square.svg';
+import walletIcon from '../assets/icons/wallet1.svg';
+import expenseIcon from '../assets/icons/expense.svg';
+import purInvoiceIcon from '../assets/icons/pur-invoice.svg';
 
 export const Dashboard: React.FC = () => {
   const { businessId, business } = useBusiness();
@@ -322,7 +326,7 @@ export const Dashboard: React.FC = () => {
         {/* Total Sales */}
         <div className="dash-hero-card hero-orange">
           <div className="dash-hero-icon-box">
-            <FileText size={18} />
+            <img src={dash3Icon} alt="Total Sales" style={{ width: '22px', height: '22px' }} />
           </div>
           <div className="dash-hero-content">
             <span className="dash-hero-label">Total Sales</span>
@@ -338,7 +342,7 @@ export const Dashboard: React.FC = () => {
         {/* Total Sales Return */}
         <div className="dash-hero-card hero-navy">
           <div className="dash-hero-icon-box">
-            <RotateCcw size={18} />
+            <img src={dash2Icon} alt="Total Sales Return" style={{ width: '22px', height: '22px' }} />
           </div>
           <div className="dash-hero-content">
             <span className="dash-hero-label">Total Sales Return</span>
@@ -354,7 +358,7 @@ export const Dashboard: React.FC = () => {
         {/* Total Purchase */}
         <div className="dash-hero-card hero-teal">
           <div className="dash-hero-icon-box">
-            <Package size={18} />
+            <img src={dash1Icon} alt="Total Purchase" style={{ width: '22px', height: '22px' }} />
           </div>
           <div className="dash-hero-content">
             <span className="dash-hero-label">Total Purchase</span>
@@ -370,7 +374,7 @@ export const Dashboard: React.FC = () => {
         {/* Total Purchase Return */}
         <div className="dash-hero-card hero-blue">
           <div className="dash-hero-icon-box">
-            <RotateCcw size={18} />
+            <img src={dash4Icon} alt="Total Purchase Return" style={{ width: '22px', height: '22px' }} />
           </div>
           <div className="dash-hero-content">
             <span className="dash-hero-label">Total Purchase Return</span>
@@ -394,7 +398,7 @@ export const Dashboard: React.FC = () => {
               <span className="dash-white-label">Net Profit</span>
             </div>
             <div className="dash-soft-icon icon-cyan">
-              <Layers size={16} />
+              <img src={dollarSquareIcon} alt="Profit" style={{ width: '20px', height: '20px' }} />
             </div>
           </div>
           <div className="dash-white-bottom">
@@ -413,7 +417,7 @@ export const Dashboard: React.FC = () => {
               <span className="dash-white-label">Invoice Due (Receivables)</span>
             </div>
             <div className="dash-soft-icon icon-mint">
-              <Clock size={16} />
+              <img src={walletIcon} alt="Receivables" style={{ width: '20px', height: '20px' }} />
             </div>
           </div>
           <div className="dash-white-bottom">
@@ -432,7 +436,7 @@ export const Dashboard: React.FC = () => {
               <span className="dash-white-label">Total Expenses</span>
             </div>
             <div className="dash-soft-icon icon-coral">
-              <Receipt size={16} />
+              <img src={expenseIcon} alt="Expenses" style={{ width: '20px', height: '20px' }} />
             </div>
           </div>
           <div className="dash-white-bottom">
@@ -451,14 +455,14 @@ export const Dashboard: React.FC = () => {
               <span className="dash-white-label">Supplier Payables</span>
             </div>
             <div className="dash-soft-icon icon-purple">
-              <Hash size={16} />
+              <img src={purInvoiceIcon} alt="Payables" style={{ width: '20px', height: '20px' }} />
             </div>
           </div>
           <div className="dash-white-bottom">
             <span className={`dash-trend-pill ${metrics.supplier_dues > 0 ? 'trend-down' : ''}`}>
               {metrics.supplier_dues > 0 ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />} Payables
             </span>
-            <Link to="/purchase-orders" className="dash-view-link">View All</Link>
+            <Link to="/purchases" className="dash-view-link">View All</Link>
           </div>
         </div>
       </div>

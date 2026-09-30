@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -263,7 +263,6 @@ router.put('/:id/due-date', async (req: Request, res: Response) => {
 // POST /api/delivery-challans
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
     const {
       customer_id,
       customer_name,
@@ -314,8 +313,12 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
+    const bizRes = await db.query(`SELECT invoice_prefix FROM businesses WHERE id = $1`, [businessId]);
+    const bizPrefix = bizRes.rows[0]?.invoice_prefix ? `DC-${bizRes.rows[0].invoice_prefix.replace(/[-_]$/, '')}-` : (businessId === 'grow-naturals' ? 'DC-GN-' : 'DC-NN-');
+
     const countRes = await db.query(`SELECT COUNT(*) as count FROM delivery_challans WHERE business_id = $1`, [businessId]);
-    const prefix = businessId === 'grow-naturals' ? 'DC-GN-' : 'DC-NN-';
+    const prefix = bizPrefix;
     let nextNum = 1001 + Number(countRes.rows[0]?.count || 0);
     let challanNumber = `${prefix}${nextNum}`;
     let exists = await db.query(`SELECT 1 FROM delivery_challans WHERE challan_number = $1`, [challanNumber]);

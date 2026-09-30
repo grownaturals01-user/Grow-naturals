@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="keywords" content="">
+	<meta name="description" content="DreamsPos Management Admin Website Templates | DreamsPos">
+	<meta name="author" content="dreamstechnologies">
+
+	<title>DreamsPos - Online Documentation.</title>
+
+	<!-- Favicon -->
+	<link rel="shortcut icon" href="assets/img/logo/favicon.png">
+
+	<!-- Vendor -->
+	<link rel="stylesheet" href="assets/css/bootstrap.min.css">
+	<link rel="stylesheet" href="assets/css/prism.css">
+
+	<!-- Fontawesome CSS -->
+	<link rel="stylesheet" href="assets/plugins/fontawesome/css/all.min.css">
+
+	<!-- Main CSS -->
+	<link rel="stylesheet" href="assets/css/style.css">
+
+</head>
+
+<body>
+	<main class="wrapper default-sidebar">
+
+		<!-- Header -->
+		<header class="header">
+			<div class="container-fluid">
+				<div class="header-left">
+					<div class="left-header me-3">
+						<a href="javascript:void(0)" class="sidebar-toggle p-1">
+							<span class="feather-icon"><i data-feather="sidebar"></i></span>
+						</a>
+					</div>
+					<ul
+						class="header-top-nav nav col-12 col-lg-auto me-lg-auto gap-3 d-flex align-items-center justify-content-center mb-md-0">
+						<li><a href="https://themeforest.net/user/dreamstechnologies"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="archive"></i></span>Other Products</a></li>
+						<li><a href="mailto:business@dreamstechnologies.com"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="briefcase"></i></span>Hire Us</a></li>
+					</ul>
+					<div class="text-end">
+						<a href="changelog.html" target="_blank" rel="noopener" class="btn btn-white btn-sm me-2"><span
+								class="feather-icon me-2"><i data-feather="refresh-cw"></i></span>Changelog</a>
+						<a href="https://dreamspos.dreamstechnologies.com/" target="_blank" rel="noopener"
+							class="btn btn-primary btn-sm"><span class="feather-icon me-2"><i
+									data-feather="play"></i></span>Live Preview</a>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- End Header -->
+
+		<div class="doc-progress">
+			<div class="doc-progress-inner" id="scrollProgress">
+
+			</div>
+		</div>
+
+		<div class="sidebar-overlay"></div>
+		<div class="sidebar">
+			<div class="sidebar-logo">
+				<a href="index.html" class="logo-dark"><img src="assets/img/logo/logo.svg" alt="logo"><span
+						class="badge badge-soft-danger fs-14 ms-2 p-1">Angular</span></a>
+				<a href="index.html" class="small-logo"><img src="assets/img/logo/favicon.png" alt="logo"></a>
+			</div>
+			<div class="sidebar-inner">
+				<div class="sidebar-menu">
+					<ul id="menu-main-menu" class="sidebar-nav">
+						<li class="menu-title menu-text">Main</li>
+						<li class="menu-item submenu">
+							<a href="#instructions" class="page-link">
+								<span class="feather-icon"><i data-feather="layers"></i></span><span
+									class="menu-text"><span class="hover-title">Getting Started</span> </span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#instructions" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Introduction</a></li>
+								<li><a href="#requirement" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Requirement</a></li>
+											<li><a href="#features" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Features</a></li>
+								<li><a href="#file_structure" class="page-link drop"><span
+											class="menu-dash"><span></span></span>File Structure</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Configuration</li>
+						<li class="menu-item submenu">
+							<a href="#installation" class=" menu-link">
+								<span class="feather-icon"><i data-feather="life-buoy"></i></span>
+								<span class="menu-text">Installation</span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#installation" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Installation Guide</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Customization</li>
+						<li class="menu-item submenu">
+							<a href="#change_logo" class="menu-link">
+								<span class="feather-icon"><i data-feather="shield"></i></span>
+								<span class="menu-text">Customization</span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#change_logo" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Change Logo</a></li>
+								<li><a href="#change_font" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Fonts</a></li>
+								<li><a href="#rtl" class="page-link drop"><span
+											class="menu-dash"><span></span></span>RTL Support</a></li>
+								<li><a href="#dark-mode" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Dark Mode</a></li>
+								<li><a href="#lazy-routing" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Lazy Routing</a></li>
+							
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Info</li>
+						<li class="menu-item">
+							<a href="#credits" class="page-link">
+								<span class="feather-icon"><i data-feather="zap"></i></span><span
+									class="menu-text"><span class="hover-title">Credits</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#support" class="page-link">
+								<span class="feather-icon"><i data-feather="headphones"></i></span><span
+									class="menu-text"><span class="hover-title">Support</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#customwork" class="page-link">
+								<span class="feather-icon"><i data-feather="settings"></i></span><span
+									class="menu-text"><span class="hover-title">Custom Work</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#thanks" class="page-link">
+								<span class="feather-icon"><i data-feather="smile"></i></span><span
+									class="menu-text"><span class="hover-title">Thank
+										You</span> </span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<!-- main content -->
+		<div class="main-content">
+			<div class="container-fluid">
+				<!-- Page title & breadcrumb -->
+				<div class="page-title">
+					<div class="breadcrumb">
+						<h1>Documentation</h1>
+						<ul>
+							<li><a href="index.html">Home</a></li>
+							<li>Documentation</li>
+						</ul>
+					</div>
+				</div>
+				<div class="row sections">
+					<div class="col-xl-12 col-md-12">
+
+						<!-- Introduction -->
+						<section class="section-block doc-section" id="instructions">
+							<div class="card bg-dark mb-4">
+								<div class="card-body p-4">
+									<div class="intro">
+										<div class="item-details">
+											<div class="row align-items-center row-gap-4">
+												<div class="col-xl-5">
+													<div>
+														<img src="assets/img/banners/banner.png" class="img-fluid"
+															alt="DreamsPOS  Agent Banner">
+													</div>
+												</div>
+												<div class="col-xl-7">
+													<div class="banner-right ps-lg-2 ps-0">
+
+														<h2 class="mb-2 text-white">DreamsPOS - POS & Inventory Management Admin Dashboard Template</h2>
+														<p class="mb-4 text-white">
+															DreamsPOS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business.
+														</p>
+														<div class="info-list info-list-custom mb-4">
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Version <span>: v2.3.5</span> </div>
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Author : <a href="https://dreamstechnologies.com/"
+																	class="text-decoration-underline">Dreams
+																	Technologies </a></div>
+														</div>
+
+														<div
+															class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+															<div class="text-white fs-14 fw-medium"> Support via email :
+																<a href="mailto:support@dreamstechnologies.com"
+																	class="text-decoration-underline fw-normal text-white">
+																	support@dreamstechnologies.com</a>
+															</div>
+															<a href="https://1.envato.market/2rz71O"
+																target="_blank"
+																class="btn btn-primary fs-14 fw-medium d-flex align-items-center gap-2"><span
+																	class="feather-icon" title="Full Screen"><i
+																		data-feather="shopping-bag"></i></span> Buy
+																Now</a>
+														</div>
+
+													</div>
+												</div>
+
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="card mb-4 custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Introduction<a class="anchor-link ms-2"
+											href="#introduction"><i class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<p class="mb-0"><Strong>DreamsPOS</Strong> - POS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business. The template includes fields for items, quantities, prices, and descriptions. It also includes fields for customer information, such as name and address. This information can help the business keep track of its inventory and meet customers’ needs.</p>
+								</div>
+							</div>
+						</section>
+						<!-- /Introduction -->
+
+						<!-- Requirments -->
+						<section class="section-block doc-section" id="requirement">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Requirements<a class="anchor-link ms-2"
+											href="#requirement"><i class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div>
+										<h5 class="mb-3">Technologies</h5>
+										<div class="row">
+											<div class="col-md-4">
+												<div class="card bg-light">
+													<div class="card-body text-center">
+														<div class="mb-2">
+															<i class="fa-brands fa-node-js fs-1 text-primary"></i>
+														</div>
+														<h6 class="mb-0">Node.js</h6>
+														<p class="text-muted mb-0">Version 24.x or later</p>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="card bg-light">
+													<div class="card-body text-center">
+														<div class="mb-2">
+															<i class="fa-brands fa-angular fs-1 text-primary"></i>
+														</div>
+														<h6 class="mb-0">Angular CLI</h6>
+														<p class="text-muted mb-0">Version 22.x or later</p>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="card bg-light">
+													<div class="card-body text-center">
+														<div class="mb-2">
+															<i class="fa-solid fa-globe fs-1 text-primary"></i>
+														</div>
+														<h6 class="mb-0">Web Browser</h6>
+														<p class="text-muted mb-0">Chrome, Firefox, Edge, Safari</p>
+													</div>
+												</div>
+											</div>
+										</div>
+										<h5 class="mb-3 mt-4">System Requirements</h5>
+										<ul class="feature-list">
+											<li><i class="fa-solid fa-check text-success me-2"></i><strong>Text
+													Editor:</strong> Sublime Text 3 editor (or) Visual Studio Code
+												editor</li>
+											<li><i
+													class="fa-solid fa-check text-success me-2"></i><strong>Browser:</strong>
+												Modern browsers (Chrome, Firefox, Safari, Edge)</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Requirments -->
+
+						<!-- Features -->
+						<section class="section-block doc-section" id="features">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Features<a class="anchor-link ms-2" href="#features"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="features-grid">
+										<div class="row">
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Angular 22 + TypeScript </h6>
+															<p class="text-muted mb-0">Fast, modern stack for web
+																applications</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Angular Material, PrimeNG &
+																Bootstrap 5</h6>
+															<p class="text-muted mb-0">Rich UI components and utilities
+															</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Code Splitting</h6>
+															<p class="text-muted mb-0">Uses lazy loading in the
+																componets</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Custom Hooks</h6>
+															<p class="text-muted mb-0">For theme, debouncing, and more
+															</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">RTL Support</h6>
+															<p class="text-muted mb-0">Dynamic RTL/LTR switching with
+																custom overrides</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Modular Structure</h6>
+															<p class="text-muted mb-0">Feature-based organization for
+																easy scaling</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Custom Styling</h6>
+															<p class="text-muted mb-0">All custom tweaks in
+																<code>src/styles.scss</code></p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Charts & Widgets</h6>
+															<p class="text-muted mb-0">Dashboard-ready with ApexCharts,
+																and more</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Fully Responsive</h6>
+															<p class="text-muted mb-0">Compatible with all mobile
+																devices</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="feature-card p-4 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="feature-icon me-3 flex-shrink-0">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="feature-content flex-grow-1">
+															<h6 class="fw-bold mb-2">Cross Browser</h6>
+															<p class="text-muted mb-0">Compatible with all modern
+																browsers</p>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+							</div>
+						</section>
+						<!-- /Features -->
+
+						<!-- File Structure -->
+						<section class="section-block doc-section" id="file_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">File Structure<a class="anchor-link ms-2"
+											href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+										<h5 class="sub-title mb-3"><i
+												class="fa-solid fa-info-circle text-primary me-2"></i>Project Overview
+										</h5>
+										<p class="mb-0">The project follows a modular structure with clear separation of
+											concerns.</p>
+									</div>
+									<pre class="language-markup mb-0"><code>angular/
+retail-pos/
+angular/
+├── public/                		 # Static assets (favicon, images, etc.)
+├── src/
+│   ├── assets/            		 # Images, icons, styles (scss/, css/)
+│   ├── app/ 
+│ 	│	├── core/          		 # models,routes,services
+│   │   └── features/ 	   		 # Main pages Directory
+│	│   │   ├── auth/  			 # Authentication pages
+│	│   │   ├── error/  		 # Error pages
+│	│   │   ├── Pages/           # Pages Modules,routes
+│   │	├── layouts/			 # Common header , footer components
+│   │	├── shared/				 # Shared Components
+│   │   ├── app.config.ts/       
+│   │   ├── app.component.html/          	 
+│   │   ├── app.routes.ts/       
+│   │   ├── app.component.scss/         
+│   │   └── app.ts/         
+├── editorconfig                 
+├── gitignore                  	  
+├── angular.json
+├── package.json                  
+├── README.md
+├── tsconfig.app.json
+├── tsconfig.json
+└── tsconfig.spec.json
+</code></pre>
+
+								</div>
+							</div>
+						</section>
+
+						<!-- Installation -->
+						<section class="section-block doc-section" id="installation">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">
+										Installation
+									</h4>
+								</div>
+								<div class="card-body">
+									<div class="server">
+										<div class="step-cards">
+											<div class="step-card mb-4 p-4 border rounded-3 bg-light">
+												<div class="d-flex align-items-center mb-3">
+													<h6 class="mb-0">
+														<i
+															class="fa-solid fa-check-circle me-2 text-success"></i>Prerequisites
+													</h6>
+												</div>
+												<ul class="list-unstyled ms-5">
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Node.js (v24 or later recommended). <a
+															href="https://nodejs.org/" target="_blank">Download
+															Node.js</a>
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														npm (comes with Node.js)
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Any modern web browser (Chrome, Firefox, Edge, Safari, etc.).
+													</li>
+												</ul>
+											</div>
+
+											<div class="step-card mb-4 p-4 border rounded-3 bg-light">
+												<div class="d-flex align-items-center mb-3">
+													<h6 class="mb-0">
+														<i class="fa-solid fa-folder-open me-2 text-warning"></i>Extract
+														the Template
+													</h6>
+												</div>
+												<ul class="list-unstyled ms-5">
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														After downloading, unzip the template package.
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Navigate to <code>dreamspos/retail-pos/angular</code> (the source code
+														folder).
+													</li>
+												</ul>
+											</div>
+
+											<div class="step-card mb-4 p-4 border rounded-3 bg-light">
+												<div class="d-flex align-items-center mb-3">
+													<h6 class="mb-0">
+														<i class="fa-solid fa-download me-2 text-success"></i>Install
+														Dependencies
+													</h6>
+												</div>
+												<ul class="list-unstyled ms-5">
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Open a terminal/command prompt in the <code>Angular</code>
+														folder.
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Run:
+														<pre class="language-bash mb-2"><code>npm install</code></pre>
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														This will install all required packages.
+													</li>
+												</ul>
+											</div>
+
+											<div class="step-card mb-4 p-4 border rounded-3 bg-light">
+												<div class="d-flex align-items-center mb-3">
+													<h6 class="mb-0">
+														<i class="fa-solid fa-server me-2 text-primary"></i>Start the
+														Development Server
+													</h6>
+												</div>
+												<ul class="list-unstyled ms-5">
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Run:
+														<pre
+															class="language-bash mb-2"><code>ng s or ng serve</code></pre>
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Open the local URL shown in your terminal (usually
+														<code>http://localhost:4200/</code>).
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Your app will reload automatically as you edit source files.
+													</li>
+												</ul>
+											</div>
+
+											<div class="step-card mb-4 p-4 border rounded-3 bg-light">
+												<div class="d-flex align-items-center mb-3">
+													<h6 class="mb-0">
+														<i class="fa-solid fa-rocket me-2 text-success"></i>Build for
+														Production
+													</h6>
+												</div>
+												<ul class="list-unstyled ms-5">
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														To create an optimized production build, run:
+														<pre class="language-bash mb-2"><code>ng build</code></pre>
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														The output will be in the <code>dist/</code> folder, ready to
+														deploy.
+													</li>
+												</ul>
+											</div>
+
+											<div class="step-card mb-4 p-4 border rounded-3 bg-light">
+												<div class="d-flex align-items-center mb-3">
+													<h6 class="mb-0">
+														<i
+															class="fa-solid fa-puzzle-piece me-2 text-warning"></i>Install
+														Additional Plugins
+													</h6>
+												</div>
+												<ul class="list-unstyled ms-5">
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														To add a new package (e.g., a chart library), run:
+														<pre
+															class="language-bash mb-2"><code>npm install package_name </code></pre>
+													</li>
+													<li class="mb-2">
+														<i class="fa-solid fa-check text-success me-2"></i>
+														Replace <code>package_name</code> with the actual npm package
+														you want to add.
+													</li>
+												</ul>
+											</div>
+										</div>
+
+										<div class="alert alert-info mb-0">
+											<span class="badge rounded-pill text-bg-success text-uppercase">
+												<i class="fa-solid fa-lightbulb me-2"></i>Tips:
+											</span>
+											<ul class="mb-0 mt-2">
+												<li>
+													<i class="fa-solid fa-check text-success me-2"></i>
+													If you see errors about missing Node.js or npm, install them from
+													the official website above.
+												</li>
+												<li>
+													<i class="fa-solid fa-check text-success me-2"></i>
+													For Mac/Linux users, you may need to use <code>sudo</code> for
+													global installs.
+												</li>
+												<li>
+													<i class="fa-solid fa-check text-success me-2"></i>
+													For Windows users, run your terminal as Administrator if you
+													encounter permission issues.
+												</li>
+												<li>
+													<i class="fa-solid fa-check text-success me-2"></i>
+													Refer to the <code>README.md</code> in the project root for more
+													usage and customization details.
+												</li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</div>
+					</div>
+					</section>
+					<!-- /Installation -->
+
+					<!-- Angular Structure -->
+					<section class="section-block hentry" id="angular">
+						<div class="custom-card">
+							<div class="card-header">
+								<h4 class="card-title">
+									How the Angular Project Works
+									<a class="anchor-link ms-2" href="#angular"><i class="fa-solid fa-hashtag"></i></a>
+								</h4>
+							</div>
+							<div class="card-body">
+								<div class="file-structure">
+									<div class="project-overview mb-4">
+										<p>
+											This Angular project is designed for scalability, maintainability, and rapid
+											development. Here's how the main features and flows work:
+										</p>
+									</div>
+
+									<div class="workflow-cards">
+										<div class="row">
+											<div class="col-md-6 mb-3">
+												<div class="workflow-card p-3 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="workflow-icon me-3">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="workflow-content">
+															<h6 class="fw-bold mb-1">App Entry</h6>
+															<p class="text-muted mb-0">The app starts from
+																<code>src/index.html</code>, which sets up the root
+																Angular component, services and features.</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="workflow-card p-3 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="workflow-icon me-3">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="workflow-content">
+															<h6 class="fw-bold mb-1">State Management</h6>
+															<p class="text-muted mb-0">Uses common components (theme,
+																sidebar, user, etc.), ease of use.</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="workflow-card p-3 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="workflow-icon me-3">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="workflow-content">
+															<h6 class="fw-bold mb-1">Theming & RTL</h6>
+															<p class="text-muted mb-0">Theme settings (light/dark,
+																layout, direction) are managed in layouts components.
+															</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="workflow-card p-3 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="workflow-icon me-3">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="workflow-content">
+															<h6 class="fw-bold mb-1">Routing</h6>
+															<p class="text-muted mb-0">All routes are defined in
+																<code>src/app/app.routes.ts/</code>. The app uses
+																<code>lazy loading</code> for code-splitting.</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="workflow-card p-3 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="workflow-icon me-3">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="workflow-content">
+															<h6 class="fw-bold mb-1">Authentication</h6>
+															<p class="text-muted mb-0">Full authentication flows (login,
+																register, password reset, etc.) are implemented in
+																<code>src/app/features/auth/</code>.</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="workflow-card p-3 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="workflow-icon me-3">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="workflow-content">
+															<h6 class="fw-bold mb-1">Dashboard & Widgets</h6>
+															<p class="text-muted mb-0">The dashboard and widgets
+																(charts, tables, stats) are in
+																<code>src/app/features/dashboard/</code>.</p>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6 mb-3">
+												<div class="workflow-card p-3 border rounded-3 bg-light h-100">
+													<div class="d-flex align-items-start">
+														<div class="workflow-icon me-3">
+															<i class="fa-solid fa-check text-success me-2"></i>
+														</div>
+														<div class="workflow-content">
+															<h6 class="fw-bold mb-1">UI Components</h6>
+															<p class="text-muted mb-0">Reusable UI elements (sidebar,
+																header, tables, etc.) are in
+																<code>src/app/features/common/</code> and styled with Bootstrap
+																5, Angular Material.</p>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<div class="conclusion mt-4">
+										<div class="alert alert-success">
+											<i class="fa-solid fa-lightbulb me-2"></i>
+											<strong>Modular Design:</strong> The project is modular, so you can easily
+											add new pages, features, or languages as your app grows.
+										</div>
+									</div>
+
+
+								</div>
+							</div>
+						</div>
+					</section>
+					<!-- /Angular Structure -->
+
+					<!-- Change Logo -->
+					<section class="section-block doc-section" id="change_logo">
+						<div class="custom-card">
+							<div class="card-header">
+								<h2 class="card-title">How to change Logo? <a class="anchor-link ms-2"
+										href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h2>
+							</div>
+							<div class="card-body">
+								<div class="file-structure">
+									<p>You can change the logo in your Angular project by following these steps:</p>
+									<ol>
+										<li><b>Replace the Logo Image:</b>
+											<ul>
+												<li>Place your new logo image (e.g., <code>logo.svg</code> or
+													<code>logo.png</code>) in the <code>public/assets/img</code> folder.
+												</li>
+											</ul>
+										</li>
+										<li><b>Update the Logo Import in Your Component:</b>
+											<ul>
+												<li>Open the Angular component where the logo is used (commonly
+													<code>src/app/features/layouts/header.html</code>) or in
+													<code>/sidebar.html</code></li>
+											</ul>
+										</li>
+										<li><b>Save and View Changes:</b>
+											<ul>
+												<li>Save the file and check your app in the browser. The new logo should
+													appear in place of the old one.</li>
+											</ul>
+										</li>
+									</ol>
+									<div class="alert alert-info mb-0">
+										<span class="badge rounded-pill text-bg-success text-uppercase">Tip:</span>
+										<ul class="mb-0">
+											<li>You can use <code>.svg</code>, <code>.png</code>, or <code>.jpg</code>
+												files for your logo.</li>
+											<li>For best results, use an optimized SVG for scalability and crispness.
+											</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<!-- Change Font -->
+					<section class="section-block doc-section" id="change_font">
+						<div class="custom-card">
+							<div class="card-header">
+								<h2 class="card-title">Fonts <a class="anchor-link ms-2" href="#change_font"><i
+											class="fa-solid fa-hashtag"></i></a></h2>
+							</div>
+							<div class="card-body">
+								<div class="file-structure">
+									<p>You can change the font in your Angular project by following these detailed
+										steps:</p>
+									<ol>
+										<li><b>Choose a Font:</b>
+											<ul>
+												<li>Visit <a href="https://fonts.google.com/" target="_blank">Google
+														Fonts</a> or another font provider and select your desired font
+													(e.g., Inter, Roboto, etc.).</li>
+											</ul>
+										</li>
+										<li><b>Add the Font Import to Your CSS:</b>
+											<ul>
+												<li>Copy the <code>@import</code> statement provided by Google Fonts.
+												</li>
+												<li>Paste it at the very top of your main CSS file (e.g.,
+													<code>src/assets/css/style.css</code> or
+													<code>src/assets/scss/main.scss</code>):</li>
+											</ul>
+											<pre
+												class="language-javascript mb-2"><code>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');</code></pre>
+										</li>
+										<li>
+											<b>Update the <code>font-family</code> in CSS:</b>
+											<ul>
+												<li>In the same CSS file, set the <code>font-family</code> for the
+													<code>body</code> (or a specific class/component):</li>
+											</ul>
+											<pre class="language-javascript mb-2"><code>body {
+   font-family: "Nunito", sans-serif;
+}</code></pre>
+										</li>
+										<li>You can also target specific elements or classes if you want to use
+											different fonts in different places.</li>
+
+										<li><b>Save and Check Your App:</b>
+											<ul>
+												<li>Save your CSS file and reload your app in the browser. The new font
+													should be applied site-wide or wherever you specified.</li>
+											</ul>
+										</li>
+									</ol>
+									<div class="alert alert-info mb-0">
+										<span class="badge rounded-pill text-bg-success text-uppercase">Tips:</span>
+										<ul class="mb-0">
+											<li>For best performance, only import the font weights/styles you actually
+												use.</li>
+											<li>Keep your font imports in one place (usually your main CSS file).</li>
+											<li>Test your font on different browsers and devices for consistency.</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+					<!-- /Change Font -->
+
+					<!-- RTL -->
+					<section class="section-block doc-section" id="rtl">
+						<div class="custom-card">
+							<div class="card-header">
+								<h2 class="card-title">RTL Support<a class="anchor-link ms-2" href="#rtl"><i
+											class="fa-solid fa-hashtag"></i></a></h2>
+								<div class="header-tools">
+									<a href="#" class="card-maximize">
+										<span class="feather-icon" title="Full Screen"><i
+												data-feather="maximize"></i></span></a>
+								</div>
+							</div>
+							<div class="card-body">
+								<div class="file-structure">
+									<p>
+										<b>RTL (Right-to-Left)</b> support allows your app to display content right to
+										left. The layout and text direction automatically switch when a RTL is added.
+									</p>
+									<ul>
+										<li>
+											<b>How to enable:</b> Add a
+											<code>node_modules/bootstrap/dist/css/bootstrap.rtl.min.css</code> in
+											angular.json and Add <code>dir="rtl"</code> in index.html
+											<code>&lt;html&gt;</code> element
+										</li>
+									</ul>
+
+								</div>
+							</div>
+						</div>
+
+					</section>
+					<!-- /RTL -->
+
+					<!-- Dark Mode -->
+					<section class="section-block doc-section" id="dark-mode">
+						<div class="custom-card">
+							<div class="card-header">
+								<h2 class="card-title">Dark Mode<a class="anchor-link ms-2" href="#dark-mode"><i
+											class="fa-solid fa-hashtag"></i></a></h2>
+								<div class="header-tools">
+									<a href="#" class="card-maximize">
+										<span class="feather-icon" title="Full Screen"><i
+												data-feather="maximize"></i></span></a>
+								</div>
+							</div>
+							<div class="card-body">
+								<div class="file-structure">
+									<p>
+										<b>Dark Mode</b> lets users switch the app's appearance to a darker color
+										scheme, which is easier on the eyes in low-light environments.
+									</p>
+									<ul>
+										<li>
+											<b>How to enable:</b> Open the Theme Settings panel (settings icon) and
+											select <code>Dark</code> mode. This sets <code>data-theme="dark"</code> on
+											the <code>&lt;html&gt;</code> element.
+										</li>
+										<li>
+											<b>Where to find:</b> Dark mode logic is handled in the
+											<code>sidebar.service.ts</code> component and Redux theme slice. The CSS
+											uses the <code>class</code> attribute to apply dark styles.
+										</li>
+									</ul>
+									<p>
+										Your dark mode preference is saved and will be remembered next time you visit
+										the app.
+									</p>
+									<p><b>Code Example:</b></p>
+									<pre class="language-javascript mb-2">
+<code>// Enable dark mode via ThemeSettings handler
+ public themeColor: BehaviorSubject&lt;string&gt; = new BehaviorSubject&lt;string&gt;(
+      localStorage.getItem('themeColor') || 'light'
+    );
+// Or manually set attribute:
+document.documentElement.setAttribute('data-theme', 'dark');
+</code></pre>
+								</div>
+							</div>
+						</div>
+
+					</section>
+					<!-- /Dark Mode -->
+
+
+					<!-- Lazy Routing -->
+					<section class="section-block doc-section" id="lazy-routing">
+						<div class="custom-card">
+							<div class="card-header">
+								<h4 class="card-title">Lazy Routing<a class="anchor-link ms-2" href="#icon"><i
+											class="fa-solid fa-hashtag"></i></a></h4>
+							</div>
+							<div class="card-body">
+								<div class="file-structure">
+									<p>
+										<b>Lazy Routing</b> improves performance by loading route components only when
+										they are needed, reducing the initial bundle size.
+									</p>
+									<ul>
+										<li>
+											<b>How to add a lazy route:</b> Import your component with
+											<code>{path:'Component_name',loadComponent:()=> import ('./Component_name').then((m)=>m.Component_name)}</code>.
+										</li>
+									</ul>
+									<p>
+										Lazy loading routes helps your app load faster and improves the user experience,
+										especially for large projects.
+									</p>
+									<p><b>Code Example:</b></p>
+									<pre class="language-javascript mb-2"><code> {
+	path:'auth',loadComponent:()=>import('./auth/auth').then((m)=>m.Auth),
+	children:[
+		{path:'login',loadComponent:()=> import ('./auth/login/login').then((m)=>m.Login)}, 
+		]
+ }
+</code></pre>
+
+
+								</div>
+							</div>
+						</div>
+
+					</section>
+					<!-- /Lazy Routing -->
+
+
+				
+
+					<section class="section-block page-block doc-section" id="license">
+						<div class="custom-card">
+							<div class="card-header">
+								<h2 class="card-title">License<a class="anchor-link ms-2" href="#license"><i
+											class="fa-solid fa-hashtag"></i></a></h2>
+							</div>
+							<div class="card-body">
+								<p>DreamsPOS is developed by <a
+										href="https://themeforest.net/user/dreamstechnologies/portfolio"
+										target="_blank">Dreams Technologies</a> and is available under both <a
+										href="https://themeforest.net/licenses/standard" target="_blank">Envato Extended
+										&amp; Regular License</a> options.</p>
+								<h6>Regular License</h6>
+								<p>Usage by either yourself or a single client is permitted for a single end product,
+									provided that end users are not subject to any charges.</p>
+								<h6>Extended License</h6>
+								<p>For use by you or one client in a single end product for which end users may be
+									charged.</p>
+								<p><a href="https://themeforest.net/licenses/faq#main-differences-licenses-a"
+										target="_blank">What are the main differences between the Regular License and
+										the Extended License?</a></p>
+								<div class="alert alert-info mb-0">
+									<span class="badge rounded-pill text-bg-danger text-uppercase">Note</span>
+									<p class="mb-0">If you operate as a freelancer or agency, you have the option to
+										acquire the Extended License, which permits you to utilize the item across
+										multiple projects on behalf of your clients.</p>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class="section-block page-block doc-section" id="credits">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Credits<a class="anchor-link ms-2" href="#credits"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div class="table-responsive ref-table">
+										<table class="table table-bordered table-striped mb-0">
+											<thead>
+												<tr>
+													<th class="w-20">NAME</th>
+													<th class="w-80">URL</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td><span class="text-high-em">Bootstrap</span></td>
+													<td><a href="https://getbootstrap.com/docs/5.3/getting-started/introduction/"
+															class="link-high-em"
+															target="_blank">https://getbootstrap.com/docs/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Apex charts</span></td>
+													<td><a href="https://www.npmjs.com/package/ng-apexcharts"
+															class="link-high-em"
+															target="_blank">https://www.npmjs.com/package/ng-apexcharts</a>
+													</td>
+												</tr>
+												<tr>
+												<td><span class="text-high-em">Fontawesome</span></td>
+												<td><a href="https://www.npmjs.com/package/@fortawesome/fontawesome-free"
+														class="link-high-em"
+														target="_blank">https://www.npmjs.com/package/@fortawesome/fontawesome-free</a>
+												</td>
+											</tr>
+											<tr>
+												<td><span class="text-high-em">Ngx Bootstrap</span></td>
+												<td><a href="https://www.npmjs.com/package/ngx-bootstrap"
+														class="link-high-em"
+														target="_blank">https://www.npmjs.com/package/ngx-bootstrap</a>
+												</td>
+											</tr>
+											<tr>
+												<td><span class="text-high-em">Editor</span></td>
+												<td><a href="https://www.npmjs.com/package/ngx-editor"
+														class="link-high-em"
+														target="_blank">https://www.npmjs.com/package/ngx-editor</a>
+												</td>
+											</tr>
+											<tr>
+												<td><span class="text-high-em">Rxjs</span></td>
+												<td><a href="https://www.npmjs.com/package/rxjs" class="link-high-em"
+														target="_blank">https://www.npmjs.com/package/rxjs</a></td>
+											</tr>
+											<tr>
+												<td><span class="text-high-em">Angular Material</span></td>
+												<td><a href="https://material.angular.io/" class="link-high-em"
+														target="_blank">https://material.angular.io/</a></td>
+											</tr>
+											<tr>
+												<td><span class="text-high-em">Clipboard</span></td>
+												<td><a href="https://www.npmjs.com/package/ngx-clipboard"
+														class="link-high-em"
+														target="_blank">https://www.npmjs.com/package/ngx-clipboard</a>
+												</td>
+											</tr>
+											<tr>
+												<td><span class="text-high-em">Lightbox</span></td>
+												<td><a href="https://www.npmjs.com/package/ngx-lightbox"
+														class="link-high-em"
+														target="_blank">https://www.npmjs.com/package/ngx-lightbox</a>
+												</td>
+											</tr>
+											<tr>
+												<td><span class="text-high-em">Scrollbar</span></td>
+												<td><a href="https://www.npmjs.com/package/ngx-scrollbar"
+														class="link-high-em"
+														target="_blank">https://www.npmjs.com/package/ngx-scrollbar</a>
+												</td>
+											</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						</section>
+
+
+					<section class="section-block page-block doc-section" id="support">
+						<div class="custom-card support-content">
+							<div class="card-header">
+								<h2 class="card-title">Support<a class="anchor-link ms-2" href="#support"><i
+											class="fa-solid fa-hashtag"></i></a></h2>
+							</div>
+							<div class="card-body">
+
+								<h3 class="title fs-200">Need Support?</h3>
+
+								<p class="mb-4">If this documentation does not address your questions, please feel free
+									to contact us via email at <a class="text-dark text-decoration-underline fw-medium"
+										rel="noopener"
+										href="mailto:business@dreamstechnologies.com">support@dreamstechnologies.com</a>
+								</p>
+
+								<div class="support-content-one">
+									<p class="mb-3 text-dark fw-medium">Reach the team at GMT+5:30. Typical reply within
+										12–24 hours on weekdays — rarely up to 48 hrs during holidays.
+										Support is available to verified buyers for template-related issues.</p>
+									<a href="mailto:business@dreamstechnologies.com" class="btn btn-primary"><span
+											class="feather-icon d-flex align-items-center"><i
+												data-feather="phone-outgoing"></i></span> Contact Support</a>
+									<div class="imp-content">
+										<p><span>Important Note :</span> We strive to offer top-notch support, but it's
+											only available to verified buyers and for template-related issues such as
+											bugs and errors. Custom changes and third-party module setups are not
+											covered.</p>
+									</div>
+								</div>
+
+							</div>
+						</div>
+					</section>
+
+					<section class="section-block page-block doc-section" id="customwork">
+						<div class="custom-card">
+							<div class="card-header">
+								<h2 class="card-title">Custom Work<a class="anchor-link ms-2" href="#"><i
+											class="fa-solid fa-hashtag"></i></a></h2>
+							</div>
+							<div class="card-body">
+								<h5 class="card-title mb-2 fw-bold">Do you need a customized application for your
+									business?</h5>
+								<p>If you need a customized application for your business depends on your specific
+									requirements and goals, Please contact us. Customization can be the key to success,
+									ensuring your project perfectly aligns with your unique goals and requirements.</p>
+								<div class="hire">
+									<h5 class="fw-bold mb-3">Don't Miss Out on the Benefits of Customization!</h5>
+									<p class="benefits-path"><span><i class="text-primary me-2"
+												data-feather="award"></i></span>Unlock the potential of your project.
+										It's time to ensure your project isn't another cookie-cutter solution but truly
+										unique and effective one.</p>
+									<p class="benefits-path"><span><i class="text-primary me-2"
+												data-feather="award"></i></span>Discover how customization can make a
+										difference in your project's success. Let's create a solution that's as unique
+										as your vision!</p>
+									<p class="benefits-path"><span><i class="text-primary me-2"
+												data-feather="award"></i></span>We'll tailor the application to meet
+										your specific needs and preferences.</p>
+									<p class="benefits-path"><span><i class="text-primary me-2"
+												data-feather="award"></i></span>We will upload your website to the
+										server and ensure it is live.</p>
+
+									<div class="contact-btn d-flex align-items-center mt-4  flex-wrap gap-2">
+										<a target="_blank" rel="noopener" href="mailto:business@dreamstechnologies.com"
+											class="btn btn-light"><i class="me-2" data-feather="calendar"></i>Book an
+											Appointment</a>
+										<a href="mailto:support@dreamstechnologies.com" class="btn btn-primary"><i
+												class="me-2" data-feather="file-text"></i>Get a Free Quote</a>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class="custom-card page-block doc-section  min-h-100 mb-0" id="thanks">
+						<div class="card-body">
+							<div class="thanks">
+								<img src="assets/img/banners/ratings.svg" alt="thanks">
+								<h2>Thank You</h2>
+								<p>Thank you once again for downloading <a href="https://dreamspos.dreamstechnologies.com/" target="_blank"
+										class="text-primary fw-bold text-decoration-underline">DreamsPOS</a>.<br>
+									We hope you're enjoying your experience, and we kindly request that you take a
+									moment to share your valuable review and rating with us.</p>
+								<a href="https://themeforest.net/downloads" target="_blank" rel="noopener"
+									class="btn btn-primary"><i data-feather="link" class="me-2"></i>Review Link</a>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+		</div>
+		<footer class="content-footer footer">
+			<div
+				class="container-fluid d-flex flex-wrap justify-content-between align-items-center text-center gap-2 py-3">
+				<div>
+					&copy; 2015 - 2026
+
+					<a href="https://dreamstechnologies.com/" class="footer-text fw-medium text-primary" target="_blank"
+						rel="noopener">Dreams Technologies</a>
+				</div>
+				<div class="social-icons">
+					<a href="https://www.facebook.com/dreamstechnologieslimited/" class="me-2" target="_blank"
+						rel="noopener"><img src="assets/img/thanks/social-icon-1.svg" alt="social-icon"></a>
+					<a href="https://www.behance.net/dreamstechnologies" class="me-2" target="_blank"
+						rel="noopener"><img src="assets/img/thanks/social-icon-2.svg" alt="social-icon"></a>
+					<a href="https://dribbble.com/dreamstechnologies" class="me-2" target="_blank" rel="noopener"><img
+							src="assets/img/thanks/social-icon-3.svg" alt="social-icon"></a>
+					<a href="https://www.instagram.com/dreamstechnologieslimited/" target="_blank" rel="noopener"><img
+							src="assets/img/thanks/social-icon-4.svg" alt="social-icon"></a>
+				</div>
+			</div>
+		</footer>
+		</div>
+
+	</main>
+
+	<script src="assets/js/bootstrap.bundle.min.js"></script>
+	<script src="assets/js/feather.min.js"></script>
+	<script src="assets/js/prism.js"></script>
+	<script src="assets/js/script.js"></script>
+
+</body>
+
+</html>

@@ -91,11 +91,23 @@ async function startServer() {
     console.log('[Server] Seeding demo database records...');
     await seedDatabase();
 
-    app.listen(PORT, () => {
+    const server = app.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`\n======================================================`);
       console.log(`🌱 GrowNaturals Backend Server running on port ${PORT}`);
       console.log(`   Health Check: http://localhost:${PORT}/api/health`);
       console.log(`======================================================\n`);
+    });
+
+    server.on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        console.warn(`[Server] Port ${PORT} is momentarily in use (TIME_WAIT). Retrying in 1.5s...`);
+        setTimeout(() => {
+          try { server.close(); } catch (_) {}
+          server.listen(Number(PORT), '0.0.0.0');
+        }, 1500);
+      } else {
+        console.error('[Server Error]', err);
+      }
     });
   } catch (error) {
     console.error('[Server] Fatal startup error:', error);

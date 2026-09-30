@@ -91,6 +91,7 @@ export const QuotationDetail: React.FC = () => {
 
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isConverting, setIsConverting] = useState<boolean>(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
@@ -111,6 +112,7 @@ export const QuotationDetail: React.FC = () => {
 
   const fetchQuotation = () => {
     setIsLoading(true);
+    setFetchError(null);
     api
       .get(`/quotations/${id}`)
       .then((res) => {
@@ -120,7 +122,10 @@ export const QuotationDetail: React.FC = () => {
           setWhatsappPhone(digits.length === 10 ? `91${digits}` : digits);
         }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error('Error fetching quotation:', err);
+        setFetchError(err.message || 'Quotation could not be loaded.');
+      })
       .finally(() => setIsLoading(false));
   };
 
@@ -329,10 +334,33 @@ export const QuotationDetail: React.FC = () => {
     }
   };
 
-  if (isLoading || !quotation) {
+  if (isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '80px', color: 'var(--color-text-muted)' }}>
+        <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 12px auto', color: 'var(--color-primary)' }} />
         <div style={{ fontSize: '1rem', fontWeight: 600 }}>Loading quotation estimate...</div>
+      </div>
+    );
+  }
+
+  if (fetchError || !quotation) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '480px', margin: '40px auto' }}>
+        <AlertTriangle size={48} color="#ef4444" style={{ margin: '0 auto 16px auto' }} />
+        <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+          Quotation Not Found
+        </h3>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px' }}>
+          {fetchError || 'The requested quotation could not be loaded.'}
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <Link to="/quotations" className="btn btn-secondary">
+            <ArrowLeft size={15} /> Back to Quotations
+          </Link>
+          <button type="button" onClick={fetchQuotation} className="btn btn-proj">
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -413,6 +441,22 @@ export const QuotationDetail: React.FC = () => {
           </div>
           <p className="page-description" style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '4px 0 0 0' }}>
             Issued to <strong>{quotation.customer_name}</strong> on {new Date(quotation.created_at).toLocaleDateString('en-IN')}.
+            {quotation.project_id && (
+              <Link
+                to={`/projects/${quotation.project_id}`}
+                style={{
+                  marginLeft: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: 'var(--color-primary)',
+                  fontWeight: 600,
+                  textDecoration: 'none'
+                }}
+              >
+                📁 View Linked Project
+              </Link>
+            )}
           </p>
         </div>
 

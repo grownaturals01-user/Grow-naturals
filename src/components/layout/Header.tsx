@@ -19,22 +19,36 @@ import {
   LayoutDashboard,
   Calculator,
   Maximize,
-  Minimize
+  Minimize,
+  Palette,
+  ChevronsLeft,
+  ChevronsRight,
+  PanelLeftClose,
+  PanelLeft
 } from 'lucide-react';
 
 interface HeaderProps {
   onToggleMobileSidebar: () => void;
+  onToggleCollapseSidebar?: () => void;
+  isSidebarCollapsed?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onToggleMobileSidebar,
+  onToggleCollapseSidebar,
+  isSidebarCollapsed: isSidebarCollapsedProp,
+}) => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, openCustomizer, isSidebarCollapsed: isSidebarCollapsedContext, toggleSidebarCollapse } = useTheme();
   const location = useLocation();
   const isPos = location.pathname.startsWith('/pos');
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const addMenuRef = useRef<HTMLDivElement>(null);
+
+  const isSidebarCollapsed = isSidebarCollapsedProp !== undefined ? isSidebarCollapsedProp : isSidebarCollapsedContext;
+  const handleToggleCollapse = onToggleCollapseSidebar || toggleSidebarCollapse;
 
   // Track fullscreen changes
   useEffect(() => {
@@ -78,14 +92,29 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
               <span>Dashboard</span>
             </Link>
           ) : (
-            <button
-              type="button"
-              className="mobile-menu-btn"
-              onClick={onToggleMobileSidebar}
-              aria-label="Toggle Menu"
-            >
-              <Menu size={22} />
-            </button>
+            <>
+              {/* Mobile hamburger menu */}
+              <button
+                type="button"
+                className="mobile-menu-btn"
+                onClick={onToggleMobileSidebar}
+                aria-label="Toggle Menu"
+              >
+                <Menu size={22} />
+              </button>
+
+              {/* Desktop sidebar expand / collapse button */}
+              <button
+                type="button"
+                id="toggle_btn"
+                className="desktop-sidebar-toggle-btn"
+                onClick={handleToggleCollapse}
+                title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+                aria-label="Toggle Sidebar"
+              >
+                {isSidebarCollapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
+              </button>
+            </>
           )}
 
           {/* Store Selection Dropdown (Defaults to 'All Businesses') */}
@@ -183,6 +212,17 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
               </Link>
             </>
           )}
+
+          {/* Theme Customizer Palette Trigger */}
+          <button
+            type="button"
+            className="header-icon-btn"
+            onClick={openCustomizer}
+            title="Theme Customizer"
+            aria-label="Theme Customizer"
+          >
+            <Palette size={17} />
+          </button>
 
           {/* Light / Dark Mode Switcher */}
           <button

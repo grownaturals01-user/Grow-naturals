@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
 // Helper to ensure a product has a warehouse_stocks row
 async function getOrCreateWarehouseStock(db: any, businessId: string, productId: string) {
+  const resolvedBiz = await resolveBusinessId(db, businessId);
   const existing = await db.query(
     `SELECT * FROM warehouse_stocks WHERE business_id = $1 AND product_id = $2`,
-    [businessId, productId]
+    [resolvedBiz, productId]
   );
   if (existing.rows.length > 0) {
     return existing.rows[0];
@@ -18,12 +19,12 @@ async function getOrCreateWarehouseStock(db: any, businessId: string, productId:
     `INSERT INTO warehouse_stocks (id, business_id, product_id, stock_quantity, location_bin)
      VALUES ($1, $2, $3, 0, '')
      ON CONFLICT (business_id, product_id) DO NOTHING`,
-    [id, businessId, productId]
+    [id, resolvedBiz, productId]
   );
 
   const res = await db.query(
     `SELECT * FROM warehouse_stocks WHERE business_id = $1 AND product_id = $2`,
-    [businessId, productId]
+    [resolvedBiz, productId]
   );
   return res.rows[0] || { stock_quantity: 0, location_bin: '' };
 }
@@ -236,7 +237,8 @@ router.post('/transactions', async (req: Request, res: Response) => {
       location_bin
     } = req.body;
 
-    const bizId = business_id || (req.headers['x-business-id'] as string) || 'grow-naturals';
+    const db = await getDb();
+    const bizId = await resolveBusinessId(db, business_id || (req.headers['x-business-id'] as string));
 
     if (!product_id) {
       return res.status(400).json({ error: 'Product is required' });
@@ -250,8 +252,6 @@ router.post('/transactions', async (req: Request, res: Response) => {
     if (!['sale', 'damage', 'inward', 'transfer_to_shop', 'transfer_from_shop'].includes(type)) {
       return res.status(400).json({ error: `Invalid transaction type: ${type}` });
     }
-
-    const db = await getDb();
 
     // Verify product exists
     const prodRes = await db.query(`SELECT * FROM products WHERE id = $1 AND business_id = $2`, [product_id, bizId]);

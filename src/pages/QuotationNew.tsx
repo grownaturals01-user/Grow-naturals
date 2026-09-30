@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
 import type { Product, QuotationItem, CustomerQuotationHistory, Customer } from '../types';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Plus,
@@ -17,26 +17,61 @@ import {
   Building2,
   Users,
   User,
-  ChevronDown
+  ChevronDown,
+  FolderKanban
 } from 'lucide-react';
 import { ProductSearchSelect } from '../components/common/ProductSearchSelect';
 import { CustomerQuotationIntelligence } from '../components/quotations/CustomerQuotationIntelligence';
 
 export const QuotationNew: React.FC = () => {
-  const { businessId, business, isTaxable } = useBusiness();
+  const { businessId, business, businesses, isTaxable: contextIsTaxable } = useBusiness();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const paramCustomerName = searchParams.get('customer_name') || '';
+  const paramPhone = searchParams.get('phone') || '';
+  const paramProjectId = searchParams.get('project_id') || '';
+
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>(() => {
+    if (businessId && businessId !== 'all') return businessId;
+    return businesses[0]?.id || 'grow-naturals';
+  });
+
+  useEffect(() => {
+    if (businessId && businessId !== 'all') {
+      setSelectedBusinessId(businessId);
+    }
+  }, [businessId]);
+
+  const selectedBusiness = businesses.find((b) => b.id === selectedBusinessId) || business || {
+    id: selectedBusinessId,
+    name: selectedBusinessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery',
+    is_taxable: selectedBusinessId === 'grow-naturals'
+  };
+
+  const isTaxable = selectedBusiness.is_taxable !== undefined
+    ? Boolean(selectedBusiness.is_taxable)
+    : (selectedBusinessId === 'grow-naturals');
 
   const [products, setProducts] = useState<Product[]>([]);
   const [existingCustomers, setExistingCustomers] = useState<Customer[]>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; title: string; client_name: string }>>([]);
+  const [projectId, setProjectId] = useState<string>(() => paramProjectId);
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState<boolean>(false);
   const customerDropdownRef = useRef<HTMLDivElement>(null);
 
   const [customerGstin, setCustomerGstin] = useState<string>('');
-  const [customerName, setCustomerName] = useState<string>('');
-  const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerName, setCustomerName] = useState<string>(() => paramCustomerName);
+  const [customerPhone, setCustomerPhone] = useState<string>(() => paramPhone);
   const [customerAddress, setCustomerAddress] = useState<string>('');
   const [isFetchingGst, setIsFetchingGst] = useState<boolean>(false);
   const [gstFeedback, setGstFeedback] = useState<{ status: 'idle' | 'success' | 'warning' | 'error'; message: string; state?: string } | null>(null);
+
+  useEffect(() => {
+    if (paramCustomerName && !customerName) setCustomerName(paramCustomerName);
+    if (paramPhone && !customerPhone) setCustomerPhone(paramPhone);
+    if (paramProjectId && !projectId) setProjectId(paramProjectId);
+  }, [paramCustomerName, paramPhone, paramProjectId]);
 
   // Customer conversion history intelligence state
   const [customerHistory, setCustomerHistory] = useState<CustomerQuotationHistory | null>(null);
@@ -65,11 +100,14 @@ export const QuotationNew: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
-    api.get('/products', { business_id: businessId }).then(setProducts).catch(console.warn);
+    api.get('/products', { business_id: selectedBusinessId }).then(setProducts).catch(console.warn);
     api.get('/customers').then((data) => {
       if (Array.isArray(data)) setExistingCustomers(data);
     }).catch(console.warn);
-  }, [businessId]);
+    api.get('/projects', { business_id: selectedBusinessId }).then((data) => {
+      if (Array.isArray(data)) setProjects(data);
+    }).catch(console.warn);
+  }, [selectedBusinessId]);
 
   // Click outside listener for customer dropdown
   useEffect(() => {
@@ -283,7 +321,7 @@ export const QuotationNew: React.FC = () => {
     setIsSubmitting(true);
     try {
       const res = await api.post('/quotations', {
-        business_id: businessId,
+        business_id: selectedBusinessId,
         customer_name: customerName.trim(),
         customer_phone: customerPhone.trim(),
         customer_gstin: customerGstin.trim().toUpperCase(),
@@ -292,6 +330,7 @@ export const QuotationNew: React.FC = () => {
         items: validItems,
         discount: Number(discount) || 0,
         notes: notes.trim(),
+        project_id: projectId || null,
       });
 
       navigate(`/quotations/${res.id}`);
@@ -313,16 +352,88 @@ export const QuotationNew: React.FC = () => {
             <ArrowLeft size={16} /> Back to Quotations
           </Link>
           <h1 className="page-title">
-            <span>New Commercial Quotation ({business?.name})</span>
+            <span>New Commercial Quotation ({selectedBusiness?.name})</span>
           </h1>
           <p className="page-description">
             Create an official estimate for plants, landscaping materials, or corporate supply.
           </p>
         </div>
+
+        {businesses.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: 'var(--font-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+              Scoping to:
+            </span>
+            <select
+              value={selectedBusinessId}
+              onChange={(e) => {
+                const newBiz = e.target.value;
+                setSelectedBusinessId(newBiz);
+                const bObj = businesses.find((b) => b.id === newBiz);
+                const isTax = bObj?.is_taxable ?? (newBiz === 'grow-naturals');
+                setItems((prev) =>
+                  prev.map((it) => ({
+                    ...it,
+                    gst_rate: isTax ? 12 : 0
+                  }))
+                );
+              }}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text)',
+                fontWeight: 600,
+                fontSize: 'var(--font-sm)'
+              }}
+            >
+              {businesses.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name} ({b.invoice_prefix || (b.id === 'grow-naturals' ? 'GN-' : 'NN-')})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="card">
         <div className="card-body">
+          {/* Linked Project Banner */}
+          {projectId && (
+            <div
+              style={{
+                marginBottom: '18px',
+                padding: '10px 14px',
+                background: 'rgba(34, 197, 94, 0.08)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803d', fontWeight: 600, fontSize: '13px' }}>
+                <FolderKanban size={16} />
+                <span>
+                  Linked to Project:{' '}
+                  <strong>{projects.find((p) => p.id === projectId)?.title || customerName || 'Active Project'}</strong>
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setProjectId('')}
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+              >
+                Unlink Project
+              </button>
+            </div>
+          )}
+
           {/* Client Details Section */}
           <div style={{ marginBottom: '16px' }}>
             <h3 style={{ fontSize: 'var(--font-md)', fontWeight: 700, color: 'var(--module-sell-accent)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>

@@ -297,6 +297,9 @@ export interface Quotation {
   item_count?: number;
   customer_total_quotes?: number;
   customer_converted_quotes?: number;
+  project_id?: string | null;
+  project_title?: string;
+  project_client_name?: string;
 }
 
 export interface CustomerQuotationHistory {
@@ -402,20 +405,65 @@ export interface CustomerDCSummary {
   challans: DeliveryChallan[];
 }
 
+export interface ProjectWorkType {
+  id: string;
+  business_id: string;
+  name: string;
+  description?: string;
+  sort_order?: number;
+  created_at?: string;
+}
+
+export interface ProjectDailyTask {
+  id: string;
+  project_id: string;
+  task_date: string;
+  task_title: string;
+  description: string;
+  images: string[];
+  created_by?: string;
+  created_by_name?: string;
+  remarks?: string;
+  remarks_by?: string;
+  remarks_by_name?: string;
+  remarks_at?: string;
+  created_at?: string;
+}
+
 export interface Project {
   id: string;
   business_id: BusinessId;
   name: string;
   client_name: string;
+  client_id?: string | null;
   company: string;
+  address?: string;
+  phone?: string;
+  gst_number?: string;
+  location?: string;
+  referred_by?: string;
+  category_id?: string;
+  category_name?: string;
+  work_type?: string;
+  work_nature?: 'new' | 'rework';
+  rework_source?: 'our_existing' | 'someone_else' | '';
+  site_visit_amount?: number;
+  allowance_amount?: number;
+  allowance_notes?: string;
+  appointment_date?: string | null;
   supervisor_id?: string | null;
   supervisor_name?: string;
   supervisor_phone?: string;
   supervisor_email?: string;
   start_date?: string | null;
   end_date?: string | null;
-  status: 'planning' | 'active' | 'completed' | 'on_hold';
+  expected_completion_date?: string | null;
+  status: 'planning' | 'in_progress' | 'active' | 'completed' | 'on_hold';
   budget: number;
+  advance_amount?: number;
+  assigned_work?: string;
+  assigned_labour?: string;
+  labour_count?: number;
   description: string;
   collection_value: number;
   total_expenses: number;
@@ -423,7 +471,9 @@ export interface Project {
   margin_percent: number;
   created_at?: string;
   invoices?: Invoice[];
+  quotations?: Quotation[];
   expenses?: Expense[];
+  daily_tasks?: ProjectDailyTask[];
   updates?: SupervisorUpdate[];
   challans?: DeliveryChallan[];
 }

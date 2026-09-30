@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -356,12 +356,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 // Helper to generate next sequential invoice number per business
 async function getNextInvoiceNumber(db: any, businessId: string, customPrefix?: string): Promise<string> {
-  const bizRes = await db.query(`SELECT invoice_prefix FROM businesses WHERE id = $1`, [businessId]);
-  const prefix = customPrefix || bizRes.rows[0]?.invoice_prefix || (businessId === 'grow-naturals' ? 'GN-' : 'NN-');
+  const resolvedBiz = await resolveBusinessId(db, businessId);
+  const bizRes = await db.query(`SELECT invoice_prefix FROM businesses WHERE id = $1`, [resolvedBiz]);
+  const prefix = customPrefix || bizRes.rows[0]?.invoice_prefix || (resolvedBiz === 'grow-naturals' ? 'GN-' : 'NN-');
 
   const countRes = await db.query(
     `SELECT COUNT(*) as count FROM invoices WHERE business_id = $1`,
-    [businessId]
+    [resolvedBiz]
   );
   const nextNum = 1001 + Number(countRes.rows[0]?.count || 0);
   return `${prefix}${nextNum}`;
@@ -397,8 +398,8 @@ router.post('/', async (req: Request, res: Response) => {
       created_by
     } = req.body;
 
-    const bizId = business_id || getBusinessId(req);
     const db = await getDb();
+    const bizId = await resolveBusinessId(db, business_id || getBusinessId(req));
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'At least one line item is required' });

@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 .pnpm-store/
 
@@ -28,3 +28,8 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Reference Templates & Test scripts
+Dreamforest-theme/
+test-*.js
+test-*.ts

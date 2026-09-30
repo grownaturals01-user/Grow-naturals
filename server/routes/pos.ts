@@ -1,16 +1,17 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
 // Helper to generate next sequential invoice number per business
 async function getNextInvoiceNumber(db: any, businessId: string): Promise<string> {
-  const bizRes = await db.query(`SELECT invoice_prefix FROM businesses WHERE id = $1`, [businessId]);
-  const prefix = bizRes.rows[0]?.invoice_prefix || (businessId === 'grow-naturals' ? 'GN-' : 'NN-');
+  const resolvedBiz = await resolveBusinessId(db, businessId);
+  const bizRes = await db.query(`SELECT invoice_prefix FROM businesses WHERE id = $1`, [resolvedBiz]);
+  const prefix = bizRes.rows[0]?.invoice_prefix || (resolvedBiz === 'grow-naturals' ? 'GN-' : 'NN-');
 
   const countRes = await db.query(
     `SELECT COUNT(*) as count FROM invoices WHERE business_id = $1`,
-    [businessId]
+    [resolvedBiz]
   );
   const nextNum = 1001 + Number(countRes.rows[0]?.count || 0);
   return `${prefix}${nextNum}`;
@@ -34,15 +35,15 @@ router.post('/checkout', async (req: Request, res: Response) => {
       created_by
     } = req.body;
 
-    const rawBiz = business_id || (req.headers['x-business-id'] as string) || 'grow-naturals';
-    const bizId = (rawBiz && rawBiz !== 'all' && rawBiz !== 'combined') ? rawBiz : 'grow-naturals';
-    const isTaxable = bizId === 'grow-naturals';
+    const db = await getDb();
+    const bizId = await resolveBusinessId(db, business_id || (req.headers['x-business-id'] as string));
+    const bizRes = await db.query(`SELECT is_taxable FROM businesses WHERE id = $1`, [bizId]);
+    const isTaxable = bizRes.rows[0]?.is_taxable ?? (bizId === 'grow-naturals');
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'At least one item is required for checkout' });
     }
 
-    const db = await getDb();
     const invoiceNumber = await getNextInvoiceNumber(db, bizId);
     const invoiceId = `inv-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 

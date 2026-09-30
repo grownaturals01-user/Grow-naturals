@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="keywords" content="">
+	<meta name="description" content="DreamsPos Management Admin Website Templates | DreamsPos">
+	<meta name="author" content="dreamstechnologies">
+
+	<title>DreamsPOS - Online Documentation.</title>
+
+	<!-- Favicon -->
+	<link rel="shortcut icon" href="assets/img/logo/favicon.png">
+
+	<!-- Vendor -->
+	<link rel="stylesheet" href="assets/css/bootstrap.min.css">
+	<link rel="stylesheet" href="assets/css/prism.css">
+
+	<!-- Fontawesome CSS -->
+	<link rel="stylesheet" href="assets/plugins/fontawesome/css/all.min.css">
+
+	<!-- Main CSS -->
+	<link rel="stylesheet" href="assets/css/style.css">
+
+</head>
+
+<body>
+	<main class="wrapper default-sidebar">
+
+		<!-- Header -->
+		<header class="header">
+			<div class="container-fluid">
+				<div class="header-left">
+					<div class="left-header me-3">
+						<a href="javascript:void(0)" class="sidebar-toggle p-1">
+							<span class="feather-icon"><i data-feather="sidebar"></i></span>
+						</a>
+					</div>
+					<ul
+						class="header-top-nav nav col-12 col-lg-auto me-lg-auto gap-3 d-flex align-items-center justify-content-center mb-md-0">
+						<li><a href="https://themeforest.net/user/dreamstechnologies"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="archive"></i></span>Other Products</a></li>
+						<li><a href="mailto:business@dreamstechnologies.com"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="briefcase"></i></span>Hire Us</a></li>
+					</ul>
+					<div class="text-end">
+						<a href="changelog.html" target="_blank" rel="noopener" class="btn btn-white btn-sm me-2"><span
+								class="feather-icon me-2"><i data-feather="refresh-cw"></i></span>Changelog</a>
+						<a href="https://dreamspos.dreamstechnologies.com/" target="_blank" rel="noopener"
+							class="btn btn-primary btn-sm"><span class="feather-icon me-2"><i
+									data-feather="play"></i></span>Live Preview</a>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- End Header -->
+
+		<div class="doc-progress">
+			<div class="doc-progress-inner" id="scrollProgress">
+
+			</div>
+		</div>
+
+		<div class="sidebar-overlay"></div>
+		<div class="sidebar">
+			<div class="sidebar-logo p-2">
+				<a href="index.html" class="logo-dark"><img src="assets/img/logo/logo.svg" alt="logo"><span
+						class="badge badge-soft-danger fs-14 ms-2">Tailwind</span></a>
+				<a href="index.html" class="small-logo"><img src="assets/img/logo/favicon.png" alt="logo"></a>
+			</div>
+			<div class="sidebar-inner">
+				 <div class="sidebar-menu">
+				   <ul id="menu-main-menu" class="sidebar-nav">
+						<li class="menu-item submenu">
+							<a href="#instructions" class="active menu-link">
+								<span class="feather-icon"><i data-feather="box"></i></span>
+								<span class="condense">Getting Started</span>
+							</a>
+							<ul class="sidebar-dropdown condense active">
+								<li>
+									<a href="#instructions" class="page-link drop">
+										<span class="menu-dash"><span></span></span>Introduction
+									</a>
+								</li>
+								<li><a href="#requirement" class="page-link drop"><span class="menu-dash"><span></span></span>Requirement</a></li>
+								<li><a href="#features" class="page-link drop"><span class="menu-dash"><span></span></span>Features</a></li>
+								<li><a href="#file_structure" class="page-link drop"><span class="menu-dash"><span></span></span>File Structure</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title condense">Configuration</li>
+						<li class="menu-item submenu">
+							<a href="#php_config" class=" menu-link">
+								<span class="feather-icon"><i data-feather="pie-chart"></i></span>
+								<span class="condense">Installation</span>
+							</a>
+							<ul class="sidebar-dropdown condense">
+								<li><a href="#php_config" class="page-link drop"><span class="menu-dash"><span></span></span>Installation Guide</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title condense">Info</li>
+						<li class="menu-item">
+							<a href="#support" class="page-link">
+								<span class="feather-icon"><i data-feather="star"></i></span><span class="condense"><span class="hover-title">Support</span> </span>
+							</a>
+						</li>
+						<li class="menu-item submenu">
+							<a href="#license" class="page-link">
+								<span class="feather-icon"><i data-feather="settings"></i></span>
+								<span class="condense">License & Credits</span>
+							</a>
+							<ul class="sidebar-dropdown condense">
+								<li><a href="#license" class="page-link drop"><span class="menu-dash"><span></span></span>License</a></li>
+								<!-- <li><a href="#credits" class="page-link drop"><span class="menu-dash"><span></span></span>Credits</a></li> -->
+								
+							</ul>
+						</li>
+						<li class="menu-item">
+							<a href="#customwork" class="page-link">
+								<span class="feather-icon"><i data-feather="briefcase"></i></span><span class="condense"><span class="hover-title">Custom Work</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#thanks" class="page-link">
+								<span class="feather-icon"><i data-feather="smile"></i></span><span class="condense"><span class="hover-title">Thank
+										You</span> </span>
+							</a>
+						</li>
+				   </ul>
+				 </div>
+			 </div>
+		</div>
+		<!-- main content -->
+		<div class="main-content">
+			<div class="container-fluid">
+				<!-- Page title & breadcrumb -->
+				<div class="page-title">
+					<div class="breadcrumb">
+						<h1>Documentation</h1>
+						<ul>
+							<li><a href="index.html">Home</a></li>
+							<li>Documentation</li>
+						</ul>
+					</div>
+				</div>
+				<div class="row sections">
+					<div class="col-xl-12 col-md-12">
+
+						<!-- Introduction -->
+						<section class="section-block doc-section" id="instructions">
+							<div class="card bg-dark mb-4">
+								<div class="card-body p-4">
+									<div class="intro">
+										<div class="item-details">
+											<div class="row align-items-center row-gap-4">
+												<div class="col-xl-5">
+													<div>
+														<img src="assets/img/banners/banner.png" class="img-fluid"
+															alt="DreamsPOS  Agent Banner">
+													</div>
+												</div>
+												<div class="col-xl-7">
+													<div class="banner-right ps-lg-2 ps-0">
+
+														<h2 class="mb-2 text-white">DreamsPOS - POS & Inventory Management Admin Dashboard Template</h2>
+														<p class="mb-4 text-white">
+															DreamsPOS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business.
+														</p>
+														<div class="info-list info-list-custom mb-4">
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Version <span>: v2.2.8</span> </div>
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Author : <a href="https://dreamstechnologies.com/"
+																	class="text-decoration-underline">Dreams
+																	Technologies </a></div>
+														</div>
+
+														<div
+															class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+															<div class="text-white fs-14 fw-medium"> Support via email :
+																<a href="mailto:support@dreamstechnologies.com"
+																	class="text-decoration-underline fw-normal text-white">
+																	support@dreamstechnologies.com</a>
+															</div>
+															<a href="https://1.envato.market/2rz71O"
+																target="_blank"
+																class="btn btn-primary fs-14 fw-medium d-flex align-items-center gap-2"><span
+																	class="feather-icon" title="Full Screen"><i
+																		data-feather="shopping-bag"></i></span> Buy
+																Now</a>
+														</div>
+
+													</div>
+												</div>
+
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="card mb-4 custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Introduction<a class="anchor-link ms-2"
+											href="#introduction"><i class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<p class="mb-0"><Strong>DreamsPOS</Strong> - POS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business. The template includes fields for items, quantities, prices, and descriptions. It also includes fields for customer information, such as name and address. This information can help the business keep track of its inventory and meet customers’ needs.</p>
+								</div>
+							</div>
+						</section>
+						<!-- /Introduction -->
+
+						<section class="section-block doc-section" id="requirement">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Requirement</h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div>
+										<h5 class="mb-3">Technologies</h5>
+										<ul class="custom-list mb-4">
+											<li>Framework <strong>Html</strong></li>
+											<li><strong>Tailwind Css</strong></li>
+										</ul>
+										<h5 class="mb-3">System Requirements</h5>
+										<ul class="custom-list mb-0">
+											<li>Text Editor like, Sublime Text 3 editor (or) Visual Studio Code editor</li>
+											<li>Any Web Browser</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</section>
+						
+						
+						
+						<section class="section-block doc-section" id="features">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Features<a class="anchor-link ms-2" href="#features"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<p class="mb-0">Creative Design<br>
+										Fully Responsive<br>
+										Color & Fonts is easily changed<br>
+										W3C Validated Code<br>
+										Bootstrap 5.x used<br>
+										Compatible Browsers: IE8+, Firefox, Safari, Opera, Chrome<br>
+									</p>
+								</div>
+								
+							</div>
+						</section>
+
+						<!-- File Structure -->
+						<section class="section-block doc-section" id="file_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">File Structure<a class="anchor-link ms-2"
+											href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+										<h5 class="sub-title mb-3"><i
+												class="fa-solid fa-info-circle text-primary me-2"></i>Project Overview
+										</h5>
+										<p class="mb-0">The project follows a modular structure with clear separation of
+											concerns.</p>
+									</div>
+									<pre class="language-markup mb-0">
+dreamspos/
+│
+├── tailwind/
+│   │
+│   ├── template/                 
+│   │   │
+│   │   ├── index.html
+│   │   │
+│   │   ├── dist/              
+│   │   │   ├── tailwind-dist.css/
+│   │   │   ├── src/
+│   │   │   ├── charts/
+│   │   │   ├── js/
+│   │   │   └── plugins/
+│   │
+│   ├── template-rtl/                 
+│   │   │
+│   │   └── index.html
+
+	</pre>
+
+								</div>
+							</div>
+						</section>
+
+						<!-- Installation -->
+						<section class="section-block doc-section" id="php_config">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Installation Guide<a class="anchor-link ms-2" href="#php_config"><i class="fa-solid fa-hashtag"></i></a></h4>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="server">
+										<ul>
+											<li class="mt-0">Step1: Install Node.js</li>
+											<li>Step2: Initialize NPM</li>
+											<li>Step3:  npm install -D tailwindcss & npx tailwindcss init</li>
+											<li>Step4:  Write Tailwind CLI build process Command (npx tailwindcss -i ./src/tailwind.css -o ./dist/tailwind-dist.css --watch)</li>
+											<li>Step5: Run the Script (npm run build)</li>
+										</ul>	<hr>
+										<h4>Install Node.js</h4>
+										<p>Node.js is a run-time environment which includes everything you need to execute a program written in JavaScript. It’s used for running scripts on the server to render content before it is delivered to a web browser. In a web browser, navigate to <a href="https://nodejs.org/en/download/" target="_blank">https://nodejs.org/en/download/.</a>.</p>
+										<h4>Update Your NPM</h4>
+										<p>Npm is the package for JavaScript and the world's largest software registry. Npm is a separate project from node.js, and tends to update more drequently. As a result, even if uou've just downloaded Node.js (and therefore npm), you'll probably need to update your npm.</p>
+										<pre class="language-javascript mb-3" tabindex="0"><code class="language-javascript">npm install --global npm@latest</code></pre>
+										<h4>Install all dependencies</h4>
+										<p>If you want to update or develop this theme, you need to install all dependencies by running:</p>
+										<pre class="language-javascript mb-3" tabindex="0"><code class="language-javascript">npm install</code></pre>
+										<h4>Install TailwindCSS</h4>
+										<p>If you use Node.js, you can also install TailwindCSS using npm by running</p>
+										<pre class="language-javascript" tabindex="0"><code class="language-javascript">npm install -D tailwindcss</code></pre>
+										<pre class="language-javascript mb-2" tabindex="0"><code class="language-javascript">npx tailwindcss init</code></pre>
+									</div>
+											<div class="alert alert-danger mb-0">
+										<span class="badge rounded-pill text-bg-danger text-uppercase">for example</span>
+										<p class="mb-0">localhost/DreamsPOS/index.html or www.example.com/index.html</p>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<!-- License -->
+						<section class="section-block page-block doc-section" id="license">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">License<a class="anchor-link ms-2" href="#license"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<p>DreamsPOS is developed by <a
+											href="https://themeforest.net/user/dreamstechnologies/portfolio"
+											target="_blank" rel="noopener">Dreams Technologies</a> and is available
+										under both <a href="https://themeforest.net/licenses/standard" target="_blank"
+											rel="noopener">Envato Extended &amp; Regular License</a> options.</p>
+									<div class="dark-mode-content">
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3">Regular License</h6>
+											<p class="mb-0">Usage by either yourself or a single client is permitted for
+												a single end product, provided that end users are not subject to any
+												charges.</p>
+										</div>
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3">Extended License</h6>
+											<p class="mb-0">For use by you or one client in a single end product for
+												which end users may be charged.</p>
+										</div>
+										<p><a href="https://themeforest.net/licenses/faq#main-differences-licenses-a"
+												target="_blank" rel="noopener">What are the main differences between the
+												Regular License and the Extended License?</a></p>
+										<div class="alert alert-info mb-0">
+											<span class="badge rounded-pill text-bg-danger text-uppercase">Note</span>
+											<p class="mb-0">If you operate as a freelancer or agency, you have the
+												option to acquire the Extended License, which permits you to utilize the
+												item across multiple projects on behalf of your clients.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /License -->
+
+						<!-- Credits -->
+						<section class="section-block page-block doc-section" id="credits">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Credits<a class="anchor-link ms-2" href="#credits"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div class="table-responsive ref-table">
+										<table class="table table-bordered table-striped mb-0">
+											<thead>
+												<tr>
+													<th class="w-20">NAME</th>
+													<th class="w-80">URL</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td><span class="text-high-em">TailwindCSS</span></td>
+													<td><a href="https://tailwindcss.com/" class="link-high-em" target="_blank">https://tailwindcss.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">jQuery</span></td>
+													<td><a href="https://jquery.com/" class="link-high-em" target="_blank">https://jquery.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Fontawesome</span></td>
+													<td><a href="https://fontawesome.com/" class="link-high-em" target="_blank">https://fontawesome.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Select2</span></td>
+													<td><a href="https://github.com/select2/select2" class="link-high-em" target="_blank">https://github.com/select2/select2</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Date Timepicker</span></td>
+													<td><a href="https://cdnjs.com/libraries/jquery-datetimepicker" class="link-high-em" target="_blank">https://cdnjs.com/libraries/jquery-datetimepicker</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Google Fonts</span></td>
+													<td><a href="https://fonts.google.com/" class="link-high-em" target="_blank">https://fonts.google.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Morris</span></td>
+													<td><a href="https://morrisjs.github.io/morris.js/" class="link-high-em" target="_blank">https://morrisjs.github.io/morris.js/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Summernote</span></td>
+													<td><a href="https://summernote.org/plugins" class="link-high-em" target="_blank">https://summernote.org/plugins</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Fancy Box</span></td>
+													<td><a href="http://fancybox.net/" class="link-high-em" target="_blank">http://fancybox.net/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Dropzone Js</span></td>
+													<td><a href="https://github.com/dropzone/dropzone" class="link-high-em" target="_blank">https://github.com/dropzone/dropzone</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Jquery UI</span></td>
+													<td><a href="https://jqueryui.com/s" class="link-high-em" target="_blank">https://jqueryui.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Full Calendar</span></td>
+													<td><a href="https://fullcalendar.io/" class="link-high-em" target="_blank">https://fullcalendar.io/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Moment JS</span></td>
+													<td><a href="https://momentjs.com/" class="link-high-em" target="_blank">https://momentjs.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Popper JS</span></td>
+													<td><a href="https://popper.js.org/" class="link-high-em" target="_blank">https://popper.js.org/</a></td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Credits -->
+
+						<!-- Support -->
+						<section class="section-block page-block doc-section" id="support">
+							<div class="custom-card support-content">
+								<div class="card-header">
+									<h2 class="card-title">Support<a class="anchor-link ms-2" href="#support"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+
+									<h3 class="title fs-200">Need Support?</h3>
+
+									<p class="mb-4">If this documentation does not address your questions, please feel
+										free to contact us via email at <a
+											class="text-dark text-decoration-underline fw-medium" rel="noopener"
+											href="mailto:business@dreamstechnologies.com">support@dreamstechnologies.com</a>
+									</p>
+
+									<div class="support-content-one">
+										<p class="mb-3 text-dark fw-medium">Reach the team at GMT+5:30. Typical reply
+											within 12–24 hours on weekdays — rarely up to 48 hrs during holidays.
+											Support is available to verified buyers for template-related issues.</p>
+										<a href="mailto:business@dreamstechnologies.com" class="btn btn-primary"><span
+												class="feather-icon d-flex align-items-center"><i
+													data-feather="phone-outgoing"></i></span> Contact Support</a>
+										<div class="imp-content">
+											<p><span>Important Note :</span> We strive to offer top-notch support, but
+												it's only available to verified buyers and for template-related issues
+												such as bugs and errors. Custom changes and third-party module setups
+												are not covered.</p>
+										</div>
+									</div>
+
+								</div>
+							</div>
+						</section>
+						<!-- /Support -->
+
+						<!-- Custom Work -->
+						<section class="section-block page-block doc-section" id="customwork">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Custom Work<a class="anchor-link ms-2" href="#"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<h5 class="card-title mb-2 fw-bold">Do you need a customized application for your
+										business?</h5>
+									<p>If you need a customized application for your business depends on your specific
+										requirements and goals, Please contact us. Customization can be the key to
+										success, ensuring your project perfectly aligns with your unique goals and
+										requirements.</p>
+									<div class="hire">
+										<h5 class="fw-bold mb-3">Don't Miss Out on the Benefits of Customization!</h5>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Unlock the potential of your
+											project. It's time to ensure your project isn't another cookie-cutter
+											solution but truly unique and effective one.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Discover how customization can make
+											a difference in your project's success. Let's create a solution that's as
+											unique as your vision!</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We'll tailor the application to meet
+											your specific needs and preferences.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We will upload your website to the
+											server and ensure it is live.</p>
+
+										<div class="contact-btn d-flex align-items-center mt-4  flex-wrap gap-2">
+											<a target="_blank" rel="noopener"
+												href="mailto:business@dreamstechnologies.com" class="btn btn-light"><i
+													class="me-2" data-feather="calendar"></i>Book an Appointment</a>
+											<a href="mailto:support@dreamstechnologies.com" class="btn btn-primary"><i
+													class="me-2" data-feather="file-text"></i>Get a Free Quote</a>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Custom Work -->
+
+						<!-- Thanks -->
+						<section class="custom-card page-block doc-section  min-h-100 mb-0" id="thanks">
+							<div class="card-body">
+								<div class="thanks">
+									<img src="assets/img/banners/ratings.svg" alt="thanks">
+									<h2>Thank You</h2>
+									<p>Thank you once again for downloading <a href="https://dreamspos.dreamstechnologies.com/"
+											class="text-primary fw-bold text-decoration-underline">DreamsPOS</a>.<br>
+										We hope you're enjoying your experience, and we kindly request that you take a
+										moment to share your valuable review and rating with us.</p>
+									<a href="https://themeforest.net/downloads" target="_blank" rel="noopener"
+										class="btn btn-primary"><i data-feather="link" class="me-2"></i>Review Link</a>
+								</div>
+							</div>
+						</section>
+						<!-- /Thanks -->
+						 
+					</div>
+				</div>
+			</div>
+			<footer class="content-footer footer">
+				<div
+					class="container-fluid d-flex flex-wrap justify-content-between align-items-center text-center gap-2 py-3">
+					<div>
+						&copy; 2015 - 2026
+
+						<a href="https://dreamstechnologies.com/" class="footer-text fw-medium text-primary"
+							target="_blank" rel="noopener">Dreams Technologies</a>
+					</div>
+					<div class="social-icons">
+						<a href="https://www.facebook.com/dreamstechnologieslimited/" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-1.svg" alt="social-icon"></a>
+						<a href="https://www.behance.net/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-2.svg" alt="social-icon"></a>
+						<a href="https://dribbble.com/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-3.svg" alt="social-icon"></a>
+						<a href="https://www.instagram.com/dreamstechnologieslimited/" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-4.svg" alt="social-icon"></a>
+					</div>
+				</div>
+			</footer>
+		</div>
+
+	</main>
+
+	<script src="assets/js/bootstrap.bundle.min.js"></script>
+	<script src="assets/js/feather.min.js"></script>
+	<script src="assets/js/prism.js"></script>
+	<script src="assets/js/script.js"></script>
+
+</body>
+
+</html>

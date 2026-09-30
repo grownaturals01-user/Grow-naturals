@@ -28,8 +28,19 @@ import {
 } from 'lucide-react';
 
 export const DeliveryChallanNew: React.FC = () => {
-  const { businessId, business } = useBusiness();
+  const { businessId, business, businesses } = useBusiness();
   const navigate = useNavigate();
+
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>(() => {
+    if (businessId && businessId !== 'all') return businessId;
+    return businesses[0]?.id || 'grow-naturals';
+  });
+
+  useEffect(() => {
+    if (businessId && businessId !== 'all') {
+      setSelectedBusinessId(businessId);
+    }
+  }, [businessId]);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -179,7 +190,7 @@ export const DeliveryChallanNew: React.FC = () => {
 
     try {
       const res = await api.post('/delivery-challans', {
-        business_id: businessId,
+        business_id: selectedBusinessId,
         customer_id: customerId || null,
         customer_name: customerName.trim(),
         customer_phone: customerPhone.trim(),

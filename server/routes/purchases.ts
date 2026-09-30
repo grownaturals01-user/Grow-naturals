@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -102,7 +102,6 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/purchases
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
     const { supplier_id, supplier_invoice_no, order_date, delivery_date, items, tax_amount, paid_amount, notes, auto_receive } = req.body;
 
     if (!supplier_id) {
@@ -114,8 +113,12 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
+    const bizRes = await db.query(`SELECT invoice_prefix FROM businesses WHERE id = $1`, [businessId]);
+    const bizPrefix = bizRes.rows[0]?.invoice_prefix ? `PO-${bizRes.rows[0].invoice_prefix.replace(/[-_]$/, '')}-` : (businessId === 'grow-naturals' ? 'PO-GN-' : 'PO-NN-');
+
     const countRes = await db.query(`SELECT COUNT(*) as count FROM purchase_orders WHERE business_id = $1`, [businessId]);
-    const prefix = businessId === 'grow-naturals' ? 'PO-GN-' : 'PO-NN-';
+    const prefix = bizPrefix;
     const poNumber = `${prefix}${1001 + Number(countRes.rows[0]?.count || 0)}`;
     const poId = `po-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 

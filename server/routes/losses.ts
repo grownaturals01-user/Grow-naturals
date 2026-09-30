@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDb } from '../db/connection.js';
+import { getDb, resolveBusinessId } from '../db/connection.js';
 
 const router = Router();
 
@@ -119,7 +119,6 @@ router.get('/metrics', async (req: Request, res: Response) => {
 // POST /api/inventory-losses - Record plant damage and reduce stock
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const businessId = req.body.business_id || getBusinessId(req);
     const {
       product_id,
       quantity,
@@ -149,15 +148,16 @@ router.post('/', async (req: Request, res: Response) => {
     const prodRes = await db.query(
       `SELECT id, name, sku, type, cost_price, sale_price, stock_quantity, business_id
        FROM products
-       WHERE id = $1 AND business_id = $2`,
-      [product_id, businessId]
+       WHERE id = $1`,
+      [product_id]
     );
 
     if (prodRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Product not found for active business' });
+      return res.status(404).json({ error: 'Product not found' });
     }
 
     const product = prodRes.rows[0];
+    const businessId = await resolveBusinessId(db, product.business_id || req.body.business_id || getBusinessId(req));
     const prevStock = Number(product.stock_quantity || 0);
     const newStock = Math.max(0, prevStock - lossQty);
 

@@ -11,6 +11,7 @@ import './styles/pos.css';
 import './styles/print.css';
 import './styles/create-sales-invoice.css';
 import './styles/dashboard-modern.css';
+import './styles/customizer.css';
 
 const rootElement = document.getElementById('root');
 

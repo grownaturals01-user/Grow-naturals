@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="keywords" content="">
+	<meta name="description" content="DreamsPos Management Admin Website Templates | DreamsPos">
+	<meta name="author" content="dreamstechnologies">
+
+	<title>DreamsPOS - Online Documentation.</title>
+
+	<!-- Favicon -->
+	<link rel="shortcut icon" href="assets/img/logo/favicon.png">
+
+	<!-- Vendor -->
+	<link rel="stylesheet" href="assets/css/bootstrap.min.css">
+	<link rel="stylesheet" href="assets/css/prism.css">
+
+	<!-- Fontawesome CSS -->
+	<link rel="stylesheet" href="assets/plugins/fontawesome/css/all.min.css">
+
+	<!-- Main CSS -->
+	<link rel="stylesheet" href="assets/css/style.css">
+
+</head>
+
+<body>
+	<main class="wrapper default-sidebar">
+
+		<!-- Header -->
+		<header class="header">
+			<div class="container-fluid">
+				<div class="header-left">
+					<div class="left-header me-3">
+						<a href="javascript:void(0)" class="sidebar-toggle p-1">
+							<span class="feather-icon"><i data-feather="sidebar"></i></span>
+						</a>
+					</div>
+					<ul
+						class="header-top-nav nav col-12 col-lg-auto me-lg-auto gap-3 d-flex align-items-center justify-content-center mb-md-0">
+						<li><a href="https://themeforest.net/user/dreamstechnologies"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="archive"></i></span>Other Products</a></li>
+						<li><a href="mailto:business@dreamstechnologies.com"
+								class="nav-link p-0 link-body-emphasis d-flex align-items-center" target="_blank"
+								rel="noopener"><span class="feather-icon me-2 d-flex align-items-center"><i
+										data-feather="briefcase"></i></span>Hire Us</a></li>
+					</ul>
+					<div class="text-end">
+						<a href="changelog.html" target="_blank" rel="noopener" class="btn btn-white btn-sm me-2"><span
+								class="feather-icon me-2"><i data-feather="refresh-cw"></i></span>Changelog</a>
+						<a href="https://dreamspos.dreamstechnologies.com/" target="_blank" rel="noopener"
+							class="btn btn-primary btn-sm"><span class="feather-icon me-2"><i
+									data-feather="play"></i></span>Live Preview</a>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- End Header -->
+
+		<div class="doc-progress">
+			<div class="doc-progress-inner" id="scrollProgress">
+
+			</div>
+		</div>
+
+		<div class="sidebar-overlay"></div>
+		<div class="sidebar">
+			<div class="sidebar-logo">
+				<a href="index.html" class="logo-dark"><img src="assets/img/logo/logo.svg" alt="logo"><span
+						class="badge badge-soft-danger fs-14 ms-2">Html</span></a>
+				<a href="index.html" class="small-logo"><img src="assets/img/logo/favicon.png" alt="logo"></a>
+			</div>
+			<div class="sidebar-inner">
+				<div class="sidebar-menu">
+					<ul id="menu-main-menu" class="sidebar-nav">
+						<li class="menu-title menu-text">Main</li>
+						<li class="menu-item submenu">
+							<a href="#instructions" class="page-link">
+								<span class="feather-icon"><i data-feather="layers"></i></span><span
+									class="menu-text"><span class="hover-title">Getting Started</span> </span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#instructions" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Introduction</a></li>
+								<li><a href="#requirement" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Requirement</a></li>
+											<li><a href="#features" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Features</a></li>
+								<li><a href="#file_structure" class="page-link drop"><span
+											class="menu-dash"><span></span></span>File Structure</a></li>
+								<li><a href="#html_structure" class="page-link drop"><span
+											class="menu-dash"><span></span></span>HTML Structure</a></li>
+								<li><a href="#script_structure" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Javascript Structure</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Configuration</li>
+						<li class="menu-item submenu">
+							<a href="#installation" class=" menu-link">
+								<span class="feather-icon"><i data-feather="life-buoy"></i></span>
+								<span class="menu-text">Installation</span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#installation" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Installation Guide</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Customization</li>
+						<li class="menu-item submenu">
+							<a href="#change_logo" class="menu-link">
+								<span class="feather-icon"><i data-feather="shield"></i></span>
+								<span class="menu-text">Customization</span>
+							</a>
+							<ul class="sidebar-dropdown menu-text">
+								<li><a href="#change_logo" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Change Logo</a></li>
+								<li><a href="#change_font" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Fonts</a></li>
+								<li><a href="#change_color" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Color System</a></li>
+								<li><a href="#dark-mode" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Dark Mode</a></li>
+								<li><a href="#rtl" class="page-link drop"><span
+											class="menu-dash"><span></span></span>RTL</a></li>
+								<li><a href="#icon" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Icons</a></li>
+								<li><a href="#datatable" class="page-link drop"><span
+											class="menu-dash"><span></span></span>Data Table</a></li>
+							</ul>
+						</li>
+						<li class="menu-item submenu">
+							<a href="#layouts" class="menu-link">
+								<span class="feather-icon"><i data-feather="shield"></i></span>
+								<span class="menu-text">Layout</span>
+							</a>
+							<ul class="sidebar-dropdown condense">
+								<li><a href="#default-layout" class="page-link drop"><span class="menu-dash"><span></span></span>Default Layout</a></li>
+								<li><a href="#mini-sidebar" class="page-link drop"><span class="menu-dash"><span></span></span>Mini Sidebar</a></li>
+								<li><a href="#two-column" class="page-link drop"><span class="menu-dash"><span></span></span>Two-Column</a></li>
+							</ul>
+						</li>
+						<li class="menu-item-separator"></li>
+						<li class="menu-title menu-text">Info</li>
+						<li class="menu-item">
+							<a href="#credits" class="page-link">
+								<span class="feather-icon"><i data-feather="zap"></i></span><span
+									class="menu-text"><span class="hover-title">Credits</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#support" class="page-link">
+								<span class="feather-icon"><i data-feather="headphones"></i></span><span
+									class="menu-text"><span class="hover-title">Support</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#customwork" class="page-link">
+								<span class="feather-icon"><i data-feather="settings"></i></span><span
+									class="menu-text"><span class="hover-title">Custom Work</span> </span>
+							</a>
+						</li>
+						<li class="menu-item">
+							<a href="#thanks" class="page-link">
+								<span class="feather-icon"><i data-feather="smile"></i></span><span
+									class="menu-text"><span class="hover-title">Thank
+										You</span> </span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<!-- main content -->
+		<div class="main-content">
+			<div class="container-fluid">
+				<!-- Page title & breadcrumb -->
+				<div class="page-title">
+					<div class="breadcrumb">
+						<h1>Documentation</h1>
+						<ul>
+							<li><a href="index.html">Home</a></li>
+							<li>Documentation</li>
+						</ul>
+					</div>
+				</div>
+				<div class="row sections">
+					<div class="col-xl-12 col-md-12">
+
+						<!-- Introduction -->
+						<section class="section-block doc-section" id="instructions">
+							<div class="card bg-dark mb-4">
+								<div class="card-body p-4">
+									<div class="intro">
+										<div class="item-details">
+											<div class="row align-items-center row-gap-4">
+												<div class="col-xl-5">
+													<div>
+														<img src="assets/img/banners/banner.png" class="img-fluid"
+															alt="DreamsPOS  Agent Banner">
+													</div>
+												</div>
+												<div class="col-xl-7">
+													<div class="banner-right ps-lg-2 ps-0">
+
+														<h2 class="mb-2 text-white">DreamsPOS - POS & Inventory Management Admin Dashboard Template</h2>
+														<p class="mb-4 text-white">
+															DreamsPOS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business.
+														</p>
+														<div class="info-list info-list-custom mb-4">
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Version <span>: v2.3.3</span> </div>
+															<div class="link-detail"> <i class="fa-solid fa-circle"></i>
+																Author : <a href="https://dreamstechnologies.com/"
+																	class="text-decoration-underline">Dreams
+																	Technologies </a></div>
+														</div>
+
+														<div
+															class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+															<div class="text-white fs-14 fw-medium"> Support via email :
+																<a href="mailto:support@dreamstechnologies.com"
+																	class="text-decoration-underline fw-normal text-white">
+																	support@dreamstechnologies.com</a>
+															</div>
+															<a href="https://1.envato.market/2rz71O"
+																target="_blank"
+																class="btn btn-primary fs-14 fw-medium d-flex align-items-center gap-2"><span
+																	class="feather-icon" title="Full Screen"><i
+																		data-feather="shopping-bag"></i></span> Buy
+																Now</a>
+														</div>
+
+													</div>
+												</div>
+
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="card mb-4 custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Introduction<a class="anchor-link ms-2"
+											href="#introduction"><i class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<p class="mb-0"><Strong>DreamsPOS</Strong> - POS & Inventory Management Admin Dashboard Template - Admin Templates Site Templates Live Preview A point of sale admin template can help organize and track inventory in a business. The template includes fields for items, quantities, prices, and descriptions. It also includes fields for customer information, such as name and address. This information can help the business keep track of its inventory and meet customers’ needs.</p>
+								</div>
+							</div>
+						</section>
+						<!-- /Introduction -->
+
+						<!-- Requirments -->
+						<section class="section-block doc-section" id="requirement">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Requirement<a class="anchor-link ms-2" href="#requirement"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div>
+										<h5 class="mb-3">Technologies</h5>
+										<div class="row row-gap-3">
+											<div class="col-md-6">
+												<div class="card bg-light">
+													<div class="card-body text-center">
+														<div class="mb-2">
+															<i class="fa-brands fa-html5 fs-1 text-primary"></i>
+														</div>
+														<h6 class="mb-0">HTML</h6>
+													</div>
+												</div>
+											</div>
+											<div class="col-md-6">
+												<div class="card bg-light">
+													<div class="card-body text-center">
+														<div class="mb-2">
+															<i class="fa-brands fa-bootstrap fs-1 text-primary"></i>
+														</div>
+														<h6 class="mb-0">Bootstrap 5</h6>
+													</div>
+												</div>
+											</div>
+										</div>
+										<h5 class="mb-3 mt-4">System Requirements</h5>
+										<ul class="feature-list">
+											<li><i class="fa-solid fa-check text-success me-2"></i><strong>Text
+													Editor</strong></li>
+											<li><i class="fa-solid fa-check text-success me-2"></i><strong>Visual Studio
+													Code editor</strong></li>
+											<li><i
+													class="fa-solid fa-check text-success me-2"></i><strong>Browser:</strong>
+												Modern browsers (Chrome, Firefox, Safari, Edge)</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Requirments -->
+
+						<!-- Features -->
+						<section class="section-block doc-section" id="features">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Features<a class="anchor-link ms-2" href="#features"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body pb-0">
+
+									<div class="row">
+										<div class="col-12">
+											<p><strong>DreamsPOS </strong> offers powerful admin template and modern
+												interface.</p>
+											<div class="row">
+												<div class="col-md-6 mb-4">
+													<div class="card bg-light h-100">
+														<div class="card-body">
+															<h5 class="mb-3">Built-in Applications</h5>
+															<ul>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Calendar</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Chat</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>To Do</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i> Notes</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i> File Manager</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i> Social Feed </li>
+																<li><i class="fa-solid fa-check text-success me-2"></i> Kanban </li>
+																<li><i class="fa-solid fa-check text-success me-2"></i> Invoices</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i> Email</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i> Call </li>
+															</ul>
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6 mb-4">
+													<div class="card bg-light h-100">
+														<div class="card-body">
+															<h5 class="mb-3"> Layout Features</h5>
+															<ul>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Creative Design</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Fully Responsive</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Color & Fonts is easily changed</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>W3C Validated Code</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Build with Bootstrap v5.x used</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Compatible Browsers: IE8+, Firefox, Safari, Opera, Chrome</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Dark, Light with RTL Supported</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Various Sidebar Colours</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Json data implemented in tables</li>
+																<li><i class="fa-solid fa-check text-success me-2"></i>Multiple Layouts</li>
+															</ul>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+								</div>
+
+							</div>
+						</section>
+						<!-- /Features -->
+
+						<!-- File Structure -->
+						<section class="section-block doc-section" id="file_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">File Structure<a class="anchor-link ms-2"
+											href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+										<h5 class="sub-title mb-3"><i
+												class="fa-solid fa-info-circle text-primary me-2"></i>Project Overview
+										</h5>
+										<p class="mb-0">The project follows a modular structure with clear separation of
+											concerns.</p>
+									</div>
+									<pre class="language-markup mb-0">
+dreamspos/
+│
+├── html/
+│   │
+│   ├── template/                 
+│   │   │
+│   │   ├── index.html
+│   │   │
+│   │   ├── assets/              
+│   │   │   ├── css/
+│   │   │   ├── fonts/
+│   │   │   ├── img/
+│   │   │   ├── js/
+│   │   │   └── plugins/
+│   │   │   └── scss/
+│   │
+│   ├── template-rtl/                 
+│   │   │
+│   │   ├── index.html
+│   │   │
+│   │   ├── assets/              
+│   │   │   ├── css/
+│   │   │   ├── fonts/
+│   │   │   ├── img/
+│   │   │   ├── js/
+│   │   │   └── plugins/
+│   │   │   └── scss/
+	</pre>
+
+								</div>
+							</div>
+						</section>
+
+						<section class="section-block doc-section" id="html_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h3 class="card-title">Html Structure<a class="anchor-link ms-2"
+											href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h3>
+								</div>
+								<div class="card-body">
+									<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+										<h5 class="sub-title mb-3"><i
+												class="fa-solid fa-info-circle text-primary me-2"></i>Structure Overview
+										</h5>
+										<p class="mb-0"><strong>DreamsPOS</strong>  is powered by the robust Bootstrap Framework, the most trusted admin toolkit for developing responsive and mobile-first websites.</p>
+									</div>
+									<p class="mb-3">The following partial files have been added to the project:
+										title-meta, header, footer and script.</p>
+									<p class="mb-3">Below is sample coding structure:</p>
+									<div class="file-structure">
+<pre class="mb-0 language-markup" tabindex="0"><code class="mb-0 language-markup">
+	<span class="token doctype"><span class="token punctuation">&lt;!</span><span class="token doctype-tag">DOCTYPE</span> <span class="token name">html</span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>html</span> <span class="token attr-name">lang</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>en<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>head</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>meta</span> <span class="token attr-name">charset</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>utf-8<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>meta</span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>viewport<span class="token punctuation">"</span></span> <span class="token attr-name">content</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>width=device-width, initial-scale=1.0, user-scalable=0<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>title</span><span class="token punctuation">&gt;</span></span>DreamsPos - Bootstrap Admin HTML Template<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>title</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>shortcut icon<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/img/favicon.png<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/css/bootstrap.min.css<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/plugins/fontawesome/css/fontawesome.min.css<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/plugins/fontawesome/css/all.min.css<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/plugins/select2/css/select2.min.css<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/css/style.css<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>head</span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>body</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>main-wrapper<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>header<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>sidebar<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>content container-fluid<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span> 
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span> 
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span> 
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/js/jquery-4.0.0.min.js<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/js/bootstrap.bundle.min.js<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/plugins/slimscroll/jquery.slimscroll.min.js<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/plugins/select2/js/select2.min.js<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>  
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/js/theme-script.js<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/js/script.js<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>body</span><span class="token punctuation">&gt;</span></span>
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>html</span><span class="token punctuation">&gt;</span></span>
+	</code></pre>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<!-- JavaScript Structure -->
+						<section class="section-block doc-section" id="script_structure">
+							<div class="custom-card">
+								<div class="card-header">
+									<h3 class="card-title">Javascripts <a class="anchor-link ms-2"
+											href="#script_structure"><i class="fa-solid fa-hashtag"></i></a></h3>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h5 class="sub-title mb-3"><i
+													class="fa-solid fa-info-circle text-primary me-2"></i>Script
+												Overview</h5>
+											<p class="mb-0">The DreamsPOS template includes a wide range of useful
+												JavaScript plugins designed to enhance the user experience on your
+												website. These plugins power features like menu sliders, booking, date &
+												time pickers, and more.</p>
+										</div>
+
+										<p>You can find all the JS files organized in the <code>js/</code> and
+											<code>plugins/</code> directories. 
+										</p>
+
+										<pre class=" language-markup mb-0 bg-dark"><code class=" language-markup">&lt;script src="assets/js/script.js"&gt;&lt;/script&gt;
+</code></pre>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /JavaScript Structure -->
+
+						<!--  Installation -->
+						<section class="section-block doc-section" id="installation">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Installation<a class="anchor-link ms-2"
+											href="#installation"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+
+									<!-- Prerequisites -->
+									<div class="row mb-4">
+										<div class="col-12">
+											<h5 class="mb-3"><i
+													class="fas fa-check-circle text-success me-2"></i>Prerequisites</h5>
+											<div class="alert alert-light border-start border-3">
+												<div class="d-flex align-items-start flex-column flex-sm-row gap-3">
+													<div>
+														<i class="fas fa-download text-primary fs-4"></i>
+													</div>
+													<div class="flex-grow-1">
+														<h6 class="fs-16 mb-2">Node.js Installation</h6>
+														<p class="text-muted mb-2">Before installing Sass, ensure you
+															have Node.js installed on your system:</p>
+														<div
+															class="alert alert-light border-start border-primary border-3 mb-0">
+															<div class="d-flex align-items-center">
+																<i class="fas fa-link text-primary me-2"></i>
+																<div>
+																	<strong>Download Node.js:</strong>
+																	<br><a href="https://nodejs.org/en/download/"
+																		target="_blank"
+																		class="text-decoration-none break-word">https://nodejs.org/en/download/</a>
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="alert alert-light border-start border-3">
+												<div class="d-flex align-items-start flex-column flex-sm-row gap-3">
+													<div>
+														<i class="fas fa-download text-primary fs-4"></i>
+													</div>
+													<div class="flex-grow-1">
+														<h6 class="fs-16 mb-2">Install Sass</h6>
+														<p class="text-muted mb-2">If you use Node.js, you can also
+															install Sass using npm by running</p>
+														<pre class="language-javascript" tabindex="0"><code class="language-javascript">npm install <span class="token operator">-</span>g sass</code></pre>
+														<pre class="language-javascript" tabindex="0"><code class="language-javascript">sass <span class="token operator">--</span>watch main<span class="token punctuation">.</span>scss<span class="token operator">:</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token operator">/</span>css<span class="token operator">/</span>style<span class="token punctuation">.</span>css</code></pre>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Installation Steps -->
+									<div class="row mb-0">
+										<div class="col-12">
+											<h5 class="mb-3"><i class="fas fa-cogs text-primary me-2"></i>Installation
+												Steps</h5>
+
+											<!-- Step -->
+											<div class="alert alert-light border-start border-3">
+												<div class="d-flex align-items-start">
+													<div class="me-3">
+														<span
+															class="badge bg-primary rounded-circle flex-shrink-0 p-2">1</span>
+													</div>
+													<div class="flex-grow-1">
+														<h6 class="fs-16 mb-2">Unzip Template Files</h6>
+														<p class="text-muted mb-0">After downloading, extract the
+															DreamsPOS  package. Inside, you will find the folder HTML
+															(Source Code), which contains all necessary files.</p>
+													</div>
+												</div>
+											</div>
+
+											<!-- Step -->
+											<div class="alert alert-light border-start border-3">
+												<div class="d-flex align-items-start flex-column flex-sm-row gap-3">
+													<div>
+														<span
+															class="badge bg-primary rounded-circle flex-shrink-0 p-2">2</span>
+													</div>
+													<div class="flex-grow-1">
+														<h6 class="fs-16 mb-2">Copy Files to Server</h6>
+														<p class="text-muted mb-0">Open the HTML folder, then copy all
+															files and paste them into your localhost directory (e.g.,
+															htdocs for XAMPP, www for WAMP) or directly into your web
+															server’s root folder.</p>
+													</div>
+												</div>
+											</div>
+
+											<!-- Step -->
+											<div class="alert alert-light border-start border-3 mb-0">
+												<div class="d-flex align-items-start flex-column flex-sm-row gap-3">
+													<div>
+														<span
+															class="badge bg-primary rounded-circle flex-shrink-0 p-2">3</span>
+													</div>
+													<div class="flex-grow-1">
+														<h6 class="fs-16 mb-2">Run in Browser</h6>
+														<p class="text-muted mb-0">Once the files are in place, you can
+															open the template in any modern web browser (Chrome,
+															Firefox, Safari, Edge) from your PC or laptop. Simply
+															navigate to localhost/dreamspos/index.html or
+															www.example.com/index.html or the domain where you uploaded
+															the template.</p>
+													</div>
+												</div>
+											</div>
+
+										</div>
+									</div>
+
+								</div>
+							</div>
+						</section>
+						<!-- /Installation -->
+
+						<!-- Change Logo -->
+						<section class="section-block doc-section" id="change_logo">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">How to change Logo? <a class="anchor-link ms-2"
+											href="#file_structure"><i class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">
+										<p>You can change the logo or replace it from img folder or you can edit it from
+											HTML file.</p>
+										<pre class="language-javascript mb-0"><code class="language-javascript">&lt;div class="header"&gt;
+	&lt;a href="index.html" class="logo"&gt;
+		&lt;img src="assets/img/logo.svg" alt="logo"&gt;
+	&lt;a&gt;
+&lt;/div&gt; </code></pre>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<!-- Change Font -->
+						<section class="section-block doc-section" id="change_font">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Fonts <a class="anchor-link ms-2" href="#change_font"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">
+										<p>The default font is <strong>Inter</strong>. To change the font:</p>
+										<p>Update the <code>@import</code> URL and the
+											<code>--font-family-primary</code> variable in <code>style.css</code>:
+										</p>
+<pre class="language-javascript" tabindex="0"><code class="language-javascript">	@<span class="token keyword">import</span> <span class="token function">url</span><span class="token punctuation">(</span><span class="token string">'https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&amp;display=swap'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	@<span class="token keyword">import</span> <span class="token function">url</span><span class="token punctuation">(</span><span class="token string">'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&amp;display=swap'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+
+<pre class="mb-0 language-javascript" tabindex="0"><code class="language-javascript">
+	body <span class="token punctuation">{</span>
+		$font<span class="token operator">-</span>family<span class="token operator">-</span>primary<span class="token operator">:</span> <span class="token string">'Nunito'</span><span class="token punctuation">,</span> sans<span class="token operator">-</span>serif<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+		</code></pre>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Change Font -->
+
+						<!-- Color System -->
+						<section class="section-block doc-section" id="change_color">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Color System <a class="anchor-link ms-2"
+											href="#change_color"><i class="fa-solid fa-hashtag"></i></a></h2>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><svg
+													xmlns="http://www.w3.org/2000/svg" width="18px" height="18px"
+													viewBox="0 0 24 24" fill="none" stroke="currentColor"
+													stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+													class="feather feather-maximize">
+													<path
+														d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+													</path>
+												</svg></span>
+										</a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="file-structure">
+										<p>The design token variables are defined in the <code>@theme</code> block of
+											your CSS file. Here are the primary color tokens:</p>
+										<h6 class="sub-title mb-3">Background Color Change</h6>
+										<p>You can change the header background color in style.css as per your wish</p>
+										<pre class=" language-javascript mb-0"><code class=" language-javascript">
+	.header {
+		background: #fff;
+		left: 0;
+		position: fixed;
+		right: 0;
+		top: 0;
+		height: 60px;
+	}
+		</code></pre>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Color System -->
+
+						<!-- Dark Mode -->
+						<section class="section-block doc-section" id="dark-mode">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Dark Mode<a class="anchor-link ms-2" href="#dark-mode"><i class="fa-solid fa-hashtag"></i></a></h2>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-maximize"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+										<div class="dark-mode-content">
+											<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3"><i class="fa-solid fa-info-circle text-primary me-2"></i>How it Works</h6>
+											<p class="mb-0">Dark mode is controlled by a theme attribute/class on the root element. When activated, all design tokens are overridden to dark variants.</p>
+										</div>
+
+										<p>The theme is controlled by the <code>data-theme</code> attribute on the <code>&lt;html&gt;</code> element:</p>
+<pre class="mb-3 d-inline-flex language-javascript" tabindex="0"><code class="font-mono language-javascript"><span class="token operator">&lt;</span>html lang<span class="token operator">=</span><span class="token string">"en"</span> data<span class="token operator">-</span>theme<span class="token operator">=</span><span class="token string">"dark"</span><span class="token operator">&gt;</span></code></pre>
+										<p>Dark mode styles are defined in the <code>[data-theme=dark]</code> block in <code>style.css</code>:</p>
+<pre class="mb-0 language-javascript" tabindex="0"><code class="language-javascript"><span class="token punctuation">[</span>data<span class="token operator">-</span>theme<span class="token operator">=</span>dark<span class="token punctuation">]</span> <span class="token punctuation">{</span>
+	$darkmode-light<span class="token operator">:</span> #<span class="token constant">D6DADE</span><span class="token punctuation">;</span>
+	$darkmode-dark<span class="token operator">:</span> #<span class="token number">131313</span><span class="token punctuation">;</span>
+	$darkmode-white<span class="token operator">:</span> #<span class="token number">0D0D0D</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+										</div>
+									</div>
+								</div>
+						</section>
+						<!-- /Dark Mode -->
+
+						<!-- RTL -->
+						<section class="section-block doc-section" id="rtl">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">RTL Support<a class="anchor-link ms-2" href="#rtl"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><svg
+													xmlns="http://www.w3.org/2000/svg" width="16px" height="16px"
+													viewBox="0 0 24 24" fill="none" stroke="currentColor"
+													stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+													class="feather feather-maximize">
+													<path
+														d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+													</path>
+												</svg></span></a>
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="rtl-content">
+										<p>To enable Right-to-Left (RTL) layout, add the <code>dir="rtl"</code>
+											attribute to the <code>&lt;html&gt;</code> tag:</p>
+										<pre class="mb-3 d-inline-flex language-javascript"
+											tabindex="0"><code class="font-mono language-javascript"><span class="token operator">&lt;</span>html lang<span class="token operator">=</span><span class="token string">"en"</span> dir<span class="token operator">=</span><span class="token string">"rtl"</span><span class="token operator">&gt;</span></code></pre>
+										<p>Tailwind CSS handles RTL layout transformations automatically when the
+											<code>dir</code> attribute is set. All margin, padding, and positioning
+											utilities adapt to the RTL direction.
+										</p>
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-0">
+											<h6 class="sub-title mb-3"><i
+													class="fa-solid fa-info-circle text-primary me-2"></i>RTL Demo</h6>
+											<p class="mb-0">An RTL demo page is available at <code>rtl.html</code> in
+												the HTML version for reference.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+
+						</section>
+						<!-- /RTL -->
+
+						<!-- Icon -->
+						<section class="section-block doc-section" id="icon">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Icons<a class="anchor-link ms-2" href="#icon"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div class="server">
+										<p>Use Font Awesome icons with spesific class</p>
+<pre class="language-markup" tabindex="0"><code class="mb-0 language-markup">
+	<span class="token doctype"><span class="token punctuation">&lt;!</span><span class="token doctype-tag">DOCTYPE</span> <span class="token name">html</span><span class="token punctuation">&gt;</span></span>
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>html</span> <span class="token attr-name">lang</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>en<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>head</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/plugins/fontawesome/css/fontawesome.min.css<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/plugins/fontawesome/css/all.min.css<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>head</span><span class="token punctuation">&gt;</span></span>
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>html</span><span class="token punctuation">&gt;</span></span>
+
+</code></pre>
+<pre class="mb-0 language-markup" tabindex="0"><code class="language-markup">
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>i</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>fa-regular fa-bell<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>i</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>fa-regular fa-comment<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>i</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>fa-solid fa-paper-plane<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+	
+</code></pre>
+									</div>
+								</div>
+							</div>
+
+						</section>
+						<!-- /Icon -->
+
+						<!-- Datatable -->
+						<section class="section-block doc-section" id="datatable">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Datatable<a class="anchor-link ms-2" href="#datatable"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div class="server">
+<pre class="language-markup mb-2" tabindex="0"><code class="mb-0 language-markup">
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>table-responsive<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>table</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>table border-0 table-center mb-0 datatable<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>thead</span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tr</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>
+						<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>form-check check-tables<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+							<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>form-check-input<span class="token punctuation">"</span></span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>checkbox<span class="token punctuation">"</span></span>  <span class="token attr-name">value</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>something<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+						<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>ID<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>Name<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>Class<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>Subject<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tr</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>thead</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tbody</span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tr</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span>
+						<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>form-check check-tables<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+							<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>form-check-input<span class="token punctuation">"</span></span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>checkbox<span class="token punctuation">"</span></span>  <span class="token attr-name">value</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>something<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+						<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span>10<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span>Mathematics<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span>A<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+					<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span>097 3584 5870<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+				<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tr</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tbody</span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>table</span><span class="token punctuation">&gt;</span></span>
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+
+</code></pre>
+
+<pre class="mb-0 language-markup" tabindex="0"><code class="language-markup">
+	<span class="token doctype"><span class="token punctuation">&lt;!</span><span class="token doctype-tag">DOCTYPE</span> <span class="token name">html</span><span class="token punctuation">&gt;</span></span>
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>html</span> <span class="token attr-name">lang</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>en<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>head</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/css/dataTables.bootstrap5.min.css&gt;
+			&lt;title&gt;DreamsPOS Admin Template&lt;/title&gt;
+		&lt;/head&gt;
+		&lt;body&gt;
+
+			&lt;div class=<span class="token punctuation">"</span></span><span class="token attr-name">main-wrapper"</span><span class="token punctuation">&gt;</span></span>
+
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/js/jquery.dataTables.min.js<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
+			<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/js/dataTables.bootstrap5.min.js<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
+		<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>body</span><span class="token punctuation">&gt;</span></span>
+	<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>html</span><span class="token punctuation">&gt;</span></span>
+	
+</code></pre>
+									</div>
+								</div>
+							</div>
+
+						</section>
+						<!-- /Icon -->
+
+						<!-- Layout Options -->
+						<section class="section-block doc-section" id="layouts">
+							<div class="custom-card mb-4">
+								<div class="card-header">
+									<h2 class="card-title">Layout Options<a class="anchor-link ms-2" href="#layouts"><i class="fa-solid fa-hashtag"></i></a></h2>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span>
+										</a>
+									</div>
+								</div>
+								<div class="card-body">
+									<p class="mb-0">DreamsPOS offers multiple layout options to suit different application needs. Each layout can be combined with light or dark mode.</p>
+								</div>
+							</div>
+						</section>
+						<!-- /Layout Options -->
+
+						<!-- Default Layout -->
+						<section class="section-block doc-section" id="default-layout">
+							<div class="custom-card">
+								<div class="card-header">
+									<h3 class="card-title">Default Layout<a class="anchor-link ms-2" href="#default-layout"><i class="fa-solid fa-hashtag"></i></a></h3>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span>
+										</a>
+									</div>
+								</div>
+								<div class="card-body">
+									<p>The default layout features a full vertical sidebar on the left, a horizontal topbar at the top, and the main content area. This is the standard layout used across all dashboard pages.</p>
+									<ul class="feature-list mb-0">
+										<li><i class="fa-solid fa-check text-success me-2"></i>Full-width sidebar with navigation menu, logo, and user profile</li>
+										<li><i class="fa-solid fa-check text-success me-2"></i>Top header with search, notifications, and user actions</li>
+										<li><i class="fa-solid fa-check text-success me-2"></i>Responsive - sidebar collapses to overlay on mobile devices</li>
+									</ul>
+								</div>
+							</div>
+						</section>
+						<!-- /Default Layout -->
+
+						<!-- Mini Sidebar -->
+						<section class="section-block doc-section" id="mini-sidebar">
+							<div class="custom-card">
+								<div class="card-header">
+									<h3 class="card-title">Mini Sidebar<a class="anchor-link ms-2" href="#mini-sidebar"><i class="fa-solid fa-hashtag"></i></a></h3>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span>
+										</a>
+									</div>
+								</div>
+								<div class="card-body">
+									<p>The mini sidebar layout collapses the sidebar to show only icons, providing more space for the main content area. Users can toggle between expanded and collapsed states using the sidebar toggle button.</p>
+									<ul class="feature-list mb-0">
+										<li><i class="fa-solid fa-check text-success me-2"></i>Collapsed sidebar showing only menu icons</li>
+										<li><i class="fa-solid fa-check text-success me-2"></i>Hover to expand and reveal full menu text</li>
+										<li><i class="fa-solid fa-check text-success me-2"></i>Toggle via the hamburger button in the topbar</li>
+									</ul>
+								</div>
+							</div>
+						</section>
+						<!-- /Mini Sidebar -->
+
+						<!-- Two-Column -->
+						<section class="section-block doc-section" id="two-column">
+							<div class="custom-card">
+								<div class="card-header">
+									<h3 class="card-title">Two-Column Layout<a class="anchor-link ms-2" href="#two-column"><i class="fa-solid fa-hashtag"></i></a></h3>
+									<div class="header-tools">
+										<a href="#" class="card-maximize">
+											<span class="feather-icon" title="Full Screen"><i data-feather="maximize"></i></span>
+										</a>
+									</div>
+								</div>
+								<div class="card-body">
+									<p>The two-column layout features a primary icon bar and a secondary navigation panel. This layout is ideal for applications with deep menu hierarchies.</p>
+									<ul class="feature-list mb-0">
+										<li><i class="fa-solid fa-check text-success me-2"></i>Primary column with category icons</li>
+										<li><i class="fa-solid fa-check text-success me-2"></i>Secondary column with detailed sub-navigation</li>
+										<li><i class="fa-solid fa-check text-success me-2"></i>See <code>two-column.html</code> for a working demo</li>
+									</ul>
+								</div>
+							</div>
+						</section>
+						<!-- /Two-Column -->
+
+						<!-- License -->
+						<section class="section-block page-block doc-section" id="license">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">License<a class="anchor-link ms-2" href="#license"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<p>DreamsPOS is developed by <a
+											href="https://themeforest.net/user/dreamstechnologies/portfolio"
+											target="_blank" rel="noopener">Dreams Technologies</a> and is available
+										under both <a href="https://themeforest.net/licenses/standard" target="_blank"
+											rel="noopener">Envato Extended &amp; Regular License</a> options.</p>
+									<div class="dark-mode-content">
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3">Regular License</h6>
+											<p class="mb-0">Usage by either yourself or a single client is permitted for
+												a single end product, provided that end users are not subject to any
+												charges.</p>
+										</div>
+										<div class="bg-light p-3 rounded border-start border-3 border-primary mb-4">
+											<h6 class="sub-title mb-3">Extended License</h6>
+											<p class="mb-0">For use by you or one client in a single end product for
+												which end users may be charged.</p>
+										</div>
+										<p><a href="https://themeforest.net/licenses/faq#main-differences-licenses-a"
+												target="_blank" rel="noopener">What are the main differences between the
+												Regular License and the Extended License?</a></p>
+										<div class="alert alert-info mb-0">
+											<span class="badge rounded-pill text-bg-danger text-uppercase">Note</span>
+											<p class="mb-0">If you operate as a freelancer or agency, you have the
+												option to acquire the Extended License, which permits you to utilize the
+												item across multiple projects on behalf of your clients.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /License -->
+
+						<!-- Credits -->
+						<section class="section-block page-block doc-section" id="credits">
+							<div class="custom-card">
+								<div class="card-header">
+									<h4 class="card-title">Credits<a class="anchor-link ms-2" href="#credits"><i
+												class="fa-solid fa-hashtag"></i></a></h4>
+								</div>
+								<div class="card-body">
+									<div class="table-responsive ref-table">
+										<table class="table table-bordered table-striped mb-0">
+											<thead>
+												<tr>
+													<th class="w-20">NAME</th>
+													<th class="w-80">URL</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td><span class="text-high-em">Bootstrap</span></td>
+													<td><a href="https://getbootstrap.com/docs/5.3/getting-started/introduction/" class="link-high-em" target="_blank">https://getbootstrap.com/docs/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">jQuery</span></td>
+													<td><a href="https://jquery.com/" class="link-high-em" target="_blank">https://jquery.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Fontawesome</span></td>
+													<td><a href="https://fontawesome.com/" class="link-high-em" target="_blank">https://fontawesome.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Select2</span></td>
+													<td><a href="https://github.com/select2/select2" class="link-high-em" target="_blank">https://github.com/select2/select2</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Date Timepicker</span></td>
+													<td><a href="https://cdnjs.com/libraries/jquery-datetimepicker" class="link-high-em" target="_blank">https://cdnjs.com/libraries/jquery-datetimepicker</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Google Fonts</span></td>
+													<td><a href="https://fonts.google.com/" class="link-high-em" target="_blank">https://fonts.google.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Fancy Box</span></td>
+													<td><a href="http://fancybox.net/" class="link-high-em" target="_blank">http://fancybox.net/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Full Calendar</span></td>
+													<td><a href="https://fullcalendar.io/" class="link-high-em" target="_blank">https://fullcalendar.io/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Moment JS</span></td>
+													<td><a href="https://momentjs.com/" class="link-high-em" target="_blank">https://momentjs.com/</a></td>
+												</tr>
+												<tr>
+													<td><span class="text-high-em">Datatables</span></td>
+													<td><a href="https://datatables.net/download" class="link-high-em" target="_blank">https://datatables.net/download</a></td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Credits -->
+
+						<!-- Support -->
+						<section class="section-block page-block doc-section" id="support">
+							<div class="custom-card support-content">
+								<div class="card-header">
+									<h2 class="card-title">Support<a class="anchor-link ms-2" href="#support"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+
+									<h3 class="title fs-200">Need Support?</h3>
+
+									<p class="mb-4">If this documentation does not address your questions, please feel
+										free to contact us via email at <a
+											class="text-dark text-decoration-underline fw-medium" rel="noopener"
+											href="mailto:business@dreamstechnologies.com">support@dreamstechnologies.com</a>
+									</p>
+
+									<div class="support-content-one">
+										<p class="mb-3 text-dark fw-medium">Reach the team at GMT+5:30. Typical reply
+											within 12–24 hours on weekdays — rarely up to 48 hrs during holidays.
+											Support is available to verified buyers for template-related issues.</p>
+										<a href="mailto:business@dreamstechnologies.com" class="btn btn-primary"><span
+												class="feather-icon d-flex align-items-center"><i
+													data-feather="phone-outgoing"></i></span> Contact Support</a>
+										<div class="imp-content">
+											<p><span>Important Note :</span> We strive to offer top-notch support, but
+												it's only available to verified buyers and for template-related issues
+												such as bugs and errors. Custom changes and third-party module setups
+												are not covered.</p>
+										</div>
+									</div>
+
+								</div>
+							</div>
+						</section>
+						<!-- /Support -->
+
+						<!-- Custom Work -->
+						<section class="section-block page-block doc-section" id="customwork">
+							<div class="custom-card">
+								<div class="card-header">
+									<h2 class="card-title">Custom Work<a class="anchor-link ms-2" href="#"><i
+												class="fa-solid fa-hashtag"></i></a></h2>
+								</div>
+								<div class="card-body">
+									<h5 class="card-title mb-2 fw-bold">Do you need a customized application for your
+										business?</h5>
+									<p>If you need a customized application for your business depends on your specific
+										requirements and goals, Please contact us. Customization can be the key to
+										success, ensuring your project perfectly aligns with your unique goals and
+										requirements.</p>
+									<div class="hire">
+										<h5 class="fw-bold mb-3">Don't Miss Out on the Benefits of Customization!</h5>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Unlock the potential of your
+											project. It's time to ensure your project isn't another cookie-cutter
+											solution but truly unique and effective one.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>Discover how customization can make
+											a difference in your project's success. Let's create a solution that's as
+											unique as your vision!</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We'll tailor the application to meet
+											your specific needs and preferences.</p>
+										<p class="benefits-path"><span><i class="text-primary me-2"
+													data-feather="award"></i></span>We will upload your website to the
+											server and ensure it is live.</p>
+
+										<div class="contact-btn d-flex align-items-center mt-4  flex-wrap gap-2">
+											<a target="_blank" rel="noopener"
+												href="mailto:business@dreamstechnologies.com" class="btn btn-light"><i
+													class="me-2" data-feather="calendar"></i>Book an Appointment</a>
+											<a href="mailto:support@dreamstechnologies.com" class="btn btn-primary"><i
+													class="me-2" data-feather="file-text"></i>Get a Free Quote</a>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+						<!-- /Custom Work -->
+
+						<!-- Thanks -->
+						<section class="custom-card page-block doc-section  min-h-100 mb-0" id="thanks">
+							<div class="card-body">
+								<div class="thanks">
+									<img src="assets/img/banners/ratings.svg" alt="thanks">
+									<h2>Thank You</h2>
+									<p>Thank you once again for downloading <a href="https://dreamspos.dreamstechnologies.com/"
+											class="text-primary fw-bold text-decoration-underline">DreamsPOS</a>.<br>
+										We hope you're enjoying your experience, and we kindly request that you take a
+										moment to share your valuable review and rating with us.</p>
+									<a href="https://themeforest.net/downloads" target="_blank" rel="noopener"
+										class="btn btn-primary"><i data-feather="link" class="me-2"></i>Review Link</a>
+								</div>
+							</div>
+						</section>
+						<!-- /Thanks -->
+						 
+					</div>
+				</div>
+			</div>
+			<footer class="content-footer footer">
+				<div
+					class="container-fluid d-flex flex-wrap justify-content-between align-items-center text-center gap-2 py-3">
+					<div>
+						&copy; 2015 - 2026
+
+						<a href="https://dreamstechnologies.com/" class="footer-text fw-medium text-primary"
+							target="_blank" rel="noopener">Dreams Technologies</a>
+					</div>
+					<div class="social-icons">
+						<a href="https://www.facebook.com/dreamstechnologieslimited/" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-1.svg" alt="social-icon"></a>
+						<a href="https://www.behance.net/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-2.svg" alt="social-icon"></a>
+						<a href="https://dribbble.com/dreamstechnologies" class="me-2" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-3.svg" alt="social-icon"></a>
+						<a href="https://www.instagram.com/dreamstechnologieslimited/" target="_blank"
+							rel="noopener"><img src="assets/img/thanks/social-icon-4.svg" alt="social-icon"></a>
+					</div>
+				</div>
+			</footer>
+		</div>
+
+	</main>
+
+	<script src="assets/js/bootstrap.bundle.min.js"></script>
+	<script src="assets/js/feather.min.js"></script>
+	<script src="assets/js/prism.js"></script>
+	<script src="assets/js/script.js"></script>
+
+</body>
+
+</html>

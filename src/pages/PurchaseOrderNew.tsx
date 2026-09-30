@@ -6,8 +6,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Save, ShoppingBag, CheckSquare } from 'lucide-react';
 
 export const PurchaseOrderNew: React.FC = () => {
-  const { businessId, business } = useBusiness();
+  const { businessId, business, businesses } = useBusiness();
   const navigate = useNavigate();
+
+  const safeBusinessId = (businessId && businessId !== 'all') ? businessId : (businesses[0]?.id || 'grow-naturals');
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -83,7 +85,7 @@ export const PurchaseOrderNew: React.FC = () => {
     setIsSubmitting(true);
     try {
       const res = await api.post('/purchases', {
-        business_id: businessId,
+        business_id: safeBusinessId,
         supplier_id: supplierId,
         supplier_invoice_no: supplierInvoiceNo.trim(),
         order_date: orderDate,

@@ -6,13 +6,14 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--color-bg-app);
+  font-family: var(--font-family-sans);
 }
 
-/* Sidebar Styles */
+/* Sidebar Styles - DreamsPOS Signature */
 .sidebar {
   width: 260px;
-  background-color: var(--color-sidebar-bg);
-  border-right: 1px solid var(--color-sidebar-border);
+  background: var(--color-sidebar-bg) !important;
+  border-right: 1px solid var(--color-sidebar-border) !important;
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -21,8 +22,9 @@
   left: 0;
   z-index: 40;
   transition: width var(--transition-normal), transform var(--transition-normal);
-  color: var(--color-sidebar-text);
+  color: var(--color-sidebar-text) !important;
   user-select: none;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.03);
 }
 
 .sidebar.collapsed {
@@ -35,7 +37,7 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--color-sidebar-border);
-  min-height: 68px;
+  min-height: 64px;
 }
 
 .sidebar-brand {
@@ -47,23 +49,22 @@
 }
 
 .brand-icon {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   background-color: #ffffff;
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  border: 1px solid #E5E7EB;
+  transition: transform var(--transition-fast);
 }
 
 .sidebar-brand:hover .brand-icon {
   transform: scale(1.05);
-  box-shadow: 0 3px 10px rgba(74, 222, 128, 0.4);
 }
 
 .brand-logo-img {
@@ -81,224 +82,228 @@
 
 .brand-title {
   font-family: var(--font-family-display);
-  font-weight: var(--font-weight-extrabold);
-  font-size: var(--font-md);
-  color: #ffffff;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--color-sidebar-text) !important;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
 .brand-subtitle {
-  font-size: var(--font-xs);
-  color: var(--color-sidebar-text-muted);
+  font-size: 11px;
+  color: var(--color-sidebar-text-muted) !important;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .sidebar-toggle-btn {
-  background: transparent;
-  border: none;
-  color: var(--color-sidebar-text-muted);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--color-sidebar-border);
+  color: var(--color-sidebar-text) !important;
   cursor: pointer;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
+  padding: 6px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color var(--transition-fast), background-color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .sidebar-toggle-btn:hover {
-  color: #ffffff;
-  background-color: var(--color-sidebar-surface);
+  color: #FE9F43;
+  background-color: var(--color-primary-light);
+  border-color: var(--color-primary-border);
+}
+
+.sidebar-mobile-close-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--color-sidebar-border);
+  color: var(--color-sidebar-text) !important;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-mobile-close-btn:hover {
+  color: #FE9F43;
+  background-color: var(--color-primary-light);
+  border-color: var(--color-primary-border);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 38;
+  animation: fadeInBackdrop 0.2s ease-out;
+}
+
+/* DreamsPOS Modern Profile Widget in Sidebar */
+.sidebar-profile-card {
+  margin: 12px 14px 4px 14px;
+  padding: 10px 12px;
+  background: var(--color-bg-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #FE9F43 0%, #E58830 100%);
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(254, 159, 67, 0.35);
+}
+
+.profile-online-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #3EB780;
+  border: 1.5px solid var(--color-sidebar-bg);
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  line-height: 1.25;
+}
+
+.profile-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-role {
+  font-size: 11px;
+  color: var(--color-text-dim);
+  text-transform: capitalize;
+  font-weight: 500;
 }
 
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-3) var(--space-2-5);
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 14px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
 }
 
 .sidebar-nav::-webkit-scrollbar {
   width: 4px;
 }
 
-.sidebar-nav::-webkit-scrollbar-track {
-  background: transparent;
-}
-
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(156, 163, 175, 0.3);
   border-radius: var(--radius-full);
-  transition: background-color var(--transition-fast);
 }
 
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(74, 222, 128, 0.45);
+  background: #FE9F43;
 }
 
 .nav-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 3px;
 }
 
 .nav-section-title {
-  font-size: var(--font-xs);
-  font-weight: var(--font-weight-bold);
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: var(--space-2) var(--space-3);
+  padding: 6px 10px 4px 10px;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  color: var(--color-sidebar-text-muted);
+  gap: 6px;
+  color: var(--color-sidebar-text-muted) !important;
 }
 
 .nav-section-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--radius-full);
+  background-color: var(--color-primary);
 }
-
-/* Multi-colour module section dot accents */
-.section-sell .nav-section-dot { background-color: var(--module-sell-accent-light); }
-.section-inv .nav-section-dot { background-color: var(--module-inv-accent-light); }
-.section-proj .nav-section-dot { background-color: var(--module-proj-accent-light); }
-.section-purch .nav-section-dot { background-color: var(--module-purch-accent-light); }
-.section-ops .nav-section-dot { background-color: var(--module-ops-accent-light); }
-.section-admin .nav-section-dot { background-color: var(--module-admin-accent-light); }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2-5) var(--space-3);
+  gap: 10px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
-  color: var(--color-sidebar-text);
-  font-size: var(--font-sm);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: -0.01em;
-  transition: background-color var(--transition-fast), color var(--transition-fast), transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), box-shadow var(--transition-fast);
+  color: var(--color-sidebar-text) !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
   white-space: nowrap;
   position: relative;
-  border: 1px solid transparent;
+  text-decoration: none;
 }
 
 .nav-link:hover {
-  background-color: var(--color-sidebar-surface);
-  color: #ffffff;
-  transform: translateX(4px);
+  background-color: var(--color-sidebar-hover-bg) !important;
+  color: var(--color-sidebar-hover-text) !important;
 }
 
 .nav-link:hover .nav-icon {
-  transform: scale(1.08);
-  opacity: 1;
+  color: var(--color-sidebar-hover-text) !important;
 }
 
-/* Active Nav Link with Glowing Indicator Bar & Smooth Spring Animation */
+/* DreamsPOS Signature Active Nav State */
 .nav-link.active {
-  background-color: #14532d;
-  color: #ffffff;
-  font-weight: var(--font-weight-semibold);
-  border-color: rgba(74, 222, 128, 0.22);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  transform: translateX(2px);
+  background-color: var(--color-primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(254, 159, 67, 0.35);
 }
 
 .nav-link.active:hover {
-  transform: translateX(4px);
-  background-color: #166534;
-}
-
-@keyframes activeBarPop {
-  0% {
-    transform: scaleY(0.2) scaleX(0.6);
-    opacity: 0.2;
-  }
-  50% {
-    transform: scaleY(1.15) scaleX(1.1);
-    opacity: 1;
-  }
-  75% {
-    transform: scaleY(0.96) scaleX(1);
-  }
-  100% {
-    transform: scaleY(1) scaleX(1);
-    opacity: 1;
-  }
-}
-
-@keyframes activeIconBounce {
-  0% {
-    transform: scale(0.9);
-  }
-  50% {
-    transform: scale(1.14);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.nav-link.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 3.5px;
-  border-radius: 0 4px 4px 0;
-  transform-origin: center left;
-  animation: activeBarPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-.section-sell .nav-link.active::before {
-  background-color: #f59e0b;
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
-}
-
-.section-inv .nav-link.active::before {
-  background-color: #16a34a;
-  box-shadow: 0 0 6px rgba(22, 163, 74, 0.7);
-}
-
-.section-proj .nav-link.active::before {
-  background-color: #8b5cf6;
-  box-shadow: 0 0 6px rgba(139, 92, 246, 0.7);
-}
-
-.section-purch .nav-link.active::before {
-  background-color: #0284c7;
-  box-shadow: 0 0 6px rgba(2, 132, 199, 0.7);
-}
-
-.section-ops .nav-link.active::before {
-  background-color: #e11d48;
-  box-shadow: 0 0 6px rgba(225, 29, 72, 0.7);
-}
-
-.section-admin .nav-link.active::before {
-  background-color: #64748b;
-  box-shadow: 0 0 6px rgba(100, 116, 139, 0.6);
+  background-color: var(--color-primary-hover) !important;
+  color: #FFFFFF !important;
 }
 
 .nav-icon {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  opacity: 0.85;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity var(--transition-fast);
+  color: var(--color-sidebar-text) !important;
+  transition: transform var(--transition-fast);
 }
 
 .nav-link.active .nav-icon {
-  opacity: 1;
-  animation: activeIconBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  color: #FFFFFF !important;
 }
 
 /* Main Content Area */
@@ -309,6 +314,7 @@
   flex-direction: column;
   min-width: 0;
   transition: margin-left var(--transition-normal);
+  background-color: var(--color-bg-app);
 }
 
 .sidebar.collapsed ~ .main-wrapper,
@@ -316,27 +322,130 @@
   margin-left: 76px;
 }
 
-/* Header Styles */
+/* Header Styles - DreamsPOS Signature Clean Topbar */
 .header {
-  height: 68px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1.5px solid rgba(226, 232, 240, 0.8);
-  padding: 0 var(--space-6);
+  height: 62px;
+  background: var(--color-header-bg) !important;
+  border-bottom: 1px solid var(--color-header-border) !important;
+  color: var(--color-header-text) !important;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 30;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
   transition: all var(--transition-normal);
 }
 
-[data-theme="dark"] .header {
-  background: rgba(15, 23, 42, 0.85);
-  border-bottom: 1.5px solid rgba(51, 65, 85, 0.8);
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* DreamsPOS Header Center Search */
+.header-search {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 380px;
+  margin: 0 24px;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: var(--color-bg-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  gap: 8px;
+  transition: all var(--transition-fast);
+}
+
+.search-input-wrap:focus-within {
+  border-color: #FE9F43;
+  background: var(--color-bg-surface);
+  box-shadow: 0 0 0 3px rgba(254, 159, 67, 0.15);
+}
+
+.search-icon {
+  color: var(--color-text-dim);
+  flex-shrink: 0;
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  font-family: var(--font-family-sans);
+  color: var(--color-text-primary);
+  width: 100%;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-dim);
+}
+
+.search-shortcut {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dim);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-family-mono);
+  pointer-events: none;
+}
+
+/* Quick Add Button */
+.dash-header-btn-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  background-color: #FE9F43;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(254, 159, 67, 0.35);
+  transition: all var(--transition-fast);
+}
+
+.dash-header-btn-add:hover {
+  background-color: #E58830;
+  transform: translateY(-1px);
+}
+
+/* POS Header Button */
+.dash-header-btn-pos {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  background-color: #092C4C;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(9, 44, 76, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.dash-header-btn-pos:hover {
+  background-color: #061D33;
+  color: #FFFFFF;
+  transform: translateY(-1px);
 }
 
 .header-left {
@@ -349,10 +458,37 @@
   display: none;
   background: transparent;
   border: none;
-  color: var(--color-text-primary);
+  color: var(--color-header-text);
   cursor: pointer;
   padding: var(--space-2);
   border-radius: var(--radius-sm);
+}
+
+.desktop-sidebar-toggle-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-header-border);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-header-text) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-right: 4px;
+}
+
+.desktop-sidebar-toggle-btn:hover {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary-border);
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar-toggle-btn {
+    display: none !important;
+  }
 }
 
 /* ==========================================================================
@@ -653,6 +789,14 @@
 
   .sidebar.mobile-open {
     transform: translateX(0);
+  }
+
+  .sidebar-toggle-btn {
+    display: none !important;
+  }
+
+  .sidebar-mobile-close-btn {
+    display: flex !important;
   }
 
   .main-wrapper,

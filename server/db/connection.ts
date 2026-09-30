@@ -198,7 +198,65 @@ export async function initDb(): Promise<void> {
        ('ws-gn-6', 'grow-naturals', 'prod-gn-6', 80, 'Fertilizer Store')
      ON CONFLICT (business_id, product_id) DO UPDATE SET stock_quantity = EXCLUDED.stock_quantity WHERE warehouse_stocks.stock_quantity = 0;`,
     `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS split_cash_amount NUMERIC(12,2) DEFAULT 0.00;`,
-    `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS split_upi_amount NUMERIC(12,2) DEFAULT 0.00;`
+    `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS split_upi_amount NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS client_id VARCHAR(64);`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS address TEXT DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS phone VARCHAR(32) DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS gst_number VARCHAR(32) DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS location VARCHAR(255) DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS referred_by VARCHAR(255) DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS category_id VARCHAR(64) DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS category_name VARCHAR(128) DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS work_type VARCHAR(128) DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS work_nature VARCHAR(32) DEFAULT 'new';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS rework_source VARCHAR(64) DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS site_visit_amount NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS allowance_amount NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS allowance_notes TEXT DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS appointment_date TIMESTAMP;`,
+    `CREATE TABLE IF NOT EXISTS project_work_types (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      name VARCHAR(128) NOT NULL,
+      description TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `INSERT INTO project_work_types (id, business_id, name, description, sort_order)
+     VALUES 
+       ('pwt-gn-1', 'grow-naturals', 'Planting', 'Site saplings, shrubs, and ornamental planting', 1),
+       ('pwt-gn-2', 'grow-naturals', 'Gardening', 'Garden maintenance, bed preparation & lawn care', 2),
+       ('pwt-gn-3', 'grow-naturals', 'Landscaping', 'Full landscape design, grading and green architecture', 3),
+       ('pwt-gn-4', 'grow-naturals', 'Tree Transplanting', 'Mature tree shifting and root-ball relocation', 4),
+       ('pwt-gn-5', 'grow-naturals', 'Irrigation & Drainage', 'Drip systems, sprinkler manifolds and runoff lines', 5),
+       ('pwt-gn-6', 'grow-naturals', 'Lawn Laying & Turf', 'Natural Bermuda/Korean grass rolls or artificial turf', 6),
+       ('pwt-gn-7', 'grow-naturals', 'Terrace & Balcony Garden', 'Vertical green walls, lightweight planters and drainage', 7),
+       ('pwt-nn-1', 'nikhlesh-nursery', 'Planting', 'Site saplings, shrubs, and nursery planting', 1),
+       ('pwt-nn-2', 'nikhlesh-nursery', 'Gardening', 'Garden upkeep and pruning', 2),
+       ('pwt-nn-3', 'nikhlesh-nursery', 'Landscaping', 'Commercial landscape & ground development', 3)
+     ON CONFLICT (id) DO NOTHING;`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS advance_amount NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS assigned_work TEXT DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS assigned_labour TEXT DEFAULT '';`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS labour_count INTEGER DEFAULT 0;`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS expected_completion_date DATE;`,
+    `ALTER TABLE quotations ADD COLUMN IF NOT EXISTS project_id VARCHAR(64) DEFAULT '';`,
+    `CREATE TABLE IF NOT EXISTS project_daily_tasks (
+      id VARCHAR(64) PRIMARY KEY,
+      project_id VARCHAR(64) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      task_date DATE NOT NULL DEFAULT CURRENT_DATE,
+      task_title VARCHAR(255) NOT NULL,
+      description TEXT DEFAULT '',
+      images JSONB DEFAULT '[]'::jsonb,
+      created_by VARCHAR(64) DEFAULT '',
+      created_by_name VARCHAR(128) DEFAULT '',
+      remarks TEXT DEFAULT '',
+      remarks_by VARCHAR(64) DEFAULT '',
+      remarks_by_name VARCHAR(128) DEFAULT '',
+      remarks_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE INDEX IF NOT EXISTS idx_pdt_project ON project_daily_tasks(project_id);`
   ];
 
   for (const m of migrations) {
@@ -210,4 +268,21 @@ export async function initDb(): Promise<void> {
   }
 
   console.log('[DB] Database schema initialized and verified.');
+}
+
+export async function resolveBusinessId(db: DbClient, rawBizId?: string | null): Promise<string> {
+  const trimmed = (rawBizId || '').trim();
+  if (trimmed && trimmed !== 'all' && trimmed !== 'combined') {
+    const check = await db.query(`SELECT id FROM businesses WHERE id = $1`, [trimmed]);
+    if (check.rows.length > 0) {
+      return check.rows[0].id;
+    }
+  }
+  const fallback = await db.query(
+    `SELECT id FROM businesses ORDER BY CASE WHEN id = 'grow-naturals' THEN 0 ELSE 1 END, created_at ASC LIMIT 1`
+  );
+  if (fallback.rows.length > 0) {
+    return fallback.rows[0].id;
+  }
+  return 'grow-naturals';
 }

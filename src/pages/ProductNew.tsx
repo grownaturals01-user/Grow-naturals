@@ -49,10 +49,14 @@ export const isPlantCategoryType = (t: string): boolean => {
 };
 
 export const ProductNew: React.FC = () => {
-  const { businessId, business, activeBusiness, isTaxable } = useBusiness();
+  const { businessId, business, activeBusiness, businesses, isTaxable } = useBusiness();
   const { modules } = useInventoryModules();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const safeBusinessId = (activeBusiness?.id && activeBusiness.id !== 'all')
+    ? activeBusiness.id
+    : (businessId && businessId !== 'all' ? businessId : (businesses[0]?.id || 'grow-naturals'));
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -361,7 +365,7 @@ export const ProductNew: React.FC = () => {
     }
 
     const payload = {
-      business_id: businessId,
+      business_id: safeBusinessId,
       name: name.trim(),
       image_url: imageUrl.trim(),
       type,
@@ -370,7 +374,7 @@ export const ProductNew: React.FC = () => {
       barcode: barcode.trim() || sku.trim(),
       cost_price: finalCostPrice,
       sale_price: finalSalePrice,
-      gst_rate: (businessId === 'nikhlesh-nursery' || !isTaxable) ? 0 : (Number(gstRate) || 0),
+      gst_rate: (safeBusinessId === 'nikhlesh-nursery' || !isTaxable) ? 0 : (Number(gstRate) || 0),
       hsn_code: hsnCode.trim(),
       stock_quantity: Number(stockQuantity) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 5,

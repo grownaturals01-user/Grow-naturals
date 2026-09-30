@@ -5,22 +5,25 @@
  */
 
 :root {
-  /* Botanical Green Core Brand Scale */
-  --color-botanical-50: #f0fdf4;
-  --color-botanical-100: #dcfce7;
-  --color-botanical-200: #bbf7d0;
-  --color-botanical-300: #86efac;
-  --color-botanical-400: #4ade80;
-  --color-botanical-500: #22c55e;
-  --color-botanical-600: #16a34a;
-  --color-botanical-700: #15803d;
-  --color-botanical-800: #166534;
-  --color-botanical-900: #14532d;
-  --color-botanical-950: #052e16;
+  /* DreamsPOS Signature Color Scale */
+  --color-primary: #FE9F43;
+  --color-primary-hover: #e58830;
+  --color-primary-light: #FFF6EE;
+  --color-primary-subtle: #FFEDDD;
+  --color-primary-border: #FFDABA;
 
-  /* Typography Scale */
-  --font-family-display: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-family-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-secondary: #092C4C;
+  --color-secondary-hover: #061d33;
+  --color-secondary-light: #E4E8EC;
+  --color-secondary-subtle: #F0F4F8;
+
+  --color-botanical-500: #FE9F43;
+  --color-botanical-600: #e58830;
+  --color-botanical-700: #c97324;
+
+  /* Typography Scale - Dreamforest / DreamsPOS exact Nunito font */
+  --font-family-display: 'Nunito', sans-serif;
+  --font-family-sans: 'Nunito', sans-serif;
   --font-family-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 
   --font-xs: 0.75rem;     /* 12px */
@@ -55,99 +58,101 @@
   --space-12: 3rem;      /* 48px */
   --space-16: 4rem;      /* 64px */
 
-  /* Border Radii - Standardized to Sharp 4px */
+  /* DreamsPOS Standard Border Radii */
   --radius-xs: 4px;
-  --radius-sm: 4px;
-  --radius-md: 4px;
-  --radius-lg: 4px;
-  --radius-xl: 4px;
-  --radius-2xl: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
   --radius-full: 9999px;
 
   /* Transitions */
-  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Module Bold Accents (Base) */
-  --module-sell-accent: #d97706;
-  --module-sell-accent-light: #f59e0b;
-  --module-sell-subtle: #fef3c7;
-  --module-sell-border: #fde68a;
-  --module-sell-text: #92400e;
+  /* Module Accent Colors */
+  --module-sell-accent: #FE9F43;
+  --module-sell-accent-light: #FFA95B;
+  --module-sell-subtle: #FFF6EE;
+  --module-sell-border: #FFDABA;
+  --module-sell-text: #B45309;
 
-  --module-inv-accent: #059669;
-  --module-inv-accent-light: #10b981;
-  --module-inv-subtle: #d1fae5;
-  --module-inv-border: #a7f3d0;
-  --module-inv-text: #065f46;
+  --module-inv-accent: #3EB780;
+  --module-inv-accent-light: #4ECD7E;
+  --module-inv-subtle: #EEFAF1;
+  --module-inv-border: #B9EAC5;
+  --module-inv-text: #166534;
 
-  --module-proj-accent: #7c3aed;
-  --module-proj-accent-light: #8b5cf6;
-  --module-proj-subtle: #ede9fe;
-  --module-proj-border: #ddd6fe;
-  --module-proj-text: #5b21b6;
+  --module-proj-accent: #6938EF;
+  --module-proj-accent-light: #8B5CF6;
+  --module-proj-subtle: #F4F3FF;
+  --module-proj-border: #D9D6FE;
+  --module-proj-text: #53389E;
 
-  --module-purch-accent: #0284c7;
-  --module-purch-accent-light: #0ea5e9;
-  --module-purch-subtle: #e0f2fe;
-  --module-purch-border: #bae6fd;
-  --module-purch-text: #075985;
+  --module-purch-accent: #155EEF;
+  --module-purch-accent-light: #3577F1;
+  --module-purch-subtle: #EFF8FF;
+  --module-purch-border: #B2DDFF;
+  --module-purch-text: #175CD3;
 
-  --module-ops-accent: #e11d48;
-  --module-ops-accent-light: #f43f5e;
-  --module-ops-subtle: #ffe4e6;
-  --module-ops-border: #fecdd3;
-  --module-ops-text: #9f1239;
+  --module-ops-accent: #EA5455;
+  --module-ops-accent-light: #FF8D7B;
+  --module-ops-subtle: #FFEDE9;
+  --module-ops-border: #FFDAD3;
+  --module-ops-text: #B42318;
 
-  --module-admin-accent: #475569;
-  --module-admin-accent-light: #64748b;
-  --module-admin-subtle: #f1f5f9;
-  --module-admin-border: #e2e8f0;
-  --module-admin-text: #1e293b;
+  --module-admin-accent: #092C4C;
+  --module-admin-accent-light: #38526E;
+  --module-admin-subtle: #F0F4F8;
+  --module-admin-border: #C9D1D9;
+  --module-admin-text: #092C4C;
 }
 
 /* ==========================================================================
-   LIGHT MODE PALETTE (Default)
+   LIGHT MODE PALETTE (DreamsPOS Style)
    ========================================================================== */
 :root, [data-theme="light"] {
-  --color-bg-app: #f8fafc;
-  --color-bg-surface: #ffffff;
-  --color-bg-surface-elevated: #ffffff;
-  --color-bg-surface-subtle: #f1f5f9;
-  --color-bg-hover: #f1f5f9;
-  --color-bg-active: #e2e8f0;
+  --color-bg-app: #F8FAFC;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-surface-elevated: #FFFFFF;
+  --color-bg-surface-subtle: #F9FAFB;
+  --color-bg-hover: #F3F4F6;
+  --color-bg-active: #E5E7EB;
 
-  --color-border: #cbd5e1;
-  --color-border-subtle: #e2e8f0;
-  --color-border-strong: #94a3b8;
+  --color-border: #E5E7EB;
+  --color-border-subtle: #F0F2F5;
+  --color-border-strong: #D1D5DB;
 
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
-  --color-text-dim: #94a3b8;
-  --color-text-inverse: #ffffff;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-muted: #6B7280;
+  --color-text-dim: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
 
-  --color-sidebar-bg: #0d2818;
-  --color-sidebar-surface: #143d26;
-  --color-sidebar-border: #1b4d32;
-  --color-sidebar-text: #e2e8f0;
-  --color-sidebar-text-muted: #94a3b8;
-  --color-sidebar-active-bg: #166534;
-  --color-sidebar-active-text: #ffffff;
+  --color-sidebar-bg: #FFFFFF;
+  --color-sidebar-surface: #F9FAFB;
+  --color-sidebar-border: #E5E7EB;
+  --color-sidebar-text: #4B5563;
+  --color-sidebar-text-muted: #9CA3AF;
+  --color-sidebar-active-bg: #FE9F43;
+  --color-sidebar-active-text: #FFFFFF;
+  --color-sidebar-hover-bg: #FFF6EE;
+  --color-sidebar-hover-text: #FE9F43;
 
-  --color-header-bg: #ffffff;
-  --color-header-border: #cbd5e1;
+  --color-header-bg: #FFFFFF;
+  --color-header-border: #E5E7EB;
 
   /* Status Colors */
-  --color-success: #16a34a;
-  --color-success-subtle: #dcfce7;
-  --color-success-border: #86efac;
-  --color-success-text: #14532d;
+  --color-success: #3EB780;
+  --color-success-subtle: #EEFAF1;
+  --color-success-border: #B9EAC5;
+  --color-success-text: #166534;
 
-  --color-warning: #d97706;
-  --color-warning-subtle: #fef3c7;
-  --color-warning-border: #fde68a;
+  --color-warning: #FFCA18;
+  --color-warning-subtle: #FFFAEE;
+  --color-warning-border: #FFEBB8;
   --color-warning-text: #78350f;
 
   --color-danger: #dc2626;
@@ -198,36 +203,38 @@
 }
 
 /* ==========================================================================
-   DARK MODE PALETTE
+   DARK MODE PALETTE (DreamsPOS Dark Style)
    ========================================================================== */
 [data-theme="dark"] {
-  --color-bg-app: #080c10;
-  --color-bg-surface: #0f171e;
-  --color-bg-surface-elevated: #151e28;
-  --color-bg-surface-subtle: #18232f;
-  --color-bg-hover: #1f2d3d;
-  --color-bg-active: #27384b;
+  --color-bg-app: #0F172A;
+  --color-bg-surface: #1E293B;
+  --color-bg-surface-elevated: #243046;
+  --color-bg-surface-subtle: #172236;
+  --color-bg-hover: #26354D;
+  --color-bg-active: #334155;
 
-  --color-border: #223041;
-  --color-border-subtle: #192432;
-  --color-border-strong: #33465e;
+  --color-border: #29384E;
+  --color-border-subtle: #1E2B3E;
+  --color-border-strong: #3E516D;
 
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
-  --color-text-dim: #64748b;
-  --color-text-inverse: #080c10;
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted: #94A3B8;
+  --color-text-dim: #64748B;
+  --color-text-inverse: #0F172A;
 
-  --color-sidebar-bg: #070e0a;
-  --color-sidebar-surface: #0f1c14;
-  --color-sidebar-border: #16281e;
-  --color-sidebar-text: #e2e8f0;
-  --color-sidebar-text-muted: #64748b;
-  --color-sidebar-active-bg: #14532d;
-  --color-sidebar-active-text: #ffffff;
+  --color-sidebar-bg: #1E293B;
+  --color-sidebar-surface: #172236;
+  --color-sidebar-border: #29384E;
+  --color-sidebar-text: #CBD5E1;
+  --color-sidebar-text-muted: #64748B;
+  --color-sidebar-active-bg: #FE9F43;
+  --color-sidebar-active-text: #FFFFFF;
+  --color-sidebar-hover-bg: rgba(254, 159, 67, 0.15);
+  --color-sidebar-hover-text: #FE9F43;
 
-  --color-header-bg: #0f171e;
-  --color-header-border: #223041;
+  --color-header-bg: #1E293B;
+  --color-header-border: #29384E;
 
   /* Status Colors (Proper dark-mode translucencies) */
   --color-success: #22c55e;
