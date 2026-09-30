@@ -1715,6 +1715,124 @@
   justify-content: space-between;
   font-size: 0.8125rem;
   color: #475569;
+  min-height: 24px;
+}
+
+/* POS Bill Discount Row & Input Styling */
+.pos-discount-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: #475569;
+  min-height: 32px;
+  padding: 1px 0;
+}
+
+.pos-discount-label-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pos-discount-title {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+[data-theme="dark"] .pos-discount-title {
+  color: #f1f5f9;
+}
+
+.pos-discount-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  background: #ecfdf5;
+  color: #065f46;
+  border-radius: 4px;
+  border: 1px solid #a7f3d0;
+  white-space: nowrap;
+}
+
+.pos-discount-reduced-note {
+  font-size: 0.7rem;
+  color: #059669;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.pos-discount-right-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pos-discount-total-amt {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #059669;
+  white-space: nowrap;
+}
+
+.pos-discount-input-container {
+  display: inline-flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  height: 28px;
+  padding: 0 8px;
+  transition: all 0.15s ease;
+  width: 95px;
+  box-sizing: border-box;
+}
+
+.pos-discount-input-container:focus-within {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+
+[data-theme="dark"] .pos-discount-input-container {
+  background-color: #1e293b;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .pos-discount-input-container:focus-within {
+  border-color: #10b981;
+}
+
+.pos-discount-currency-symbol {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-right: 2px;
+  user-select: none;
+}
+
+.pos-discount-input-field {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: right;
+  color: #0f172a;
+  font-family: var(--font-family-mono, monospace);
+  padding: 0;
+}
+
+[data-theme="dark"] .pos-discount-input-field {
+  color: #f8fafc;
+}
+
+.pos-discount-input-field::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.75rem;
+  font-family: var(--font-family-sans);
 }
 
 .summary-row.total-row {

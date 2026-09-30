@@ -2060,47 +2060,40 @@ export const POS: React.FC = () => {
               <span className="tabular" style={{ fontWeight: 600, color: '#0f172a' }}>₹{subtotal.toFixed(2)}</span>
             </div>
 
-            <div className="summary-row" style={{ alignItems: 'flex-start', padding: '4px 0' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontWeight: 600 }}>Bill Discount</span>
-                  {discountBadgeLabel && (
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      padding: '1px 6px',
-                      background: '#ecfdf5',
-                      color: '#065f46',
-                      borderRadius: '4px',
-                      border: '1px solid #a7f3d0'
-                    }}>
-                      {discountBadgeLabel} OFF
-                    </span>
-                  )}
-                </div>
+            {/* Bill Discount Row */}
+            <div className="pos-discount-row">
+              <div className="pos-discount-label-group">
+                <span className="pos-discount-title">Bill Discount</span>
+                {discountBadgeLabel && (
+                  <span className="pos-discount-badge">
+                    {discountBadgeLabel} OFF
+                  </span>
+                )}
                 {autoDiscountTotal > 0 && (
-                  <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
-                    Reduced: -₹{autoDiscountTotal.toFixed(2)}
+                  <span className="pos-discount-reduced-note">
+                    (-₹{autoDiscountTotal.toFixed(2)})
                   </span>
                 )}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div className="pos-discount-right-group">
                 {totalDiscount > 0 && (
-                  <span className="tabular" style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#059669' }}>
+                  <span className="pos-discount-total-amt tabular">
                     -₹{totalDiscount.toFixed(2)}
                   </span>
                 )}
-                <input
-                  type="number"
-                  min="0"
-                  className="pos-customer-input"
-                  style={{ width: '70px', padding: '3px 6px', textAlign: 'right', fontSize: '0.8125rem', height: '28px' }}
-                  value={discountAmount || ''}
-                  onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
-                  placeholder="+ Extra ₹"
-                  title="Add extra manual bill discount if needed"
-                />
+                <div className="pos-discount-input-container" title="Add extra manual bill discount (₹)">
+                  <span className="pos-discount-currency-symbol">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className="pos-discount-input-field"
+                    value={discountAmount || ''}
+                    onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
             </div>
 
