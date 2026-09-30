@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 
 // Design Token Stylesheets (100% Custom CSS Tokens — Zero Tailwind / Bootstrap)
+import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';
