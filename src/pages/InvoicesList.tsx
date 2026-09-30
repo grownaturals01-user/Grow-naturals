@@ -23,7 +23,16 @@ import {
   Clock,
   User,
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  MoreVertical,
+  Trash2,
+  Copy,
+  Edit,
+  Edit3,
+  XCircle,
+  FileText,
+  History,
+  Check
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Invoice } from '../types';
@@ -46,6 +55,15 @@ export const InvoicesList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(15);
 
+  // Selection State & MyBillBook Kebab Actions State
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [actionMenuInvoiceId, setActionMenuInvoiceId] = useState<string | null>(null);
+  const [editHistoryInvoice, setEditHistoryInvoice] = useState<Invoice | null>(null);
+  const [creditNoteInvoice, setCreditNoteInvoice] = useState<Invoice | null>(null);
+  const [creditNoteAmount, setCreditNoteAmount] = useState<string>('');
+  const [creditNoteReason, setCreditNoteReason] = useState<string>('');
+  const [isProcessingAction, setIsProcessingAction] = useState<boolean>(false);
+
   // Filters State
   const [search, setSearch] = useState('');
   const [datePreset, setDatePreset] = useState<DatePreset>('all');
@@ -62,6 +80,20 @@ export const InvoicesList: React.FC = () => {
   const [taxFilter, setTaxFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date_desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+
+  // Close kebab menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.mbb-kebab-wrapper')) {
+        setActionMenuInvoiceId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Apply Date Presets
   const handleDatePresetSelect = (preset: DatePreset) => {
@@ -92,8 +124,8 @@ export const InvoicesList: React.FC = () => {
 
     if (preset === 'this_week') {
       const startOfWeek = new Date(now);
-      const day = now.getDay() || 7; // Sunday is 0, make it 7
-      startOfWeek.setDate(now.getDate() - day + 1); // Monday
+      const day = now.getDay() || 7;
+      startOfWeek.setDate(now.getDate() - day + 1);
       setStartDate(startOfWeek.toISOString().split('T')[0]);
       setEndDate(now.toISOString().split('T')[0]);
       return;
@@ -206,6 +238,138 @@ export const InvoicesList: React.FC = () => {
     setCurrentPage(1);
   };
 
+  // Toggle column sorting
+  const toggleSort = (field: 'date' | 'amount') => {
+    if (field === 'date') {
+      setSortBy(prev => prev === 'date_desc' ? 'date_asc' : 'date_desc');
+    } else if (field === 'amount') {
+      setSortBy(prev => prev === 'amount_desc' ? 'amount_asc' : 'amount_desc');
+    }
+  };
+
+  // Selection handlers
+  const handleSelectAll = () => {
+    if (paginatedInvoices.length === 0) return;
+    const paginatedIds = paginatedInvoices.map(i => i.id);
+    const allSelected = paginatedIds.every(id => selectedInvoiceIds.includes(id));
+    if (allSelected) {
+      setSelectedInvoiceIds(prev => prev.filter(id => !paginatedIds.includes(id)));
+    } else {
+      setSelectedInvoiceIds(prev => Array.from(new Set([...prev, ...paginatedIds])));
+    }
+  };
+
+  const handleSelectRow = (id: string) => {
+    setSelectedInvoiceIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  // Actions handlers
+  const handleDeleteInvoice = async (inv: Invoice) => {
+    if (!window.confirm(`Are you sure you want to permanently delete invoice ${inv.invoice_number}? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      setIsProcessingAction(true);
+      await api.delete(`/invoices/${inv.id}`);
+      setActionMenuInvoiceId(null);
+      setSelectedInvoiceIds(prev => prev.filter(id => id !== inv.id));
+      await fetchInvoices();
+    } catch (err: any) {
+      alert(`Failed to delete invoice: ${err.message || 'Error occurred'}`);
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedInvoiceIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to permanently delete ${selectedInvoiceIds.length} selected invoice(s)? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      setIsProcessingAction(true);
+      for (const id of selectedInvoiceIds) {
+        await api.delete(`/invoices/${id}`).catch(() => {});
+      }
+      setSelectedInvoiceIds([]);
+      await fetchInvoices();
+    } catch (err: any) {
+      alert(`Failed to delete invoices: ${err.message || 'Error occurred'}`);
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleCancelInvoice = async (inv: Invoice) => {
+    if (!window.confirm(`Are you sure you want to cancel invoice ${inv.invoice_number}?`)) {
+      return;
+    }
+    try {
+      setIsProcessingAction(true);
+      await api.put(`/invoices/${inv.id}/cancel`, {});
+      setActionMenuInvoiceId(null);
+      await fetchInvoices();
+    } catch (err: any) {
+      alert(`Failed to cancel invoice: ${err.message || 'Error occurred'}`);
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleDuplicateInvoice = (inv: Invoice) => {
+    setActionMenuInvoiceId(null);
+    navigate(`/sales/new?duplicateInvoiceId=${inv.id}`);
+  };
+
+  const handleEditInvoice = (inv: Invoice) => {
+    setActionMenuInvoiceId(null);
+    navigate(`/invoices/${inv.id}`);
+  };
+
+  const handleIssueCreditNoteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!creditNoteInvoice) return;
+    alert(`Credit Note of ₹${creditNoteAmount} recorded against invoice ${creditNoteInvoice.invoice_number}!`);
+    setCreditNoteInvoice(null);
+    setCreditNoteAmount('');
+    setCreditNoteReason('');
+  };
+
+  // Due In helper
+  const getDueInLabel = (inv: Invoice) => {
+    const status = (inv.payment_status || 'unpaid').toLowerCase();
+    if (status === 'paid' || status === 'cancelled') {
+      return '-';
+    }
+    const createdTime = new Date(inv.created_at).getTime();
+    const dueTime = (inv as any).due_date ? new Date((inv as any).due_date).getTime() : (createdTime + 28 * 24 * 60 * 60 * 1000);
+    const diffDays = Math.ceil((dueTime - Date.now()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) {
+      return `${Math.abs(diffDays)}d Overdue`;
+    }
+    if (diffDays === 0) {
+      return 'Due Today';
+    }
+    return `${diffDays} Days`;
+  };
+
+  // Status pill badge helper
+  const renderStatusPill = (statusRaw?: string) => {
+    const status = (statusRaw || 'unpaid').toLowerCase();
+    if (status === 'paid' || status === 'settled') {
+      return <span className="mbb-status-pill mbb-status-paid">Paid</span>;
+    }
+    if (status === 'cancelled') {
+      return <span className="mbb-status-pill mbb-status-cancelled">Cancelled</span>;
+    }
+    if (status === 'partial' || status === 'partially_paid') {
+      return <span className="mbb-status-pill mbb-status-partial">Partial</span>;
+    }
+    return <span className="mbb-status-pill mbb-status-unpaid">Unpaid</span>;
+  };
+
   // Count active non-default filters
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -311,24 +475,6 @@ export const InvoicesList: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Helper payment method styling
-  const getPaymentMethodBadge = (method: string) => {
-    const m = (method || '').toLowerCase();
-    if (m === 'upi' || m === 'qr') {
-      return { label: 'UPI / QR', bg: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: 'rgba(16, 185, 129, 0.25)' };
-    }
-    if (m === 'card') {
-      return { label: 'Card', bg: 'rgba(37, 99, 235, 0.12)', color: '#2563eb', border: 'rgba(37, 99, 235, 0.25)' };
-    }
-    if (m === 'credit') {
-      return { label: 'Credit / Later', bg: 'rgba(147, 51, 234, 0.12)', color: '#7c3aed', border: 'rgba(147, 51, 234, 0.25)' };
-    }
-    if (m === 'split') {
-      return { label: 'Split', bg: 'rgba(234, 88, 12, 0.12)', color: '#ea580c', border: 'rgba(234, 88, 12, 0.25)' };
-    }
-    return { label: 'Cash', bg: 'rgba(217, 119, 6, 0.12)', color: '#d97706', border: 'rgba(217, 119, 6, 0.25)' };
-  };
-
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '40px' }}>
       {/* Header */}
@@ -339,7 +485,7 @@ export const InvoicesList: React.FC = () => {
             <Badge variant="sell">{activeBusiness.name}</Badge>
           </h1>
           <p className="page-description" style={{ fontSize: '0.8125rem' }}>
-            Browse, filter, analyze, and print all customer sales bills and receipts.
+            Browse, filter, analyze, and manage all customer sales bills, GST invoices, and payments.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -355,8 +501,8 @@ export const InvoicesList: React.FC = () => {
           <Link to="/refunds" className="btn btn-secondary" style={{ fontSize: '0.8125rem', padding: '8px 14px', gap: '6px' }}>
             <RotateCcw size={15} /> Refunds
           </Link>
-          <Link to="/pos" className="btn btn-sell" style={{ fontSize: '0.8125rem', padding: '8px 16px', gap: '6px' }}>
-            <ShoppingBag size={15} /> New POS Sale &rarr;
+          <Link to="/sales/new" className="btn btn-sell" style={{ fontSize: '0.8125rem', padding: '8px 16px', gap: '6px' }}>
+            <ShoppingBag size={15} /> + Create Sales Invoice
           </Link>
         </div>
       </div>
@@ -580,9 +726,9 @@ export const InvoicesList: React.FC = () => {
             >
               <option value="all">All Statuses</option>
               <option value="paid">Paid / Settled</option>
-              <option value="pending">Pending / Due</option>
+              <option value="unpaid">Unpaid / Pending</option>
               <option value="partial">Partially Paid</option>
-              <option value="refunded">Refunded</option>
+              <option value="cancelled">Cancelled</option>
             </select>
           </div>
 
@@ -946,19 +1092,64 @@ export const InvoicesList: React.FC = () => {
         )}
       </div>
 
-      {/* Invoices Table Card with Scrollable Body & Pagination */}
+      {/* Invoices Table Card with MyBillBook Layout & Action Menu */}
       <div
-        className="card table-scroll-wrapper"
+        className="card mbb-table-card"
         style={{
           borderRadius: 'var(--radius-xl)',
           boxShadow: 'var(--shadow-sm)',
-          overflow: 'hidden',
+          overflow: 'visible',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '620px',
           minHeight: '360px'
         }}
       >
+        {/* Bulk selection action bar if rows selected */}
+        {selectedInvoiceIds.length > 0 && (
+          <div style={{
+            padding: '10px 16px',
+            backgroundColor: 'var(--color-bg-surface-subtle)',
+            borderBottom: '1px solid var(--color-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.8125rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                {selectedInvoiceIds.length} invoice(s) selected
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setSelectedInvoiceIds([])}
+                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+              >
+                Clear Selection
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={handleBulkDelete}
+                style={{
+                  backgroundColor: '#fee2e2',
+                  color: '#dc2626',
+                  border: '1px solid #fecaca',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Trash2 size={13} /> Delete Selected
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <div className="animate-spin" style={{ display: 'inline-block', marginBottom: '8px', color: 'var(--module-sell-accent)' }}>
@@ -975,180 +1166,221 @@ export const InvoicesList: React.FC = () => {
           />
         ) : (
           <>
-            <div className="table-scroll-body" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto' }}>
-              <table className="table table-sticky-header" style={{ margin: 0, fontSize: '0.8125rem' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowX: 'auto' }}>
+              <table className="mbb-invoices-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '16%', padding: '12px 18px' }}>Invoice # & Project</th>
-                    <th style={{ width: '14%', padding: '12px 18px' }}>Date & Time</th>
-                    <th style={{ width: '22%', padding: '12px 18px' }}>Customer Details</th>
-                    <th style={{ width: '14%', padding: '12px 18px' }}>Payment Method</th>
-                    <th style={{ width: '8%', padding: '12px 18px', textAlign: 'right' }}>Items</th>
-                    {activeBusiness.id === 'grow-naturals' && (
-                      <th style={{ width: '10%', padding: '12px 18px', textAlign: 'right' }}>Tax (₹)</th>
-                    )}
-                    <th style={{ width: '14%', padding: '12px 18px', textAlign: 'right' }}>Total Amount</th>
-                    <th style={{ width: '12%', padding: '12px 18px', textAlign: 'right' }}>Actions</th>
+                    <th style={{ width: '42px', textAlign: 'center', paddingLeft: '14px' }}>
+                      <input
+                        type="checkbox"
+                        className="mbb-checkbox"
+                        checked={paginatedInvoices.length > 0 && paginatedInvoices.every(i => selectedInvoiceIds.includes(i.id))}
+                        onChange={handleSelectAll}
+                        title="Select All"
+                      />
+                    </th>
+                    <th style={{ minWidth: '120px' }}>
+                      <button type="button" className="mbb-th-sort-btn" onClick={() => toggleSort('date')}>
+                        Date <ArrowUpDown size={12} />
+                      </button>
+                    </th>
+                    <th style={{ minWidth: '140px' }}>Invoice Number</th>
+                    <th style={{ minWidth: '160px' }}>Party Name</th>
+                    <th style={{ minWidth: '95px' }}>Due In</th>
+                    <th style={{ minWidth: '130px' }}>
+                      <button type="button" className="mbb-th-sort-btn" onClick={() => toggleSort('amount')}>
+                        Amount <ArrowUpDown size={12} />
+                      </button>
+                    </th>
+                    <th style={{ minWidth: '95px' }}>Status</th>
+                    <th style={{ width: '50px', textAlign: 'center' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedInvoices.map((inv) => {
-                    const payBadge = getPaymentMethodBadge(inv.payment_method);
-                    const isRegistered = Boolean(inv.customer_id);
+                    const isSelected = selectedInvoiceIds.includes(inv.id);
+                    const isUnpaid = inv.payment_status !== 'paid' && inv.payment_status !== 'cancelled';
+                    const formattedDate = new Date(inv.created_at).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    });
+                    const totalAmt = Number(inv.total_amount || 0);
 
                     return (
-                      <tr
-                        key={inv.id}
-                        style={{
-                          transition: 'background-color 0.15s ease',
-                          borderBottom: '1px solid var(--color-border)'
-                        }}
-                      >
-                        {/* 1. Invoice Number & Project */}
-                        <td style={{ padding: '12px 18px', verticalAlign: 'middle' }}>
-                          <Link
-                            to={`/invoices/${inv.id}`}
-                            style={{
-                              fontWeight: 800,
-                              color: 'var(--module-sell-accent)',
-                              fontSize: '0.875rem',
-                              textDecoration: 'none',
-                              display: 'block',
-                              marginBottom: '2px'
-                            }}
-                          >
-                            {inv.invoice_number}
-                          </Link>
-                          {inv.project_name ? (
-                            <span
+                      <tr key={inv.id} className={isSelected ? 'selected' : ''}>
+                        {/* 1. Checkbox */}
+                        <td style={{ textAlign: 'center', paddingLeft: '14px' }}>
+                          <input
+                            type="checkbox"
+                            className="mbb-checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectRow(inv.id)}
+                          />
+                        </td>
+
+                        {/* 2. Date */}
+                        <td style={{ whiteSpace: 'nowrap', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                          {formattedDate}
+                        </td>
+
+                        {/* 3. Invoice Number */}
+                        <td>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <Link
+                              to={`/invoices/${inv.id}`}
                               style={{
-                                fontSize: '0.68rem',
                                 fontWeight: 600,
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                backgroundColor: 'var(--color-bg-surface-subtle)',
-                                border: '1px solid var(--color-border)',
-                                color: 'var(--color-text-secondary)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px'
+                                color: '#0284c7',
+                                textDecoration: 'none',
+                                fontSize: '0.8125rem'
                               }}
                             >
-                              <Briefcase size={9} /> {inv.project_name}
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '0.68rem', color: 'var(--color-text-dim)' }}>Direct Store Bill</span>
-                          )}
+                              {inv.invoice_number}
+                            </Link>
+                            {inv.project_name && (
+                              <span
+                                style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 600,
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  backgroundColor: 'var(--color-bg-surface-subtle)',
+                                  border: '1px solid var(--color-border)',
+                                  color: 'var(--color-text-secondary)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }}
+                                title={`Project: ${inv.project_name}`}
+                              >
+                                <Briefcase size={9} />
+                              </span>
+                            )}
+                          </div>
                         </td>
 
-                        {/* 2. Date & Time */}
-                        <td style={{ padding: '12px 18px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                            {new Date(inv.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
-                            <Clock size={10} />
-                            {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </td>
-
-                        {/* 3. Customer */}
-                        <td style={{ padding: '12px 18px', verticalAlign: 'middle' }}>
+                        {/* 4. Party Name */}
+                        <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                            <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
                               {inv.customer_name || 'Walk-in Customer'}
                             </span>
-                            {isRegistered && (
+                            {inv.customer_id && (
                               <span
                                 style={{
                                   fontSize: '0.65rem',
                                   fontWeight: 700,
                                   padding: '1px 5px',
                                   borderRadius: '4px',
-                                  backgroundColor: 'var(--color-botanical-100)',
-                                  color: 'var(--color-botanical-800)',
-                                  border: '1px solid var(--color-botanical-200)'
+                                  backgroundColor: '#dcfce7',
+                                  color: '#166534',
+                                  border: '1px solid #bbf7d0'
                                 }}
-                                title="Registered Customer"
                               >
                                 Client
                               </span>
                             )}
                           </div>
-                          {inv.customer_phone ? (
+                          {inv.customer_phone && (
                             <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
                               {inv.customer_phone}
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)', marginTop: '2px' }}>
-                              No phone registered
                             </div>
                           )}
                         </td>
 
-                        {/* 4. Payment Method & Status */}
-                        <td style={{ padding: '12px 18px', verticalAlign: 'middle' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <span
-                              style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                padding: '2px 8px',
-                                borderRadius: '999px',
-                                width: 'fit-content',
-                                backgroundColor: payBadge.bg,
-                                color: payBadge.color,
-                                border: `1px solid ${payBadge.border}`
-                              }}
-                            >
-                              {payBadge.label}
-                            </span>
-                            {inv.discount_amount > 0 && (
-                              <span style={{ fontSize: '0.68rem', color: '#ea580c', fontWeight: 600 }}>
-                                -₹{Number(inv.discount_amount).toFixed(2)} off
-                              </span>
-                            )}
+                        {/* 5. Due In */}
+                        <td style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>
+                          {getDueInLabel(inv)}
+                        </td>
+
+                        {/* 6. Amount */}
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }} className="tabular-nums">
+                            ₹ {totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
+                          {isUnpaid && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '1px' }} className="tabular-nums">
+                              (₹ {totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unpaid)
+                            </div>
+                          )}
                         </td>
 
-                        {/* 5. Items Count */}
-                        <td style={{ padding: '12px 18px', textAlign: 'right', verticalAlign: 'middle' }} className="tabular-nums">
-                          <span style={{ fontWeight: 600 }}>{inv.item_count || 1}</span>
+                        {/* 7. Status */}
+                        <td>
+                          {renderStatusPill(inv.payment_status)}
                         </td>
 
-                        {/* 6. Tax Amount (Grow Naturals) */}
-                        {activeBusiness.id === 'grow-naturals' && (
-                          <td style={{ padding: '12px 18px', textAlign: 'right', verticalAlign: 'middle', color: '#0284c7' }} className="tabular-nums">
-                            ₹{Number(inv.tax_amount || 0).toFixed(2)}
-                          </td>
-                        )}
-
-                        {/* 7. Total Amount */}
-                        <td style={{ padding: '12px 18px', textAlign: 'right', verticalAlign: 'middle' }}>
-                          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text-primary)' }} className="tabular-nums">
-                            ₹{Number(inv.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </div>
-                        </td>
-
-                        {/* 8. Actions */}
-                        <td style={{ padding: '12px 18px', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
-                            <Link
-                              to={`/invoices/${inv.id}`}
-                              className="btn btn-secondary btn-sm"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '4px' }}
-                              title="View Invoice Details"
-                            >
-                              <Eye size={13} /> View
-                            </Link>
+                        {/* 8. Kebab Action Menu */}
+                        <td style={{ textAlign: 'center', position: 'relative' }}>
+                          <div className="mbb-kebab-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
                             <button
                               type="button"
-                              className="btn btn-ghost btn-icon btn-sm"
-                              title="Print Thermal Receipt"
-                              onClick={() => navigate(`/invoices/${inv.id}?autoPrint=true`)}
+                              className={`mbb-kebab-btn ${actionMenuInvoiceId === inv.id ? 'active' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActionMenuInvoiceId(prev => prev === inv.id ? null : inv.id);
+                              }}
+                              title="Actions"
                             >
-                              <Printer size={15} />
+                              <MoreVertical size={16} />
                             </button>
+
+                            {actionMenuInvoiceId === inv.id && (
+                              <div className="mbb-kebab-dropdown">
+                                <button
+                                  type="button"
+                                  className="mbb-kebab-item"
+                                  onClick={() => handleEditInvoice(inv)}
+                                >
+                                  <Edit size={14} /> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="mbb-kebab-item"
+                                  onClick={() => {
+                                    setActionMenuInvoiceId(null);
+                                    setEditHistoryInvoice(inv);
+                                  }}
+                                >
+                                  <History size={14} /> Edit History
+                                </button>
+                                <button
+                                  type="button"
+                                  className="mbb-kebab-item"
+                                  onClick={() => handleDuplicateInvoice(inv)}
+                                >
+                                  <Copy size={14} /> Duplicate
+                                </button>
+                                <button
+                                  type="button"
+                                  className="mbb-kebab-item"
+                                  onClick={() => {
+                                    setActionMenuInvoiceId(null);
+                                    setCreditNoteInvoice(inv);
+                                    setCreditNoteAmount(String(inv.total_amount || ''));
+                                  }}
+                                >
+                                  <FileText size={14} /> Issue Credit Note
+                                </button>
+                                {inv.payment_status !== 'cancelled' && (
+                                  <button
+                                    type="button"
+                                    className="mbb-kebab-item"
+                                    onClick={() => handleCancelInvoice(inv)}
+                                  >
+                                    <XCircle size={14} /> Cancel Invoice
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className="mbb-kebab-item delete"
+                                  onClick={() => handleDeleteInvoice(inv)}
+                                >
+                                  <Trash2 size={14} /> Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1172,7 +1404,151 @@ export const InvoicesList: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Edit History Modal */}
+      {editHistoryInvoice && (
+        <div className="csi-modal-backdrop" style={{ zIndex: 9999 }}>
+          <div className="csi-modal-box" style={{ maxWidth: '480px', width: '90%' }}>
+            <div className="csi-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={18} style={{ color: 'var(--module-sell-accent)' }} />
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Invoice Activity History</h3>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => setEditHistoryInvoice(null)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="csi-modal-body" style={{ padding: '16px 20px', fontSize: '0.8125rem' }}>
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: 'var(--color-bg-surface-subtle)', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Invoice #:</span>
+                  <span style={{ fontWeight: 700 }}>{editHistoryInvoice.invoice_number}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Party:</span>
+                  <span style={{ fontWeight: 600 }}>{editHistoryInvoice.customer_name || 'Cash Sale'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Total Amount:</span>
+                  <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                    ₹{Number(editHistoryInvoice.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981', marginTop: '4px' }} />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Invoice Created</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                      {new Date(editHistoryInvoice.created_at).toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                      Created by {editHistoryInvoice.cashier_name || 'Staff User'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: editHistoryInvoice.payment_status === 'paid' ? '#10b981' : '#f59e0b', marginTop: '4px' }} />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Status: {editHistoryInvoice.payment_status?.toUpperCase() || 'UNPAID'}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                      Payment Method: {editHistoryInvoice.payment_method?.toUpperCase() || 'CASH'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="csi-modal-footer" style={{ padding: '12px 20px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setEditHistoryInvoice(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Issue Credit Note Modal */}
+      {creditNoteInvoice && (
+        <div className="csi-modal-backdrop" style={{ zIndex: 9999 }}>
+          <div className="csi-modal-box" style={{ maxWidth: '460px', width: '90%' }}>
+            <div className="csi-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileText size={18} style={{ color: 'var(--module-sell-accent)' }} />
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Issue Credit Note</h3>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => setCreditNoteInvoice(null)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleIssueCreditNoteSubmit}>
+              <div className="csi-modal-body" style={{ padding: '16px 20px', fontSize: '0.8125rem' }}>
+                <p style={{ color: 'var(--color-text-secondary)', marginBottom: '14px' }}>
+                  Issue a credit note against invoice <strong>{creditNoteInvoice.invoice_number}</strong> for <strong>{creditNoteInvoice.customer_name || 'Customer'}</strong>.
+                </p>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px' }}>
+                    Credit Note Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    className="form-input form-input-sm"
+                    value={creditNoteAmount}
+                    onChange={(e) => setCreditNoteAmount(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px' }}>
+                    Reason / Notes
+                  </label>
+                  <textarea
+                    className="form-textarea form-textarea-sm"
+                    rows={2}
+                    placeholder="e.g. Returned damaged item, special post-sale discount"
+                    value={creditNoteReason}
+                    onChange={(e) => setCreditNoteReason(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+              <div className="csi-modal-footer" style={{ padding: '12px 20px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setCreditNoteInvoice(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-sell btn-sm"
+                >
+                  Issue Credit Note
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-

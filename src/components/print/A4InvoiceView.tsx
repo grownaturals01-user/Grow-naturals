@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { Invoice } from '../../types';
 import { printService } from '../../services/printService';
+import { numberToIndianWords } from '../../utils/numberToWords';
 import { Printer, Download, Send, Copy, Check, ExternalLink, X, Loader2, FileDown } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -202,14 +203,25 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
           </div>
         </div>
 
-        {/* Billed To & Order Details */}
+        {/* Billed To, Shipped To & Order Details */}
         <div className="invoice-details-grid">
           <div className="invoice-detail-block">
             <h4>Billed To:</h4>
             <p style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>{invoice.customer_name || 'Walk-in Customer'}</p>
             {invoice.customer_phone && <p style={{ fontSize: '13px', color: '#475569' }}>Phone: {invoice.customer_phone}</p>}
+            {invoice.customer_address && <p style={{ fontSize: '12px', color: '#64748b' }}>Address: {invoice.customer_address}</p>}
+            {invoice.customer_gstin && <p style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>GSTIN: {invoice.customer_gstin}</p>}
             {invoice.project_name && <p style={{ fontSize: '13px', color: '#166534', fontWeight: 600 }}>Project: {invoice.project_name}</p>}
           </div>
+
+          {(invoice.ship_to_name || invoice.ship_to_address) && (
+            <div className="invoice-detail-block">
+              <h4>Shipped To:</h4>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{invoice.ship_to_name || invoice.customer_name}</p>
+              {invoice.ship_to_phone && <p style={{ fontSize: '13px', color: '#475569' }}>Phone: {invoice.ship_to_phone}</p>}
+              {invoice.ship_to_address && <p style={{ fontSize: '12px', color: '#64748b' }}>Address: {invoice.ship_to_address}</p>}
+            </div>
+          )}
 
           <div className="invoice-detail-block" style={{ textAlign: 'right' }}>
             <h4>Payment Info:</h4>
@@ -259,44 +271,77 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
           </tbody>
         </table>
 
-        {/* Totals & Tax Split */}
-        <div className="invoice-totals-wrapper">
-          <table className="invoice-totals-table">
-            <tbody>
-              <tr>
-                <td style={{ color: '#64748b' }}>Subtotal:</td>
-                <td className="text-right tabular">₹{Number(invoice.subtotal).toFixed(2)}</td>
-              </tr>
-              {Number(invoice.discount_amount) > 0 && (
+        {/* Totals & Tax Split + Payment QR */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '14px 0 6px', gap: '20px' }}>
+          {/* Left: Payment QR if active */}
+          {invoice.show_payment_qr && invoice.upi_id ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', maxWidth: '320px' }}>
+              <img
+                src={invoice.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`upi://pay?pa=${invoice.upi_id}&pn=${invoice.business_name || ''}&am=${Number(invoice.total_amount || 0).toFixed(2)}&cu=INR`)}`}
+                alt="UPI Payment QR"
+                style={{ width: '80px', height: '80px', objectFit: 'contain', background: '#ffffff', padding: '2px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+              />
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', display: 'block' }}>Scan & Pay via UPI</span>
+                <span style={{ fontSize: '10px', color: '#475569', fontFamily: 'monospace', display: 'block', marginTop: '2px' }}>{invoice.upi_id}</span>
+                <span style={{ fontSize: '9.5px', color: '#64748b', marginTop: '2px', display: 'block' }}>Accepts GPay, PhonePe, Paytm & BHIM</span>
+              </div>
+            </div>
+          ) : (
+            <div />
+          )}
+
+          {/* Right: Totals Table */}
+          <div className="invoice-totals-wrapper" style={{ margin: 0, width: 'auto', minWidth: '260px' }}>
+            <table className="invoice-totals-table">
+              <tbody>
                 <tr>
-                  <td style={{ color: '#64748b' }}>Discount:</td>
-                  <td className="text-right tabular" style={{ color: '#dc2626' }}>-₹{Number(invoice.discount_amount).toFixed(2)}</td>
+                  <td style={{ color: '#64748b' }}>Subtotal:</td>
+                  <td className="text-right tabular">₹{Number(invoice.subtotal).toFixed(2)}</td>
                 </tr>
-              )}
-              {isTaxable && (
-                <>
+                {Number(invoice.discount_amount) > 0 && (
                   <tr>
-                    <td style={{ color: '#64748b' }}>CGST:</td>
-                    <td className="text-right tabular">₹{Number(invoice.cgst_amount || 0).toFixed(2)}</td>
+                    <td style={{ color: '#64748b' }}>Discount:</td>
+                    <td className="text-right tabular" style={{ color: '#dc2626' }}>-₹{Number(invoice.discount_amount).toFixed(2)}</td>
                   </tr>
+                )}
+                {Number(invoice.additional_charges) > 0 && (
                   <tr>
-                    <td style={{ color: '#64748b' }}>SGST:</td>
-                    <td className="text-right tabular">₹{Number(invoice.sgst_amount || 0).toFixed(2)}</td>
+                    <td style={{ color: '#64748b' }}>Additional Charges:</td>
+                    <td className="text-right tabular">₹{Number(invoice.additional_charges).toFixed(2)}</td>
                   </tr>
-                  <tr>
-                    <td style={{ color: '#64748b' }}>Total GST Tax:</td>
-                    <td className="text-right tabular">₹{Number(invoice.tax_amount || 0).toFixed(2)}</td>
-                  </tr>
-                </>
-              )}
-              <tr className="invoice-grand-total">
-                <td style={{ fontWeight: 800 }}>Grand Total:</td>
-                <td className="text-right tabular" style={{ fontWeight: 800, color: '#166534' }}>
-                  ₹{Number(invoice.total_amount).toFixed(2)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                )}
+                {isTaxable && (
+                  <>
+                    <tr>
+                      <td style={{ color: '#64748b' }}>CGST:</td>
+                      <td className="text-right tabular">₹{Number(invoice.cgst_amount || 0).toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b' }}>SGST:</td>
+                      <td className="text-right tabular">₹{Number(invoice.sgst_amount || 0).toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b' }}>Total GST Tax:</td>
+                      <td className="text-right tabular">₹{Number(invoice.tax_amount || 0).toFixed(2)}</td>
+                    </tr>
+                  </>
+                )}
+                <tr className="invoice-grand-total">
+                  <td style={{ fontWeight: 800 }}>Grand Total:</td>
+                  <td className="text-right tabular" style={{ fontWeight: 800, color: '#166534' }}>
+                    ₹{Number(invoice.total_amount).toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Amount in Words */}
+        <div style={{ margin: '14px 0 10px', padding: '8px 12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px' }}>
+          <span style={{ color: '#64748b', fontWeight: 600 }}>Amount in Words: </span>
+          <strong style={{ color: '#0f172a' }}>{invoice.amount_in_words || numberToIndianWords(Number(invoice.total_amount || 0))}</strong>
         </div>
 
         {/* Footer Terms & Thanks */}

@@ -2896,11 +2896,11 @@ button.btn,
 .search-input,
 .prod-search-input,
 .pos-search-input,
-input[type="text"],
-input[type="number"],
-input[type="date"],
-input[type="search"],
-select {
+input[type="text"]:not([class*="csi-"]):not(.csi-items-search-input):not(.csi-party-search-input):not(.csi-seamless-input),
+input[type="number"]:not([class*="csi-"]):not(.csi-stepper-input):not(.csi-table-num-input),
+input[type="date"]:not([class*="csi-"]),
+input[type="search"]:not([class*="csi-"]),
+select:not([class*="csi-"]) {
   border-radius: 4px !important;
   border-color: #cbd5e1 !important;
   box-shadow: none !important;
@@ -2912,24 +2912,23 @@ select {
 .search-input:focus,
 .prod-search-input:focus,
 .pos-search-input:focus,
-input[type="text"]:focus,
-input[type="number"]:focus,
-input[type="date"]:focus,
-input[type="search"]:focus,
-select:focus {
+input[type="text"]:not([class*="csi-"]):not(.csi-items-search-input):not(.csi-party-search-input):not(.csi-seamless-input):focus,
+input[type="number"]:not([class*="csi-"]):not(.csi-stepper-input):not(.csi-table-num-input):focus,
+input[type="date"]:not([class*="csi-"]):focus,
+input[type="search"]:not([class*="csi-"]):focus,
+select:not([class*="csi-"]):focus {
   border-color: #059669 !important;
   box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15) !important;
 }
 
 /* Universal Table Header & Row Styling - Unified across ALL pages */
-table,
-table.table,
-.table,
+table:not(.csi-table),
+table.table:not(.csi-table),
+.table:not(.csi-table),
 .prod-spacious-table,
 .cust-spacious-table,
 .dash-tx-table,
 .invoice-items-table,
-.csi-table,
 .table-sticky-header {
   width: 100%;
   border-collapse: collapse !important;
@@ -2937,14 +2936,13 @@ table.table,
   text-align: left;
 }
 
-table th,
-table.table th,
-.table th,
+table:not(.csi-table) th,
+table.table:not(.csi-table) th,
+.table:not(.csi-table) th,
 .prod-spacious-table th,
 .cust-spacious-table th,
 .dash-tx-table th,
 .invoice-items-table th,
-.csi-table th,
 .table-sticky-header th {
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   font-size: 0.72rem !important;
@@ -2960,27 +2958,25 @@ table.table th,
   white-space: nowrap;
 }
 
-[data-theme="dark"] table th,
-[data-theme="dark"] table.table th,
-[data-theme="dark"] .table th,
+[data-theme="dark"] table:not(.csi-table) th,
+[data-theme="dark"] table.table:not(.csi-table) th,
+[data-theme="dark"] .table:not(.csi-table) th,
 [data-theme="dark"] .prod-spacious-table th,
 [data-theme="dark"] .cust-spacious-table th,
 [data-theme="dark"] .dash-tx-table th,
-[data-theme="dark"] .invoice-items-table th,
-[data-theme="dark"] .csi-table th {
+[data-theme="dark"] .invoice-items-table th {
   background-color: #0f172a !important;
   color: #94a3b8 !important;
   border-bottom-color: #334155 !important;
 }
 
-table td,
-table.table td,
-.table td,
+table:not(.csi-table) td,
+table.table:not(.csi-table) td,
+.table:not(.csi-table) td,
 .prod-spacious-table td,
 .cust-spacious-table td,
 .dash-tx-table td,
 .invoice-items-table td,
-.csi-table td,
 .table-sticky-header td {
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   font-size: 0.8125rem !important;
@@ -2991,37 +2987,34 @@ table.table td,
   transition: background-color 0.12s ease !important;
 }
 
-[data-theme="dark"] table td,
-[data-theme="dark"] table.table td,
-[data-theme="dark"] .table td,
+[data-theme="dark"] table:not(.csi-table) td,
+[data-theme="dark"] table.table:not(.csi-table) td,
+[data-theme="dark"] .table:not(.csi-table) td,
 [data-theme="dark"] .prod-spacious-table td,
 [data-theme="dark"] .cust-spacious-table td,
 [data-theme="dark"] .dash-tx-table td,
-[data-theme="dark"] .invoice-items-table td,
-[data-theme="dark"] .csi-table td {
+[data-theme="dark"] .invoice-items-table td {
   color: #cbd5e1 !important;
   border-bottom-color: #1e293b !important;
 }
 
-table tbody tr:hover td,
-table.table tbody tr:hover td,
-.table tbody tr:hover td,
+table:not(.csi-table) tbody tr:hover td,
+table.table:not(.csi-table) tbody tr:hover td,
+.table:not(.csi-table) tbody tr:hover td,
 .prod-spacious-table tbody tr:hover td,
 .cust-spacious-table tbody tr:hover td,
 .dash-tx-table tbody tr:hover td,
-.invoice-items-table tbody tr:hover td,
-.csi-table tbody tr:hover td {
+.invoice-items-table tbody tr:hover td {
   background-color: #f8fafc !important;
 }
 
-[data-theme="dark"] table tbody tr:hover td,
-[data-theme="dark"] table.table tbody tr:hover td,
-[data-theme="dark"] .table tbody tr:hover td,
+[data-theme="dark"] table:not(.csi-table) tbody tr:hover td,
+[data-theme="dark"] table.table:not(.csi-table) tbody tr:hover td,
+[data-theme="dark"] .table:not(.csi-table) tbody tr:hover td,
 [data-theme="dark"] .prod-spacious-table tbody tr:hover td,
 [data-theme="dark"] .cust-spacious-table tbody tr:hover td,
 [data-theme="dark"] .dash-tx-table tbody tr:hover td,
-[data-theme="dark"] .invoice-items-table tbody tr:hover td,
-[data-theme="dark"] .csi-table tbody tr:hover td {
+[data-theme="dark"] .invoice-items-table tbody tr:hover td {
   background-color: #1e293b !important;
 }
 

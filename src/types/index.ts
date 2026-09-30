@@ -63,6 +63,8 @@ export interface Customer {
   credit_limit?: number;
   invoice_count?: number;
   total_spent?: number;
+  closing_balance?: number;
+  outstanding_balance?: number;
   created_at?: string;
 }
 
@@ -163,6 +165,7 @@ export interface Product {
   barcode: string;
   cost_price: number;
   sale_price: number;
+  mrp?: number;
   gst_rate: number;
   hsn_code: string;
   stock_quantity: number;
@@ -217,14 +220,25 @@ export interface Invoice {
   customer_id?: string | null;
   customer_name: string;
   customer_phone: string;
+  customer_address?: string;
+  customer_gstin?: string;
+  amount_in_words?: string;
+  ship_to_name?: string;
+  ship_to_phone?: string;
+  ship_to_address?: string;
   project_id?: string | null;
   subtotal: number;
   discount_amount: number;
+  additional_charges?: number;
+  extra_charges?: any[];
   tax_amount: number;
   cgst_amount: number;
   sgst_amount: number;
   total_amount: number;
   payment_method: string;
+  upi_id?: string;
+  qr_code_url?: string;
+  show_payment_qr?: boolean;
   split_cash_amount?: number;
   split_upi_amount?: number;
   payment_status: string;

@@ -147,6 +147,75 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/invoices/party-item-history - Recent sales prices for an item sold to a specific party
+router.get('/party-item-history', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const { customer_id, customer_phone, customer_name, product_id, product_name } = req.query;
+
+    const cId = (customer_id as string)?.trim() || null;
+    const rawPhone = (customer_phone as string)?.trim() || '';
+    const cleanPhone = rawPhone.replace(/[\s\+\-]/g, '');
+    const phoneSuffix = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : (cleanPhone || null);
+    const cName = (customer_name as string)?.trim() || null;
+    const pId = (product_id as string)?.trim() || null;
+    const pName = (product_name as string)?.trim() || null;
+
+    if (!cId && !phoneSuffix && !cName) {
+      return res.json([]);
+    }
+    if (!pId && !pName) {
+      return res.json([]);
+    }
+
+    const db = await getDb();
+    const query = `
+      SELECT 
+        i.id as invoice_id,
+        i.invoice_number,
+        i.created_at,
+        ii.product_id,
+        ii.product_name,
+        ii.quantity,
+        ii.unit_price,
+        ii.discount,
+        ii.gst_rate,
+        ii.tax_amount,
+        ii.total
+      FROM invoice_items ii
+      JOIN invoices i ON ii.invoice_id = i.id
+      WHERE ($1 = 'all' OR $1 = 'combined' OR i.business_id = $1)
+        AND (
+          ($2::text IS NOT NULL AND i.customer_id = $2::text)
+          OR ($3::text IS NOT NULL AND (
+               i.customer_phone = $3::text 
+               OR REPLACE(REPLACE(REPLACE(COALESCE(i.customer_phone, ''), ' ', ''), '-', ''), '+91', '') LIKE ('%' || $3::text)
+             ))
+          OR ($4::text IS NOT NULL AND (
+               LOWER(TRIM(i.customer_name)) = LOWER(TRIM($4::text))
+               OR LOWER(TRIM(i.customer_name)) ILIKE ('%' || LOWER(TRIM($4::text)) || '%')
+             ))
+        )
+        AND (
+          ($5::text IS NOT NULL AND ii.product_id = $5::text)
+          OR ($6::text IS NOT NULL AND (
+               LOWER(TRIM(ii.product_name)) = LOWER(TRIM($6::text))
+               OR LOWER(TRIM(ii.product_name)) ILIKE ('%' || LOWER(TRIM($6::text)) || '%')
+             ))
+        )
+      ORDER BY i.created_at DESC
+      LIMIT 10;
+    `;
+
+    const params = [businessId, cId, phoneSuffix, cName, pId, pName];
+    const result = await db.query(query, params);
+    res.json(result.rows || []);
+  } catch (error: any) {
+    console.error('Error fetching party item history:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 let inMemoryGeminiKey: string = process.env.GEMINI_API_KEY || '';
 let inMemoryOpenAiKey: string = process.env.OPENAI_API_KEY || '';
 
@@ -363,6 +432,20 @@ router.post('/', async (req: Request, res: Response) => {
     const calculatedSgst = Number(sgst_amount) || 0;
     const finalTotal = Number(total_amount) || Math.max(0, calculatedSubtotal + calculatedTax - calculatedDiscount);
 
+    // Accurate timestamp combining invoice_date with exact creation time
+    const now = new Date();
+    let invoiceCreatedAt = now.toISOString();
+    if (invoice_date) {
+      if (typeof invoice_date === 'string' && invoice_date.length <= 10) {
+        const [year, month, day] = invoice_date.split('-').map(Number);
+        const combined = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+        invoiceCreatedAt = combined.toISOString();
+      } else {
+        const parsed = new Date(invoice_date);
+        invoiceCreatedAt = !isNaN(parsed.getTime()) ? parsed.toISOString() : now.toISOString();
+      }
+    }
+
     // Insert Invoice
     await db.query(
       `INSERT INTO invoices (
@@ -388,7 +471,7 @@ router.post('/', async (req: Request, res: Response) => {
         payment_status || 'paid',
         enrichedNotes.trim(),
         created_by || null,
-        invoice_date ? new Date(invoice_date).toISOString() : new Date().toISOString()
+        invoiceCreatedAt
       ]
     );
 
@@ -471,11 +554,38 @@ router.post('/', async (req: Request, res: Response) => {
       payment_method: payment_method || 'cash',
       payment_status: payment_status || 'paid',
       notes: enrichedNotes.trim(),
-      created_at: invoice_date || new Date().toISOString(),
+      created_at: invoiceCreatedAt,
       items: insertedItems
     });
   } catch (error: any) {
     console.error('Create invoice error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cancel Invoice
+router.put('/:id/cancel', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.query('UPDATE invoices SET payment_status = $1 WHERE id = $2', ['cancelled', id]);
+    res.json({ success: true, message: 'Invoice cancelled successfully' });
+  } catch (error: any) {
+    console.error('Cancel invoice error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Invoice
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.query('DELETE FROM invoice_items WHERE invoice_id = $1', [id]);
+    await db.query('DELETE FROM invoices WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Invoice deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete invoice error:', error);
     res.status(500).json({ error: error.message });
   }
 });
