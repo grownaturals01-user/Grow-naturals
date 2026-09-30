@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
 import type { Project } from '../types';
-import { SearchBar } from '../components/common/SearchBar';
-import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -11,19 +9,15 @@ import {
   Plus,
   TrendingUp,
   IndianRupee,
-  ArrowRight,
   User,
-  Calendar,
   Clock,
-  Layers,
   CheckCircle,
-  Building,
-  MapPin,
   Sparkles,
   Search,
-  Filter,
+  X,
   Eye
 } from 'lucide-react';
+import '../styles/projects-list.css';
 
 export const ProjectsList: React.FC = () => {
   const { businessId, business } = useBusiness();
@@ -68,175 +62,102 @@ export const ProjectsList: React.FC = () => {
     return `₹${Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const getAvatarClass = (name: string) => {
+    const code = name.charCodeAt(0) || 0;
+    const classes = ['c-orange', 'c-green', 'c-purple', 'c-blue'];
+    return classes[code % classes.length];
+  };
+
   return (
-    <div style={{ width: '100%', paddingBottom: '40px' }}>
+    <div className="projects-page-wrap">
       {/* Top Header */}
-      <div className="page-header" style={{ marginBottom: '20px' }}>
-        <div className="page-title-group">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 className="page-title" style={{ margin: 0, fontSize: '22px' }}>
+      <div className="proj-page-header">
+        <div className="proj-title-group">
+          <div className="proj-title-row">
+            <h1 className="proj-main-heading">
               Client Projects
             </h1>
-            <Badge variant="proj">{business?.name || 'All Businesses'}</Badge>
+            <span className="proj-biz-badge">
+              {business?.name || 'All Businesses'}
+            </span>
           </div>
-          <p className="page-description" style={{ margin: '4px 0 0 0', color: 'var(--color-text-secondary)', fontSize: '13px' }}>
+          <p className="proj-page-desc">
             Click on any project row to open its full workspace, quotations, daily progress, and finances.
           </p>
         </div>
 
-        <div className="page-actions">
-          <Link to="/projects/new" className="btn btn-proj" style={{ fontWeight: 600, gap: '6px' }}>
+        <div>
+          <Link to="/projects/new" className="proj-btn-new">
             <Plus size={16} /> New Project
           </Link>
         </div>
       </div>
 
       {/* Summary KPI Strip */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '14px',
-        marginBottom: '20px'
-      }}>
-        <div style={{
-          backgroundColor: 'var(--color-bg-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            backgroundColor: 'rgba(34, 197, 94, 0.12)',
-            color: 'var(--color-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
+      <div className="proj-kpi-grid">
+        <div className="proj-kpi-card">
+          <div className="proj-kpi-icon-wrap total">
             <FolderKanban size={22} />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
+          <div className="proj-kpi-details">
+            <span className="proj-kpi-label">
               Total Projects
             </span>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text-primary)', lineHeight: 1.2 }}>
+            <div className="proj-kpi-value">
               {totalProjectsCount}
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <span className="proj-kpi-subtext">
               {activeCount} active • {inProgressCount} in progress
             </span>
           </div>
         </div>
 
-        <div style={{
-          backgroundColor: 'var(--color-bg-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            backgroundColor: 'rgba(254, 159, 67, 0.14)',
-            color: '#e67e22',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
+        <div className="proj-kpi-card">
+          <div className="proj-kpi-icon-wrap progress">
             <Sparkles size={22} />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
+          <div className="proj-kpi-details">
+            <span className="proj-kpi-label">
               In Progress & Planning
             </span>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#e67e22', lineHeight: 1.2 }}>
+            <div className="proj-kpi-value" style={{ color: '#ea580c' }}>
               {inProgressCount + projects.filter(p => p.status === 'planning').length}
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <span className="proj-kpi-subtext">
               {completedCount} completed to date
             </span>
           </div>
         </div>
 
-        <div style={{
-          backgroundColor: 'var(--color-bg-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            backgroundColor: 'rgba(59, 130, 246, 0.12)',
-            color: '#2563eb',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
+        <div className="proj-kpi-card">
+          <div className="proj-kpi-icon-wrap collections">
             <IndianRupee size={22} />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
+          <div className="proj-kpi-details">
+            <span className="proj-kpi-label">
               Invoiced Collections
             </span>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text-primary)', lineHeight: 1.2 }}>
+            <div className="proj-kpi-value">
               ₹{totalCollectionSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <span className="proj-kpi-subtext">
               Across billed client invoices
             </span>
           </div>
         </div>
 
-        <div style={{
-          backgroundColor: 'var(--color-bg-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            backgroundColor: totalProfitSum >= 0 ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-            color: totalProfitSum >= 0 ? '#16a34a' : '#dc2626',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
+        <div className="proj-kpi-card">
+          <div className={`proj-kpi-icon-wrap ${totalProfitSum >= 0 ? 'profit-pos' : 'profit-neg'}`}>
             <TrendingUp size={22} />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
+          <div className="proj-kpi-details">
+            <span className="proj-kpi-label">
               Total Net Profit
             </span>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: totalProfitSum >= 0 ? '#16a34a' : '#dc2626', lineHeight: 1.2 }}>
+            <div className={`proj-kpi-value ${totalProfitSum >= 0 ? 'profit-pos' : 'profit-neg'}`}>
               {totalProfitSum < 0 ? '-' : ''}₹{Math.abs(totalProfitSum).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <span className="proj-kpi-subtext">
               Revenue minus expenses
             </span>
           </div>
@@ -244,38 +165,32 @@ export const ProjectsList: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '12px',
-        marginBottom: '18px',
-        backgroundColor: 'var(--color-bg-surface)',
-        padding: '12px 16px',
-        borderRadius: 'var(--radius-xl)',
-        border: '1px solid var(--color-border)',
-        boxShadow: 'var(--shadow-sm)'
-      }}>
-        <div style={{ flex: '1 1 300px', maxWidth: '480px' }}>
-          <SearchBar
+      <div className="proj-filter-bar">
+        <div className="proj-search-box">
+          <Search className="proj-search-icon" size={16} />
+          <input
+            type="text"
+            className="proj-search-input"
             value={search}
-            onChange={setSearch}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by project name, client, phone, or location..."
           />
+          {search && (
+            <button
+              type="button"
+              className="proj-search-clear-btn"
+              onClick={() => setSearch('')}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Filter:</span>
+        <div className="proj-filter-right">
+          <span className="proj-filter-label">Filter:</span>
           <select
-            className="form-select"
-            style={{
-              width: '170px',
-              fontSize: '12px',
-              fontWeight: 600,
-              height: '36px',
-              borderRadius: 'var(--radius-md)'
-            }}
+            className="proj-select-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -305,354 +220,199 @@ export const ProjectsList: React.FC = () => {
           accentClass="btn-proj"
         />
       ) : (
-        <div className="table-container" style={{ borderRadius: 'var(--radius-xl)', overflowX: 'auto', border: '1px solid var(--color-border)' }}>
-          <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Project & Client</th>
-                <th style={{ textAlign: 'left', padding: '12px 14px' }}>Work & Category</th>
-                <th style={{ textAlign: 'left', padding: '12px 14px' }}>Supervisor & Appointment</th>
-                <th style={{ textAlign: 'right', padding: '12px 14px' }}>Site Visit / Allow</th>
-                <th style={{ textAlign: 'right', padding: '12px 14px' }}>Collection Value</th>
-                <th style={{ textAlign: 'right', padding: '12px 14px' }}>Net Profit</th>
-                <th style={{ textAlign: 'center', padding: '12px 14px' }}>Status</th>
-                <th style={{ textAlign: 'center', padding: '12px 14px', width: '90px' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projects.map((p) => {
-                const profitNum = Number(p.profit) || 0;
-                const isProfitable = profitNum >= 0;
-                const collectionNum = Number(p.collection_value) || 0;
-                const siteFee = Number(p.site_visit_amount) || 0;
-                const allowFee = Number(p.allowance_amount) || 0;
+        <div className="proj-table-card">
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="proj-table">
+              <thead>
+                <tr>
+                  <th style={{ minWidth: '220px' }}>Project & Client</th>
+                  <th style={{ minWidth: '150px' }}>Work & Category</th>
+                  <th style={{ minWidth: '180px' }}>Supervisor & Appointment</th>
+                  <th style={{ textAlign: 'right', minWidth: '130px' }}>Site Visit / Allow</th>
+                  <th style={{ textAlign: 'right', minWidth: '140px' }}>Collection Value</th>
+                  <th style={{ textAlign: 'right', minWidth: '130px' }}>Net Profit</th>
+                  <th style={{ textAlign: 'center', minWidth: '120px' }}>Status</th>
+                  <th style={{ textAlign: 'center', width: '90px' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((p) => {
+                  const profitNum = Number(p.profit) || 0;
+                  const isProfitable = profitNum >= 0;
+                  const collectionNum = Number(p.collection_value) || 0;
+                  const siteFee = Number(p.site_visit_amount) || 0;
+                  const allowFee = Number(p.allowance_amount) || 0;
+                  const avatarClass = getAvatarClass(p.name || 'P');
 
-                return (
-                  <tr
-                    key={p.id}
-                    onClick={() => navigate(`/projects/${p.id}`)}
-                    style={{
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s ease'
-                    }}
-                    title="Click to view full project details"
-                  >
-                    {/* Project & Client Details */}
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '8px',
-                          backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                          color: 'var(--color-primary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          fontSize: '14px',
-                          flexShrink: 0
-                        }}>
-                          {p.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              fontSize: '14px',
-                              color: 'var(--color-primary)',
-                              textDecoration: 'none',
-                              display: 'inline-block'
-                            }}
-                          >
-                            {p.name}
-                          </span>
-                          <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                            <span><strong>Client:</strong> {p.client_name} {p.company && `(${p.company})`}</span>
-                            {p.location && (
-                              <span style={{ color: 'var(--color-text-muted)' }}>• 📍 {p.location}</span>
+                  return (
+                    <tr
+                      key={p.id}
+                      onClick={() => navigate(`/projects/${p.id}`)}
+                      title="Click to view full project details"
+                    >
+                      {/* Project & Client Details */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div className={`proj-avatar-box ${avatarClass}`}>
+                            {p.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="proj-name-text">
+                              {p.name}
+                            </span>
+                            <div className="proj-client-meta">
+                              <span><strong>Client:</strong> {p.client_name} {p.company && `(${p.company})`}</span>
+                              {p.location && (
+                                <span>• 📍 {p.location}</span>
+                              )}
+                            </div>
+                            {p.referred_by && (
+                              <span className="proj-ref-badge">
+                                Ref: {p.referred_by}
+                              </span>
                             )}
                           </div>
-                          {p.referred_by && (
-                            <span style={{
-                              display: 'inline-block',
-                              marginTop: '3px',
-                              fontSize: '11px',
-                              color: '#6366f1',
-                              backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              fontWeight: 600
-                            }}>
-                              Ref: {p.referred_by}
+                        </div>
+                      </td>
+
+                      {/* Work & Category Details */}
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          {p.work_type ? (
+                            <span className="proj-work-type">
+                              {p.work_type}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>General Work</span>
+                          )}
+
+                          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                            {p.work_nature === 'rework' ? (
+                              <span className="proj-pill-rework">
+                                🔄 Rework {p.rework_source === 'our_existing' ? '(Our)' : p.rework_source ? '(Other)' : ''}
+                              </span>
+                            ) : (
+                              <span className="proj-pill-new">
+                                🌱 New Work
+                              </span>
+                            )}
+
+                            {p.category_name && (
+                              <span className="proj-pill-cat">
+                                {p.category_name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Site Supervisor & Scheduled Appointment */}
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <div className="proj-supervisor-row">
+                            {p.supervisor_name ? (
+                              <>
+                                <User size={13} color="var(--color-primary)" />
+                                <span className="proj-supervisor-name">{p.supervisor_name}</span>
+                              </>
+                            ) : (
+                              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                                Unassigned
+                              </span>
+                            )}
+                          </div>
+
+                          {p.appointment_date && (
+                            <span className="proj-appoint-badge">
+                              <Clock size={11} /> {new Date(p.appointment_date).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
                             </span>
                           )}
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Work & Category Details */}
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                        {p.work_type ? (
-                          <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--color-text-primary)' }}>
-                            {p.work_type}
+                      {/* Site Visit Fee & Allowance */}
+                      <td style={{ textAlign: 'right' }}>
+                        {siteFee > 0 || allowFee > 0 ? (
+                          <div>
+                            <div className="proj-num-cell" style={{ color: 'var(--color-text-primary)' }}>
+                              ₹{siteFee.toLocaleString('en-IN')}
+                            </div>
+                            {allowFee > 0 && (
+                              <div style={{ fontSize: '0.6875rem', color: '#b45309', fontWeight: 600 }}>
+                                +₹{allowFee.toLocaleString('en-IN')} allow.
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>—</span>
+                        )}
+                      </td>
+
+                      {/* Collection Value (Billed) */}
+                      <td style={{ textAlign: 'right' }}>
+                        <span className="proj-num-cell proj-collection-val">
+                          ₹{collectionNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </td>
+
+                      {/* Net Profit */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div className={`proj-num-cell ${profitNum >= 0 ? 'proj-profit-pos' : 'proj-profit-neg'}`}>
+                          {profitNum < 0 ? `-${formatCurrency(profitNum)}` : formatCurrency(profitNum)}
+                        </div>
+                        {collectionNum > 0 && (
+                          <span className={`proj-margin-badge ${isProfitable ? 'pos' : 'neg'}`}>
+                            {p.margin_percent}% margin
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Uniform Status Badges */}
+                      <td style={{ textAlign: 'center' }}>
+                        {p.status === 'in_progress' ? (
+                          <span className="proj-status-badge in_progress">
+                            <span className="proj-status-dot" />
+                            ⚡ IN PROGRESS
+                          </span>
+                        ) : p.status === 'active' ? (
+                          <span className="proj-status-badge active">
+                            <span className="proj-status-dot" />
+                            ACTIVE
+                          </span>
+                        ) : p.status === 'completed' ? (
+                          <span className="proj-status-badge completed">
+                            <CheckCircle size={11} /> COMPLETED
+                          </span>
+                        ) : p.status === 'on_hold' ? (
+                          <span className="proj-status-badge on_hold">
+                            ON HOLD
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>General Work</span>
-                        )}
-
-                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                          {p.work_nature === 'rework' ? (
-                            <span style={{
-                              fontSize: '10.5px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              backgroundColor: '#ffe4e6',
-                              color: '#e11d48',
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}>
-                              🔄 Rework {p.rework_source === 'our_existing' ? '(Our)' : p.rework_source ? '(Other)' : ''}
-                            </span>
-                          ) : (
-                            <span style={{
-                              fontSize: '10.5px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              backgroundColor: '#dcfce7',
-                              color: '#16a34a',
-                              fontWeight: 600,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}>
-                              🌱 New Work
-                            </span>
-                          )}
-
-                          {p.category_name && (
-                            <span style={{
-                              fontSize: '10.5px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              backgroundColor: 'rgba(254, 159, 67, 0.12)',
-                              color: '#d97706',
-                              fontWeight: 600
-                            }}>
-                              {p.category_name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Site Supervisor & Scheduled Appointment */}
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
-                          {p.supervisor_name ? (
-                            <>
-                              <User size={14} color="var(--color-primary)" />
-                              <strong style={{ color: 'var(--color-text-primary)' }}>{p.supervisor_name}</strong>
-                            </>
-                          ) : (
-                            <span style={{ color: 'var(--color-text-muted)', fontSize: '12px', fontStyle: 'italic' }}>
-                              Unassigned
-                            </span>
-                          )}
-                        </div>
-
-                        {p.appointment_date && (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '11px',
-                            color: '#4338ca',
-                            backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            width: 'fit-content'
-                          }}>
-                            <Clock size={11} /> {new Date(p.appointment_date).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                          <span className="proj-status-badge planning">
+                            PLANNING
                           </span>
                         )}
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Site Visit Fee & Allowance */}
-                    <td style={{ textAlign: 'right', padding: '12px 14px' }}>
-                      {siteFee > 0 || allowFee > 0 ? (
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--color-text-primary)' }} className="tabular">
-                            ₹{siteFee.toLocaleString('en-IN')}
-                          </div>
-                          {allowFee > 0 && (
-                            <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 600 }}>
-                              +₹{allowFee.toLocaleString('en-IN')} allow.
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>—</span>
-                      )}
-                    </td>
-
-                    {/* Collection Value (Billed) */}
-                    <td style={{ textAlign: 'right', fontWeight: 700, fontSize: '13.5px', padding: '12px 14px' }} className="tabular">
-                      ₹{collectionNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-
-                    {/* Net Profit */}
-                    <td style={{ textAlign: 'right', padding: '12px 14px' }}>
-                      <div className="tabular" style={{
-                        fontWeight: 800,
-                        fontSize: '13.5px',
-                        color: profitNum > 0 ? '#16a34a' : profitNum < 0 ? '#dc2626' : 'var(--color-text-muted)'
-                      }}>
-                        {profitNum < 0 ? `-${formatCurrency(profitNum)}` : formatCurrency(profitNum)}
-                      </div>
-                      {collectionNum > 0 && (
-                        <span style={{
-                          fontSize: '10.5px',
-                          fontWeight: 600,
-                          color: isProfitable ? '#16a34a' : '#dc2626',
-                          backgroundColor: isProfitable ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                          padding: '1px 5px',
-                          borderRadius: '3px',
-                          display: 'inline-block',
-                          marginTop: '2px'
-                        }}>
-                          {p.margin_percent}% margin
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Uniform Status Badges */}
-                    <td style={{ textAlign: 'center', padding: '12px 14px' }}>
-                      {p.status === 'in_progress' ? (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          backgroundColor: 'rgba(254, 159, 67, 0.15)',
-                          color: '#e67e22',
-                          fontWeight: 700,
-                          fontSize: '11px',
-                          border: '1px solid rgba(254, 159, 67, 0.35)',
-                          letterSpacing: '0.3px',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#e67e22', display: 'inline-block' }} />
-                          ⚡ IN PROGRESS
-                        </span>
-                      ) : p.status === 'active' ? (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          backgroundColor: '#dcfce7',
-                          color: '#16a34a',
-                          fontWeight: 700,
-                          fontSize: '11px',
-                          border: '1px solid #bbf7d0',
-                          letterSpacing: '0.3px',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a', display: 'inline-block' }} />
-                          ACTIVE
-                        </span>
-                      ) : p.status === 'completed' ? (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          backgroundColor: '#e0f2fe',
-                          color: '#0284c7',
-                          fontWeight: 700,
-                          fontSize: '11px',
-                          border: '1px solid #bae6fd',
-                          letterSpacing: '0.3px',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          <CheckCircle size={10} /> COMPLETED
-                        </span>
-                      ) : p.status === 'on_hold' ? (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          backgroundColor: '#ffe4e6',
-                          color: '#e11d48',
-                          fontWeight: 700,
-                          fontSize: '11px',
-                          border: '1px solid #fecdd3',
-                          letterSpacing: '0.3px',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          ON HOLD
-                        </span>
-                      ) : (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          backgroundColor: '#f1f5f9',
-                          color: '#475569',
-                          fontWeight: 700,
-                          fontSize: '11px',
-                          border: '1px solid #cbd5e1',
-                          letterSpacing: '0.3px',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          PLANNING
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Actions Column */}
-                    <td style={{ textAlign: 'center', padding: '12px 14px' }}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/projects/${p.id}`);
-                        }}
-                        className="btn btn-secondary btn-sm"
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          borderRadius: '6px',
-                          backgroundColor: '#f0fdf4',
-                          color: '#16a34a',
-                          borderColor: '#bbf7d0'
-                        }}
-                      >
-                        <Eye size={13} /> View
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      {/* Actions Column */}
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/projects/${p.id}`);
+                          }}
+                          className="proj-action-btn"
+                        >
+                          <Eye size={12} /> View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
