@@ -564,6 +564,238 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/invoices/:id - Update existing sales invoice
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const {
+      business_id,
+      invoice_number: requestedInvoiceNumber,
+      customer_id,
+      customer_name,
+      customer_phone,
+      customer_address,
+      place_of_supply,
+      project_id,
+      invoice_date,
+      due_date,
+      items,
+      subtotal,
+      discount_amount,
+      tax_amount,
+      cgst_amount,
+      sgst_amount,
+      round_off,
+      total_amount,
+      payment_method,
+      payment_status,
+      notes,
+      terms
+    } = req.body;
+
+    const db = await getDb();
+
+    // 1. Fetch existing invoice
+    const invRes = await db.query('SELECT * FROM invoices WHERE id = $1', [id]);
+    if (invRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+    const existingInvoice = invRes.rows[0];
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'At least one line item is required' });
+    }
+
+    const bizId = await resolveBusinessId(db, business_id || existingInvoice.business_id);
+    const finalInvoiceNumber = requestedInvoiceNumber?.trim() || existingInvoice.invoice_number;
+
+    // 2. Fetch existing items and revert previous stock quantities
+    const oldItemsRes = await db.query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
+    for (const oldIt of oldItemsRes.rows) {
+      if (oldIt.product_id) {
+        try {
+          const prodRes = await db.query('SELECT stock_quantity FROM products WHERE id = $1', [oldIt.product_id]);
+          if (prodRes.rows.length > 0) {
+            const currentStock = Number(prodRes.rows[0].stock_quantity) || 0;
+            const restoredStock = currentStock + (Number(oldIt.quantity) || 0);
+            await db.query('UPDATE products SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [restoredStock, oldIt.product_id]);
+          }
+        } catch (stockErr) {
+          console.warn('Could not revert stock for product:', oldIt.product_id, stockErr);
+        }
+      }
+    }
+
+    // 3. Prepare notes and calculation fields
+    let enrichedNotes = notes || '';
+    if (place_of_supply && !enrichedNotes.includes(`[Place of Supply: ${place_of_supply}]`)) {
+      enrichedNotes += `\n[Place of Supply: ${place_of_supply}]`;
+    }
+    if (customer_address && !enrichedNotes.includes(`[Address: ${customer_address}]`)) {
+      enrichedNotes += `\n[Address: ${customer_address}]`;
+    }
+    if (due_date && !enrichedNotes.includes(`[Due Date: ${due_date}]`)) {
+      enrichedNotes += `\n[Due Date: ${due_date}]`;
+    }
+    if (terms && !enrichedNotes.includes(`[Terms: ${terms}]`)) {
+      enrichedNotes += `\n[Terms: ${terms}]`;
+    }
+    if (round_off !== undefined && round_off !== null && !enrichedNotes.includes(`[Round Off: ${round_off}]`)) {
+      enrichedNotes += `\n[Round Off: ${round_off}]`;
+    }
+
+    const calculatedSubtotal = Number(subtotal) || 0;
+    const calculatedDiscount = Number(discount_amount) || 0;
+    const calculatedTax = Number(tax_amount) || 0;
+    const calculatedCgst = Number(cgst_amount) || 0;
+    const calculatedSgst = Number(sgst_amount) || 0;
+    const finalTotal = Number(total_amount) || Math.max(0, calculatedSubtotal + calculatedTax - calculatedDiscount);
+
+    // Keep or update timestamp
+    let invoiceCreatedAt = existingInvoice.created_at;
+    if (invoice_date) {
+      if (typeof invoice_date === 'string' && invoice_date.length <= 10) {
+        const [year, month, day] = invoice_date.split('-').map(Number);
+        const prevDate = new Date(existingInvoice.created_at || Date.now());
+        const combined = new Date(year, month - 1, day, prevDate.getHours(), prevDate.getMinutes(), prevDate.getSeconds(), prevDate.getMilliseconds());
+        invoiceCreatedAt = combined.toISOString();
+      } else {
+        const parsed = new Date(invoice_date);
+        invoiceCreatedAt = !isNaN(parsed.getTime()) ? parsed.toISOString() : existingInvoice.created_at;
+      }
+    }
+
+    // 4. Update Invoices table
+    await db.query(
+      `UPDATE invoices SET
+        business_id = $1,
+        invoice_number = $2,
+        customer_id = $3,
+        customer_name = $4,
+        customer_phone = $5,
+        project_id = $6,
+        subtotal = $7,
+        discount_amount = $8,
+        tax_amount = $9,
+        cgst_amount = $10,
+        sgst_amount = $11,
+        total_amount = $12,
+        payment_method = $13,
+        payment_status = $14,
+        notes = $15,
+        created_at = $16
+      WHERE id = $17`,
+      [
+        bizId,
+        finalInvoiceNumber,
+        customer_id || null,
+        customer_name || 'Cash Sale',
+        customer_phone || '',
+        project_id || null,
+        calculatedSubtotal,
+        calculatedDiscount,
+        calculatedTax,
+        calculatedCgst,
+        calculatedSgst,
+        finalTotal,
+        payment_method || existingInvoice.payment_method || 'cash',
+        payment_status || existingInvoice.payment_status || 'paid',
+        enrichedNotes.trim(),
+        invoiceCreatedAt,
+        id
+      ]
+    );
+
+    // 5. Delete old items
+    await db.query('DELETE FROM invoice_items WHERE invoice_id = $1', [id]);
+
+    // 6. Insert new items and deduct stock
+    const insertedItems: any[] = [];
+    for (const it of items) {
+      const itemId = it.id && !it.id.startsWith('item-') ? it.id : `inv-item-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+      const qty = Number(it.quantity) || 1;
+      const unitPrice = Number(it.unit_price) || 0;
+      const disc = Number(it.discount) || 0;
+      const gst = Number(it.gst_rate) || 0;
+      const itemTax = Number(it.tax_amount) || 0;
+      const lineTotal = Number(it.total) || Number(((qty * unitPrice - disc) + itemTax).toFixed(2));
+
+      await db.query(
+        `INSERT INTO invoice_items (
+          id, invoice_id, product_id, product_name, sku, hsn_code,
+          quantity, unit_price, discount, gst_rate, tax_amount, total
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [
+          itemId,
+          id,
+          it.product_id || null,
+          it.product_name || 'Item',
+          it.sku || '',
+          it.hsn_code || '',
+          qty,
+          unitPrice,
+          disc,
+          gst,
+          itemTax,
+          lineTotal
+        ]
+      );
+
+      // Decrement stock in catalog if product_id supplied
+      if (it.product_id) {
+        try {
+          const prodRes = await db.query(`SELECT stock_quantity FROM products WHERE id = $1`, [it.product_id]);
+          if (prodRes.rows.length > 0) {
+            const currentStock = Number(prodRes.rows[0].stock_quantity) || 0;
+            const newStock = Math.max(0, currentStock - qty);
+            await db.query(`UPDATE products SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [newStock, it.product_id]);
+          }
+        } catch (stockErr) {
+          console.warn('Stock update skipped for item on invoice edit:', it.product_id, stockErr);
+        }
+      }
+
+      insertedItems.push({
+        id: itemId,
+        invoice_id: id,
+        product_id: it.product_id,
+        product_name: it.product_name,
+        sku: it.sku,
+        hsn_code: it.hsn_code,
+        quantity: qty,
+        unit_price: unitPrice,
+        discount: disc,
+        gst_rate: gst,
+        tax_amount: itemTax,
+        total: lineTotal
+      });
+    }
+
+    res.json({
+      id: id,
+      business_id: bizId,
+      invoice_number: finalInvoiceNumber,
+      customer_id: customer_id || null,
+      customer_name: customer_name || 'Cash Sale',
+      customer_phone: customer_phone || '',
+      subtotal: calculatedSubtotal,
+      discount_amount: calculatedDiscount,
+      tax_amount: calculatedTax,
+      cgst_amount: calculatedCgst,
+      sgst_amount: calculatedSgst,
+      total_amount: finalTotal,
+      payment_method: payment_method || 'cash',
+      payment_status: payment_status || 'paid',
+      notes: enrichedNotes.trim(),
+      created_at: invoiceCreatedAt,
+      items: insertedItems
+    });
+  } catch (error: any) {
+    console.error('Update invoice error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Cancel Invoice
 router.put('/:id/cancel', async (req: Request, res: Response) => {
   try {

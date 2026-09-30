@@ -180,6 +180,7 @@ export const App: React.FC = () => {
                   <Route path="invoices" element={<InvoicesList />} />
                   <Route path="invoices/create" element={<CreateSalesInvoice />} />
                   <Route path="invoices/new" element={<CreateSalesInvoice />} />
+                  <Route path="invoices/:id/edit" element={<CreateSalesInvoice />} />
                   <Route path="sales/new" element={<CreateSalesInvoice />} />
                   <Route path="sales/create" element={<CreateSalesInvoice />} />
                   <Route path="sell" element={<Navigate to="/invoices/create" replace />} />

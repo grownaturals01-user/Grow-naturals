@@ -10,7 +10,8 @@ import {
   Calendar,
   Layers,
   ChevronRight,
-  FolderKanban
+  FolderKanban,
+  Edit3
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Invoice } from '../types';
@@ -121,6 +122,15 @@ export const InvoiceDetail: React.FC = () => {
               80mm Thermal
             </button>
           </div>
+
+          {/* Edit Invoice CTA */}
+          <Link
+            to={`/invoices/${invoice.id}/edit`}
+            className="btn btn-secondary"
+            title="Edit invoice items, customer, pricing or notes"
+          >
+            <Edit3 size={16} /> Edit Invoice
+          </Link>
 
           {/* Refund CTA */}
           <Link

@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Scan,
@@ -203,10 +203,19 @@ const DEFAULT_PRODUCTS: Product[] = [
 
 export const CreateSalesInvoice: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
   const paramCustomerName = searchParams.get('customer_name') || '';
   const paramPhone = searchParams.get('phone') || '';
   const paramProjectId = searchParams.get('project_id') || '';
+  const paramEditInvoiceId = searchParams.get('editInvoiceId') || searchParams.get('invoice_id') || '';
+  const paramDuplicateInvoiceId = searchParams.get('duplicateInvoiceId') || '';
+
+  const editInvoiceId = id || paramEditInvoiceId || null;
+  const isEditMode = Boolean(editInvoiceId);
+  const isDuplicateMode = Boolean(paramDuplicateInvoiceId);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
+  const [, setLoadedInvoiceData] = useState<Invoice | null>(null);
 
   const { businessId, activeBusiness, businesses, switchBusiness, isTaxable } = useBusiness();
 
@@ -309,13 +318,182 @@ export const CreateSalesInvoice: React.FC = () => {
   const [isLoadingPriceHistory, setIsLoadingPriceHistory] = useState(false);
 
   useEffect(() => {
-    if (paramCustomerName) {
+    if (paramCustomerName && !editInvoiceId && !paramDuplicateInvoiceId) {
       setPartyName(paramCustomerName);
       setHasSelectedParty(true);
     }
-    if (paramPhone) setPartyPhone(paramPhone);
-    if (paramProjectId) setProjectId(paramProjectId);
-  }, [paramCustomerName, paramPhone, paramProjectId]);
+    if (paramPhone && !editInvoiceId && !paramDuplicateInvoiceId) setPartyPhone(paramPhone);
+    if (paramProjectId && !editInvoiceId && !paramDuplicateInvoiceId) setProjectId(paramProjectId);
+  }, [paramCustomerName, paramPhone, paramProjectId, editInvoiceId, paramDuplicateInvoiceId]);
+
+  // Load existing invoice for Edit or Duplicate Mode
+  useEffect(() => {
+    const targetInvoiceId = editInvoiceId || paramDuplicateInvoiceId;
+    if (!targetInvoiceId) return;
+
+    let isMounted = true;
+    const fetchExistingInvoice = async () => {
+      try {
+        setLoadingInvoice(true);
+        const data = await api.get<Invoice>(`/invoices/${targetInvoiceId}`);
+        if (!data || !isMounted) return;
+
+        setLoadedInvoiceData(data);
+
+        // Switch business if invoice belongs to another business
+        if (data.business_id && data.business_id !== businessId) {
+          switchBusiness(data.business_id);
+        }
+
+        if (isEditMode) {
+          const fullInvNum = data.invoice_number || '';
+          const knownPrefixes = ['GN00', 'NN00', 'GN-', 'NN-', 'ALL-'];
+          let matchedPrefix = knownPrefixes.find((p) => fullInvNum.startsWith(p)) || '';
+          if (!matchedPrefix && data.business_id) {
+            const biz = businesses.find((b) => b.id === data.business_id);
+            if (biz?.invoice_prefix && fullInvNum.startsWith(biz.invoice_prefix)) {
+              matchedPrefix = biz.invoice_prefix;
+            }
+          }
+
+          if (matchedPrefix) {
+            setInvoicePrefix(matchedPrefix);
+            setInvoiceNumber(fullInvNum.slice(matchedPrefix.length));
+          } else {
+            setInvoicePrefix('');
+            setInvoiceNumber(fullInvNum);
+          }
+
+          if (data.created_at) {
+            try {
+              setInvoiceDate(new Date(data.created_at).toISOString().split('T')[0]);
+            } catch {}
+          }
+        }
+
+        // Party / Customer
+        if (data.customer_id) setSelectedCustomerId(data.customer_id);
+        if (data.customer_name) {
+          setPartyName(data.customer_name);
+          setHasSelectedParty(true);
+        }
+        if (data.customer_phone) setPartyPhone(data.customer_phone);
+        if (data.customer_address) setPartyAddress(data.customer_address);
+        if (data.customer_gstin) setPartyGstin(data.customer_gstin);
+
+        // Shipping
+        if (data.ship_to_name) setShipToName(data.ship_to_name);
+        if (data.ship_to_phone) setShipToPhone(data.ship_to_phone);
+        if (data.ship_to_address) setShipToAddress(data.ship_to_address);
+
+        // Project
+        if (data.project_id) setProjectId(data.project_id);
+
+        // Clean Notes & Metadata
+        let cleanNotes = data.notes || '';
+        const supplyMatch = cleanNotes.match(/\[Place of Supply:\s*([^\]]+)\]/i);
+        if (supplyMatch && supplyMatch[1]) {
+          setPlaceOfSupply(supplyMatch[1].trim());
+          cleanNotes = cleanNotes.replace(/\[Place of Supply:[^\]]+\]/gi, '').trim();
+        }
+        const addressMatch = cleanNotes.match(/\[Address:\s*([^\]]+)\]/i);
+        if (addressMatch && addressMatch[1] && !data.customer_address) {
+          setPartyAddress(addressMatch[1].trim());
+          cleanNotes = cleanNotes.replace(/\[Address:[^\]]+\]/gi, '').trim();
+        }
+        const dueMatch = cleanNotes.match(/\[Due Date:\s*([^\]]+)\]/i);
+        if (dueMatch && dueMatch[1]) {
+          setDueDate(dueMatch[1].trim());
+          setHasCustomDueDate(true);
+          cleanNotes = cleanNotes.replace(/\[Due Date:[^\]]+\]/gi, '').trim();
+        }
+        const termsMatch = cleanNotes.match(/\[Terms:\s*([^\]]+)\]/i);
+        if (termsMatch && termsMatch[1]) {
+          setTerms(termsMatch[1].trim());
+          cleanNotes = cleanNotes.replace(/\[Terms:[^\]]+\]/gi, '').trim();
+        } else if (data.business_footer) {
+          setTerms(data.business_footer);
+        }
+        const roundOffMatch = cleanNotes.match(/\[Round Off:\s*([^\]]+)\]/i);
+        if (roundOffMatch && roundOffMatch[1]) {
+          setAutoRoundOff(true);
+          cleanNotes = cleanNotes.replace(/\[Round Off:[^\]]+\]/gi, '').trim();
+        }
+        setNotes(cleanNotes);
+        if (cleanNotes) setShowNotesInput(true);
+
+        // Payment details
+        if (data.payment_method) {
+          setPaymentMethod(data.payment_method as any);
+        }
+        if (data.payment_status === 'paid') {
+          setIsMarkAsPaid(true);
+        }
+        if (data.amount_in_words) {
+          setAmountInWords(data.amount_in_words);
+          setIsCustomWords(true);
+        }
+        if (data.extra_charges && Array.isArray(data.extra_charges) && data.extra_charges.length > 0) {
+          setExtraCharges(data.extra_charges);
+          setShowAddCharges(true);
+        }
+
+        // Discounts
+        const totalItemsDisc = (data.items || []).reduce((s: number, it: any) => s + Number(it.discount || it.discount_amount || 0), 0);
+        const invTotalDisc = Number(data.discount_amount || 0);
+        if (invTotalDisc > totalItemsDisc) {
+          const overallDisc = invTotalDisc - totalItemsDisc;
+          setDiscountAmount(overallDisc);
+          setShowOverallDiscount(true);
+        }
+
+        // Items
+        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+          const isTax = data.business_id === 'grow-naturals' || isTaxable;
+          const mappedItems: FormItem[] = data.items.map((it: any, idx: number) => {
+            const qty = Number(it.quantity) || 1;
+            const price = Number(it.unit_price) || 0;
+            const discAmount = Number(it.discount !== undefined ? it.discount : (it.discount_amount || 0));
+            const rawTotal = qty * price;
+            const discPercent = rawTotal > 0 ? Number(((discAmount / rawTotal) * 100).toFixed(2)) : 0;
+            const taxRate = Number(it.gst_rate) || 0;
+            const taxAmt = Number(it.tax_amount) || 0;
+            const total = Number(it.total) || (rawTotal - discAmount + taxAmt);
+
+            return {
+              id: it.id || `item-${Date.now()}-${idx}`,
+              product_id: it.product_id || null,
+              product_name: it.product_name || 'Item',
+              sku: it.sku || '',
+              hsn_code: it.hsn_code || (isTax ? '3926' : '0602'),
+              mrp: Number(it.mrp || price),
+              quantity: qty,
+              unit: it.unit || 'PCS',
+              unit_price: price,
+              discount_percent: discPercent,
+              discount_amount: discAmount,
+              gst_rate: taxRate,
+              tax_amount: taxAmt,
+              total: total,
+              description: it.description || '',
+              isNew: false
+            };
+          });
+          setItems(mappedItems);
+        }
+      } catch (err: any) {
+        console.error('Failed to load invoice for editing:', err);
+        alert(`Failed to load invoice: ${err.message || 'Error occurred'}`);
+      } finally {
+        if (isMounted) setLoadingInvoice(false);
+      }
+    };
+
+    fetchExistingInvoice();
+    return () => {
+      isMounted = false;
+    };
+  }, [editInvoiceId, paramDuplicateInvoiceId]);
 
   // Line items
   const [items, setItems] = useState<FormItem[]>([]);
@@ -406,8 +584,9 @@ export const CreateSalesInvoice: React.FC = () => {
     };
   }, [isPartySearchOpen]);
 
-  // Synchronize business default updates when businessId changes
+  // Synchronize business default updates when businessId changes (for new invoice creation only)
   useEffect(() => {
+    if (isEditMode) return;
     setInvoicePrefix(activeBusiness.invoice_prefix || (businessId === 'grow-naturals' ? 'GN00' : 'NN00'));
     setTerms(
       businessId === 'grow-naturals'
@@ -422,7 +601,7 @@ export const CreateSalesInvoice: React.FC = () => {
     });
     setUpiId(businessId === 'grow-naturals' ? 'grownaturals@axisbank' : 'nikhleshnursery@hdfcbank');
     setUpiPayeeName(activeBusiness.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm'));
-  }, [businessId, activeBusiness]);
+  }, [businessId, activeBusiness, isEditMode]);
 
   // Load existing customers, products, and check AI engine status
   useEffect(() => {
@@ -1449,10 +1628,12 @@ export const CreateSalesInvoice: React.FC = () => {
         ? activeBusiness.id
         : (businessId && businessId !== 'all' ? businessId : (businesses[0]?.id || 'grow-naturals'));
 
+      const finalInvNumber = invoicePrefix ? `${invoicePrefix}${invoiceNumber}` : invoiceNumber;
+
       const payload = {
         business_id: safeBizId,
         invoice_prefix: invoicePrefix,
-        invoice_number: `${invoicePrefix}${invoiceNumber}`,
+        invoice_number: finalInvNumber,
         customer_id: selectedCustomerId || null,
         customer_name: partyName || 'Cash Sale',
         customer_phone: partyPhone || '',
@@ -1467,6 +1648,7 @@ export const CreateSalesInvoice: React.FC = () => {
         created_at: exactInvoiceDateTime,
         due_date: hasCustomDueDate ? dueDate : undefined,
         items: items.map((it) => ({
+          id: it.id && !it.id.startsWith('item-') ? it.id : undefined,
           product_id: it.product_id || null,
           product_name: it.product_name,
           sku: it.sku || '',
@@ -1501,8 +1683,14 @@ export const CreateSalesInvoice: React.FC = () => {
         project_id: projectId || undefined
       };
 
-      const res = await api.post('/invoices', payload);
-      setSaveSuccessMsg(`Invoice #${res.invoice_number || `${invoicePrefix}${invoiceNumber}`} saved successfully!`);
+      let res: any;
+      if (isEditMode && editInvoiceId) {
+        res = await api.put(`/invoices/${editInvoiceId}`, payload);
+        setSaveSuccessMsg(`Invoice #${res.invoice_number || finalInvNumber} updated successfully!`);
+      } else {
+        res = await api.post('/invoices', payload);
+        setSaveSuccessMsg(`Invoice #${res.invoice_number || finalInvNumber} saved successfully!`);
+      }
 
       if (saveAndNew) {
         setInvoiceNumber(String(Math.floor(8000 + Math.random() * 1000)));
@@ -1531,8 +1719,11 @@ export const CreateSalesInvoice: React.FC = () => {
         setHasSelectedParty(false);
         setIsAiExtractedParty(false);
         setIsCustomWords(false);
+        if (isEditMode) {
+          navigate('/invoices/create');
+        }
       } else {
-        const targetId = res?.id || res?.invoice_id || invoiceNumber;
+        const targetId = res?.id || res?.invoice_id || editInvoiceId || invoiceNumber;
         if (targetId) {
           navigate(`/invoices/${targetId}`);
         } else {
@@ -1557,7 +1748,14 @@ export const CreateSalesInvoice: React.FC = () => {
             <span>Exit</span>
           </button>
           <div className="csi-divider-v" />
-          <h1 className="csi-page-title">Create Sales Invoice</h1>
+          <h1 className="csi-page-title" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <span>{isEditMode ? 'Edit Sales Invoice' : 'Create Sales Invoice'}</span>
+            {isEditMode && (
+              <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'var(--color-bg-surface-subtle)', border: '1px solid var(--color-border)', color: 'var(--module-sell-accent)', fontWeight: 700 }}>
+                #{invoicePrefix}{invoiceNumber}
+              </span>
+            )}
+          </h1>
         </div>
 
         {/* Center: Edit Mode / Preview Mode Segmented Switcher */}
@@ -1580,7 +1778,7 @@ export const CreateSalesInvoice: React.FC = () => {
 
         {/* Right Action Buttons */}
         <div className="csi-header-right">
-          {!autofillOpen && (
+          {!autofillOpen && !isEditMode && (
             <button
               type="button"
               onClick={() => setAutofillOpen(true)}
@@ -1620,7 +1818,7 @@ export const CreateSalesInvoice: React.FC = () => {
             className="csi-btn-primary"
           >
             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            <span>Save</span>
+            <span>{isEditMode ? 'Update Invoice' : 'Save'}</span>
           </button>
         </div>
       </header>
@@ -1630,6 +1828,14 @@ export const CreateSalesInvoice: React.FC = () => {
         <div className="csi-alert-success">
           <CheckCircle2 size={16} />
           <span>{saveSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Loading Invoice Alert */}
+      {loadingInvoice && (
+        <div style={{ backgroundColor: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1d4ed8', fontSize: '13px', fontWeight: 600 }}>
+          <Loader2 size={16} className="animate-spin" />
+          <span>Loading invoice data for editing...</span>
         </div>
       )}
 

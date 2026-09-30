@@ -325,7 +325,7 @@ export const InvoicesList: React.FC = () => {
 
   const handleEditInvoice = (inv: Invoice) => {
     setActionMenuInvoiceId(null);
-    navigate(`/invoices/${inv.id}`);
+    navigate(`/invoices/${inv.id}/edit`);
   };
 
   const handleIssueCreditNoteSubmit = (e: React.FormEvent) => {
