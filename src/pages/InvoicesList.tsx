@@ -320,7 +320,7 @@ export const InvoicesList: React.FC = () => {
 
   const handleDuplicateInvoice = (inv: Invoice) => {
     setActionMenuInvoiceId(null);
-    navigate(`/sales/new?duplicateInvoiceId=${inv.id}`);
+    navigate(`/invoices/create?duplicateInvoiceId=${inv.id}`);
   };
 
   const handleEditInvoice = (inv: Invoice) => {
@@ -501,7 +501,7 @@ export const InvoicesList: React.FC = () => {
           <Link to="/refunds" className="btn btn-secondary" style={{ fontSize: '0.8125rem', padding: '8px 14px', gap: '6px' }}>
             <RotateCcw size={15} /> Refunds
           </Link>
-          <Link to="/sales/new" className="btn btn-sell" style={{ fontSize: '0.8125rem', padding: '8px 16px', gap: '6px' }}>
+          <Link to="/invoices/create" className="btn btn-sell" style={{ fontSize: '0.8125rem', padding: '8px 16px', gap: '6px' }}>
             <ShoppingBag size={15} /> + Create Sales Invoice
           </Link>
         </div>

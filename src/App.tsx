@@ -179,7 +179,9 @@ export const App: React.FC = () => {
                   {/* Sales Ops: Invoices & Refunds */}
                   <Route path="invoices" element={<InvoicesList />} />
                   <Route path="invoices/create" element={<CreateSalesInvoice />} />
-                  <Route path="invoices/new" element={<Navigate to="/invoices/create" replace />} />
+                  <Route path="invoices/new" element={<CreateSalesInvoice />} />
+                  <Route path="sales/new" element={<CreateSalesInvoice />} />
+                  <Route path="sales/create" element={<CreateSalesInvoice />} />
                   <Route path="invoices/:id" element={<InvoiceDetail />} />
                   <Route path="refunds" element={<RefundsList />} />
                   <Route path="refunds/new" element={<RefundNew />} />
