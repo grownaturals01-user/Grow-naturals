@@ -122,9 +122,22 @@ export const POS: React.FC = () => {
   const [printModalMode, setPrintModalMode] = useState<'receipt' | 'a4' | null>(null);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState<boolean>(false);
   const [openSizeDropdownKey, setOpenSizeDropdownKey] = useState<string | null>(null);
+  const [isStockDropdownOpen, setIsStockDropdownOpen] = useState<boolean>(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const stockDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close stock dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (stockDropdownRef.current && !stockDropdownRef.current.contains(e.target as Node)) {
+        setIsStockDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
   const [canScrollRight, setCanScrollRight] = useState<boolean>(true);
@@ -950,27 +963,82 @@ export const POS: React.FC = () => {
                 )}
               </div>
 
-              {/* Default Stock Source Switcher (Shop vs Inventory) */}
-              <div className="pos-source-toggle-wrap" title="Default stock pool when adding products">
-                <span className="pos-source-label">Default Stock:</span>
-                <div className="pos-source-toggle">
-                  <button
-                    type="button"
-                    className={`pos-source-btn ${defaultStockSource === 'shop' ? 'active shop' : ''}`}
-                    onClick={() => setDefaultStockSource('shop')}
-                  >
-                    <Store size={13} strokeWidth={2.2} />
-                    <span>Shop</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`pos-source-btn ${defaultStockSource === 'inventory' ? 'active inv' : ''}`}
-                    onClick={() => setDefaultStockSource('inventory')}
-                  >
-                    <Boxes size={13} strokeWidth={2.2} />
-                    <span>Inventory</span>
-                  </button>
-                </div>
+              {/* Default Stock Source Switcher as a Dropdown */}
+              <div className="pos-source-dropdown-wrap" ref={stockDropdownRef}>
+                <button
+                  type="button"
+                  className={`pos-source-dropdown-btn ${defaultStockSource}`}
+                  onClick={() => setIsStockDropdownOpen((prev) => !prev)}
+                  title="Select default stock pool (Shop vs Inventory)"
+                  aria-expanded={isStockDropdownOpen}
+                >
+                  <span className="pos-source-dropdown-label">Default Stock:</span>
+                  <div className="pos-source-current-value">
+                    {defaultStockSource === 'shop' ? (
+                      <>
+                        <Store size={14} className="pos-source-icon shop-icon" />
+                        <span>Shop</span>
+                      </>
+                    ) : (
+                      <>
+                        <Boxes size={14} className="pos-source-icon inv-icon" />
+                        <span>Inventory</span>
+                      </>
+                    )}
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    className={`pos-source-chevron ${isStockDropdownOpen ? 'open' : ''}`}
+                  />
+                </button>
+
+                {isStockDropdownOpen && (
+                  <div className="pos-source-dropdown-menu">
+                    <button
+                      type="button"
+                      className={`pos-source-option ${defaultStockSource === 'shop' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setDefaultStockSource('shop');
+                        setIsStockDropdownOpen(false);
+                      }}
+                    >
+                      <div className="pos-source-option-left">
+                        <div className="pos-source-option-icon shop">
+                          <Store size={15} />
+                        </div>
+                        <div className="pos-source-option-text">
+                          <span className="pos-source-option-title">Shop Stock</span>
+                          <span className="pos-source-option-desc">Front counter store pool</span>
+                        </div>
+                      </div>
+                      {defaultStockSource === 'shop' && (
+                        <Check size={15} className="pos-source-check" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`pos-source-option ${defaultStockSource === 'inventory' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setDefaultStockSource('inventory');
+                        setIsStockDropdownOpen(false);
+                      }}
+                    >
+                      <div className="pos-source-option-left">
+                        <div className="pos-source-option-icon inv">
+                          <Boxes size={15} />
+                        </div>
+                        <div className="pos-source-option-text">
+                          <span className="pos-source-option-title">Inventory Stock</span>
+                          <span className="pos-source-option-desc">Main backstock warehouse</span>
+                        </div>
+                      </div>
+                      {defaultStockSource === 'inventory' && (
+                        <Check size={15} className="pos-source-check" />
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button

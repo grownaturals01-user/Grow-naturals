@@ -1968,72 +1968,227 @@
 }
 
 /* ==========================================================================
-   DUAL STOCK COUNTS & STOCK SOURCE SELECTION (SHOP COUNTER VS INVENTORY)
+   DEFAULT STOCK SOURCE DROPDOWN
    ========================================================================== */
-.pos-source-toggle-wrap {
+.pos-source-dropdown-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.pos-source-dropdown-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   background-color: var(--color-bg-surface, #ffffff);
   border: 1.5px solid var(--color-border, #e2e8f0);
   border-radius: var(--radius-lg, 10px);
-  padding: 3px 6px;
+  padding: 0 12px;
   height: 44px;
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+  user-select: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-.pos-source-label {
+.pos-source-dropdown-btn:hover {
+  border-color: #cbd5e1;
+  background-color: var(--color-bg-surface-subtle, #f8fafc);
+}
+
+[data-theme="dark"] .pos-source-dropdown-btn {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .pos-source-dropdown-btn:hover {
+  background-color: #273549;
+  border-color: #475569;
+}
+
+.pos-source-dropdown-label {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   color: #64748b;
   letter-spacing: 0.04em;
-  padding-left: 6px;
-  user-select: none;
   white-space: nowrap;
 }
 
-.pos-source-toggle {
+[data-theme="dark"] .pos-source-dropdown-label {
+  color: #94a3b8;
+}
+
+.pos-source-current-value {
   display: flex;
-  gap: 3px;
-  background-color: #f1f5f9;
-  padding: 3px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.pos-source-btn {
-  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  font-size: 0.76rem;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  color: #64748b;
+  gap: 6px;
+  padding: 4px 8px;
   border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  white-space: nowrap;
-}
-
-.pos-source-btn:hover {
+  background-color: #f1f5f9;
+  font-size: 0.8125rem;
+  font-weight: 700;
   color: #0f172a;
 }
 
-.pos-source-btn.active.shop {
-  background-color: #ffffff;
-  color: #15803d;
-  font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+[data-theme="dark"] .pos-source-current-value {
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
-.pos-source-btn.active.inv {
-  background-color: #ffffff;
+.pos-source-dropdown-btn.shop .pos-source-current-value {
+  color: #15803d;
+  background-color: #f0fdf4;
+}
+
+[data-theme="dark"] .pos-source-dropdown-btn.shop .pos-source-current-value {
+  color: #4ade80;
+  background-color: rgba(34, 197, 94, 0.15);
+}
+
+.pos-source-dropdown-btn.inventory .pos-source-current-value {
   color: #4f46e5;
+  background-color: #eef2ff;
+}
+
+[data-theme="dark"] .pos-source-dropdown-btn.inventory .pos-source-current-value {
+  color: #818cf8;
+  background-color: rgba(99, 102, 241, 0.15);
+}
+
+.pos-source-icon.shop-icon {
+  color: #16a34a;
+}
+
+.pos-source-icon.inv-icon {
+  color: #6366f1;
+}
+
+.pos-source-chevron {
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+  margin-left: 2px;
+}
+
+.pos-source-chevron.open {
+  transform: rotate(180deg);
+}
+
+.pos-source-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-lg, 10px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  padding: 6px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+[data-theme="dark"] .pos-source-dropdown-menu {
+  background-color: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+.pos-source-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.pos-source-option:hover {
+  background-color: #f8fafc;
+}
+
+[data-theme="dark"] .pos-source-option:hover {
+  background-color: #334155;
+}
+
+.pos-source-option.selected {
+  background-color: #f0fdf4;
+}
+
+[data-theme="dark"] .pos-source-option.selected {
+  background-color: rgba(34, 197, 94, 0.12);
+}
+
+.pos-source-option-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pos-source-option-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pos-source-option-icon.shop {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+[data-theme="dark"] .pos-source-option-icon.shop {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.pos-source-option-icon.inv {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+[data-theme="dark"] .pos-source-option-icon.inv {
+  background-color: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+}
+
+.pos-source-option-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.pos-source-option-title {
+  font-size: 0.8125rem;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+}
+
+[data-theme="dark"] .pos-source-option-title {
+  color: #f8fafc;
+}
+
+.pos-source-option-desc {
+  font-size: 0.6875rem;
+  color: #64748b;
+}
+
+[data-theme="dark"] .pos-source-option-desc {
+  color: #94a3b8;
+}
+
+.pos-source-check {
+  color: #16a34a;
+  flex-shrink: 0;
 }
 
 /* Product Card Dual Stock Chips */
