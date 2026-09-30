@@ -6,7 +6,7 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--color-bg-app);
-  font-family: var(--font-family-sans);
+  font-family: 'Nunito', sans-serif;
 }
 
 /* Sidebar Styles - DreamsPOS Signature */
@@ -25,6 +25,7 @@
   color: var(--color-sidebar-text) !important;
   user-select: none;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.03);
+  font-family: 'Nunito', sans-serif !important;
 }
 
 .sidebar.collapsed {
@@ -239,6 +240,7 @@
 }
 
 .nav-section-title {
+  font-family: 'Nunito', sans-serif !important;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -258,6 +260,7 @@
 }
 
 .nav-link {
+  font-family: 'Nunito', sans-serif !important;
   display: flex;
   align-items: center;
   gap: 10px;

@@ -1,6 +1,11 @@
 /* ==========================================================================
-   0. HEADER ACTION BUTTONS & BUSINESS DROPDOWN
+   0. ROOT DASHBOARD & HEADER ACTION BUTTONS & BUSINESS DROPDOWN
    ========================================================================== */
+.dash-container,
+.dash-container * {
+  font-family: 'Nunito', sans-serif;
+}
+
 .dash-biz-dropdown-wrap {
   position: relative;
   display: inline-block;
