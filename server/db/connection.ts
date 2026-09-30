@@ -104,6 +104,8 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE quotations ADD COLUMN IF NOT EXISTS customer_address TEXT DEFAULT '';`,
     `ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(32) DEFAULT 'customer';`,
     `ALTER TABLE customers ADD COLUMN IF NOT EXISTS credit_limit NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS closing_balance NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12,2) DEFAULT 0.00;`,
     `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approval_status VARCHAR(32) DEFAULT 'approved';`,
     `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approved_by VARCHAR(64) DEFAULT '';`,
     `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;`,
