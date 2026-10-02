@@ -311,6 +311,59 @@ router.post('/ai-config', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/invoices/next-number - Generate next sequential invoice number per business prefix
+router.get('/next-number', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const customPrefix = req.query.prefix as string | undefined;
+    const db = await getDb();
+    const resolvedBiz = await resolveBusinessId(db, businessId);
+
+    // Fetch default business prefix if not provided
+    const bizRes = await db.query(`SELECT invoice_prefix FROM businesses WHERE id = $1`, [resolvedBiz]);
+    const prefix = customPrefix || bizRes.rows[0]?.invoice_prefix || (resolvedBiz === 'grow-naturals' ? 'GN00' : 'NN00');
+
+    // Query highest numerical suffix for invoices with this prefix
+    const result = await db.query(
+      `SELECT invoice_number FROM invoices 
+       WHERE business_id = $1 OR invoice_number LIKE $2
+       ORDER BY created_at DESC 
+       LIMIT 100`,
+      [resolvedBiz, `${prefix}%`]
+    );
+
+    let maxSequence = 1000;
+    for (const row of result.rows) {
+      const invNum = String(row.invoice_number || '').trim();
+      if (invNum.startsWith(prefix)) {
+        const numPart = parseInt(invNum.slice(prefix.length), 10);
+        if (!isNaN(numPart) && numPart > maxSequence) {
+          maxSequence = numPart;
+        }
+      } else {
+        const match = invNum.match(/\d+$/);
+        if (match) {
+          const numPart = parseInt(match[0], 10);
+          if (!isNaN(numPart) && numPart > maxSequence) {
+            maxSequence = numPart;
+          }
+        }
+      }
+    }
+
+    const nextSeq = maxSequence + 1;
+    const nextInvoiceNumber = `${prefix}${nextSeq}`;
+
+    res.json({
+      prefix,
+      sequence: String(nextSeq),
+      next_invoice_number: nextInvoiceNumber
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/invoices/:id
 router.get('/:id', async (req: Request, res: Response) => {
   try {

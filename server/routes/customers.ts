@@ -32,27 +32,10 @@ router.get('/', async (req: Request, res: Response) => {
 
     const result = await db.query(query, params);
 
-    // Known customer reference balances
-    const knownBalances: Record<string, number> = {
-      'aarsha': 1972.19,
-      'anita sharma': 5600.00,
-      'oberoi luxury resorts': 44800.00,
-      'green valley residences hoa': 12100.00,
-      'gowtham nursery': 4500.00,
-      'bank of baroda': 12100.00,
-      'mda pots and plants': 325513.01,
-      'pandiyan': 9150.00
-    };
-
     const enriched = (result.rows || []).map((row: any) => {
-      const nameKey = (row.name || '').trim().toLowerCase();
       const unpaid = Number(row.unpaid_invoices_amount || 0);
       const explicitClosing = Number(row.closing_balance || row.opening_balance || 0);
-      const fallback = knownBalances[nameKey] !== undefined ? knownBalances[nameKey] : 0;
-
-      const effectiveBalance = explicitClosing > 0 
-        ? explicitClosing 
-        : (unpaid > 0 ? unpaid : fallback);
+      const effectiveBalance = explicitClosing > 0 ? explicitClosing : unpaid;
 
       return {
         ...row,

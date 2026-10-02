@@ -284,17 +284,16 @@
   color: var(--color-sidebar-hover-text) !important;
 }
 
-/* DreamsPOS Signature Active Nav State */
+/* Active Nav State - Matches Hover Color Scheme */
 .nav-link.active {
-  background-color: var(--color-primary) !important;
-  color: #FFFFFF !important;
+  background-color: var(--color-sidebar-hover-bg) !important;
+  color: var(--color-sidebar-hover-text) !important;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(254, 159, 67, 0.35);
 }
 
 .nav-link.active:hover {
-  background-color: var(--color-primary-hover) !important;
-  color: #FFFFFF !important;
+  background-color: var(--color-sidebar-hover-bg) !important;
+  color: var(--color-sidebar-hover-text) !important;
 }
 
 .nav-icon {
@@ -306,7 +305,7 @@
 }
 
 .nav-link.active .nav-icon {
-  color: #FFFFFF !important;
+  color: var(--color-sidebar-hover-text) !important;
 }
 
 /* Main Content Area */

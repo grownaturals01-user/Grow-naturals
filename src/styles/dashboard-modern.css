@@ -610,6 +610,10 @@
 }
 
 .app-shell.pos-fullscreen-mode {
+  min-height: 100vh;
+}
+
+.app-shell.pos-fixed-layout {
   height: 100vh !important;
   max-height: 100vh !important;
   overflow: hidden !important;
@@ -618,11 +622,15 @@
 .main-wrapper.pos-fullwidth {
   margin-left: 0 !important;
   width: 100% !important;
+  min-height: 100vh;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.main-wrapper.pos-fixed-wrapper {
   height: 100vh !important;
   max-height: 100vh !important;
   overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
 .main-content.pos-main-content {
@@ -637,6 +645,14 @@
   flex-direction: column !important;
   flex: 1 1 0% !important;
   min-height: 0 !important;
+}
+
+.main-content.pos-fullwidth-content {
+  padding: 20px 24px 48px 24px !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  flex: 1 1 auto !important;
 }
 
 /* ==========================================================================

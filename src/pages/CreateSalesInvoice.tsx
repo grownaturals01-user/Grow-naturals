@@ -86,120 +86,7 @@ const INDIAN_STATES = [
   'West Bengal', 'Punjab', 'Haryana', 'Madhya Pradesh', 'Goa'
 ];
 
-const DEFAULT_CUSTOMERS: Customer[] = [
-  { id: 'c-1', name: 'Anita Sharma', phone: '+91 97654 32100', email: 'anita@sharma.in', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 5600.00 },
-  { id: 'c-2', name: 'Green Valley Residences HOA', phone: '+91 98221 44556', email: 'greenvalley@hoa.in', address: 'Madurai, Tamil Nadu', gstin: '33AABCG9876F1Z2', closing_balance: 12100.00 },
-  { id: 'c-3', name: 'Oberoi Luxury Resorts', phone: '+91 99112 23344', email: 'billing@oberoihotels.com', address: 'Kodaikanal, Tamil Nadu', gstin: '33AAABO1234A1Z1', closing_balance: 44800.00 },
-  { id: 'c-4', name: 'Aarsha', phone: '7338290384', email: '', address: 'Chennai, Tamil Nadu', gstin: '33AABCR1234F1Z5', closing_balance: 1972.19 },
-  { id: 'c-5', name: 'Aachiya', phone: '9840123450', email: '', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-6', name: 'Aarthi', phone: '9840156789', email: '', address: 'Coimbatore, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-7', name: 'Abby', phone: '9789123456', email: '', address: 'Salem, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-8', name: 'Abi Rhuban', phone: '9443123456', email: '', address: 'Trichy, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-9', name: 'Abinaya', phone: '9840987654', email: '', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 0 },
-  { id: 'c-10', name: 'Gowtham Nursery', phone: '9840112233', email: '', address: 'Theni, Tamil Nadu', gstin: '33AAAAA0000A1Z5', closing_balance: 4500.00 },
-  { id: 'c-11', name: 'MDA Pots and Plants', phone: '9840129988', email: '', address: 'Madurai, Tamil Nadu', gstin: '33AABCM1234F1Z9', closing_balance: 325513.01 },
-  { id: 'c-12', name: 'Pandiyan', phone: '9443198765', email: '', address: 'Madurai, Tamil Nadu', gstin: '', closing_balance: 9150.00 },
-  { id: 'c-13', name: 'Bank of Baroda', phone: '9840199999', email: '', address: 'Madurai Main Branch, Tamil Nadu', gstin: '33AABCB1234F1Z0', closing_balance: 12100.00 }
-];
 
-const DEFAULT_PRODUCTS: Product[] = [
-  {
-    id: 'prod-1',
-    business_id: 'grow-naturals',
-    name: '10" Gro Pro Plastic Pot Black',
-    sku: '-',
-    barcode: '890123456701',
-    hsn_code: '',
-    cost_price: 0,
-    sale_price: 89,
-    gst_rate: 18,
-    stock_quantity: -2,
-    low_stock_threshold: 10,
-    type: 'pots',
-    category_name: 'Pots & Planters',
-    attributes: {}
-  },
-  {
-    id: 'prod-2',
-    business_id: 'grow-naturals',
-    name: '10" Gro Pro Plastic Pot Pink',
-    sku: '-',
-    barcode: '890123456702',
-    hsn_code: '',
-    cost_price: 0,
-    sale_price: 168,
-    gst_rate: 18,
-    stock_quantity: 0,
-    low_stock_threshold: 10,
-    type: 'pots',
-    category_name: 'Pots & Planters',
-    attributes: {}
-  },
-  {
-    id: 'prod-3',
-    business_id: 'grow-naturals',
-    name: '10" Gro Pro Plastic Pot TC',
-    sku: '-',
-    barcode: '890123456703',
-    hsn_code: '',
-    cost_price: 0,
-    sale_price: 106,
-    gst_rate: 18,
-    stock_quantity: -1,
-    low_stock_threshold: 10,
-    type: 'pots',
-    category_name: 'Pots & Planters',
-    attributes: {}
-  },
-  {
-    id: 'prod-4',
-    business_id: 'grow-naturals',
-    name: '10" Gro Pro Plastic Pot White',
-    sku: '-',
-    barcode: '890123456704',
-    hsn_code: '',
-    cost_price: 0,
-    sale_price: 168,
-    gst_rate: 18,
-    stock_quantity: -2,
-    low_stock_threshold: 10,
-    type: 'pots',
-    category_name: 'Pots & Planters',
-    attributes: {}
-  },
-  {
-    id: 'prod-5',
-    business_id: 'grow-naturals',
-    name: 'Vermicompost Organic Fertilizer 5kg',
-    sku: '-',
-    barcode: '890123456705',
-    hsn_code: '',
-    cost_price: 0,
-    sale_price: 199,
-    gst_rate: 5,
-    stock_quantity: 45,
-    low_stock_threshold: 15,
-    type: 'fertilizers',
-    category_name: 'Fertilizers',
-    attributes: {}
-  },
-  {
-    id: 'prod-6',
-    business_id: 'grow-naturals',
-    name: 'Monstera Deliciosa Live Plant',
-    sku: '-',
-    barcode: '890123456706',
-    hsn_code: '',
-    cost_price: 0,
-    sale_price: 450,
-    gst_rate: 0,
-    stock_quantity: 24,
-    low_stock_threshold: 5,
-    type: 'plants',
-    category_name: 'Live Plants',
-    attributes: {}
-  }
-];
 
 export const CreateSalesInvoice: React.FC = () => {
   const navigate = useNavigate();
@@ -546,9 +433,10 @@ export const CreateSalesInvoice: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
-  // Existing customers & products for autocomplete
-  const [customers, setCustomers] = useState<Customer[]>(DEFAULT_CUSTOMERS);
-  const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
+  // Existing customers, products & categories from database
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [searchCustomerQuery, setSearchCustomerQuery] = useState('');
 
   // "Add Items to Bill" Modal State (MyBillBook Spec)
@@ -561,7 +449,7 @@ export const CreateSalesInvoice: React.FC = () => {
   // Quick Product Creation Modal within Add Items Modal
   const [showNewProductForm, setShowNewProductForm] = useState(false);
   const [newProdName, setNewProdName] = useState('');
-  const [newProdCategory, setNewProdCategory] = useState('Pots & Planters');
+  const [newProdCategory, setNewProdCategory] = useState('');
   const [newProdSalePrice, setNewProdSalePrice] = useState<number | string>('');
   const [newProdCostPrice, setNewProdCostPrice] = useState<number | string>('');
   const [newProdHsn, setNewProdHsn] = useState('3926');
@@ -584,10 +472,11 @@ export const CreateSalesInvoice: React.FC = () => {
     };
   }, [isPartySearchOpen]);
 
-  // Synchronize business default updates when businessId changes (for new invoice creation only)
+  // Synchronize business default updates and fetch next sequential invoice number
   useEffect(() => {
     if (isEditMode) return;
-    setInvoicePrefix(activeBusiness.invoice_prefix || (businessId === 'grow-naturals' ? 'GN00' : 'NN00'));
+    const defaultPrefix = activeBusiness.invoice_prefix || (businessId === 'grow-naturals' ? 'GN00' : 'NN00');
+    setInvoicePrefix(defaultPrefix);
     setTerms(
       businessId === 'grow-naturals'
         ? '1. Goods once sold will not be taken back or exchanged.\n2. We do not take any responsibility for the loss or damage of goods once the material dispatched.'
@@ -601,60 +490,50 @@ export const CreateSalesInvoice: React.FC = () => {
     });
     setUpiId(businessId === 'grow-naturals' ? 'grownaturals@axisbank' : 'nikhleshnursery@hdfcbank');
     setUpiPayeeName(activeBusiness.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm'));
+
+    // Fetch next sequential invoice number from server
+    api.get<any>('/invoices/next-number', { business_id: businessId, prefix: defaultPrefix })
+      .then((res) => {
+        if (res && res.sequence) {
+          setInvoiceNumber(String(res.sequence));
+          if (res.prefix) setInvoicePrefix(res.prefix);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not fetch next invoice number:', err);
+      });
   }, [businessId, activeBusiness, isEditMode]);
 
-  // Load existing customers, products, and check AI engine status
+  // Load existing customers, products, categories and check AI engine status from database
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [custRes, prodRes, aiRes] = await Promise.all([
-          api.get('/customers'),
-          api.get('/products'),
+        const [custRes, prodRes, catRes, aiRes] = await Promise.all([
+          api.get<Customer[]>('/customers'),
+          api.get<Product[]>('/products', businessId && businessId !== 'all' ? { business_id: businessId } : undefined),
+          api.get<any[]>('/categories', businessId && businessId !== 'all' ? { business_id: businessId } : undefined),
           api.get('/invoices/ai-status').catch(() => null)
         ]);
-        const knownBalances: Record<string, number> = {
-          'aarsha': 1972.19,
-          'anita sharma': 5600.00,
-          'oberoi luxury resorts': 44800.00,
-          'green valley residences hoa': 12100.00,
-          'gowtham nursery': 4500.00,
-          'bank of baroda': 12100.00,
-          'mda pots and plants': 325513.01,
-          'pandiyan': 9150.00
-        };
 
-        if (Array.isArray(custRes) && custRes.length > 0) {
-          const existingNames = new Set(custRes.map((c: any) => (c.name || '').toLowerCase().trim()));
-          const combined = custRes.map((c: any) => {
-            const key = (c.name || '').toLowerCase().trim();
-            const fallback = knownBalances[key] || 0;
-            const explicit = c.closing_balance !== undefined && c.closing_balance !== null ? Number(c.closing_balance) : fallback;
-            return {
-              ...c,
-              closing_balance: explicit > 0 ? explicit : fallback
-            };
-          });
-          DEFAULT_CUSTOMERS.forEach((def) => {
-            if (!existingNames.has(def.name.toLowerCase().trim())) {
-              combined.push(def);
-            }
-          });
-          setCustomers(combined);
+        if (Array.isArray(custRes)) {
+          setCustomers(custRes);
         } else {
-          setCustomers(DEFAULT_CUSTOMERS);
+          setCustomers([]);
         }
 
-        if (Array.isArray(prodRes) && prodRes.length > 0) {
-          const existingProdNames = new Set(prodRes.map((p: any) => p.name.toLowerCase()));
-          const combinedProds = [...prodRes];
-          DEFAULT_PRODUCTS.forEach((def) => {
-            if (!existingProdNames.has(def.name.toLowerCase())) {
-              combinedProds.push(def);
-            }
-          });
-          setProducts(combinedProds);
+        if (Array.isArray(prodRes)) {
+          setProducts(prodRes);
         } else {
-          setProducts(DEFAULT_PRODUCTS);
+          setProducts([]);
+        }
+
+        if (Array.isArray(catRes)) {
+          setCategories(catRes);
+          if (catRes.length > 0) {
+            setNewProdCategory((prev) => prev || catRes[0].name);
+          }
+        } else {
+          setCategories([]);
         }
 
         if (aiRes) {
@@ -665,7 +544,7 @@ export const CreateSalesInvoice: React.FC = () => {
           }
         }
       } catch (err) {
-        console.warn('Failed to fetch customers/products/ai:', err);
+        console.warn('Failed to fetch live data from backend:', err);
       }
     };
     loadData();
@@ -836,6 +715,7 @@ export const CreateSalesInvoice: React.FC = () => {
 
     setIsSavingNewProduct(true);
     try {
+      const matchedCat = categories.find((c: any) => c.name === newProdCategory || c.id === newProdCategory);
       const newProduct: Product = {
         id: `prod-${Date.now()}`,
         business_id: businessId as any,
@@ -843,21 +723,22 @@ export const CreateSalesInvoice: React.FC = () => {
         sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
         barcode: String(Date.now()),
         hsn_code: newProdHsn.trim() || '3926',
+        category_id: matchedCat?.id || null,
+        category_name: matchedCat?.name || newProdCategory,
         cost_price: Number(newProdCostPrice) || 0,
         sale_price: Number(newProdSalePrice) || 0,
         gst_rate: Number(newProdGst) || (isTaxable ? 18 : 0),
         stock_quantity: Number(newProdStock) || 0,
         low_stock_threshold: 5,
-        type: 'pots',
-        category_name: newProdCategory,
+        type: 'general',
         attributes: {}
       };
 
       try {
         const res: any = await api.post('/products', newProduct);
         if (res && res.id) newProduct.id = res.id;
-      } catch {
-        // Local fallback
+      } catch (postErr) {
+        console.warn('Backend product creation warning:', postErr);
       }
 
       setProducts((prev) => [newProduct, ...prev]);
@@ -1719,16 +1600,19 @@ export const CreateSalesInvoice: React.FC = () => {
         setHasSelectedParty(false);
         setIsAiExtractedParty(false);
         setIsCustomWords(false);
+        // Refresh next invoice number for new invoice
+        api.get<any>('/invoices/next-number', { business_id: businessId, prefix: invoicePrefix })
+          .then((nextRes) => {
+            if (nextRes && nextRes.sequence) {
+              setInvoiceNumber(String(nextRes.sequence));
+            }
+          })
+          .catch(() => {});
         if (isEditMode) {
-          navigate('/invoices/create');
+          navigate('/create-sales-invoice');
         }
       } else {
-        const targetId = res?.id || res?.invoice_id || editInvoiceId || invoiceNumber;
-        if (targetId) {
-          navigate(`/invoices/${targetId}`);
-        } else {
-          navigate('/invoices');
-        }
+        navigate('/sales-list');
       }
     } catch (err: any) {
       console.error('Save invoice error:', err);
@@ -1743,7 +1627,7 @@ export const CreateSalesInvoice: React.FC = () => {
       {/* TOP NAVBAR */}
       <header className="csi-header">
         <div className="csi-header-left">
-          <button onClick={() => navigate('/invoices')} className="csi-btn-exit">
+          <button onClick={() => navigate('/sales-list')} className="csi-btn-exit">
             <ArrowLeft size={16} />
             <span>Exit</span>
           </button>
@@ -2609,8 +2493,17 @@ export const CreateSalesInvoice: React.FC = () => {
                           <td style={{ textAlign: 'center' }}>
                             <input
                               type="number"
+                              step="1"
+                              min="0"
+                              inputMode="numeric"
+                              onKeyDown={(e) => {
+                                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                              }}
                               value={it.mrp === 0 ? '0' : it.mrp || ''}
-                              onChange={(e) => handleItemChange(it.id, 'mrp', Number(e.target.value))}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                handleItemChange(it.id, 'mrp', val === '' ? 0 : parseInt(val, 10));
+                              }}
                               placeholder="0"
                               className="csi-table-num-input"
                               style={{ width: '72px', height: '32px', textAlign: 'right', fontSize: '12.5px', fontWeight: 600, padding: '0 6px', margin: '0 auto', display: 'block' }}
@@ -2621,8 +2514,16 @@ export const CreateSalesInvoice: React.FC = () => {
                               <input
                                 type="number"
                                 min="1"
+                                step="1"
+                                inputMode="numeric"
+                                onKeyDown={(e) => {
+                                  if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                                }}
                                 value={it.quantity}
-                                onChange={(e) => handleItemChange(it.id, 'quantity', Number(e.target.value))}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/[^0-9]/g, '');
+                                  handleItemChange(it.id, 'quantity', Math.max(1, parseInt(val, 10) || 1));
+                                }}
                                 className="csi-table-num-input"
                                 style={{ width: '48px', height: '32px', textAlign: 'center', fontWeight: 700, fontSize: '13px', padding: '0 4px' }}
                               />
@@ -2633,9 +2534,17 @@ export const CreateSalesInvoice: React.FC = () => {
                             <div className="csi-price-cell-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
                               <input
                                 type="number"
-                                step="0.01"
+                                step="1"
+                                min="0"
+                                inputMode="numeric"
+                                onKeyDown={(e) => {
+                                  if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                                }}
                                 value={it.unit_price}
-                                onChange={(e) => handleItemChange(it.id, 'unit_price', Number(e.target.value))}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/[^0-9]/g, '');
+                                  handleItemChange(it.id, 'unit_price', val === '' ? 0 : parseInt(val, 10));
+                                }}
                                 onFocus={() => {
                                   if (it.product_name) {
                                     fetchPartyItemHistory(it.id, it.product_id, it.product_name);
@@ -3200,9 +3109,17 @@ export const CreateSalesInvoice: React.FC = () => {
                             <input
                               type="number"
                               min="0"
+                              step="1"
+                              inputMode="numeric"
+                              onKeyDown={(e) => {
+                                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                              }}
                               placeholder="0"
                               value={discountAmount === 0 ? '' : discountAmount}
-                              onChange={(e) => handleDiscountAmountChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                handleDiscountAmountChange(val === '' ? 0 : parseInt(val, 10));
+                              }}
                               className="csi-discount-inner-input"
                               style={{ textAlign: 'right' }}
                             />
@@ -3245,7 +3162,7 @@ export const CreateSalesInvoice: React.FC = () => {
                     <div className="csi-summary-total-amount">
                       <span className="csi-summary-total-label">Total Amount:</span>
                       <span className="csi-summary-total-val">
-                        ₹ {roundedGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                        ₹ {Math.round(roundedGrandTotal).toLocaleString('en-IN')}
                       </span>
                     </div>
 
@@ -3260,7 +3177,7 @@ export const CreateSalesInvoice: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setIsCustomWords(false);
-                              setAmountInWords(numberToIndianWords(roundedGrandTotal));
+                              setAmountInWords(numberToIndianWords(Math.round(roundedGrandTotal)));
                             }}
                             style={{ border: 'none', background: 'transparent', color: '#4f46e5', fontSize: '10px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
                             title="Auto generate from total amount"
@@ -3289,7 +3206,7 @@ export const CreateSalesInvoice: React.FC = () => {
                             Total Amount Received
                           </label>
                           <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#64748b', fontSize: '12px' }}>
-                            ₹ {isMarkAsPaid ? roundedGrandTotal : (Number(receivedAmount) || 0)}
+                            ₹ {isMarkAsPaid ? Math.round(roundedGrandTotal) : (Math.round(Number(receivedAmount)) || 0)}
                           </span>
                         </div>
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -3299,12 +3216,18 @@ export const CreateSalesInvoice: React.FC = () => {
                             </span>
                             <input
                               type="number"
-                              value={isMarkAsPaid ? roundedGrandTotal : receivedAmount}
+                              min="0"
+                              step="1"
+                              inputMode="numeric"
+                              onKeyDown={(e) => {
+                                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                              }}
+                              value={isMarkAsPaid ? Math.round(roundedGrandTotal) : receivedAmount}
                               onChange={(e) => {
-                                const val = e.target.value;
-                                setReceivedAmount(val);
-                                const numVal = Number(val);
-                                if (numVal >= roundedGrandTotal && roundedGrandTotal > 0) {
+                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                setReceivedAmount(val === '' ? '' : parseInt(val, 10));
+                                const numVal = parseInt(val, 10) || 0;
+                                if (numVal >= Math.round(roundedGrandTotal) && roundedGrandTotal > 0) {
                                   setIsMarkAsPaid(true);
                                 } else {
                                   setIsMarkAsPaid(false);
@@ -4122,10 +4045,11 @@ export const CreateSalesInvoice: React.FC = () => {
                   style={{ width: '180px', height: '40px', fontWeight: 600, fontSize: '13px', backgroundColor: '#ffffff' }}
                 >
                   <option value="all">Select Category</option>
-                  <option value="Pots & Planters">Pots & Planters</option>
-                  <option value="Live Plants">Live Plants</option>
-                  <option value="Fertilizers">Fertilizers</option>
-                  <option value="Soil & Substrates">Soil & Substrates</option>
+                  {categories.map((cat: any) => (
+                    <option key={cat.id || cat.name} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
 
                 <button
@@ -4171,19 +4095,23 @@ export const CreateSalesInvoice: React.FC = () => {
                       onChange={(e) => setNewProdCategory(e.target.value)}
                       className="csi-input"
                     >
-                      <option value="Pots & Planters">Pots & Planters</option>
-                      <option value="Live Plants">Live Plants</option>
-                      <option value="Fertilizers">Fertilizers</option>
-                      <option value="Soil & Substrates">Soil & Substrates</option>
+                      <option value="">Select Category</option>
+                      {categories.map((cat: any) => (
+                        <option key={cat.id || cat.name} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label className="csi-field-label">Sales Price (₹) *</label>
                     <input
                       type="number"
+                      step="1"
+                      min="0"
                       required
                       value={newProdSalePrice}
-                      onChange={(e) => setNewProdSalePrice(e.target.value)}
+                      onChange={(e) => setNewProdSalePrice(e.target.value === '' ? '' : Math.round(Number(e.target.value)))}
                       placeholder="150"
                       className="csi-input csi-input-mono"
                     />
@@ -4192,8 +4120,10 @@ export const CreateSalesInvoice: React.FC = () => {
                     <label className="csi-field-label">Purchase Price</label>
                     <input
                       type="number"
+                      step="1"
+                      min="0"
                       value={newProdCostPrice}
-                      onChange={(e) => setNewProdCostPrice(e.target.value)}
+                      onChange={(e) => setNewProdCostPrice(e.target.value === '' ? '' : Math.round(Number(e.target.value)))}
                       placeholder="90"
                       className="csi-input csi-input-mono"
                     />
@@ -4202,8 +4132,10 @@ export const CreateSalesInvoice: React.FC = () => {
                     <label className="csi-field-label">Opening Stock</label>
                     <input
                       type="number"
+                      step="1"
+                      min="0"
                       value={newProdStock}
-                      onChange={(e) => setNewProdStock(Number(e.target.value))}
+                      onChange={(e) => setNewProdStock(e.target.value === '' ? 0 : Math.floor(Number(e.target.value)))}
                       placeholder="10"
                       className="csi-input csi-input-mono"
                     />
@@ -4243,27 +4175,56 @@ export const CreateSalesInvoice: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {products
-                      .filter((prod) => {
+                    {(() => {
+                      const filteredProds = products.filter((prod) => {
                         if (showOnlySelectedItems && (!selectedItemQuantities[prod.id] || selectedItemQuantities[prod.id] <= 0)) {
                           return false;
                         }
                         if (itemCategoryFilter !== 'all') {
-                          const cat = prod.category_name || (prod.type === 'pots' ? 'Pots & Planters' : prod.type === 'plants' ? 'Live Plants' : 'Fertilizers');
-                          if (cat.toLowerCase() !== itemCategoryFilter.toLowerCase()) return false;
+                          const cat = (prod.category_name || (prod as any).category || '').toLowerCase().trim();
+                          if (cat !== itemCategoryFilter.toLowerCase().trim()) return false;
                         }
                         if (itemSearchQuery.trim()) {
-                          const q = itemSearchQuery.toLowerCase();
-                          const matchName = prod.name.toLowerCase().includes(q);
-                          const matchSku = prod.sku?.toLowerCase().includes(q);
-                          const matchHsn = prod.hsn_code?.toLowerCase().includes(q);
-                          const matchBarcode = prod.barcode?.toLowerCase().includes(q);
-                          const matchCat = prod.category_name?.toLowerCase().includes(q);
+                          const q = itemSearchQuery.toLowerCase().trim();
+                          const matchName = (prod.name || '').toLowerCase().includes(q);
+                          const matchSku = (prod.sku || '').toLowerCase().includes(q);
+                          const matchHsn = (prod.hsn_code || '').toLowerCase().includes(q);
+                          const matchBarcode = (prod.barcode || '').toLowerCase().includes(q);
+                          const matchCat = (prod.category_name || '').toLowerCase().includes(q);
                           if (!matchName && !matchSku && !matchHsn && !matchBarcode && !matchCat) return false;
                         }
                         return true;
-                      })
-                      .map((prod) => {
+                      });
+
+                      if (filteredProds.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={6} style={{ textAlign: 'center', padding: '36px 20px', color: '#64748b' }}>
+                              <div style={{ fontSize: '14px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                                {products.length === 0 ? 'No products in database yet' : 'No items match your filter'}
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '14px' }}>
+                                {products.length === 0
+                                  ? 'Click "+ Create New Item" above to add products to your inventory'
+                                  : 'Try changing the category or clearing the search query.'}
+                              </div>
+                              {!showNewProductForm && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowNewProductForm(true)}
+                                  className="csi-btn-create-item"
+                                  style={{ margin: '0 auto', display: 'inline-flex' }}
+                                >
+                                  <Plus size={15} />
+                                  <span>Create New Item</span>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filteredProds.map((prod) => {
                         const qty = selectedItemQuantities[prod.id] || 0;
                         const isSelected = qty > 0;
                         const stockDisplay = prod.stock_quantity !== undefined ? `${prod.stock_quantity} PCS` : '-';
@@ -4354,7 +4315,8 @@ export const CreateSalesInvoice: React.FC = () => {
                             </td>
                           </tr>
                         );
-                      })}
+                      });
+                    })()}
                   </tbody>
                 </table>
               </div>

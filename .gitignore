@@ -31,5 +31,7 @@ Thumbs.db
 
 # Reference Templates & Test scripts
 Dreamforest-theme/
+src_backup_original/
+Frontend/
 test-*.js
 test-*.ts

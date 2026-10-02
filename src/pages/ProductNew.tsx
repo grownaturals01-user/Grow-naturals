@@ -1349,14 +1349,18 @@ export const ProductNew: React.FC = () => {
                       <input
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="1"
+                        inputMode="numeric"
+                        onKeyDown={(e) => {
+                          if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                        }}
                         className="form-input tabular"
                         placeholder="Amount"
                         value={unifiedSizePrice}
                         onChange={(e) => {
-                          setUnifiedSizePrice(e.target.value);
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setUnifiedSizePrice(val);
                           if (isSameAmountForAll) {
-                            const val = e.target.value;
                             setPlantSizePricing((prev) => {
                               const next = { ...prev };
                               selectedPlantSizes.forEach((sz) => {
@@ -1425,13 +1429,17 @@ export const ProductNew: React.FC = () => {
                             <span className="input-addon-prefix" style={{ fontSize: '0.75rem' }}>₹</span>
                             <input
                               type="number"
-                              step="0.01"
+                              step="1"
                               min="0"
+                              inputMode="numeric"
+                              onKeyDown={(e) => {
+                                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                              }}
                               className="form-input tabular"
                               style={{ fontSize: '0.8125rem', height: '32px' }}
                               value={priceObj.sale_price}
                               onChange={(e) => {
-                                const val = e.target.value;
+                                const val = e.target.value.replace(/[^0-9]/g, '');
                                 setPlantSizePricing((prev) => ({
                                   ...prev,
                                   [sz]: {
@@ -1453,13 +1461,17 @@ export const ProductNew: React.FC = () => {
                             <span className="input-addon-prefix" style={{ fontSize: '0.75rem' }}>₹</span>
                             <input
                               type="number"
-                              step="0.01"
+                              step="1"
                               min="0"
+                              inputMode="numeric"
+                              onKeyDown={(e) => {
+                                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                              }}
                               className="form-input tabular"
                               style={{ fontSize: '0.8125rem', height: '32px' }}
                               value={priceObj.cost_price}
                               onChange={(e) => {
-                                const val = e.target.value;
+                                const val = e.target.value.replace(/[^0-9]/g, '');
                                 setPlantSizePricing((prev) => ({
                                   ...prev,
                                   [sz]: {
@@ -1480,7 +1492,7 @@ export const ProductNew: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
                   <span style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 600 }}>
                     🌿 <strong>Catalog Default:</strong> Least amount (
-                    ₹{selectedPlantSizes.length > 0 ? Math.min(...selectedPlantSizes.map((s) => Number(plantSizePricing[s]?.sale_price) || 0)).toFixed(2) : '0.00'}
+                    ₹{selectedPlantSizes.length > 0 ? Math.round(Math.min(...selectedPlantSizes.map((s) => Number(plantSizePricing[s]?.sale_price) || 0))) : 0}
                     ) will be displayed as the default price in the POS Catalog & Order List.
                   </span>
                 </div>
@@ -1493,7 +1505,7 @@ export const ProductNew: React.FC = () => {
                         <span className="input-addon-prefix">%</span>
                         <input
                           type="number"
-                          step="0.01"
+                          step="1"
                           className="form-input tabular"
                           value={gstRate}
                           onChange={(e) => setGstRate(e.target.value)}
@@ -1534,11 +1546,15 @@ export const ProductNew: React.FC = () => {
                     <span className="input-addon-prefix">₹</span>
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
+                      inputMode="numeric"
+                      onKeyDown={(e) => {
+                        if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                      }}
                       className="form-input tabular"
                       value={costPrice}
-                      onChange={(e) => setCostPrice(e.target.value)}
+                      onChange={(e) => setCostPrice(e.target.value.replace(/[^0-9]/g, ''))}
                     />
                   </div>
                 </div>
@@ -1551,11 +1567,15 @@ export const ProductNew: React.FC = () => {
                     <span className="input-addon-prefix">₹</span>
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
+                      inputMode="numeric"
+                      onKeyDown={(e) => {
+                        if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                      }}
                       className="form-input tabular"
                       value={salePrice}
-                      onChange={(e) => setSalePrice(e.target.value)}
+                      onChange={(e) => setSalePrice(e.target.value.replace(/[^0-9]/g, ''))}
                       required
                     />
                   </div>
@@ -1570,7 +1590,7 @@ export const ProductNew: React.FC = () => {
                       <span className="input-addon-prefix">%</span>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         className="form-input tabular"
                         value={gstRate}
                         onChange={(e) => setGstRate(e.target.value)}

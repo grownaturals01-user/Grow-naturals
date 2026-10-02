@@ -3,6 +3,41 @@ import { getDb } from '../db/connection.js';
 
 const router = Router();
 
+// POST /api/reports/purge-dump-data
+router.post('/purge-dump-data', async (_req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    await db.exec(`DELETE FROM invoice_items;`);
+    await db.exec(`DELETE FROM invoices;`);
+    await db.exec(`DELETE FROM challan_items;`);
+    await db.exec(`DELETE FROM delivery_challans;`);
+    await db.exec(`DELETE FROM quotation_items;`);
+    await db.exec(`DELETE FROM quotations;`);
+    await db.exec(`DELETE FROM expenses;`);
+    try { await db.exec(`DELETE FROM expense_categories;`); } catch (e) {}
+    await db.exec(`DELETE FROM inventory_losses;`);
+    await db.exec(`DELETE FROM warehouse_transactions;`);
+    await db.exec(`DELETE FROM warehouse_stocks;`);
+    await db.exec(`DELETE FROM stock_movements;`);
+    try { await db.exec(`DELETE FROM refund_items;`); } catch (e) {}
+    try { await db.exec(`DELETE FROM refunds;`); } catch (e) {}
+    try { await db.exec(`DELETE FROM purchase_order_items;`); } catch (e) {}
+    try { await db.exec(`DELETE FROM purchase_orders;`); } catch (e) {}
+    try { await db.exec(`DELETE FROM project_daily_tasks;`); } catch (e) {}
+    try { await db.exec(`DELETE FROM supervisor_updates;`); } catch (e) {}
+    try { await db.exec(`DELETE FROM projects;`); } catch (e) {}
+    await db.exec(`DELETE FROM customers;`);
+    await db.exec(`DELETE FROM suppliers;`);
+    await db.exec(`DELETE FROM products;`);
+    try { await db.exec(`DELETE FROM subcategories;`); } catch (e) {}
+    await db.exec(`DELETE FROM categories;`);
+    try { await db.exec(`DELETE FROM inventory_modules;`); } catch (e) {}
+    res.json({ success: true, message: 'All dump products, categories, subcategories and transaction data purged successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function getBusinessId(req: Request): string {
   return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'grow-naturals';
 }

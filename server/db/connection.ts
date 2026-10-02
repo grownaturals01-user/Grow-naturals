@@ -120,20 +120,7 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_pieces INTEGER DEFAULT 0;`,
     `ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_percent NUMERIC(5,2) DEFAULT 0.00;`,
     `ALTER TABLE expenses ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1512428813834-c702c7702b78?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-gn-1';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-gn-2';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1599598425947-5202edd564c5?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-gn-3';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-gn-4';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-gn-5';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-gn-6';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-gn-7';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1596434300655-e48d3ff3dd5e?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-nn-1';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-nn-2';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1536511135898-752b0d49281c?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-nn-3';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-nn-4';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-nn-5';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-nn-6';`,
-    `UPDATE products SET image_url = 'https://images.unsplash.com/photo-1603555501671-8f96b3fce8b4?w=500&auto=format&fit=crop&q=80' WHERE id = 'prod-nn-7';`,
+
     `CREATE TABLE IF NOT EXISTS inventory_losses (
       id VARCHAR(64) PRIMARY KEY,
       business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
@@ -191,14 +178,7 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
     `CREATE INDEX IF NOT EXISTS idx_inv_modules_biz ON inventory_modules(business_id);`,
     `CREATE INDEX IF NOT EXISTS idx_inv_modules_slug ON inventory_modules(slug);`,
-    `INSERT INTO warehouse_stocks (id, business_id, product_id, stock_quantity, location_bin)
-     VALUES 
-       ('ws-gn-2', 'grow-naturals', 'prod-gn-2', 45, 'Greenhouse A1'),
-       ('ws-gn-3', 'grow-naturals', 'prod-gn-3', 60, 'Zone B-Polyhouse'),
-       ('ws-gn-4', 'grow-naturals', 'prod-gn-4', 25, 'Pot Yard Rack 3'),
-       ('ws-gn-5', 'grow-naturals', 'prod-gn-5', 30, 'Pot Yard Rack 1'),
-       ('ws-gn-6', 'grow-naturals', 'prod-gn-6', 80, 'Fertilizer Store')
-     ON CONFLICT (business_id, product_id) DO UPDATE SET stock_quantity = EXCLUDED.stock_quantity WHERE warehouse_stocks.stock_quantity = 0;`,
+
     `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS split_cash_amount NUMERIC(12,2) DEFAULT 0.00;`,
     `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS split_upi_amount NUMERIC(12,2) DEFAULT 0.00;`,
     `ALTER TABLE projects ADD COLUMN IF NOT EXISTS client_id VARCHAR(64);`,
@@ -258,7 +238,19 @@ export async function initDb(): Promise<void> {
       remarks_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
-    `CREATE INDEX IF NOT EXISTS idx_pdt_project ON project_daily_tasks(project_id);`
+    `CREATE INDEX IF NOT EXISTS idx_pdt_project ON project_daily_tasks(project_id);`,
+    `CREATE TABLE IF NOT EXISTS subcategories (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      category_id VARCHAR(64) REFERENCES categories(id) ON DELETE SET NULL,
+      name VARCHAR(128) NOT NULL,
+      code VARCHAR(64) DEFAULT '',
+      description TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE INDEX IF NOT EXISTS idx_subcat_biz ON subcategories(business_id);`,
+    `CREATE INDEX IF NOT EXISTS idx_subcat_cat ON subcategories(category_id);`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS subcategory_id VARCHAR(64) REFERENCES subcategories(id) ON DELETE SET NULL;`
   ];
 
   for (const m of migrations) {

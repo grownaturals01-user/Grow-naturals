@@ -118,6 +118,7 @@ export const App: React.FC = () => {
                 >
                   {/* Dashboard & Reports */}
                   <Route index element={<Dashboard />} />
+                  <Route path="dashboard" element={<Dashboard />} />
                   <Route path="reports" element={<Reports />} />
 
                   {/* POS Counter */}

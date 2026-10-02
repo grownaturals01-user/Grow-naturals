@@ -789,28 +789,43 @@ export const QuotationNew: React.FC = () => {
                 <input
                   type="number"
                   min="1"
+                  step="1"
+                  inputMode="numeric"
+                  onKeyDown={(e) => {
+                    if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                  }}
                   className="form-input tabular"
                   placeholder="Qty"
                   value={item.quantity}
-                  onChange={(e) => handleUpdateItem(idx, 'quantity', Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    handleUpdateItem(idx, 'quantity', Math.max(1, parseInt(val, 10) || 1));
+                  }}
                   required
                 />
 
                 {/* Unit Price */}
                 <input
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
+                  inputMode="numeric"
+                  onKeyDown={(e) => {
+                    if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                  }}
                   className="form-input tabular"
                   placeholder="Rate (₹)"
                   value={item.unit_price}
-                  onChange={(e) => handleUpdateItem(idx, 'unit_price', Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    handleUpdateItem(idx, 'unit_price', val === '' ? 0 : parseInt(val, 10));
+                  }}
                   required
                 />
 
                 {/* Line Total */}
                 <div className="tabular" style={{ fontWeight: 700, textAlign: 'right' }}>
-                  ₹{((item.quantity || 1) * (item.unit_price || 0)).toFixed(2)}
+                  ₹{Math.round((item.quantity || 1) * (item.unit_price || 0)).toLocaleString('en-IN')}
                 </div>
 
                 {/* Delete */}

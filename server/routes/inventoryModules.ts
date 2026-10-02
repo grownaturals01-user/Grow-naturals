@@ -38,7 +38,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const businessId = getBusinessId(req);
     const db = await getDb();
-    let result = await db.query(
+    const result = await db.query(
       `SELECT im.*, b.name as business_name FROM inventory_modules im
        LEFT JOIN businesses b ON im.business_id = b.id
        WHERE ($1 = 'all' OR $1 = 'combined' OR im.business_id = $1)
@@ -46,33 +46,7 @@ router.get('/', async (req: Request, res: Response) => {
       [businessId]
     );
 
-    // Auto-seed default modules if this business has none in DB
-    if (result.rows.length === 0 && businessId !== 'all' && businessId !== 'combined') {
-      const defaults = DEFAULT_BUSINESS_MODULES[businessId] || [
-        { name: 'Plants & Flora', slug: 'plants-flora', caption: 'Botanical and garden plants', icon: 'Trees', sort_order: 1 },
-        { name: 'Pots & Planters', slug: 'pots-planters', caption: 'Pots, containers and nursery bags', icon: 'Box', sort_order: 2 },
-        { name: 'Soil & Fertilizers', slug: 'soil-fertilizers', caption: 'Plant care, soil and nutrients', icon: 'FlaskConical', sort_order: 3 },
-      ];
-
-      for (const d of defaults) {
-        const id = `inv-mod-${businessId}-${d.slug}`;
-        await db.query(
-          `INSERT INTO inventory_modules (id, business_id, name, slug, caption, icon, image_url, sort_order)
-           VALUES ($1, $2, $3, $4, $5, $6, '', $7)
-           ON CONFLICT DO NOTHING`,
-          [id, businessId, d.name, d.slug, d.caption, d.icon, d.sort_order]
-        );
-      }
-
-      result = await db.query(
-        `SELECT * FROM inventory_modules
-         WHERE business_id = $1
-         ORDER BY sort_order ASC, created_at ASC`,
-        [businessId]
-      );
-    }
-
-    res.json(result.rows);
+    res.json(result.rows || []);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

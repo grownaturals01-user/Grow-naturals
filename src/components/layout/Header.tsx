@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { BusinessDropdown } from './BusinessDropdown';
 import { CalculatorModal } from '../common/CalculatorModal';
+import { isFullscreenPageRoute } from './Layout';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Menu,
@@ -41,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, logout } = useAuth();
   const { theme, toggleTheme, openCustomizer, isSidebarCollapsed: isSidebarCollapsedContext, toggleSidebarCollapse } = useTheme();
   const location = useLocation();
-  const isPos = location.pathname.startsWith('/pos');
+  const isFullscreenMode = isFullscreenPageRoute(location.pathname);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -86,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
     <>
       <header className="header">
         <div className="header-left">
-          {isPos ? (
+          {isFullscreenMode ? (
             <Link to="/dashboard" className="pos-exit-dash-btn" title="Return to Dashboard">
               <LayoutDashboard size={15} />
               <span>Dashboard</span>
@@ -122,9 +123,9 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="header-right">
-          {isPos ? (
+          {isFullscreenMode ? (
             <>
-              {/* POS Mode Only: Calculator Button */}
+              {/* Fullscreen Mode Calculator Button */}
               <button
                 type="button"
                 className="header-icon-btn pos-action-icon-btn"
@@ -135,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <Calculator size={17} />
               </button>
 
-              {/* POS Mode Only: Maximize / Fullscreen Toggle Button */}
+              {/* Fullscreen Mode Maximize / Fullscreen Toggle Button */}
               <button
                 type="button"
                 className="header-icon-btn pos-action-icon-btn"

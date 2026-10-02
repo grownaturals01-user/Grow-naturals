@@ -347,23 +347,30 @@ export const PurchaseOrderDetail: React.FC = () => {
             <form onSubmit={handleUpdatePayment}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                 <p className="text-secondary" style={{ fontSize: 'var(--font-sm)' }}>
-                  Total PO Amount: <strong>₹{Number(po.total_amount).toFixed(2)}</strong>
+                  Total PO Amount: <strong>₹{Math.round(Number(po.total_amount))}</strong>
                 </p>
                 <div className="form-group">
                   <label className="form-label">Total Amount Paid (₹)</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     max={po.total_amount}
+                    inputMode="numeric"
+                    onKeyDown={(e) => {
+                      if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                    }}
                     className="form-input"
                     value={newPaidAmount}
-                    onChange={e => setNewPaidAmount(Number(e.target.value))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setNewPaidAmount(val === '' ? 0 : parseInt(val, 10));
+                    }}
                     required
                   />
                 </div>
                 <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)' }}>
-                  Remaining due will be: ₹{Math.max(0, Number(po.total_amount) - Number(newPaidAmount)).toFixed(2)}
+                  Remaining due will be: ₹{Math.max(0, Math.round(Number(po.total_amount) - Number(newPaidAmount)))}
                 </div>
               </div>
               <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>

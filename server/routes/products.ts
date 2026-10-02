@@ -132,6 +132,18 @@ router.post('/', async (req: Request, res: Response) => {
     const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
     const id = `prod-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
+    // Resolve category_id if only category_name was passed
+    let finalCategoryId = category_id || null;
+    if (!finalCategoryId && req.body.category_name) {
+      const catFind = await db.query(
+        `SELECT id FROM categories WHERE (business_id = $1 OR business_id = 'all') AND (LOWER(name) = LOWER($2) OR id = $2) LIMIT 1`,
+        [businessId, req.body.category_name.trim()]
+      );
+      if (catFind.rows.length > 0) {
+        finalCategoryId = catFind.rows[0].id;
+      }
+    }
+
     // Tax rate for Nikhlesh Nursery is always 0
     const finalGstRate = businessId === 'nikhlesh-nursery' ? 0.00 : (Number(gst_rate) || 0.00);
 
@@ -145,7 +157,7 @@ router.post('/', async (req: Request, res: Response) => {
       [
         id,
         businessId,
-        category_id || null,
+        finalCategoryId,
         type || 'general',
         name,
         sku,

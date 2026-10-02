@@ -2053,13 +2053,13 @@ export const ProjectDetail: React.FC = () => {
                   </span>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     className="form-input"
                     style={{ paddingLeft: '28px', fontSize: '16px', fontWeight: 700 }}
                     value={advanceInput}
-                    onChange={(e) => setAdvanceInput(e.target.value)}
-                    placeholder="0.00"
+                    onChange={(e) => setAdvanceInput(e.target.value === '' ? '' : String(Math.round(Number(e.target.value))))}
+                    placeholder="0"
                     required
                   />
                 </div>
@@ -2246,12 +2246,12 @@ export const ProjectDetail: React.FC = () => {
                   <label className="form-label">Amount (₹)</label>
                   <input
                     type="number"
-                    step="0.01"
-                    min="0.01"
+                    step="1"
+                    min="0"
                     className="form-input"
-                    placeholder="0.00"
+                    placeholder="0"
                     value={expenseForm.amount}
-                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value === '' ? '' : String(Math.round(Number(e.target.value))) })}
                     required
                   />
                 </div>
