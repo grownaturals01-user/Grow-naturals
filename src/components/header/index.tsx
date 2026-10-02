@@ -287,13 +287,13 @@ const Header: React.FC = () => {
         </Link>
 
         {/* Header Center / Right Menu */}
-        <ul className="nav user-menu">
+        <ul className="nav user-menu d-flex align-items-center w-100 justify-content-end">
           {/* Live Global Search */}
-          <li className="nav-item nav-searchinputs">
-            <div className="top-nav-search">
+          <li className="nav-item nav-searchinputs flex-grow-1 mx-2" style={{ minWidth: "220px", maxWidth: "420px" }}>
+            <div className="top-nav-search w-100">
               <div className="dropdown w-100">
                 <div
-                  className="searchinputs input-group"
+                  className="searchinputs input-group w-100"
                   id="headerSearchWrapper"
                   data-bs-toggle="dropdown"
                   aria-expanded={showSearchDropdown}

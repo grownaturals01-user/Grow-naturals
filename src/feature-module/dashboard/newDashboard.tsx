@@ -657,39 +657,35 @@ const NewDashboard = () => {
                   </div>
                 </div>
                 <div className="card-body">
-                  <div className="row g-2">
-                    <div className="col-4">
-                      <div className="info-item border bg-light py-3 px-1 text-center rounded d-flex flex-column align-items-center justify-content-center h-100">
-                        <div className="mb-2 text-info fs-22">
-                          <i className="ti ti-user-check" />
-                        </div>
-                        <p className="mb-1 text-muted text-truncate w-100" style={{ fontSize: '11.5px', fontWeight: 600 }} title="Suppliers">
-                          Suppliers
-                        </p>
-                        <h5 className="mb-0 fw-bold fs-16">{metrics.total_suppliers || 0}</h5>
+                  <div className="d-flex flex-column gap-2">
+                    <div className="d-flex align-items-center justify-content-between p-2 rounded border bg-light">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="avatar avatar-sm bg-soft-info text-info rounded d-flex align-items-center justify-content-center">
+                          <i className="ti ti-user-check fs-18" />
+                        </span>
+                        <span className="fw-semibold fs-13 text-dark">Total Suppliers</span>
                       </div>
+                      <span className="fw-bold fs-16 text-dark">{metrics.total_suppliers || 0}</span>
                     </div>
-                    <div className="col-4">
-                      <div className="info-item border bg-light py-3 px-1 text-center rounded d-flex flex-column align-items-center justify-content-center h-100">
-                        <div className="mb-2 text-orange fs-22">
-                          <i className="ti ti-users" />
-                        </div>
-                        <p className="mb-1 text-muted text-truncate w-100" style={{ fontSize: '11.5px', fontWeight: 600 }} title="Customers">
-                          Customers
-                        </p>
-                        <h5 className="mb-0 fw-bold fs-16">{metrics.total_customers || 0}</h5>
+
+                    <div className="d-flex align-items-center justify-content-between p-2 rounded border bg-light">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="avatar avatar-sm bg-soft-warning text-warning rounded d-flex align-items-center justify-content-center">
+                          <i className="ti ti-users fs-18" />
+                        </span>
+                        <span className="fw-semibold fs-13 text-dark">Total Customers</span>
                       </div>
+                      <span className="fw-bold fs-16 text-dark">{metrics.total_customers || 0}</span>
                     </div>
-                    <div className="col-4">
-                      <div className="info-item border bg-light py-3 px-1 text-center rounded d-flex flex-column align-items-center justify-content-center h-100">
-                        <div className="mb-2 text-teal fs-22">
-                          <i className="ti ti-shopping-cart" />
-                        </div>
-                        <p className="mb-1 text-muted text-truncate w-100" style={{ fontSize: '11.5px', fontWeight: 600 }} title="Orders">
-                          Orders
-                        </p>
-                        <h5 className="mb-0 fw-bold fs-16">{metrics.total_orders || 0}</h5>
+
+                    <div className="d-flex align-items-center justify-content-between p-2 rounded border bg-light">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="avatar avatar-sm bg-soft-success text-success rounded d-flex align-items-center justify-content-center">
+                          <i className="ti ti-shopping-cart fs-18" />
+                        </span>
+                        <span className="fw-semibold fs-13 text-dark">Total Orders</span>
                       </div>
+                      <span className="fw-bold fs-16 text-dark">{metrics.total_orders || 0}</span>
                     </div>
                   </div>
                 </div>
