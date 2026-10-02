@@ -386,44 +386,125 @@
 
     // Business / Store Selector Dropdown
     .select-store-dropdown {
+      position: relative !important;
+      display: inline-flex !important;
+      align-items: center !important;
+
       .select-store {
         display: inline-flex !important;
         align-items: center !important;
         height: 38px !important;
-        padding: 0 12px !important;
+        padding: 0 12px 0 10px !important;
         border: 1px solid #e2e8f0 !important;
         border-radius: 8px !important;
         background: #ffffff !important;
         text-decoration: none !important;
         transition: all 0.2s ease !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-
-        &::before,
-        &::after {
-          display: none !important;
-        }
+        position: relative !important;
+        white-space: nowrap !important;
 
         &:hover {
           border-color: #cbd5e1 !important;
           background: #f8fafc !important;
         }
 
-        .store-pill {
+        .user-info {
           display: inline-flex !important;
           align-items: center !important;
+          padding: 0 16px 0 0 !important;
+          position: relative !important;
+          margin: 0 !important;
+          border: none !important;
+          box-shadow: none !important;
+          background: transparent !important;
 
-          .store-name {
-            font-size: 13px !important;
-            font-weight: 600 !important;
-            color: #1e293b !important;
-            white-space: nowrap !important;
+          .user-letter {
+            width: 22px !important;
+            height: 22px !important;
+            min-width: 22px !important;
+            min-height: 22px !important;
+            margin: 0 8px 0 0 !important;
+            border: 0 !important;
+            padding: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: transparent !important;
+            flex-shrink: 0 !important;
+
+            img {
+              width: 22px !important;
+              height: 22px !important;
+              border-radius: 4px !important;
+              object-fit: contain !important;
+            }
+          }
+
+          .user-detail {
+            display: inline-flex !important;
+            align-items: center !important;
+            padding: 0 !important;
+            margin: 0 !important;
+
+            .user-name {
+              font-size: 13px !important;
+              font-weight: 600 !important;
+              color: #1e293b !important;
+              white-space: nowrap !important;
+              line-height: 1 !important;
+              margin: 0 !important;
+            }
+          }
+
+          &::before {
+            display: none !important;
+          }
+
+          &::after {
+            display: inline-block !important;
+            content: "" !important;
+            width: 6px !important;
+            height: 6px !important;
+            border-top: 0 !important;
+            border-left: 0 !important;
+            border-right: 1.5px solid #64748b !important;
+            border-bottom: 1.5px solid #64748b !important;
+            transform: rotate(45deg) !important;
+            position: absolute !important;
+            right: 0 !important;
+            top: 50% !important;
+            margin-top: -4px !important;
+            transition: transform 0.2s ease !important;
           }
         }
+      }
+
+      &.show,
+      &.open,
+      .dropdown-toggle.show,
+      .dropdown-toggle[aria-expanded="true"] {
+        .user-info::after {
+          transform: rotate(-135deg) !important;
+          margin-top: -1px !important;
+        }
+      }
+
+      .dropdown-menu {
+        min-width: 230px !important;
+        border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+        margin-top: 6px !important;
       }
     }
 
     // "Add New" Button
     .link-nav {
+      position: relative !important;
+      display: inline-flex !important;
+      align-items: center !important;
+
       .btn-primary {
         height: 38px !important;
         padding: 0 14px !important;
@@ -450,6 +531,10 @@
 
     // "POS" Button
     .pos-nav {
+      position: relative !important;
+      display: inline-flex !important;
+      align-items: center !important;
+
       .btn-dark {
         height: 38px !important;
         padding: 0 14px !important;
@@ -476,6 +561,10 @@
 
     // Square Action Icon Boxes (Flags, Fullscreen, Notifications, Settings)
     .nav-item-box {
+      position: relative !important;
+      display: inline-flex !important;
+      align-items: center !important;
+
       > .nav-link,
       > a {
         width: 38px !important;
@@ -527,6 +616,10 @@
 
     // User Profile Avatar
     .profile-nav {
+      position: relative !important;
+      display: inline-flex !important;
+      align-items: center !important;
+
       .userset {
         width: 38px !important;
         height: 38px !important;
@@ -536,27 +629,45 @@
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
+        text-decoration: none !important;
 
         &::before,
         &::after {
           display: none !important;
         }
 
-        .user-avatar-wrap {
-          width: 38px !important;
-          height: 38px !important;
-          border-radius: 50% !important;
-          border: 2px solid #fe9f43 !important;
-          overflow: hidden !important;
-          display: flex !important;
+        .user-info {
+          padding: 0 !important;
+          margin: 0 !important;
+          display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
-          background: #f8fafc !important;
+          position: relative !important;
 
-          img {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
+          &::before,
+          &::after {
+            display: none !important;
+            content: none !important;
+          }
+
+          .user-letter {
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 50% !important;
+            border: 2px solid #fe9f43 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #f8fafc !important;
+            margin: 0 !important;
+
+            img {
+              width: 100% !important;
+              height: 100% !important;
+              object-fit: cover !important;
+              border-radius: 50% !important;
+            }
           }
         }
       }
@@ -710,6 +821,62 @@
     .page-wrapper {
       margin-left: 80px !important;
       transition: margin-left 0.25s ease !important;
+    }
+
+    &.expand-menu {
+      .sidebar {
+        width: 252px !important;
+
+        .sidebar-menu {
+          padding: 0 10px !important;
+
+          .submenu-hdr {
+            display: block !important;
+          }
+
+          li.submenu > a {
+            justify-content: flex-start !important;
+            width: 100% !important;
+            height: 40px !important;
+            padding: 0 12px !important;
+            margin: 0 0 2px 0 !important;
+
+            i {
+              margin-right: 12px !important;
+              font-size: 18px !important;
+            }
+
+            span.custom-active-span,
+            .menu-arrow {
+              display: inline-flex !important;
+            }
+          }
+
+          li.submenu > ul {
+            display: block !important;
+          }
+        }
+      }
+
+      .header {
+        .header-left {
+          width: 252px !important;
+          min-width: 252px !important;
+          max-width: 252px !important;
+          padding: 0 16px 0 20px !important;
+          justify-content: flex-start !important;
+
+          .logo-normal {
+            display: inline-flex !important;
+          }
+          .logo-small {
+            display: none !important;
+          }
+          #toggle_btn {
+            transform: translateY(-50%) rotate(0deg) !important;
+          }
+        }
+      }
     }
   }
 }

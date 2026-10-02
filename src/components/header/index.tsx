@@ -422,20 +422,23 @@ const Header: React.FC = () => {
           </li>
 
           {/* Business / Store Selector Dropdown */}
-          <li className="nav-item dropdown select-store-dropdown">
+          <li className="nav-item dropdown has-arrow main-drop select-store-dropdown">
             <Link
               to="#"
-              className="dropdown-toggle nav-link select-store d-flex align-items-center"
+              className="dropdown-toggle nav-link select-store"
               data-bs-toggle="dropdown"
             >
-              <span className="store-pill d-flex align-items-center">
-                <img
-                  src={businessId === 'nikhlesh-nursery' ? store_02 : store_01}
-                  alt="Store Logo"
-                  className="img-fluid me-2"
-                  style={{ width: "22px", height: "22px", borderRadius: "4px", objectFit: "contain" }}
-                />
-                <span className="store-name fw-semibold fs-13 text-dark">{activeStoreName}</span>
+              <span className="user-info">
+                <span className="user-letter">
+                  <img
+                    src={businessId === 'nikhlesh-nursery' ? store_02 : store_01}
+                    alt="Store Logo"
+                    className="img-fluid"
+                  />
+                </span>
+                <span className="user-detail">
+                  <span className="user-name">{activeStoreName}</span>
+                </span>
               </span>
             </Link>
             <div className="dropdown-menu dropdown-menu-right shadow-sm p-2">
