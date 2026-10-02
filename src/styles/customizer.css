@@ -522,7 +522,7 @@
   border: 1px solid var(--color-border) !important;
 }
 
-[data-layout="detached"] .main-wrapper {
+.app-shell[data-layout="detached"] .main-wrapper {
   margin-left: 292px !important;
 }
 
@@ -588,14 +588,14 @@ body.mini-sidebar .nav-icon,
   margin: 0 !important;
 }
 
-[data-layout="mini"] .main-wrapper,
-body.mini-sidebar .main-wrapper,
-.main-wrapper.sidebar-collapsed {
+.app-shell [data-layout="mini"] .main-wrapper,
+.app-shell body.mini-sidebar .main-wrapper,
+.app-shell .main-wrapper.sidebar-collapsed {
   margin-left: 76px !important;
 }
 
 /* 4. Boxed Width */
-[data-width="box"] .main-wrapper {
+.app-shell [data-width="box"] .main-wrapper {
   max-width: 1400px !important;
   margin-right: auto !important;
   margin-left: auto !important;
@@ -615,13 +615,13 @@ body.mini-sidebar .main-wrapper,
   border-left: 1px solid var(--color-sidebar-border) !important;
 }
 
-[dir="rtl"] .main-wrapper {
+[dir="rtl"] .app-shell .main-wrapper {
   margin-left: 0 !important;
   margin-right: 260px !important;
 }
 
-[dir="rtl"] [data-layout="mini"] .main-wrapper,
-[dir="rtl"] body.mini-sidebar .main-wrapper {
+[dir="rtl"] .app-shell [data-layout="mini"] .main-wrapper,
+[dir="rtl"] .app-shell body.mini-sidebar .main-wrapper {
   margin-right: 76px !important;
   margin-left: 0 !important;
 }

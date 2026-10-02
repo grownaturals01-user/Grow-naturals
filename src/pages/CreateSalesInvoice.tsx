@@ -1623,7 +1623,8 @@ export const CreateSalesInvoice: React.FC = () => {
   };
 
   return (
-    <div className="csi-root">
+    <div className="page-wrapper csi-page-wrapper">
+      <div className="csi-root">
       {/* TOP NAVBAR */}
       <header className="csi-header">
         <div className="csi-header-left">
@@ -4375,6 +4376,7 @@ export const CreateSalesInvoice: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

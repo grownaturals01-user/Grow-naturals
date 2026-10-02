@@ -194,9 +194,14 @@ const Header: React.FC = () => {
     }
   };
 
-  const handlesidebar = () => {
-    document.body.classList.toggle("mini-sidebar");
-    setToggle((current) => !current);
+  const handlesidebar = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    document.body.classList.remove("expand-menu");
+    const isMini = document.body.classList.toggle("mini-sidebar");
+    setToggle(isMini);
   };
 
   const sidebarOverlay = () => {
@@ -211,11 +216,17 @@ const Header: React.FC = () => {
     document.querySelector("html")?.classList.remove("menu-opened");
   }, [location.pathname]);
 
+  useEffect(() => {
+    setToggle(document.body.classList.contains("mini-sidebar"));
+  }, []);
+
   const expandMenu = () => {
     document.body.classList.remove("expand-menu");
   };
   const expandMenuOpen = () => {
-    document.body.classList.add("expand-menu");
+    if (document.body.classList.contains("layout-hovered")) {
+      document.body.classList.add("expand-menu");
+    }
   };
 
   const handleLogout = (e: React.MouseEvent) => {
@@ -237,11 +248,7 @@ const Header: React.FC = () => {
       <div className="main-header">
         {/* Brand Logo */}
         <div
-          className={`header-left ${toggle ? "" : "active"} ${
-            expandMenus || dataLayout === "layout-hovered" ? "expand-menu" : ""
-          }`}
-          onMouseLeave={expandMenu}
-          onMouseOver={expandMenuOpen}
+          className={`header-left ${toggle ? "mini" : "active"}`}
         >
           <Link to="/admin-dashboard" className="logo logo-normal">
             <img src={logoSvg} alt="Grow Naturals" className="brand-logo-img" />

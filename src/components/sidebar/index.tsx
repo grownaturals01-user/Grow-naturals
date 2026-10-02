@@ -106,106 +106,12 @@ const Sidebar = () => {
     <div>
       <div
         className={`sidebar ${toggle ? "" : "active"} ${
-          expandMenus || dataLayout === "layout-hovered" ? "expand-menu" : ""
+          dataLayout === "layout-hovered" ? "expand-menu" : ""
         }`}
         id="sidebar"
-        onMouseLeave={expandMenu}
-        onMouseOver={expandMenuOpen}
       >
-        <>
-          <div className="modern-profile p-3 pb-0">
-            <div className="text-center rounded bg-light p-3 mb-4 border">
-              <div className="avatar avatar-lg online mb-3">
-                <img
-                  src={customer15}
-                  alt="Img"
-                  className="img-fluid rounded-circle"
-                />
-              </div>
-              <h6 className="fs-14 fw-bold mb-1">Adrian Herman</h6>
-              <p className="fs-12 mb-0">System Admin</p>
-            </div>
-            <div className="sidebar-nav mb-3">
-              <ul
-                className="nav nav-tabs nav-tabs-solid nav-tabs-rounded nav-justified bg-transparent"
-                role="tablist"
-              >
-                <li className="nav-item">
-                  <Link className="nav-link active border-0" to="#">
-                    Menu
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link border-0" to={route.chat}>
-                    Chats
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link border-0" to={route.email}>
-                    Inbox
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="sidebar-header p-3 pb-0 pt-2">
-            <div className="text-center rounded bg-light p-2 mb-4 sidebar-profile d-flex align-items-center">
-              <div className="avatar avatar-md onlin">
-                <img
-                  src={customer15}
-                  alt="Img"
-                  className="img-fluid rounded-circle"
-                />
-              </div>
-              <div className="text-start sidebar-profile-info ms-2">
-                <h6 className="fs-14 fw-bold mb-1">Adrian Herman</h6>
-                <p className="fs-12">System Admin</p>
-              </div>
-            </div>
-            <div className="d-flex align-items-center justify-content-between menu-item mb-3">
-              <div>
-                <Link
-                  to={route.newdashboard}
-                  className="btn btn-sm btn-icon bg-light"
-                >
-                  <i className="ti ti-layout-grid-remove" />
-                </Link>
-              </div>
-              <div>
-                <Link to={route.chat} className="btn btn-sm btn-icon bg-light">
-                  <i className="ti ti-brand-hipchat" />
-                </Link>
-              </div>
-              <div>
-                <Link
-                  to={route.email}
-                  className="btn btn-sm btn-icon bg-light position-relative"
-                >
-                  <i className="ti ti-message" />
-                </Link>
-              </div>
-              <div className="notification-item">
-                <Link
-                  to={route.activities}
-                  className="btn btn-sm btn-icon bg-light position-relative"
-                >
-                  <i className="ti ti-bell" />
-                  <span className="notification-status-dot" />
-                </Link>
-              </div>
-              <div className="me-0">
-                <Link
-                  to={route.generalsettings}
-                  className="btn btn-sm btn-icon bg-light"
-                >
-                  <i className="ti ti-settings" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </>
-        <div data-simplebar="">
-          <div className="sidebar-inner ">
+        <div className="sidebar-inner slimscroll">
+
             <div id="sidebar-menu" className="sidebar-menu">
               <ul>
                 {SidebarData?.map((mainLabel: any, index: any) => (
@@ -354,7 +260,6 @@ const Sidebar = () => {
             </div>
           </div>
         </div>
-      </div>
       {/* <CollapsedSidebar /> */}
     </div>
   );
