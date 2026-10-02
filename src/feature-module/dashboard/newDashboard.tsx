@@ -657,32 +657,38 @@ const NewDashboard = () => {
                   </div>
                 </div>
                 <div className="card-body">
-                  <div className="row g-3">
-                    <div className="col-md-4">
-                      <div className="info-item border bg-light p-3 text-center">
-                        <div className="mb-3 text-info fs-24">
+                  <div className="row g-2">
+                    <div className="col-4">
+                      <div className="info-item border bg-light py-3 px-1 text-center rounded d-flex flex-column align-items-center justify-content-center h-100">
+                        <div className="mb-2 text-info fs-22">
                           <i className="ti ti-user-check" />
                         </div>
-                        <p className="mb-1">Suppliers</p>
-                        <h5>{metrics.total_suppliers || 0}</h5>
+                        <p className="mb-1 text-muted text-truncate w-100" style={{ fontSize: '11.5px', fontWeight: 600 }} title="Suppliers">
+                          Suppliers
+                        </p>
+                        <h5 className="mb-0 fw-bold fs-16">{metrics.total_suppliers || 0}</h5>
                       </div>
                     </div>
-                    <div className="col-md-4">
-                      <div className="info-item border bg-light p-3 text-center">
-                        <div className="mb-3 text-orange fs-24">
+                    <div className="col-4">
+                      <div className="info-item border bg-light py-3 px-1 text-center rounded d-flex flex-column align-items-center justify-content-center h-100">
+                        <div className="mb-2 text-orange fs-22">
                           <i className="ti ti-users" />
                         </div>
-                        <p className="mb-1">Customer</p>
-                        <h5>{metrics.total_customers || 0}</h5>
+                        <p className="mb-1 text-muted text-truncate w-100" style={{ fontSize: '11.5px', fontWeight: 600 }} title="Customers">
+                          Customers
+                        </p>
+                        <h5 className="mb-0 fw-bold fs-16">{metrics.total_customers || 0}</h5>
                       </div>
                     </div>
-                    <div className="col-md-4">
-                      <div className="info-item border bg-light p-3 text-center">
-                        <div className="mb-3 text-teal fs-24">
+                    <div className="col-4">
+                      <div className="info-item border bg-light py-3 px-1 text-center rounded d-flex flex-column align-items-center justify-content-center h-100">
+                        <div className="mb-2 text-teal fs-22">
                           <i className="ti ti-shopping-cart" />
                         </div>
-                        <p className="mb-1">Orders</p>
-                        <h5>{metrics.total_orders || 0}</h5>
+                        <p className="mb-1 text-muted text-truncate w-100" style={{ fontSize: '11.5px', fontWeight: 600 }} title="Orders">
+                          Orders
+                        </p>
+                        <h5 className="mb-0 fw-bold fs-16">{metrics.total_orders || 0}</h5>
                       </div>
                     </div>
                   </div>

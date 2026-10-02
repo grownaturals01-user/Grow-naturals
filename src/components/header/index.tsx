@@ -246,15 +246,15 @@ const Header: React.FC = () => {
           <Link to="/admin-dashboard" className="logo logo-normal">
             <img src={logoSvg} alt="Grow Naturals" className="brand-logo-img" />
             <div className="brand-text ms-2 d-flex flex-column text-start">
-              <span className="brand-title">{activeStoreName}</span>
-              <span className="brand-subtitle">Grow Naturals ERP</span>
+              <span className="brand-title">Grow Naturals</span>
+              <span className="brand-subtitle">Nursery ERP</span>
             </div>
           </Link>
           <Link to="/admin-dashboard" className="logo logo-white">
             <img src={logoWhitePng} alt="Grow Naturals" className="brand-logo-img" />
             <div className="brand-text ms-2 d-flex flex-column text-start">
-              <span className="brand-title text-white">{activeStoreName}</span>
-              <span className="brand-subtitle">Grow Naturals ERP</span>
+              <span className="brand-title text-white">Grow Naturals</span>
+              <span className="brand-subtitle">Nursery ERP</span>
             </div>
           </Link>
           <Link to="/admin-dashboard" className="logo-small">
