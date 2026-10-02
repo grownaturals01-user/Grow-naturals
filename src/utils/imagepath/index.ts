@@ -1,10 +1,10 @@
-export { default as logo } from "../../assets/img/grownaturalslogo.jpeg";
-export { default as logoSvg } from "../../assets/img/grownaturalslogo.jpeg";
-export { default as logoWhite } from "../../assets/img/grownaturalslogo.jpeg";
-export { default as logoSmall } from "../../assets/img/grownaturalslogo.jpeg";
-export { default as logoSmallWhite } from "../../assets/img/grownaturalslogo.jpeg";
-export { default as logoWhitePng } from "../../assets/img/grownaturalslogo.jpeg";
-export { default as logoSmallPng } from "../../assets/img/grownaturalslogo.jpeg";
+export { default as logo } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
+export { default as logoSvg } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
+export { default as logoWhite } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
+export { default as logoSmall } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
+export { default as logoSmallWhite } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
+export { default as logoWhitePng } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
+export { default as logoSmallPng } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
 export { default as facebookLogo } from "../../assets/img/icons/facebook-logo.svg";
 export { default as googleLogo } from "../../assets/img/icons/google-logo.svg";
 export { default as appleLogo } from "../../assets/img/icons/apple-logo.svg";

@@ -252,17 +252,9 @@ const Header: React.FC = () => {
         >
           <Link to="/admin-dashboard" className="logo logo-normal">
             <img src={logoSvg} alt="Grow Naturals" className="brand-logo-img" />
-            <div className="brand-text ms-2 d-flex flex-column text-start">
-              <span className="brand-title">Grow Naturals</span>
-              <span className="brand-subtitle">Nursery ERP</span>
-            </div>
           </Link>
           <Link to="/admin-dashboard" className="logo logo-white">
             <img src={logoWhitePng} alt="Grow Naturals" className="brand-logo-img" />
-            <div className="brand-text ms-2 d-flex flex-column text-start">
-              <span className="brand-title text-white">Grow Naturals</span>
-              <span className="brand-subtitle">Nursery ERP</span>
-            </div>
           </Link>
           <Link to="/admin-dashboard" className="logo-small">
             <img src={logoSmallPng} alt="Grow Naturals" />
@@ -294,7 +286,7 @@ const Header: React.FC = () => {
         </Link>
 
         {/* Header Center / Right Menu */}
-        <ul className="nav user-menu d-flex align-items-center w-100 justify-content-end">
+        <ul className="nav user-menu d-none d-lg-flex align-items-center w-100 justify-content-end">
           {/* Live Global Search */}
           <li className="nav-item nav-searchinputs flex-grow-1 mx-2" style={{ minWidth: "220px", maxWidth: "420px" }}>
             <div className="top-nav-search w-100">
@@ -743,18 +735,34 @@ const Header: React.FC = () => {
           >
             <i className="fa fa-ellipsis-v" />
           </Link>
-          <div className="dropdown-menu dropdown-menu-right p-2">
+          <div className="dropdown-menu dropdown-menu-right p-2 shadow">
+            <div className="p-2 border-bottom mb-2">
+              <div className="fw-bold fs-13 text-dark">{user?.name || "Admin"}</div>
+              <div className="fs-11 text-muted">{activeStoreName}</div>
+            </div>
             <Link className="dropdown-item py-2" to={route.profile || "/profile"}>
+              <i className="ti ti-user me-2" />
               My Profile
             </Link>
+            <Link className="dropdown-item py-2" to={route.pos || "/pos"}>
+              <i className="ti ti-device-laptop me-2" />
+              POS Counter
+            </Link>
+            <Link className="dropdown-item py-2" to={route.salesreport || "/sales-report"}>
+              <i className="ti ti-file-text me-2" />
+              Reports
+            </Link>
             <Link className="dropdown-item py-2" to={route.generalsettings || "/general-settings"}>
+              <i className="ti ti-settings me-2" />
               Settings
             </Link>
+            <div className="dropdown-divider my-1" />
             <button
               type="button"
-              className="dropdown-item text-danger py-2 w-100"
+              className="dropdown-item text-danger py-2 w-100 d-flex align-items-center"
               onClick={handleLogout}
             >
+              <i className="ti ti-logout me-2" />
               Logout
             </button>
           </div>

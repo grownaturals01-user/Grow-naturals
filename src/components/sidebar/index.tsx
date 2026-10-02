@@ -4,6 +4,7 @@ import { SidebarData } from "../../core/json/siderbar_data";
 // import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import { all_routes } from "../../routes/all_routes";
+import sidebarLogo from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
 import {
   customer15,
   logo,
@@ -102,6 +103,14 @@ const Sidebar = () => {
     document.body.classList.add("expand-menu");
   };
 
+  const handleMobileClose = () => {
+    if (typeof window !== "undefined" && window.innerWidth <= 991) {
+      document.querySelector(".main-wrapper")?.classList.remove("slide-nav");
+      document.querySelector(".sidebar-overlay")?.classList.remove("opened");
+      document.querySelector("html")?.classList.remove("menu-opened");
+    }
+  };
+
   return (
     <div>
       <div
@@ -110,6 +119,30 @@ const Sidebar = () => {
         }`}
         id="sidebar"
       >
+        {/* Mobile Sidebar Brand Header & Close Button */}
+        <div className="sidebar-logo d-flex align-items-center justify-content-between p-3 border-bottom d-lg-none">
+          <Link
+            to="/admin-dashboard"
+            className="d-flex align-items-center text-decoration-none"
+            onClick={handleMobileClose}
+          >
+            <img
+              src={sidebarLogo}
+              alt="Grow Naturals"
+              style={{ maxHeight: "36px", width: "auto", maxWidth: "160px", objectFit: "contain" }}
+            />
+          </Link>
+          <button
+            type="button"
+            className="btn btn-sm btn-light border-0 rounded-circle p-1 d-flex align-items-center justify-content-center"
+            style={{ width: "30px", height: "30px" }}
+            onClick={handleMobileClose}
+            aria-label="Close sidebar"
+          >
+            <i className="ti ti-x fs-16 text-dark" />
+          </button>
+        </div>
+
         <div className="sidebar-inner slimscroll">
 
             <div id="sidebar-menu" className="sidebar-menu">
@@ -156,6 +189,8 @@ const Sidebar = () => {
                                 onClick={(e) => {
                                   if (title?.submenu && !title?.link) {
                                     e.preventDefault();
+                                  } else {
+                                    handleMobileClose();
                                   }
                                   toggleSidebar(title?.label);
                                 }}
@@ -235,6 +270,8 @@ const Sidebar = () => {
                                               } else if (item?.submenu) {
                                                 e.preventDefault();
                                                 toggleSubsidebar(item?.label);
+                                              } else {
+                                                handleMobileClose();
                                               }
                                             }}
                                           >

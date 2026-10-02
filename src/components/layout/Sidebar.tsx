@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useInventoryModules } from '../../context/InventoryModulesContext';
-import gnLogo from '../../assets/grownaturalslogo.jpeg';
+import gnLogo from '../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -96,15 +96,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
           title={collapsed ? 'Click to expand sidebar' : 'GrowNaturals'}
         >
-          <div className="brand-icon">
-            <img src={gnLogo} alt="Grow Naturals Logo" className="brand-logo-img" />
+          <div className="brand-icon" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
+            <img src={gnLogo} alt="Grow Naturals Logo" className="brand-logo-img" style={{ maxHeight: '42px', width: 'auto', maxWidth: collapsed ? '36px' : '170px', objectFit: 'contain', boxShadow: 'none', border: 'none' }} />
           </div>
-          {!collapsed && (
-            <div className="brand-text">
-              <span className="brand-title">GrowNaturals</span>
-              <span className="brand-subtitle">Powered by Together tech</span>
-            </div>
-          )}
         </NavLink>
 
         {/* Desktop Sidebar Toggle Button (visible when expanded) */}

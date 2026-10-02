@@ -182,6 +182,14 @@ const FeatureModule = () => {
                   ) : (
                     <ThemeSettings />
                   )}
+                  <div
+                    className="sidebar-overlay"
+                    onClick={() => {
+                      document.querySelector(".main-wrapper")?.classList.remove("slide-nav");
+                      document.querySelector(".sidebar-overlay")?.classList.remove("opened");
+                      document.querySelector("html")?.classList.remove("menu-opened");
+                    }}
+                  />
                 </div>
               </>
             </>
