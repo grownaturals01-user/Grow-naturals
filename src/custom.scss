@@ -299,7 +299,7 @@
     margin: 0 !important;
     padding: 0 20px 0 16px !important;
     list-style: none !important;
-    gap: 8px !important;
+    gap: 10px !important;
 
     > li {
       display: inline-flex !important;
@@ -314,6 +314,7 @@
       margin-left: 12px !important;
       width: 100% !important;
       max-width: 360px !important;
+      min-width: 200px !important;
       display: flex !important;
       align-items: center !important;
       flex-shrink: 1 !important;
@@ -383,10 +384,10 @@
       }
     }
 
+    // Business / Store Selector Dropdown
     .select-store-dropdown {
       .select-store {
         display: inline-flex !important;
-        flex-direction: row !important;
         align-items: center !important;
         height: 38px !important;
         padding: 0 12px !important;
@@ -394,71 +395,169 @@
         border-radius: 8px !important;
         background: #ffffff !important;
         text-decoration: none !important;
-        gap: 8px !important;
         transition: all 0.2s ease !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+
+        &::before,
+        &::after {
+          display: none !important;
+        }
 
         &:hover {
           border-color: #cbd5e1 !important;
           background: #f8fafc !important;
         }
 
-        .user-info {
+        .store-pill {
           display: inline-flex !important;
-          flex-direction: row !important;
           align-items: center !important;
-          padding: 0 !important;
-          gap: 8px !important;
 
-          &::after {
-            display: none !important;
-            content: none !important;
-          }
-
-          .user-letter {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 24px !important;
-            height: 24px !important;
-            margin: 0 !important;
-            border: 0 !important;
-            flex-shrink: 0 !important;
-
-            img {
-              width: 24px !important;
-              height: 24px !important;
-              border-radius: 4px !important;
-              object-fit: contain !important;
-            }
-          }
-
-          .user-detail {
-            display: inline-flex !important;
-            align-items: center !important;
-
-            .user-name {
-              font-size: 13.5px !important;
-              font-weight: 600 !important;
-              color: #0f172a !important;
-              line-height: 1 !important;
-              white-space: nowrap !important;
-            }
+          .store-name {
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            color: #1e293b !important;
+            white-space: nowrap !important;
           }
         }
+      }
+    }
 
+    // "Add New" Button
+    .link-nav {
+      .btn-primary {
+        height: 38px !important;
+        padding: 0 14px !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #fe9f43 !important;
+        border-color: #fe9f43 !important;
+        color: #ffffff !important;
+        white-space: nowrap !important;
+        box-shadow: 0 2px 6px rgba(254, 159, 67, 0.25) !important;
+        transition: all 0.2s ease !important;
+
+        &:hover {
+          background-color: #ea8a2e !important;
+          border-color: #ea8a2e !important;
+          transform: translateY(-1px) !important;
+        }
+      }
+    }
+
+    // "POS" Button
+    .pos-nav {
+      .btn-dark {
+        height: 38px !important;
+        padding: 0 14px !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #0f172a !important;
+        border-color: #0f172a !important;
+        color: #ffffff !important;
+        white-space: nowrap !important;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2) !important;
+        transition: all 0.2s ease !important;
+
+        &:hover {
+          background-color: #1e293b !important;
+          border-color: #1e293b !important;
+          transform: translateY(-1px) !important;
+        }
+      }
+    }
+
+    // Square Action Icon Boxes (Flags, Fullscreen, Notifications, Settings)
+    .nav-item-box {
+      > .nav-link,
+      > a {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        border-radius: 8px !important;
+        border: 1px solid #e2e8f0 !important;
+        background: #f8fafc !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #475569 !important;
+        font-size: 16px !important;
+        padding: 0 !important;
+        position: relative !important;
+        text-decoration: none !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+
+        &::before,
         &::after {
-          display: inline-block !important;
-          margin-left: 2px !important;
-          content: "" !important;
-          border-top: 4px solid #64748b !important;
-          border-right: 4px solid transparent !important;
-          border-bottom: 0 !important;
-          border-left: 4px solid transparent !important;
-          transition: transform 0.2s ease !important;
+          display: none !important;
         }
 
-        &.show::after {
-          transform: rotate(180deg) !important;
+        &:hover {
+          background: #ffffff !important;
+          color: #fe9f43 !important;
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        .badge.rounded-pill.bg-danger {
+          position: absolute !important;
+          top: -3px !important;
+          right: -3px !important;
+          font-size: 10px !important;
+          font-weight: 700 !important;
+          padding: 1px 5px !important;
+          min-width: 16px !important;
+          height: 16px !important;
+          line-height: 14px !important;
+          border-radius: 10px !important;
+          border: 1.5px solid #ffffff !important;
+          transform: none !important;
+        }
+      }
+    }
+
+    // User Profile Avatar
+    .profile-nav {
+      .userset {
+        width: 38px !important;
+        height: 38px !important;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        &::before,
+        &::after {
+          display: none !important;
+        }
+
+        .user-avatar-wrap {
+          width: 38px !important;
+          height: 38px !important;
+          border-radius: 50% !important;
+          border: 2px solid #fe9f43 !important;
+          overflow: hidden !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: #f8fafc !important;
+
+          img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+          }
         }
       }
     }

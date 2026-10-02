@@ -422,24 +422,20 @@ const Header: React.FC = () => {
           </li>
 
           {/* Business / Store Selector Dropdown */}
-          <li className="nav-item dropdown has-arrow main-drop select-store-dropdown">
+          <li className="nav-item dropdown select-store-dropdown">
             <Link
               to="#"
               className="dropdown-toggle nav-link select-store d-flex align-items-center"
               data-bs-toggle="dropdown"
             >
-              <span className="user-info d-flex align-items-center">
-                <span className="user-letter me-2">
-                  <img
-                    src={businessId === 'nikhlesh-nursery' ? store_02 : store_01}
-                    alt="Store Logo"
-                    className="img-fluid"
-                    style={{ width: "24px", height: "24px", borderRadius: "4px" }}
-                  />
-                </span>
-                <span className="user-detail text-start">
-                  <span className="user-name fw-semibold fs-13">{activeStoreName}</span>
-                </span>
+              <span className="store-pill d-flex align-items-center">
+                <img
+                  src={businessId === 'nikhlesh-nursery' ? store_02 : store_01}
+                  alt="Store Logo"
+                  className="img-fluid me-2"
+                  style={{ width: "22px", height: "22px", borderRadius: "4px", objectFit: "contain" }}
+                />
+                <span className="store-name fw-semibold fs-13 text-dark">{activeStoreName}</span>
               </span>
             </Link>
             <div className="dropdown-menu dropdown-menu-right shadow-sm p-2">
@@ -705,16 +701,14 @@ const Header: React.FC = () => {
           </li>
 
           {/* User Profile & Auth Dropdown */}
-          <li className="nav-item dropdown has-arrow main-drop profile-nav">
+          <li className="nav-item dropdown profile-nav">
             <Link
               to="#"
-              className="nav-link userset d-flex align-items-center"
+              className="nav-link userset d-flex align-items-center p-0"
               data-bs-toggle="dropdown"
             >
-              <span className="user-info p-0 d-flex align-items-center">
-                <span className="user-letter">
-                  <img src={avator1} alt="User Avatar" className="img-fluid" />
-                </span>
+              <span className="user-avatar-wrap d-flex align-items-center">
+                <img src={avator1} alt="User Avatar" className="user-avatar-img rounded-circle" />
               </span>
             </Link>
             <div className="dropdown-menu menu-drop-user shadow-sm p-2">
