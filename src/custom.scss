@@ -390,103 +390,66 @@
       display: inline-flex !important;
       align-items: center !important;
 
-      .select-store {
+      > .select-store,
+      > .nav-link {
         display: inline-flex !important;
         align-items: center !important;
         height: 38px !important;
-        padding: 0 12px 0 10px !important;
+        padding: 0 10px 0 8px !important;
         border: 1px solid #e2e8f0 !important;
         border-radius: 8px !important;
         background: #ffffff !important;
         text-decoration: none !important;
         transition: all 0.2s ease !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-        position: relative !important;
+        cursor: pointer !important;
         white-space: nowrap !important;
+        position: relative !important;
+
+        &::before,
+        &::after {
+          display: none !important;
+          content: none !important;
+        }
 
         &:hover {
           border-color: #cbd5e1 !important;
           background: #f8fafc !important;
         }
 
-        .user-info {
-          display: inline-flex !important;
-          align-items: center !important;
-          padding: 0 16px 0 0 !important;
-          position: relative !important;
-          margin: 0 !important;
-          border: none !important;
-          box-shadow: none !important;
-          background: transparent !important;
-
-          .user-letter {
-            width: 22px !important;
-            height: 22px !important;
-            min-width: 22px !important;
-            min-height: 22px !important;
-            margin: 0 8px 0 0 !important;
-            border: 0 !important;
-            padding: 0 !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            background: transparent !important;
-            flex-shrink: 0 !important;
-
-            img {
-              width: 22px !important;
-              height: 22px !important;
-              border-radius: 4px !important;
-              object-fit: contain !important;
-            }
-          }
-
-          .user-detail {
-            display: inline-flex !important;
-            align-items: center !important;
-            padding: 0 !important;
-            margin: 0 !important;
-
-            .user-name {
-              font-size: 13px !important;
-              font-weight: 600 !important;
-              color: #1e293b !important;
-              white-space: nowrap !important;
-              line-height: 1 !important;
-              margin: 0 !important;
-            }
-          }
-
-          &::before {
-            display: none !important;
-          }
-
-          &::after {
-            display: inline-block !important;
-            content: "" !important;
-            width: 6px !important;
-            height: 6px !important;
-            border-top: 0 !important;
-            border-left: 0 !important;
-            border-right: 1.5px solid #64748b !important;
-            border-bottom: 1.5px solid #64748b !important;
-            transform: rotate(45deg) !important;
-            position: absolute !important;
-            right: 0 !important;
-            top: 50% !important;
-            margin-top: -4px !important;
-            transition: transform 0.2s ease !important;
-          }
+        .store-logo-img {
+          width: 22px !important;
+          height: 22px !important;
+          min-width: 22px !important;
+          min-height: 22px !important;
+          border-radius: 4px !important;
+          object-fit: contain !important;
+          flex-shrink: 0 !important;
+          margin-right: 8px !important;
         }
-      }
 
-      &.show,
-      &.open,
-      .dropdown-toggle.show,
-      .dropdown-toggle[aria-expanded="true"] {
-        .user-info::after {
-          transform: rotate(-135deg) !important;
-          margin-top: -1px !important;
+        .store-name-text {
+          font-size: 13.5px !important;
+          font-weight: 500 !important;
+          color: #334155 !important;
+          white-space: nowrap !important;
+          line-height: 1 !important;
+          margin-right: 6px !important;
+        }
+
+        .store-arrow {
+          font-size: 13px !important;
+          color: #64748b !important;
+          display: inline-block !important;
+          transition: transform 0.2s ease !important;
+          margin-left: auto !important;
+        }
+
+        &.show,
+        &[aria-expanded="true"] {
+          .store-arrow {
+            transform: rotate(180deg) !important;
+          }
         }
       }
 
@@ -534,6 +497,9 @@
       position: relative !important;
       display: inline-flex !important;
       align-items: center !important;
+      padding-right: 14px !important;
+      margin-right: 4px !important;
+      border-right: 1px solid #e2e8f0 !important;
 
       .btn-dark {
         height: 38px !important;
