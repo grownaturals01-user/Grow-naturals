@@ -40,6 +40,10 @@ const Header: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [flagImage, _setFlagImage] = useState(usFlag);
 
+  // Mobile User Menu Dropdown State
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileUserMenuRef = useRef<HTMLDivElement>(null);
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
@@ -214,7 +218,33 @@ const Header: React.FC = () => {
     document.querySelector(".main-wrapper")?.classList.remove("slide-nav");
     document.querySelector(".sidebar-overlay")?.classList.remove("opened");
     document.querySelector("html")?.classList.remove("menu-opened");
+    setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Click outside and escape key handling for mobile user menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        mobileUserMenuRef.current &&
+        !mobileUserMenuRef.current.contains(event.target as Node)
+      ) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     setToggle(document.body.classList.contains("mini-sidebar"));
@@ -726,45 +756,74 @@ const Header: React.FC = () => {
         </ul>
 
         {/* Mobile User Menu */}
-        <div className="dropdown mobile-user-menu">
-          <Link
-            to="#"
-            className="nav-link dropdown-toggle"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
+        <div className="dropdown mobile-user-menu" ref={mobileUserMenuRef}>
+          <button
+            type="button"
+            className={`nav-link dropdown-toggle btn-mobile-3dot ${mobileMenuOpen ? "is-active" : ""}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMobileMenuOpen((prev) => !prev);
+            }}
+            aria-expanded={mobileMenuOpen}
+            aria-label="User Options Menu"
           >
             <i className="fa fa-ellipsis-v" />
-          </Link>
-          <div className="dropdown-menu dropdown-menu-right p-2 shadow">
-            <div className="p-2 border-bottom mb-2">
-              <div className="fw-bold fs-13 text-dark">{user?.name || "Admin"}</div>
-              <div className="fs-11 text-muted">{activeStoreName}</div>
+          </button>
+          <div
+            className={`dropdown-menu dropdown-menu-end p-0 shadow-lg ${mobileMenuOpen ? "show" : ""}`}
+            style={{ display: mobileMenuOpen ? "block" : "none" }}
+          >
+            <div className="mobile-user-menu-header p-3 border-bottom bg-light-subtle rounded-top">
+              <div className="fw-bold fs-14 text-dark text-truncate">{user?.name || "Admin"}</div>
+              <div className="fs-12 text-muted text-truncate mt-0.5">{activeStoreName}</div>
             </div>
-            <Link className="dropdown-item py-2" to={route.profile || "/profile"}>
-              <i className="ti ti-user me-2" />
-              My Profile
-            </Link>
-            <Link className="dropdown-item py-2" to={route.pos || "/pos"}>
-              <i className="ti ti-device-laptop me-2" />
-              POS Counter
-            </Link>
-            <Link className="dropdown-item py-2" to={route.salesreport || "/sales-report"}>
-              <i className="ti ti-file-text me-2" />
-              Reports
-            </Link>
-            <Link className="dropdown-item py-2" to={route.generalsettings || "/general-settings"}>
-              <i className="ti ti-settings me-2" />
-              Settings
-            </Link>
-            <div className="dropdown-divider my-1" />
-            <button
-              type="button"
-              className="dropdown-item text-danger py-2 w-100 d-flex align-items-center"
-              onClick={handleLogout}
-            >
-              <i className="ti ti-logout me-2" />
-              Logout
-            </button>
+            <div className="p-2">
+              <Link
+                className="dropdown-item py-2 px-3 rounded d-flex align-items-center"
+                to={route.profile || "/profile"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <i className="ti ti-user me-2.5 fs-16 text-primary" />
+                <span>My Profile</span>
+              </Link>
+              <Link
+                className="dropdown-item py-2 px-3 rounded d-flex align-items-center"
+                to={route.pos || "/pos"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <i className="ti ti-device-laptop me-2.5 fs-16 text-warning" />
+                <span>POS Counter</span>
+              </Link>
+              <Link
+                className="dropdown-item py-2 px-3 rounded d-flex align-items-center"
+                to={route.salesreport || "/sales-report"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <i className="ti ti-file-text me-2.5 fs-16 text-info" />
+                <span>Reports</span>
+              </Link>
+              <Link
+                className="dropdown-item py-2 px-3 rounded d-flex align-items-center"
+                to={route.generalsettings || "/general-settings"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <i className="ti ti-settings me-2.5 fs-16 text-secondary" />
+                <span>Settings</span>
+              </Link>
+              <div className="dropdown-divider my-1.5" />
+              <button
+                type="button"
+                className="dropdown-item text-danger py-2 px-3 rounded w-100 d-flex align-items-center border-0 bg-transparent"
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleLogout(e);
+                }}
+              >
+                <i className="ti ti-logout me-2.5 fs-16" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

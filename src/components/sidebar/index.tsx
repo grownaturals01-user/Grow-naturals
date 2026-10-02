@@ -4,7 +4,7 @@ import { SidebarData } from "../../core/json/siderbar_data";
 // import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import { all_routes } from "../../routes/all_routes";
-import sidebarLogo from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
+import sidebarLogo from "../../assets/img/logo.png";
 import {
   customer15,
   logo,
@@ -120,26 +120,26 @@ const Sidebar = () => {
         id="sidebar"
       >
         {/* Mobile Sidebar Brand Header & Close Button */}
-        <div className="sidebar-logo d-flex align-items-center justify-content-between p-3 border-bottom d-lg-none">
+        <div className="sidebar-logo d-flex align-items-center justify-content-between px-3 border-bottom d-lg-none">
           <Link
             to="/admin-dashboard"
-            className="d-flex align-items-center text-decoration-none"
+            className="d-flex align-items-center text-decoration-none py-2"
             onClick={handleMobileClose}
           >
             <img
               src={sidebarLogo}
               alt="Grow Naturals"
-              style={{ maxHeight: "36px", width: "auto", maxWidth: "160px", objectFit: "contain" }}
+              className="brand-logo-img"
+              style={{ maxHeight: "38px", width: "auto", maxWidth: "165px", objectFit: "contain" }}
             />
           </Link>
           <button
             type="button"
-            className="btn btn-sm btn-light border-0 rounded-circle p-1 d-flex align-items-center justify-content-center"
-            style={{ width: "30px", height: "30px" }}
+            className="btn-close-sidebar"
             onClick={handleMobileClose}
-            aria-label="Close sidebar"
+            aria-label="Close menu"
           >
-            <i className="ti ti-x fs-16 text-dark" />
+            <i className="ti ti-x fs-18" />
           </button>
         </div>
 

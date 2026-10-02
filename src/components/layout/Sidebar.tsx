@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useInventoryModules } from '../../context/InventoryModulesContext';
-import gnLogo from '../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg';
+import gnLogo from '../../assets/img/logo.png';
 import {
   LayoutDashboard,
   ShoppingCart,
