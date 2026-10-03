@@ -1,11 +1,30 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Tooltip } from 'antd';
 import { Settings, User } from 'react-feather';
 import { all_routes } from '../../routes/all_routes';
-import { logo } from '../../utils/imagepath';
+import {
+  logo,
+  logoWhite,
+  logoSmall,
+  store_01,
+  store_02,
+  store_03,
+  store_04,
+  avator1,
+} from '../../utils/imagepath';
+import { useBusiness } from '../../context/BusinessContext';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
+import PosModals from '../../core/modals/pos-modal/posModalstjsx';
 
-const PosHeader = () => {
+const storeLogos = [store_01, store_02, store_03, store_04];
+
+const PosHeader: React.FC = () => {
+  const navigate = useNavigate();
+  const { businessId, businesses, activeBusiness, switchBusiness } = useBusiness();
+  const { user, logout } = useAuth();
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
@@ -16,6 +35,56 @@ const PosHeader = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Handle Fullscreen toggle
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  // Print Last Receipt
+  const handlePrintLastReceipt = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      const res = await api.get<any[]>("/invoices", { business_id: businessId, limit: 1 });
+      if (Array.isArray(res) && res.length > 0) {
+        const lastInv = res[0];
+        window.open(`/invoice-details?id=${lastInv.id}`, '_blank');
+      } else {
+        window.print();
+      }
+    } catch {
+      window.print();
+    }
+  };
+
+  // Reload / Refresh POS
+  const handleReload = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.location.reload();
+  };
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    logout();
+    navigate(all_routes.signin);
+  };
+
+  const activeStoreName = activeBusiness?.name || (businessId === 'all' ? 'All Businesses' : 'Grow Naturals');
+  const activeStoreLogo = businessId === 'nikhlesh-nursery' ? store_02 : store_01;
+
   return (
     <>
       {/* Header */}
@@ -23,13 +92,13 @@ const PosHeader = () => {
         {/* Logo */}
         <div className="header-left active">
           <Link to="/dashboard" className="logo logo-normal">
-            <img src={logo} alt="Grow Naturals" style={{ maxHeight: '42px' }} />
+            <img src={logo} alt="Logo" style={{ maxHeight: '42px' }} />
           </Link>
           <Link to="/dashboard" className="logo logo-white">
-            <img src={logo} alt="Grow Naturals" style={{ maxHeight: '42px' }} />
+            <img src={logoWhite} alt="Logo" style={{ maxHeight: '42px' }} />
           </Link>
           <Link to="/dashboard" className="logo-small">
-            <img src={logo} alt="Grow Naturals" style={{ maxHeight: '42px' }} />
+            <img src={logoSmall} alt="Logo" style={{ maxHeight: '42px' }} />
           </Link>
         </div>
         {/* /Logo */}
@@ -69,81 +138,74 @@ const PosHeader = () => {
               <span className="user-info">
                 <span className="user-letter">
                   <img
-                    src="src/assets/img/store/store-01.png"
+                    src={activeStoreLogo}
                     alt="Store Logo"
                     className="img-fluid"
                   />
                 </span>
                 <span className="user-detail">
-                  <span className="user-name">Grow Naturals</span>
+                  <span className="user-name">{activeStoreName}</span>
                 </span>
               </span>
             </Link>
             <div className="dropdown-menu dropdown-menu-right">
-              <Link to="#" className="dropdown-item">
-                <img
-                  src="src/assets/img/store/store-01.png"
-                  alt="Store Logo"
-                  className="img-fluid"
-                />
-                Grow Naturals
-              </Link>
-              <Link to="#" className="dropdown-item">
-                <img
-                  src="src/assets/img/store/store-02.png"
-                  alt="Store Logo"
-                  className="img-fluid"
-                />
-                Nikhlesh Nursery
-              </Link>
-              <Link to="#" className="dropdown-item">
-                <img
-                  src="src/assets/img/store/store-03.png"
-                  alt="Store Logo"
-                  className="img-fluid"
-                />
-                Greenhouse Store
-              </Link>
-              <Link to="#" className="dropdown-item">
-                <img
-                  src="src/assets/img/store/store-04.png"
-                  alt="Store Logo"
-                  className="img-fluid"
-                />
-                Farm Outlet
-              </Link>
+              <button
+                type="button"
+                className={`dropdown-item border-0 w-100 text-start ${businessId === 'all' ? 'active' : ''}`}
+                onClick={() => switchBusiness('all')}
+              >
+                <img src={store_01} alt="Store Logo" className="img-fluid me-2" />
+                All Businesses
+              </button>
+              {businesses.map((b, idx) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  className={`dropdown-item border-0 w-100 text-start ${businessId === b.id ? 'active' : ''}`}
+                  onClick={() => switchBusiness(b.id)}
+                >
+                  <img
+                    src={storeLogos[idx % storeLogos.length]}
+                    alt="Store Logo"
+                    className="img-fluid me-2"
+                  />
+                  {b.name}
+                </button>
+              ))}
             </div>
           </li>
           {/* /Select Store */}
+          {/* Calculator */}
           <li className="nav-item nav-item-box">
-            <Link
-              to="#"
-              data-bs-toggle="modal"
-              data-bs-target="#calculator"
-              className="bg-orange border-orange text-white"
-            >
-              <i className="ti ti-calculator" />
-            </Link>
+            <Tooltip title="Calculator" placement="bottom">
+              <Link
+                to="#"
+                data-bs-toggle="modal"
+                data-bs-target="#calculator"
+                className="bg-orange border-orange text-white"
+              >
+                <i className="ti ti-calculator" />
+              </Link>
+            </Tooltip>
           </li>
+          {/* Fullscreen */}
           <li className="nav-item nav-item-box">
-            <Tooltip title="Maximize" placement="right">
+            <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Maximize"} placement="bottom">
               <Link
                 to="#"
                 id="btnFullscreen"
-                // onClick={() => toggleFullscreen()}
+                onClick={toggleFullscreen}
                 className={isFullscreen ? "Exit Fullscreen" : "Go Fullscreen"}
               >
                 <i className="ti ti-maximize" />
               </Link>
             </Tooltip>
           </li>
+          {/* Cash Register */}
           <li
             className="nav-item nav-item-box"
-            data-bs-toggle="tooltip"
-            data-bs-placement="top"
-            data-bs-title="Cash Register"
           >
-            <Tooltip title="Cash Register" placement="right">
+            <Tooltip title="Cash Register" placement="bottom">
               <Link
                 to="#"
                 data-bs-toggle="modal"
@@ -153,62 +215,49 @@ const PosHeader = () => {
               </Link>
             </Tooltip>
           </li>
+          {/* Print Last Receipt */}
           <li
             className="nav-item nav-item-box"
-            data-bs-toggle="tooltip"
-            data-bs-placement="top"
-            data-bs-title="Print Last Reciept"
           >
-            <Tooltip title="Print Last Reciept" placement="right">
-              <Link to="#">
+            <Tooltip title="Print Last Receipt" placement="bottom">
+              <Link to="#" onClick={handlePrintLastReceipt}>
                 <i className="ti ti-printer" />
               </Link>
             </Tooltip>
           </li>
+          {/* Reset / Reload POS */}
+          <li className="nav-item nav-item-box">
+            <Tooltip title="Reload POS" placement="bottom">
+              <Link to="#" onClick={handleReload}>
+                <i className="ti ti-reload" />
+              </Link>
+            </Tooltip>
+          </li>
+          {/* Today's Sale */}
           <li
             className="nav-item nav-item-box"
-            data-bs-toggle="tooltip"
-            data-bs-placement="top"
-            data-bs-title="Today’s Sale"
           >
-            <Tooltip title="Today's Sale" placement="right">
+            <Tooltip title="Today's Sale" placement="bottom">
               <Link
                 to="#"
                 data-bs-toggle="modal"
                 data-bs-target="#today-sale"
               >
-                <i className="ti ti-progress" />
+                <i className="ti ti-chart-pie" />
               </Link>
             </Tooltip>
           </li>
+          {/* POS Settings */}
           <li
             className="nav-item nav-item-box"
-            data-bs-toggle="tooltip"
-            data-bs-placement="top"
-            data-bs-title="Today’s Profit"
-          >
-            <Tooltip title="Today’s Profit" placement="right">
-              <Link
-                to="#"
-                data-bs-toggle="modal"
-                data-bs-target="#today-profit"
-              >
-                <i className="ti ti-chart-infographic" />
-              </Link>
-            </Tooltip>
-          </li>
-          <li
-            className="nav-item nav-item-box"
-            data-bs-toggle="tooltip"
-            data-bs-placement="top"
-            data-bs-title="POS Settings"
           >
             <Tooltip title="POS Settings" placement="bottom">
-              <Link to={all_routes.possettings}>
+              <Link to={all_routes.possettings || "/pos-settings"}>
                 <i className="ti ti-settings" />
               </Link>
             </Tooltip>
           </li>
+          {/* Profile Menu */}
           <li className="nav-item dropdown has-arrow main-drop profile-nav">
             <Link
               to="#"
@@ -218,7 +267,7 @@ const PosHeader = () => {
               <span className="user-info p-0">
                 <span className="user-letter">
                   <img
-                    src="src/assets/img/profiles/avator1.jpg"
+                    src={avator1}
                     alt="Img"
                     className="img-fluid"
                   />
@@ -229,12 +278,12 @@ const PosHeader = () => {
               <div className="profilename">
                 <div className="profileset">
                   <span className="user-img">
-                    <img src="src/assets/img/profiles/avator1.jpg" alt="Img" />
+                    <img src={avator1} alt="Img" />
                     <span className="status online" />
                   </span>
                   <div className="profilesets">
-                    <h6>Admin</h6>
-                    <h5>Super Admin</h5>
+                    <h6>{user?.name || "Admin"}</h6>
+                    <h5>{user?.role || "Super Admin"}</h5>
                   </div>
                 </div>
                 <hr className="m-0" />
@@ -250,17 +299,14 @@ const PosHeader = () => {
                   Settings
                 </Link>
                 <hr className="m-0" />
-                <Link
-                  className="dropdown-item logout pb-0"
-                  to={all_routes.signin}
+                <button
+                  type="button"
+                  className="dropdown-item logout pb-0 border-0 bg-transparent text-start w-100"
+                  onClick={handleLogout}
                 >
-                  <img
-                    src="src/assets/img/icons/log-out.svg"
-                    className="me-2"
-                    alt="img"
-                  />
+                  <i className="ti ti-logout me-2" />
                   Logout
-                </Link>
+                </button>
               </div>
             </div>
           </li>
@@ -283,17 +329,23 @@ const PosHeader = () => {
             <Link className="dropdown-item" to={all_routes.generalsettings}>
               Settings
             </Link>
-            <Link className="dropdown-item" to={all_routes.signin}>
+            <button
+              type="button"
+              className="dropdown-item border-0 bg-transparent text-start w-100"
+              onClick={handleLogout}
+            >
               Logout
-            </Link>
+            </button>
           </div>
         </div>
         {/* /Mobile Menu */}
       </div>
       {/* Header */}
+
+      {/* POS Modals (Calculator, Cash Register, Today Sale, Profit, etc.) */}
+      <PosModals />
     </>
+  );
+};
 
-    )
-}
-
-export default PosHeader
+export default PosHeader;
