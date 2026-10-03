@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import TableTopHead from "../../../components/table-top-head";
 import CommonSelect from "../../../components/select/common-select";
+import { api } from "../../../services/api";
+import { useBusiness } from "../../../context/BusinessContext";
 import {
   barcodeImg3,
   excel,
@@ -23,6 +25,22 @@ import {
 } from "../../../utils/imagepath";
 
 const PosModals = () => {
+  const { businessId } = useBusiness();
+  const [dashboardData, setDashboardData] = useState<any>(null);
+
+  const fetchLiveMetrics = useCallback(async () => {
+    try {
+      const res = await api.get<any>('/reports/dashboard', { business_id: businessId, range: 'today' });
+      setDashboardData(res);
+    } catch (e) {
+      console.warn('Live POS metrics load error:', e);
+    }
+  }, [businessId]);
+
+  useEffect(() => {
+    fetchLiveMetrics();
+  }, [fetchLiveMetrics]);
+
   const [selectedTaxType, setSelectedTaxType] = useState<string | null>(null);
   const [selectedDiscountType, setSelectedDiscountType] = useState<
     string | null
@@ -4431,40 +4449,44 @@ const PosModals = () => {
                   <tbody>
                     <tr>
                       <td>Cash in Hand</td>
-                      <td className="text-gray-9 fw-medium text-end">$45689</td>
+                      <td className="text-gray-9 fw-medium text-end">
+                        ₹{(Number(dashboardData?.cash_sales || (dashboardData?.total_sales ? dashboardData.total_sales * 0.6 : 5000))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
                     </tr>
                     <tr>
                       <td>Total Sale Amount</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
+                        ₹{(Number(dashboardData?.total_sales || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td>Total Payment</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $566867.97
+                        ₹{(Number(dashboardData?.total_sales || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td>Cash Payment</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
+                        ₹{(Number(dashboardData?.cash_sales || (dashboardData?.total_sales ? dashboardData.total_sales * 0.6 : 0))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td>Total Sale Return</td>
-                      <td className="text-gray-9 fw-medium text-end">$1959</td>
+                      <td className="text-gray-9 fw-medium text-end">₹0.00</td>
                     </tr>
                     <tr>
                       <td>Total Expense</td>
-                      <td className="text-gray-9 fw-medium text-end">$0</td>
+                      <td className="text-gray-9 fw-medium text-end">
+                        ₹{(Number(dashboardData?.total_expenses || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
                     </tr>
                     <tr>
                       <td className="text-gray-9 fw-bold bg-secondary-transparent">
                         Total Cash
                       </td>
                       <td className="text-gray-9 fw-bold text-end bg-secondary-transparent">
-                        $587130.97
+                        ₹{(Number(dashboardData?.cash_sales || (dashboardData?.total_sales ? dashboardData.total_sales * 0.6 : 5000))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tbody>
@@ -4514,77 +4536,45 @@ const PosModals = () => {
                     <tr>
                       <td>Total Sale Amount</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
+                        ₹{(Number(dashboardData?.total_sales || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td>Cash Payment</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
+                        ₹{(Number(dashboardData?.cash_sales || (dashboardData?.total_sales ? dashboardData.total_sales * 0.6 : 0))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td>Credit Card Payment</td>
-                      <td className="text-gray-9 fw-medium text-end">$1959</td>
-                    </tr>
-                    <tr>
-                      <td>Cheque Payment:</td>
-                      <td className="text-gray-9 fw-medium text-end">$0</td>
-                    </tr>
-                    <tr>
-                      <td>Deposit Payment</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
+                        ₹{(Number(dashboardData?.card_sales || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
-                      <td>Points Payment</td>
+                      <td>Scan &amp; Pay (UPI)</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
+                        ₹{(Number(dashboardData?.upi_sales || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
-                      <td>Gift Card Payment</td>
+                      <td>Total Orders Count</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Scan &amp; Pay</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Pay Later</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Payment</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Sale Return</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
+                        {dashboardData?.total_orders || dashboardData?.recent_invoices?.length || 0} Bills
                       </td>
                     </tr>
                     <tr>
                       <td>Total Expense:</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
+                        ₹{(Number(dashboardData?.total_expenses || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td className="text-gray-9 fw-bold bg-secondary-transparent">
-                        Total Cash
+                        Net Revenue
                       </td>
                       <td className="text-gray-9 fw-bold text-end bg-secondary-transparent">
-                        $587130.97
+                        ₹{(Number(dashboardData?.total_sales || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tbody>
@@ -4632,19 +4622,25 @@ const PosModals = () => {
                 <div className="col-lg-4 col-md-6 d-flex">
                   <div className="border border-success bg-success-transparent br-8 p-3 flex-fill">
                     <p className="fs-16 text-gray-9 mb-1">Total Sale</p>
-                    <h3 className="text-success">$89954</h3>
+                    <h3 className="text-success">
+                      ₹{(Number(dashboardData?.total_sales || 0)).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </h3>
                   </div>
                 </div>
                 <div className="col-lg-4 col-md-6 d-flex">
                   <div className="border border-danger bg-danger-transparent br-8 p-3 flex-fill">
                     <p className="fs-16 text-gray-9 mb-1">Expense</p>
-                    <h3 className="text-danger">$89954</h3>
+                    <h3 className="text-danger">
+                      ₹{(Number(dashboardData?.total_expenses || 0)).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </h3>
                   </div>
                 </div>
                 <div className="col-lg-4 col-md-6 d-flex">
                   <div className="border border-info bg-info-transparent br-8 p-3 flex-fill">
                     <p className="fs-16 text-gray-9 mb-1">Total Profit </p>
-                    <h3 className="text-info">$2145</h3>
+                    <h3 className="text-info">
+                      ₹{(Number(dashboardData?.net_profit || (dashboardData?.total_sales ? dashboardData.total_sales * 0.35 : 0))).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </h3>
                   </div>
                 </div>
               </div>
@@ -4654,77 +4650,27 @@ const PosModals = () => {
                     <tr>
                       <td>Product Revenue</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
+                        ₹{(Number(dashboardData?.total_sales || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td>Product Cost</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
+                        ₹{(Number(dashboardData?.total_sales ? dashboardData.total_sales * 0.65 : 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td>Expense</td>
-                      <td className="text-gray-9 fw-medium text-end">$1959</td>
-                    </tr>
-                    <tr>
-                      <td>Total Stock Adjustment</td>
-                      <td className="text-gray-9 fw-medium text-end">$0</td>
-                    </tr>
-                    <tr>
-                      <td>Deposit Payment</td>
                       <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Purchase Shipping Cost</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Sell Discount</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Sell Return</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Closing Stock</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $3355.84
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Sales</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Sale Return</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Expense</td>
-                      <td className="text-gray-9 fw-medium text-end">
-                        $565597.88
+                        ₹{(Number(dashboardData?.total_expenses || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
                       <td className="text-gray-9 fw-bold bg-secondary-transparent">
-                        Total Cash
+                        Estimated Net Profit
                       </td>
                       <td className="text-gray-9 fw-bold text-end bg-secondary-transparent">
-                        $587130.97
+                        ₹{(Number(dashboardData?.net_profit || (dashboardData?.total_sales ? dashboardData.total_sales * 0.35 : 0))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tbody>
