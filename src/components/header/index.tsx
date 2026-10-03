@@ -704,7 +704,7 @@ const Header = () => {
                     <img src={avator1} alt="Img" />
                   </span>
                   <div>
-                    <h6 className="fw-medium">{user?.username || user?.full_name || "Admin"}</h6>
+                    <h6 className="fw-medium">{user?.username || (user as any)?.full_name || (user as any)?.name || "Admin"}</h6>
                     <p>{user?.role || "Admin"}</p>
                   </div>
                 </div>

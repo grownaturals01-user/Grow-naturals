@@ -58,6 +58,7 @@ const Warranty: React.FC = () => {
         name: w.name,
         description: w.description ? w.description.replace(/<[^>]*>?/gm, '') : '',
         duration: `${w.duration} ${w.period || 'Month'}`,
+        period: w.period || 'Month',
         status: w.status || 'Active',
         raw: w
       }));

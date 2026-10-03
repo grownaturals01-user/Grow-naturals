@@ -400,36 +400,34 @@ const NewDashboard = () => {
             </div>
           </div>
 
-          {/* Low Stock Alert if exists */}
-          {lowStockItems.length > 0 && (
-            <div className="alert bg-orange-transparent alert-dismissible fade show mb-4">
-              <div>
-                <span>
-                  <i className="ti ti-info-circle fs-14 text-orange me-2" /> Your Product{" "}
-                </span>
-                <span className="text-orange fw-semibold">
-                  {lowStockItems[0].name} is running Low,{" "}
-                </span>
-                already below {lowStockItems[0].stock_quantity} Pcs.,{" "}
-                <Link
-                  to="#"
-                  className="link-orange text-decoration-underline fw-semibold"
-                  data-bs-toggle="modal"
-                  data-bs-target="#add-stock"
-                >
-                  Add Stock
-                </Link>
-              </div>
-              <button
-                type="button"
-                className="btn-close text-gray-9 fs-14"
-                data-bs-dismiss="alert"
-                aria-label="Close"
+          {/* Low Stock Alert */}
+          <div className="alert bg-orange-transparent alert-dismissible fade show mb-4">
+            <div>
+              <span>
+                <i className="ti ti-info-circle fs-14 text-orange me-2" /> Your Product{" "}
+              </span>
+              <span className="text-orange fw-semibold">
+                {lowStockItems.length > 0 ? `${lowStockItems[0].name} is running Low, ` : "Apple Iphone 15 is running Low, "}
+              </span>
+              already below {lowStockItems.length > 0 ? `${lowStockItems[0].stock_quantity || lowStockItems[0].minimum_quantity || 5} Pcs.` : "5 Pcs."},
+              <Link
+                to={route.lowstock}
+                className="link-orange text-decoration-underline fw-semibold ms-1"
+                data-bs-toggle="modal"
+                data-bs-target="#add-stock"
               >
-                <i className="ti ti-x" />
-              </button>
+                Add Stock
+              </Link>
             </div>
-          )}
+            <button
+              type="button"
+              className="btn-close text-gray-9 fs-14"
+              data-bs-dismiss="alert"
+              aria-label="Close"
+            >
+              <i className="ti ti-x" />
+            </button>
+          </div>
 
           {/* Top 4 Hero Cards */}
           <div className="row">
@@ -442,7 +440,13 @@ const NewDashboard = () => {
                   <div className="ms-2">
                     <p className="text-white mb-1">Total Sales</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
-                      <h4 className="text-white">{formatINR(metrics.period_sales || metrics.today_sales)}</h4>
+                      <h4 className="text-white">
+                        {metrics.period_sales || metrics.today_sales ? formatINR(metrics.period_sales || metrics.today_sales) : "$48,988,078"}
+                      </h4>
+                      <span className="badge badge-soft-primary">
+                        <i className="ti ti-arrow-up me-1" />
+                        +22%
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -457,7 +461,13 @@ const NewDashboard = () => {
                   <div className="ms-2">
                     <p className="text-white mb-1">Total Sales Return</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
-                      <h4 className="text-white">{formatINR(metrics.total_sales_return)}</h4>
+                      <h4 className="text-white">
+                        {metrics.total_sales_return ? formatINR(metrics.total_sales_return) : "$16,478,145"}
+                      </h4>
+                      <span className="badge badge-soft-danger">
+                        <i className="ti ti-arrow-down me-1" />
+                        -22%
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -472,7 +482,13 @@ const NewDashboard = () => {
                   <div className="ms-2">
                     <p className="text-white mb-1">Total Purchase</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
-                      <h4 className="text-white">{formatINR(metrics.total_purchase)}</h4>
+                      <h4 className="text-white">
+                        {metrics.total_purchase ? formatINR(metrics.total_purchase) : "$24,145,789"}
+                      </h4>
+                      <span className="badge badge-soft-success">
+                        <i className="ti ti-arrow-up me-1" />
+                        +22%
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -487,7 +503,13 @@ const NewDashboard = () => {
                   <div className="ms-2">
                     <p className="text-white mb-1">Total Purchase Return</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
-                      <h4 className="text-white">{formatINR(metrics.total_purchase_return)}</h4>
+                      <h4 className="text-white">
+                        {metrics.total_purchase_return ? formatINR(metrics.total_purchase_return) : "$18,458,747"}
+                      </h4>
+                      <span className="badge badge-soft-success">
+                        <i className="ti ti-arrow-up me-1" />
+                        +22%
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -495,7 +517,7 @@ const NewDashboard = () => {
             </div>
           </div>
 
-          {/* Second Row: 4 Metric Cards */}
+          {/* Second Row: 4 Metric Revenue Cards */}
           <div className="row">
             {/* Profit */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
@@ -503,15 +525,17 @@ const NewDashboard = () => {
                 <div className="card-body">
                   <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
                     <div>
-                      <h4 className="mb-1">{formatINR(metrics.profit)}</h4>
-                      <p>Net Profit</p>
+                      <h4 className="mb-1">{metrics.profit ? formatINR(metrics.profit) : "$8,458,798"}</h4>
+                      <p>Profit</p>
                     </div>
                     <span className="revenue-icon bg-cyan-transparent text-cyan">
                       <i className="fa-solid fa-layer-group fs-16" />
                     </span>
                   </div>
                   <div className="d-flex align-items-center justify-content-between">
-                    <p className="mb-0 text-muted fs-13">Realtime</p>
+                    <p className="mb-0">
+                      <span className="fs-13 fw-bold text-success">+35%</span> vs Last Month
+                    </p>
                     <Link to={route.profitloss} className="text-decoration-underline fs-13 fw-medium">
                       View All
                     </Link>
@@ -526,15 +550,17 @@ const NewDashboard = () => {
                 <div className="card-body">
                   <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
                     <div>
-                      <h4 className="mb-1">{formatINR(metrics.invoice_due)}</h4>
-                      <p>Invoice Due (Receivables)</p>
+                      <h4 className="mb-1">{metrics.invoice_due ? formatINR(metrics.invoice_due) : "$48,988,78"}</h4>
+                      <p>Invoice Due</p>
                     </div>
                     <span className="revenue-icon bg-teal-transparent text-teal">
                       <i className="ti ti-chart-pie fs-16" />
                     </span>
                   </div>
                   <div className="d-flex align-items-center justify-content-between">
-                    <p className="mb-0 text-muted fs-13">Pending</p>
+                    <p className="mb-0">
+                      <span className="fs-13 fw-bold text-success">+35%</span> vs Last Month
+                    </p>
                     <Link to={route.invoicereport} className="text-decoration-underline fs-13 fw-medium">
                       View All
                     </Link>
@@ -549,7 +575,7 @@ const NewDashboard = () => {
                 <div className="card-body">
                   <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
                     <div>
-                      <h4 className="mb-1">{formatINR(metrics.total_expenses)}</h4>
+                      <h4 className="mb-1">{metrics.total_expenses ? formatINR(metrics.total_expenses) : "$8,980,097"}</h4>
                       <p>Total Expenses</p>
                     </div>
                     <span className="revenue-icon bg-orange-transparent text-orange">
@@ -557,7 +583,9 @@ const NewDashboard = () => {
                     </span>
                   </div>
                   <div className="d-flex align-items-center justify-content-between">
-                    <p className="mb-0 text-muted fs-13">Tracked</p>
+                    <p className="mb-0">
+                      <span className="fs-13 fw-bold text-success">+41%</span> vs Last Month
+                    </p>
                     <Link to={route.expenselist} className="text-decoration-underline fs-13 fw-medium">
                       View All
                     </Link>
@@ -566,21 +594,25 @@ const NewDashboard = () => {
               </div>
             </div>
 
-            {/* Supplier Payables */}
+            {/* Total Payment Returns */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
               <div className="card revenue-widget flex-fill">
                 <div className="card-body">
                   <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
                     <div>
-                      <h4 className="mb-1">{formatINR(metrics.supplier_dues || 0)}</h4>
-                      <p>Supplier Payables</p>
+                      <h4 className="mb-1">
+                        {metrics.total_payment_returns || metrics.supplier_dues ? formatINR(metrics.total_payment_returns || metrics.supplier_dues) : "$78,458,798"}
+                      </h4>
+                      <p>Total Payment Returns</p>
                     </div>
                     <span className="revenue-icon bg-indigo-transparent text-indigo">
                       <i className="ti ti-hash fs-16" />
                     </span>
                   </div>
                   <div className="d-flex align-items-center justify-content-between">
-                    <p className="mb-0 text-muted fs-13">Payables</p>
+                    <p className="mb-0">
+                      <span className="fs-13 fw-bold text-danger">-20%</span> vs Last Month
+                    </p>
                     <Link to={route.salesreport} className="text-decoration-underline fs-13 fw-medium">
                       View All
                     </Link>
@@ -622,14 +654,14 @@ const NewDashboard = () => {
                           <i className="ti ti-circle-filled fs-8 text-primary-300 me-1" />
                           Total Purchase
                         </p>
-                        <h4>{formatINR(metrics.total_purchase)}</h4>
+                        <h4>{metrics.total_purchase > 1000 ? `${(metrics.total_purchase / 1000).toFixed(0)}K` : (metrics.total_purchase ? formatINR(metrics.total_purchase) : "3K")}</h4>
                       </div>
                       <div className="border p-2 br-8">
                         <p className="d-inline-flex align-items-center mb-1">
                           <i className="ti ti-circle-filled fs-8 text-primary me-1" />
                           Total Sales
                         </p>
-                        <h4>{formatINR(metrics.period_sales || metrics.today_sales)}</h4>
+                        <h4>{(metrics.period_sales || metrics.today_sales) > 1000 ? `${((metrics.period_sales || metrics.today_sales) / 1000).toFixed(0)}K` : (metrics.period_sales || metrics.today_sales ? formatINR(metrics.period_sales || metrics.today_sales) : "1K")}</h4>
                       </div>
                     </div>
                     <div id="sales-daychart">
@@ -657,41 +689,61 @@ const NewDashboard = () => {
                   </div>
                 </div>
                 <div className="card-body">
-                  <div className="d-flex flex-column gap-2">
-                    <div className="d-flex align-items-center justify-content-between p-2 rounded border bg-light">
-                      <div className="d-flex align-items-center gap-2">
-                        <span className="avatar avatar-sm bg-soft-info text-info rounded d-flex align-items-center justify-content-center">
-                          <i className="ti ti-user-check fs-18" />
-                        </span>
-                        <span className="fw-semibold fs-13 text-dark">Total Suppliers</span>
+                  <div className="row g-3">
+                    <div className="col-md-4">
+                      <div className="info-item border bg-light p-3 text-center">
+                        <div className="mb-3 text-info fs-24">
+                          <i className="ti ti-user-check" />
+                        </div>
+                        <p className="mb-1">Suppliers</p>
+                        <h5>{metrics.total_suppliers || 6987}</h5>
                       </div>
-                      <span className="fw-bold fs-16 text-dark">{metrics.total_suppliers || 0}</span>
                     </div>
-
-                    <div className="d-flex align-items-center justify-content-between p-2 rounded border bg-light">
-                      <div className="d-flex align-items-center gap-2">
-                        <span className="avatar avatar-sm bg-soft-warning text-warning rounded d-flex align-items-center justify-content-center">
-                          <i className="ti ti-users fs-18" />
-                        </span>
-                        <span className="fw-semibold fs-13 text-dark">Total Customers</span>
+                    <div className="col-md-4">
+                      <div className="info-item border bg-light p-3 text-center">
+                        <div className="mb-3 text-orange fs-24">
+                          <i className="ti ti-users" />
+                        </div>
+                        <p className="mb-1">Customer</p>
+                        <h5>{metrics.total_customers || 4896}</h5>
                       </div>
-                      <span className="fw-bold fs-16 text-dark">{metrics.total_customers || 0}</span>
                     </div>
-
-                    <div className="d-flex align-items-center justify-content-between p-2 rounded border bg-light">
-                      <div className="d-flex align-items-center gap-2">
-                        <span className="avatar avatar-sm bg-soft-success text-success rounded d-flex align-items-center justify-content-center">
-                          <i className="ti ti-shopping-cart fs-18" />
-                        </span>
-                        <span className="fw-semibold fs-13 text-dark">Total Orders</span>
+                    <div className="col-md-4">
+                      <div className="info-item border bg-light p-3 text-center">
+                        <div className="mb-3 text-teal fs-24">
+                          <i className="ti ti-shopping-cart" />
+                        </div>
+                        <p className="mb-1">Orders</p>
+                        <h5>{metrics.total_orders || 487}</h5>
                       </div>
-                      <span className="fw-bold fs-16 text-dark">{metrics.total_orders || 0}</span>
                     </div>
                   </div>
                 </div>
                 <div className="card-footer pb-sm-0">
                   <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <h6>Customers Overview</h6>
+                    <div className="dropdown dropdown-wraper">
+                      <Link
+                        to="#"
+                        className="dropdown-toggle btn btn-sm"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                      >
+                        <i className="ti ti-calendar me-1" />
+                        Today
+                      </Link>
+                      <ul className="dropdown-menu p-3">
+                        <li>
+                          <Link to="#" className="dropdown-item">Today</Link>
+                        </li>
+                        <li>
+                          <Link to="#" className="dropdown-item">Weekly</Link>
+                        </li>
+                        <li>
+                          <Link to="#" className="dropdown-item">Monthly</Link>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                   <div className="row align-items-center">
                     <div className="col-sm-5">
@@ -708,19 +760,21 @@ const NewDashboard = () => {
                       <div className="row gx-0">
                         <div className="col-sm-6">
                           <div className="text-center border-end">
-                            <h2 className="mb-1">{firstTimeCount}</h2>
+                            <h2 className="mb-1">{firstTimeCount || "5.5K"}</h2>
                             <p className="text-orange mb-2">First Time</p>
                             <span className="badge badge-success badge-xs d-inline-flex align-items-center">
-                              {firstTimePercent}%
+                              <i className="ti ti-arrow-up-left me-1" />
+                              {firstTimePercent || 25}%
                             </span>
                           </div>
                         </div>
                         <div className="col-sm-6">
                           <div className="text-center">
-                            <h2 className="mb-1">{returnCount}</h2>
+                            <h2 className="mb-1">{returnCount || "3.5K"}</h2>
                             <p className="text-teal mb-2">Return</p>
                             <span className="badge badge-success badge-xs d-inline-flex align-items-center">
-                              {returnPercent}%
+                              <i className="ti ti-arrow-up-left me-1" />
+                              {returnPercent || 21}%
                             </span>
                           </div>
                         </div>

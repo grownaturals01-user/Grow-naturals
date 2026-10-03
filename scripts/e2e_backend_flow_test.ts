@@ -376,6 +376,7 @@ async function runAll41Flows() {
       }),
     });
     if (!posRes.ok) throw new Error(`Status ${posRes.status}`);
+    const posData = await posRes.json();
     const invNum = posData.invoice?.invoice_number || posData.invoice_number;
     if (!invNum) throw new Error('Invoice number missing');
   });
