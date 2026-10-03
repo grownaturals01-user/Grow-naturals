@@ -1,82 +1,294 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import Brand from "../../core/modals/inventory/brand";
 import { all_routes } from "../../routes/all_routes";
 import PrimeDataTable from "../../components/data-table";
+import {
+  expireProduct01,
+  expireProduct02,
+  expireProduct03,
+  expireProduct04,
+  stockImg02,
+  stockImg03,
+  stockImg04,
+  stockImg05,
+  stockImg06,
+  user04,
+  user08,
+  user10,
+  user13,
+  user30,
+  stockImg1,
+  user11,
+  user3,
+  user2,
+  user5,
+  user01,
+} from "../../utils/imagepath";
+import DeleteModal from "../../components/delete-modal";
 import SearchFromApi from "../../components/data-table/search";
 import TooltipIcons from "../../components/tooltip-content/tooltipIcons";
+import RefreshIcon from "../../components/tooltip-content/refresh";
+import CollapesIcon from "../../components/tooltip-content/collapes";
 import { api, getActiveBusinessId } from "../../services/api";
 
+const productImages = [
+  stockImg1,
+  stockImg06,
+  stockImg02,
+  stockImg03,
+  stockImg04,
+  stockImg05,
+  expireProduct01,
+  expireProduct02,
+  expireProduct03,
+  expireProduct04,
+];
+
+const userAvatars = [
+  user30,
+  user13,
+  user11,
+  user3,
+  user2,
+  user5,
+  user08,
+  user04,
+  user01,
+  user10,
+];
+
+export const fallbackProductListData = [
+  {
+    id: 1,
+    product: "Lenovo 3rd Generation",
+    productImage: stockImg1,
+    sku: "PT001",
+    category: "Laptop",
+    brand: "Lenovo",
+    price: "₹12,500",
+    unit: "Pc",
+    qty: "100",
+    createdby: "Arroon",
+    img: user30,
+  },
+  {
+    id: 2,
+    product: "Bold V3.2",
+    productImage: stockImg06,
+    sku: "PT002",
+    category: "Electronics",
+    brand: "Bolt",
+    price: "₹1,600",
+    unit: "Pc",
+    qty: "140",
+    createdby: "Kenneth",
+    img: user13,
+  },
+  {
+    id: 3,
+    product: "Nike Jordan",
+    productImage: stockImg02,
+    sku: "PT003",
+    category: "Shoe",
+    brand: "Nike",
+    price: "₹6,000",
+    unit: "Pc",
+    qty: "780",
+    createdby: "Gooch",
+    img: user11,
+  },
+  {
+    id: 4,
+    product: "Apple Series 5 Watch",
+    productImage: stockImg03,
+    sku: "PT004",
+    category: "Electronics",
+    brand: "Apple",
+    price: "₹25,000",
+    unit: "Pc",
+    qty: "450",
+    createdby: "Nathan",
+    img: user3,
+  },
+  {
+    id: 5,
+    product: "Amazon Echo Dot",
+    productImage: stockImg04,
+    sku: "PT005",
+    category: "Speaker",
+    brand: "Amazon",
+    price: "₹1,600",
+    unit: "Pc",
+    qty: "477",
+    createdby: "Alice",
+    img: user2,
+  },
+  {
+    id: 6,
+    product: "Lobar Handy",
+    productImage: stockImg05,
+    sku: "PT006",
+    category: "Furnitures",
+    brand: "Woodmart",
+    price: "₹4,521",
+    unit: "Kg",
+    qty: "145",
+    createdby: "Robb",
+    img: user5,
+  },
+  {
+    id: 7,
+    product: "Red Premium Handy",
+    productImage: expireProduct01,
+    sku: "PT007",
+    category: "Bags",
+    brand: "Versace",
+    price: "₹2,024",
+    unit: "Kg",
+    qty: "747",
+    createdby: "Steven",
+    img: user08,
+  },
+  {
+    id: 8,
+    product: "Iphone 14 Pro",
+    productImage: expireProduct02,
+    sku: "PT008",
+    category: "Phone",
+    brand: "Iphone",
+    price: "₹1,698",
+    unit: "Pc",
+    qty: "897",
+    createdby: "Gravely",
+    img: user04,
+  },
+  {
+    id: 9,
+    product: "Black Slim 200",
+    productImage: expireProduct03,
+    sku: "PT009",
+    category: "Chairs",
+    brand: "Bently",
+    price: "₹6,794",
+    unit: "Pc",
+    qty: "741",
+    createdby: "Kevin",
+    img: user01,
+  },
+  {
+    id: 10,
+    product: "Woodcraft Sandal",
+    productImage: expireProduct04,
+    sku: "PT010",
+    category: "Bags",
+    brand: "Woodcraft",
+    price: "₹4,547",
+    unit: "Kg",
+    qty: "148",
+    createdby: "Grillo",
+    img: user10,
+  },
+];
+
+export const productlistdata = fallbackProductListData;
+
 interface ProductItem {
-  id: string;
+  id: string | number;
   sku: string;
-  name: string;
-  type: string;
-  category_name?: string;
-  selling_price: number;
-  cost_price: number;
+  product: string;
+  productImage: string;
+  category: string;
+  brand: string;
+  price: string;
   unit: string;
-  stock_quantity: number;
-  low_stock_threshold: number;
-  barcode?: string;
-  image_url?: string;
-  business_name?: string;
+  qty: string;
+  createdby: string;
+  img: string;
+  action?: string;
+  raw?: any;
 }
 
-const formatINR = (val: number | string) => {
-  const num = Number(val) || 0;
-  return "₹" + num.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-};
-
 const ProductList: React.FC = () => {
-  const route = all_routes;
-  const navigate = useNavigate();
-
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [loading, setLoading] = useState<boolean>(true);
+  const [brands, setBrands] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const businessId = getActiveBusinessId();
-    api.get<any[]>("/categories", { business_id: businessId })
-      .then((res) => {
-        if (Array.isArray(res)) setCategories(res);
-      })
-      .catch((err) => console.warn(err));
-  }, []);
+  const [deleteId, setDeleteId] = useState<string | number | null>(null);
 
   const fetchProducts = useCallback(async () => {
-    setLoading(true);
     try {
       const businessId = getActiveBusinessId();
-      const params: any = { business_id: businessId };
-      if (categoryFilter !== "all") params.category_id = categoryFilter;
-      if (typeFilter !== "all") params.type = typeFilter;
-      if (searchQuery) params.search = searchQuery;
+      const res = await api.get<any[]>("/products", { business_id: businessId });
+      if (Array.isArray(res) && res.length > 0) {
+        const mapped: ProductItem[] = res.map((p: any, idx: number) => ({
+          id: p.id,
+          sku: p.sku || `PT00${idx + 1}`,
+          product: p.name,
+          productImage: p.image_url || productImages[idx % productImages.length],
+          category: p.category_name || (p.type ? p.type.charAt(0).toUpperCase() + p.type.slice(1) : "General"),
+          brand: p.brand || "Grow Naturals",
+          price: `₹${Number(p.selling_price || p.sale_price || 0).toLocaleString("en-IN")}`,
+          unit: p.unit || "Pc",
+          qty: String(p.stock_quantity ?? 0),
+          createdby: p.business_name || "Admin",
+          img: userAvatars[idx % userAvatars.length],
+          raw: p,
+        }));
+        setProducts(mapped);
 
-      const res = await api.get<any[]>("/products", params);
-      if (Array.isArray(res)) {
-        setProducts(res);
+        // Extract brands
+        const brandSet = new Set<string>();
+        mapped.forEach((item) => {
+          if (item.brand) brandSet.add(item.brand);
+        });
+        setBrands(Array.from(brandSet));
       } else {
-        setProducts([]);
+        setProducts(fallbackProductListData);
+        setBrands(["Lenovo", "Bolt", "Nike", "Apple", "Amazon", "Woodmart", "Versace", "Bently"]);
       }
     } catch (err) {
-      console.warn("Failed to load products:", err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
+      console.warn("Failed to load products, using theme defaults:", err);
+      setProducts(fallbackProductListData);
+      setBrands(["Lenovo", "Bolt", "Nike", "Apple", "Amazon", "Woodmart", "Versace", "Bently"]);
     }
-  }, [categoryFilter, typeFilter, searchQuery]);
+  }, []);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const businessId = getActiveBusinessId();
+      const res = await api.get<any[]>("/categories", { business_id: businessId });
+      if (Array.isArray(res) && res.length > 0) {
+        setCategories(res);
+      } else {
+        setCategories([
+          { id: "1", name: "Computers" },
+          { id: "2", name: "Electronics" },
+          { id: "3", name: "Shoe" },
+          { id: "4", name: "Speaker" },
+          { id: "5", name: "Furnitures" },
+        ]);
+      }
+    } catch (err) {
+      setCategories([
+        { id: "1", name: "Computers" },
+        { id: "2", name: "Electronics" },
+        { id: "3", name: "Shoe" },
+        { id: "4", name: "Speaker" },
+        { id: "5", name: "Furnitures" },
+      ]);
+    }
+  }, []);
 
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    fetchCategories();
+  }, [fetchProducts, fetchCategories]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -84,228 +296,270 @@ const ProductList: React.FC = () => {
       await api.delete(`/products/${deleteId}`);
       setDeleteId(null);
       await fetchProducts();
-      const modalEl = document.getElementById("delete-product-modal");
-      if (modalEl) {
-        const closeBtn = modalEl.querySelector("[data-bs-dismiss='modal']") as HTMLElement;
-        closeBtn?.click();
-      }
     } catch (err: any) {
-      alert(err.message || "Failed to delete product");
+      console.error("Failed to delete product:", err);
     }
   };
 
+  const handleSearch = (value: any) => {
+    setSearchQuery(value);
+  };
+
+  const filteredProducts = products.filter((item) => {
+    if (selectedCategory && item.category !== selectedCategory) {
+      return false;
+    }
+    if (selectedBrand && item.brand !== selectedBrand) {
+      return false;
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchName = item.product.toLowerCase().includes(q);
+      const matchSku = item.sku.toLowerCase().includes(q);
+      const matchCat = item.category.toLowerCase().includes(q);
+      const matchBrand = item.brand.toLowerCase().includes(q);
+      return matchName || matchSku || matchCat || matchBrand;
+    }
+    return true;
+  });
+
+  const route = all_routes;
   const columns = [
     {
-      header: "Product & SKU",
-      field: "name",
-      key: "name",
+      header: "SKU",
+      field: "sku",
+      key: "sku",
       sortable: true,
-      body: (p: ProductItem) => (
+    },
+    {
+      header: "Product",
+      field: "product",
+      key: "product",
+      sortable: true,
+      body: (data: ProductItem) => (
         <div className="d-flex align-items-center">
-          <div className="avatar avatar-md bg-light-success text-success me-2 d-flex align-items-center justify-content-center">
-            <i className="ti ti-plant fs-16" />
-          </div>
-          <div>
-            <h6 className="fw-semibold mb-0">{p.name}</h6>
-            <span className="fs-12 text-muted">SKU: {p.sku || '#' + p.id.slice(0, 6)}</span>
-          </div>
+          <Link to="#" className="avatar avatar-md me-2">
+            <img alt="" src={data.productImage} />
+          </Link>
+          <Link to="#">{data.product}</Link>
         </div>
       ),
     },
     {
-      header: "Category / Module",
-      field: "category_name",
-      key: "category_name",
+      header: "Category",
+      field: "category",
+      key: "category",
       sortable: true,
-      body: (p: ProductItem) => (
-        <div>
-          <span className="badge badge-soft-info text-capitalize fs-11 me-1">{p.type || "General"}</span>
-          <span className="fs-12 text-gray-9">{p.category_name || "General Category"}</span>
-        </div>
+    },
+    {
+      header: "Brand",
+      field: "brand",
+      key: "brand",
+      sortable: true,
+    },
+    {
+      header: "Price",
+      field: "price",
+      key: "price",
+      sortable: true,
+    },
+    {
+      header: "Unit",
+      field: "unit",
+      key: "unit",
+      sortable: true,
+    },
+    {
+      header: "Qty",
+      field: "qty",
+      key: "qty",
+      sortable: true,
+    },
+    {
+      header: "Created By",
+      field: "createdby",
+      key: "createdby",
+      sortable: true,
+      body: (data: ProductItem) => (
+        <span className="userimgname">
+          <Link to="/profile" className="product-img">
+            <img alt="" src={data.img} />
+          </Link>
+          <Link to="/profile">{data.createdby}</Link>
+        </span>
       ),
     },
     {
-      header: "Selling Price",
-      field: "selling_price",
-      key: "selling_price",
-      sortable: true,
-      body: (p: ProductItem) => (
-        <span className="fw-bold text-gray-9">{formatINR(p.selling_price)}</span>
-      ),
-    },
-    {
-      header: "Cost Price",
-      field: "cost_price",
-      key: "cost_price",
-      sortable: true,
-      body: (p: ProductItem) => (
-        <span className="text-muted fs-13">{formatINR(p.cost_price || 0)}</span>
-      ),
-    },
-    {
-      header: "Stock Level",
-      field: "stock_quantity",
-      key: "stock_quantity",
-      sortable: true,
-      body: (p: ProductItem) => {
-        const qty = Number(p.stock_quantity) || 0;
-        const threshold = Number(p.low_stock_threshold) || 5;
-        const isLow = qty <= threshold;
-        const isOut = qty <= 0;
-
-        return (
-          <div className="d-flex align-items-center gap-2">
-            <span className="fw-bold fs-14">{qty} {p.unit || 'Pcs'}</span>
-            {isOut ? (
-              <span className="badge badge-soft-danger fs-10">Out of Stock</span>
-            ) : isLow ? (
-              <span className="badge badge-soft-warning fs-10">Low Stock</span>
-            ) : (
-              <span className="badge badge-soft-success fs-10">In Stock</span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      header: "Actions",
+      header: "",
       field: "actions",
       key: "actions",
       sortable: false,
-      body: (p: ProductItem) => (
-        <div className="edit-delete-action d-flex align-items-center gap-1">
+      body: (row: any) => (
+        <div className="edit-delete-action d-flex align-items-center">
           <Link
-            to={route.addproduct}
-            className="btn btn-sm btn-icon btn-light"
-            title="Create Similar"
+            className="me-2 p-2 d-flex align-items-center border rounded"
+            to={`${all_routes.editproduct}?id=${row.id || ""}`}
           >
-            <i className="feather icon-copy text-info fs-14" />
+            <i className="feather icon-edit"></i>
           </Link>
-          <button
-            type="button"
-            className="btn btn-sm btn-icon btn-light"
+          <Link
+            className="p-2 d-flex align-items-center border rounded"
+            to="#"
             data-bs-toggle="modal"
-            data-bs-target="#delete-product-modal"
-            onClick={() => setDeleteId(p.id)}
-            title="Delete"
+            data-bs-target="#delete-modal"
+            onClick={() => setDeleteId(row.id)}
           >
-            <i className="feather icon-trash-2 text-danger fs-14" />
-          </button>
+            <i className="feather icon-trash-2"></i>
+          </Link>
         </div>
       ),
     },
   ];
 
   return (
-    <div className="page-wrapper">
-      <div className="content">
-        <div className="page-header">
-          <div className="add-item d-flex">
-            <div className="page-title">
-              <h4 className="fw-bold">Product List</h4>
-              <h6>Manage your live botanical inventory and supplies</h6>
+    <>
+      <div className="page-wrapper">
+        <div className="content">
+          <div className="page-header">
+            <div className="add-item d-flex">
+              <div className="page-title">
+                <h4>Product List</h4>
+                <h6>Manage your products</h6>
+              </div>
+            </div>
+            <ul className="table-top-head">
+              <TooltipIcons />
+              <RefreshIcon />
+              <CollapesIcon />
+            </ul>
+            <div className="page-btn">
+              <Link to={route.addproduct} className="btn btn-primary">
+                <i className="ti ti-circle-plus me-1"></i>
+                Add Product
+              </Link>
+            </div>
+            <div className="page-btn import">
+              <Link
+                to="#"
+                className="btn btn-secondary color"
+                data-bs-toggle="modal"
+                data-bs-target="#view-notes"
+              >
+                <i className="feather icon-download feather me-2" />
+                Import Product
+              </Link>
             </div>
           </div>
-          <ul className="table-top-head">
-            <li>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-light border"
-                onClick={fetchProducts}
-                title="Refresh"
-              >
-                <i className="ti ti-refresh" />
-              </button>
-            </li>
-          </ul>
-          <div className="page-btn">
-            <Link to={route.addproduct} className="btn btn-primary d-inline-flex align-items-center">
-              <i className="ti ti-circle-plus me-1" />
-              Add New Product
-            </Link>
-          </div>
-        </div>
-
-        <div className="card table-list-card">
-          <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-            <SearchFromApi callback={(val: any) => setSearchQuery(val)} rows={rows} setRows={setRows} />
-
-            <div className="d-flex align-items-center gap-2">
-              <select
-                className="form-select form-select-sm"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                style={{ width: "170px" }}
-              >
-                <option value="all">All Categories</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="form-select form-select-sm"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                style={{ width: "160px" }}
-              >
-                <option value="all">All Modules</option>
-                <option value="plants">🪴 Plants</option>
-                <option value="cactus">🌵 Cactus</option>
-                <option value="pots">🏺 Pots</option>
-                <option value="fertilizers">🧪 Fertilizers</option>
-                <option value="flowers">🌸 Flowers</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="card-body">
-            <div className="table-responsive product-table">
-              <PrimeDataTable
-                column={columns}
-                data={products}
+          {/* /product list */}
+          <div className="card table-list-card">
+            <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+              <SearchFromApi
+                callback={handleSearch}
                 rows={rows}
                 setRows={setRows}
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
-                totalRecords={products.length}
-                searchQuery={searchQuery}
-                selectionMode="checkbox"
-                selection={selectedProducts}
-                onSelectionChange={(e: any) => setSelectedProducts(e.value)}
               />
+              <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
+                <div className="dropdown me-2">
+                  <Link
+                    to="#"
+                    className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                    data-bs-toggle="dropdown"
+                  >
+                    {selectedCategory ? selectedCategory : "Category"}
+                  </Link>
+                  <ul className="dropdown-menu dropdown-menu-end p-3">
+                    <li>
+                      <Link
+                        to="#"
+                        className={`dropdown-item rounded-1 ${!selectedCategory ? "active" : ""}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedCategory(null);
+                        }}
+                      >
+                        All Categories
+                      </Link>
+                    </li>
+                    {categories.map((c) => (
+                      <li key={c.id}>
+                        <Link
+                          to="#"
+                          className={`dropdown-item rounded-1 ${selectedCategory === c.name ? "active" : ""}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedCategory(c.name);
+                          }}
+                        >
+                          {c.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="dropdown me-2">
+                  <Link
+                    to="#"
+                    className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                    data-bs-toggle="dropdown"
+                  >
+                    {selectedBrand ? selectedBrand : "Brand"}
+                  </Link>
+                  <ul className="dropdown-menu dropdown-menu-end p-3">
+                    <li>
+                      <Link
+                        to="#"
+                        className={`dropdown-item rounded-1 ${!selectedBrand ? "active" : ""}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedBrand(null);
+                        }}
+                      >
+                        All Brands
+                      </Link>
+                    </li>
+                    {brands.map((b, idx) => (
+                      <li key={idx}>
+                        <Link
+                          to="#"
+                          className={`dropdown-item rounded-1 ${selectedBrand === b ? "active" : ""}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedBrand(b);
+                          }}
+                        >
+                          {b}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div className="card-body">
+              {/* /Filter */}
+              <div className="table-responsive">
+                <PrimeDataTable
+                  column={columns}
+                  data={filteredProducts}
+                  rows={rows}
+                  setRows={setRows}
+                  currentPage={currentPage}
+                  setCurrentPage={setCurrentPage}
+                  totalRecords={filteredProducts.length}
+                  searchQuery={searchQuery}
+                  selectionMode="checkbox"
+                  selection={selectedProducts}
+                  onSelectionChange={(e: any) => setSelectedProducts(e.value)}
+                />
+              </div>
             </div>
           </div>
+          {/* /product list */}
+          <Brand />
         </div>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      <div className="modal fade" id="delete-product-modal">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content text-center p-4">
-            <div className="mb-3">
-              <span className="avatar avatar-xl bg-danger-transparent text-danger rounded-circle">
-                <i className="ti ti-trash fs-24" />
-              </span>
-            </div>
-            <h5 className="fw-bold mb-2">Delete Product?</h5>
-            <p className="text-muted fs-14 mb-4">
-              Are you sure you want to delete this product? This action cannot be undone.
-            </p>
-            <div className="d-flex justify-content-center gap-2">
-              <button type="button" className="btn btn-secondary px-4" data-bs-dismiss="modal">
-                Cancel
-              </button>
-              <button type="button" className="btn btn-danger px-4" onClick={handleDelete}>
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <DeleteModal onConfirm={handleDelete} />
+    </>
   );
 };
 

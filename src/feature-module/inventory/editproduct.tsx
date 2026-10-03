@@ -48,16 +48,16 @@ const EditProduct = () => {
     { value: "sincere", label: "Sincere" },
   ];
   const category = [
-    { value: "lenovo", label: "Indoor Greens" },
+    { value: "lenovo", label: "Lenovo" },
     { value: "electronics", label: "Electronics" },
   ];
   const subcategory = [
-    { value: "lenovo", label: "Indoor Greens" },
+    { value: "lenovo", label: "Lenovo" },
     { value: "electronics", label: "Electronics" },
   ];
 
   const brand = [
-    { value: "nike", label: "Grow Naturals" },
+    { value: "nike", label: "Nike" },
     { value: "bolt", label: "Bolt" },
   ];
   const unit = [
@@ -204,7 +204,7 @@ const EditProduct = () => {
                               </label>
                               <input
                                 type="text"
-                                defaultValue={"Areca Palm Large"}
+                                defaultValue={"Lenovo 3rd Generation"}
                                 className="form-control"
                               />
                             </div>
@@ -988,7 +988,7 @@ const EditProduct = () => {
                               </label>
                               <input
                                 type="text"
-                                defaultValue={"Indoor Greens"}
+                                defaultValue={"Lenovo"}
                                 className="form-control"
                               />
                             </div>

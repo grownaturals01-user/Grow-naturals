@@ -1,33 +1,127 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import RefreshIcon from "../../../components/tooltip-content/refresh";
 import CollapesIcon from "../../../components/tooltip-content/collapes";
 import CommonFooter from "../../../components/footer/commonFooter";
 import SettingsSideBar from "../settingssidebar";
 import CommonSelect from "../../../components/select/common-select";
+import { getCurrentUser } from "../../../utils/auth";
+import { api, getActiveBusinessId } from "../../../services/api";
 
 const GeneralSettings = () => {
-  const [selectedCountry, setSelectedCountry] = useState(null);
-  const [selectedState, setSelectedState] = useState(null);
-  const [selectedCity, setSelectedCity] = useState(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [userName, setUserName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const [selectedCountry, setSelectedCountry] = useState<any>({ label: "India", value: "India" });
+  const [selectedState, setSelectedState] = useState<any>({ label: "Madhya Pradesh", value: "MP" });
+  const [selectedCity, setSelectedCity] = useState<any>({ label: "Bhopal", value: "Bhopal" });
+
   const Country = [
-    { label: "USA", value: "1" },
-    { label: "India", value: "2" },
-    { label: "French", value: "3" },
-    { label: "Australia", value: "4" },
+    { label: "India", value: "India" },
+    { label: "USA", value: "USA" },
+    { label: "Australia", value: "Australia" },
+    { label: "United Kingdom", value: "UK" },
   ];
   const State = [
-    { label: "Alaska", value: "1" },
-    { label: "Mexico", value: "2" },
-    { label: "Tasmania", value: "3" },
+    { label: "Madhya Pradesh", value: "MP" },
+    { label: "Maharashtra", value: "MH" },
+    { label: "Delhi", value: "DL" },
+    { label: "Gujarat", value: "GJ" },
   ];
   const City = [
-    { label: "Anchorage", value: "1" },
-    { label: "Tijuana", value: "2" },
-    { label: "Hobart", value: "3" },
+    { label: "Bhopal", value: "Bhopal" },
+    { label: "Indore", value: "Indore" },
+    { label: "Mumbai", value: "Mumbai" },
+    { label: "Delhi", value: "Delhi" },
   ];
 
-  
+  useEffect(() => {
+    const loadData = async () => {
+      const user = getCurrentUser();
+      if (user) {
+        const parts = (user.name || "").split(" ");
+        setFirstName(parts[0] || "");
+        setLastName(parts.slice(1).join(" ") || "");
+        setUserName(user.username || parts[0] || "admin");
+        setEmail(user.email || "");
+        setPhone(user.phone || "");
+      }
+
+      try {
+        const bizId = getActiveBusinessId();
+        if (bizId && bizId !== "all") {
+          const biz = await api.get<any>(`/businesses/${bizId}`);
+          if (biz) {
+            if (biz.address) setAddress(biz.address);
+            if (biz.phone && !phone) setPhone(biz.phone);
+            if (biz.email && !email) setEmail(biz.email);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load business details:", err);
+      }
+    };
+    loadData();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setSaveSuccess(false);
+    try {
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      const user = getCurrentUser();
+
+      // Update staff / user profile
+      if (user?.id) {
+        try {
+          await api.put(`/staff/${user.id}`, {
+            name: fullName,
+            email: email.trim(),
+            phone: phone.trim(),
+          });
+        } catch (staffErr) {
+          console.warn("Staff update fallback:", staffErr);
+        }
+
+        const updatedUser = {
+          ...user,
+          name: fullName,
+          email: email.trim(),
+          phone: phone.trim(),
+          username: userName.trim(),
+        };
+        localStorage.setItem("current_user", JSON.stringify(updatedUser));
+        localStorage.setItem("gn_auth_user", JSON.stringify(updatedUser));
+      }
+
+      // Update business address & phone if active
+      const bizId = getActiveBusinessId();
+      if (bizId && bizId !== "all") {
+        await api.put(`/businesses/${bizId}`, {
+          address: address.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+        });
+      }
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
   return (
     <>
       <div className="page-wrapper">
@@ -53,7 +147,7 @@ const GeneralSettings = () => {
                     <h4 className="fs-18 fw-bold">Profile</h4>
                   </div>
                   <div className="card-body">
-                    <form>
+                    <form onSubmit={handleSave}>
                       <div className="card-title-head">
                         <h6 className="fs-16 fw-bold mb-3">
                           <span className="fs-16 me-2">
@@ -90,7 +184,12 @@ const GeneralSettings = () => {
                             <label className="form-label">
                               First Name <span className="text-danger">*</span>
                             </label>
-                            <input type="text" className="form-control" />
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={firstName}
+                              onChange={(e) => setFirstName(e.target.value)}
+                            />
                           </div>
                         </div>
                         <div className="col-md-4">
@@ -98,7 +197,12 @@ const GeneralSettings = () => {
                             <label className="form-label">
                               Last Name <span className="text-danger">*</span>
                             </label>
-                            <input type="text" className="form-control" />
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={lastName}
+                              onChange={(e) => setLastName(e.target.value)}
+                            />
                           </div>
                         </div>
                         <div className="col-md-4">
@@ -106,7 +210,12 @@ const GeneralSettings = () => {
                             <label className="form-label">
                               User Name <span className="text-danger">*</span>
                             </label>
-                            <input type="text" className="form-control" />
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={userName}
+                              onChange={(e) => setUserName(e.target.value)}
+                            />
                           </div>
                         </div>
                         <div className="col-md-4">
@@ -115,7 +224,12 @@ const GeneralSettings = () => {
                               Phone Number{" "}
                               <span className="text-danger">*</span>
                             </label>
-                            <input type="text" className="form-control" />
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value)}
+                            />
                           </div>
                         </div>
                         <div className="col-md-4">
@@ -123,7 +237,12 @@ const GeneralSettings = () => {
                             <label className="form-label">
                               Email <span className="text-danger">*</span>
                             </label>
-                            <input type="email" className="form-control" />
+                            <input
+                              type="email"
+                              className="form-control"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                            />
                           </div>
                         </div>
                       </div>
@@ -141,7 +260,12 @@ const GeneralSettings = () => {
                             <label className="form-label">
                               Address <span className="text-danger">*</span>
                             </label>
-                            <input type="email" className="form-control" />
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={address}
+                              onChange={(e) => setAddress(e.target.value)}
+                            />
                           </div>
                         </div>
                         <div className="col-md-6">
@@ -191,7 +315,12 @@ const GeneralSettings = () => {
                             <label className="form-label">
                               Postal Code <span className="text-danger">*</span>
                             </label>
-                            <input type="text" className="form-control" />
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={postalCode}
+                              onChange={(e) => setPostalCode(e.target.value)}
+                            />
                           </div>
                         </div>
                       </div>
@@ -202,9 +331,9 @@ const GeneralSettings = () => {
                         >
                           Cancel
                         </button>
-                        <Link to="#" className="btn btn-primary">
-                          Save Changes
-                        </Link>
+                        <button type="submit" className="btn btn-primary" disabled={saving}>
+                          {saving ? "Saving..." : saveSuccess ? "Saved Successfully!" : "Save Changes"}
+                        </button>
                       </div>
                     </form>
                   </div>

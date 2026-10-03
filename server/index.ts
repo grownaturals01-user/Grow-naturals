@@ -28,8 +28,14 @@ import reportsRouter from './routes/reports.js';
 import printRouter from './routes/print.js';
 import lossesRouter from './routes/losses.js';
 import warehouseRouter from './routes/warehouse.js';
+import warehousesListRouter from './routes/warehousesList.js';
 import inventoryModulesRouter from './routes/inventoryModules.js';
 import gstRouter from './routes/gst.js';
+import brandsRouter from './routes/brands.js';
+import unitsRouter from './routes/units.js';
+import warrantiesRouter from './routes/warranties.js';
+import purchaseReturnsRouter from './routes/purchaseReturns.js';
+import stockAdjustmentsRouter from './routes/stockAdjustments.js';
 
 dotenv.config();
 
@@ -78,7 +84,13 @@ app.use('/api/reports', reportsRouter);
 app.use('/api/print', printRouter);
 app.use('/api/inventory-losses', lossesRouter);
 app.use('/api/warehouse', warehouseRouter);
+app.use('/api/warehouses', warehousesListRouter);
 app.use('/api/gst', gstRouter);
+app.use('/api/brands', brandsRouter);
+app.use('/api/units', unitsRouter);
+app.use('/api/warranties', warrantiesRouter);
+app.use('/api/purchase-returns', purchaseReturnsRouter);
+app.use('/api/stock-adjustments', stockAdjustmentsRouter);
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

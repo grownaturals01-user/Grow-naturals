@@ -4,18 +4,63 @@ import CommonFooter from "../../components/footer/commonFooter";
 import TableTopHead from "../../components/table-top-head";
 import DeleteModal from "../../components/delete-modal";
 import SearchFromApi from "../../components/data-table/search";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import PrimeDataTable from "../../components/data-table";
 import AddQuotation from "../../core/modals/sales/addquotation";
-import { quotationlistdata } from "../../core/json/quotationlistdata";
+import { api, getActiveBusinessId } from "../../services/api";
 
 const QuotationList = () => {
-  const dataSource = quotationlistdata;
+  const [quotations, setQuotations] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const fetchQuotations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const businessId = getActiveBusinessId();
+      const res = await api.get<any[]>("/quotations", { business_id: businessId });
+      if (Array.isArray(res)) {
+        const mapped = res.map((q: any) => ({
+          id: q.id,
+          quotation_number: q.quotation_number,
+          Product_Name: q.item_count ? `${q.quotation_number} (${q.item_count} item${q.item_count > 1 ? 's' : ''})` : q.quotation_number,
+          Product_image: "stock-img-01.png",
+          Custmer_Name: q.customer_name || "Walk-in Customer",
+          Custmer_Image: "user-02.jpg",
+          Status: q.status === "converted_to_invoice" ? "Ordered" : q.status === "sent" ? "Sent" : "Pending",
+          Total: `₹${Number(q.total_amount || 0).toLocaleString("en-IN")}`,
+        }));
+        setQuotations(mapped);
+      } else {
+        setQuotations([]);
+      }
+    } catch (err) {
+      console.warn("Failed to load quotations:", err);
+      setQuotations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchQuotations();
+  }, [fetchQuotations]);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/quotations/${deleteId}`);
+      await fetchQuotations();
+      setDeleteId(null);
+    } catch (err) {
+      console.error("Delete quotation error:", err);
+    }
+  };
+
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
@@ -63,11 +108,17 @@ const QuotationList = () => {
       ),
     },
     {
+      header: "Total",
+      field: "Total",
+      sortable: true,
+      key: "Total",
+    },
+    {
       header: "Actions",
       field: "actions",
       sortable: false,
       key: "actions",
-      body: () => (
+      body: (rowData: any) => (
         <div className="action-table-data">
           <div className="edit-delete-action">
             <Link className="me-2 p-2" to="#">
@@ -86,6 +137,7 @@ const QuotationList = () => {
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#delete-modal"
+              onClick={() => setDeleteId(rowData.id)}
             >
               <i className="trash-2 feather icon-trash-2"></i>
             </Link>
@@ -258,12 +310,12 @@ const QuotationList = () => {
               <div className=" table-responsive">
                 <PrimeDataTable
                   column={columns}
-                  data={dataSource}
+                  data={quotations}
                   rows={rows}
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={dataSource.length}
+                  totalRecords={quotations.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}
@@ -279,7 +331,7 @@ const QuotationList = () => {
 
       <AddQuotation />
       <EditQuotation />
-      <DeleteModal />
+      <DeleteModal onConfirm={handleDelete} />
     </div>
   );
 };

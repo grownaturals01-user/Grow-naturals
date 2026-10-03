@@ -1,4 +1,3 @@
-import { purchaseListData } from "../../core/json/purchase-list";
 import PrimeDataTable from "../../components/data-table";
 import SearchFromApi from "../../components/data-table/search";
 import CommonDatePicker from "../../components/date-picker/common-date-picker";
@@ -7,24 +6,94 @@ import CommonSelect from "../../components/select/common-select";
 import TableTopHead from "../../components/table-top-head";
 import CommonFooter from "../../components/footer/commonFooter";
 import { downloadImg, stockImg02 } from "../../utils/imagepath";
-import { useState } from "react";
-import { Link } from "react-router";
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { api, getActiveBusinessId } from "../../services/api";
 
 const PurchasesList = () => {
-  const [listData, _setListData] = useState<any[]>(purchaseListData);
+  const [listData, setListData] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(5);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [date, setDate] = useState<Date | null>(new Date());
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Add purchase form fields
+  const [addReference, setAddReference] = useState("");
+  const [addTax, setAddTax] = useState("0");
+  const [addDiscount, setAddDiscount] = useState("0");
+  const [addShipping, setAddShipping] = useState("0");
+  const [addDescription, setAddDescription] = useState("");
+  const [addProductName, setAddProductName] = useState("Assorted Plants & Supplies");
+  const [addProductQty, setAddProductQty] = useState(1);
+  const [addProductPrice, setAddProductPrice] = useState(0);
+
+  const fetchSuppliers = useCallback(async () => {
+    try {
+      const res = await api.get<any[]>("/suppliers");
+      if (Array.isArray(res)) setSuppliers(res);
+    } catch (err) {
+      console.warn("Failed to load suppliers:", err);
+    }
+  }, []);
+
+  const fetchPurchases = useCallback(async () => {
+    setLoading(true);
+    try {
+      const businessId = getActiveBusinessId();
+      const params: any = { business_id: businessId };
+      if (searchQuery) params.search = searchQuery;
+      const res = await api.get<any[]>("/purchases", params);
+      if (Array.isArray(res)) {
+        const mapped = res.map((p: any) => ({
+          id: p.id,
+          supplierName: p.supplier_name || "Supplier",
+          reference: p.po_number || "-",
+          date: p.order_date ? new Date(p.order_date).toLocaleDateString("en-IN") : "-",
+          status: p.status === "received" ? "Received" : p.status === "ordered" ? "Ordered" : "Pending",
+          total: `₹${Number(p.total_amount || 0).toLocaleString("en-IN")}`,
+          paid: `₹${Number(p.paid_amount || 0).toLocaleString("en-IN")}`,
+          due: `₹${Number(p.outstanding_due || 0).toLocaleString("en-IN")}`,
+          paymentStatus: p.payment_status === "paid" ? "Paid" : p.payment_status === "partial" ? "Partial" : "Unpaid",
+          raw: p,
+        }));
+        setListData(mapped);
+      } else {
+        setListData([]);
+      }
+    } catch (err) {
+      console.warn("Failed to load purchases:", err);
+      setListData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchSuppliers();
+    fetchPurchases();
+  }, [fetchSuppliers, fetchPurchases]);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/purchases/${deleteId}`);
+      setDeleteId(null);
+      await fetchPurchases();
+    } catch (err) {
+      console.error("Failed to delete purchase:", err);
+    }
+  };
+
   const supplierOptions = [
-    { label: "Select", value: "" },
-    { label: "Grow Naturals Supplier", value: "apex-computers" },
-    { label: "Dazzle Shoes", value: "dazzle-shoes" },
-    { label: "Best Accessories", value: "best-accessories" },
+    { label: "Select Supplier", value: "" },
+    ...suppliers.map((s: any) => ({ label: s.name, value: s.id })),
   ];
 
   const statusOptions = [
@@ -34,7 +103,7 @@ const PurchasesList = () => {
   ];
 
   const columns = [
-    
+
     { header: "Supplier Name", field: "supplierName", key: "supplierName" },
     { header: "Reference", field: "reference", key: "reference" },
     { header: "Date", field: "date", key: "date" },
@@ -44,13 +113,12 @@ const PurchasesList = () => {
       key: "status",
       body: (data: any) => (
         <span
-          className={`badges status-badge fs-10 p-1 px-2 rounded-1 ${
-            data.status === "Pending"
+          className={`badges status-badge fs-10 p-1 px-2 rounded-1 ${data.status === "Pending"
               ? "badge-pending"
               : data.status === "Ordered"
                 ? "bg-warning"
                 : ""
-          }`}
+            }`}
         >
           {data.status}
         </span>
@@ -65,13 +133,12 @@ const PurchasesList = () => {
       key: "paymentStatus",
       body: (data: any) => (
         <span
-          className={`p-1 pe-2 rounded-1 fs-10 ${
-            data.paymentStatus === "Paid"
+          className={`p-1 pe-2 rounded-1 fs-10 ${data.paymentStatus === "Paid"
               ? "text-success bg-success-transparent"
               : data.paymentStatus === "Unpaid"
                 ? "text-danger bg-danger-transparent"
                 : "text-warning bg-warning-transparent"
-          }`}
+            }`}
         >
           <i className="ti ti-point-filled me-1 fs-11"></i>
           {data.paymentStatus}
@@ -83,7 +150,7 @@ const PurchasesList = () => {
       field: "actions",
       key: "actions",
       sortable: false,
-      body: (_row: any) => (
+      body: (row: any) => (
         <div className="edit-delete-action">
           <Link className="me-2 p-2" to="#">
             <i className="feather icon-eye action-eye"></i>
@@ -101,6 +168,7 @@ const PurchasesList = () => {
             data-bs-target="#delete-modal"
             className="p-2"
             to="#"
+            onClick={() => setDeleteId(row.id)}
           >
             <i className="feather icon-trash-2"></i>
           </Link>
@@ -162,22 +230,27 @@ const PurchasesList = () => {
                     className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
                     data-bs-toggle="dropdown"
                   >
-                    Payment Status
+                    Payment Status: {paymentStatusFilter === "all" ? "All" : paymentStatusFilter}
                   </Link>
-                  <ul className="dropdown-menu  dropdown-menu-end p-3">
+                  <ul className="dropdown-menu dropdown-menu-end p-3">
                     <li>
-                      <Link to="#" className="dropdown-item rounded-1">
+                      <Link to="#" className="dropdown-item rounded-1" onClick={() => setPaymentStatusFilter("all")}>
+                        All
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="#" className="dropdown-item rounded-1" onClick={() => setPaymentStatusFilter("Paid")}>
                         Paid
                       </Link>
                     </li>
                     <li>
-                      <Link to="#" className="dropdown-item rounded-1">
+                      <Link to="#" className="dropdown-item rounded-1" onClick={() => setPaymentStatusFilter("Unpaid")}>
                         Unpaid
                       </Link>
                     </li>
                     <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Overdue
+                      <Link to="#" className="dropdown-item rounded-1" onClick={() => setPaymentStatusFilter("Partial")}>
+                        Partial
                       </Link>
                     </li>
                   </ul>
@@ -188,12 +261,12 @@ const PurchasesList = () => {
               <div className="table-responsive">
                 <PrimeDataTable
                   column={columns}
-                  data={listData}
+                  data={listData.filter((item) => paymentStatusFilter === "all" || item.paymentStatus === paymentStatusFilter)}
                   rows={rows}
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={totalRecords}
+                  totalRecords={listData.filter((item) => paymentStatusFilter === "all" || item.paymentStatus === paymentStatusFilter).length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}
@@ -868,7 +941,7 @@ const PurchasesList = () => {
         </div>
       </div>
       {/* /Import Purchase */}
-      <DeleteModal />
+      <DeleteModal onConfirm={handleDelete} />
     </>
   );
 };

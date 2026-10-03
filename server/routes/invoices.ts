@@ -479,12 +479,26 @@ router.post('/', async (req: Request, res: Response) => {
       enrichedNotes += `\n[Round Off: ${round_off}]`;
     }
 
-    const calculatedSubtotal = Number(subtotal) || 0;
-    const calculatedDiscount = Number(discount_amount) || 0;
-    const calculatedTax = Number(tax_amount) || 0;
-    const calculatedCgst = Number(cgst_amount) || 0;
-    const calculatedSgst = Number(sgst_amount) || 0;
-    const finalTotal = Number(total_amount) || Math.max(0, calculatedSubtotal + calculatedTax - calculatedDiscount);
+    let sumSubtotal = 0;
+    let sumTax = 0;
+    let sumDisc = 0;
+    for (const it of items) {
+      const q = Number(it.quantity) || 1;
+      const p = Number(it.unit_price) || 0;
+      const d = Number(it.discount) || 0;
+      const g = Number(it.gst_rate) || 0;
+      const t = Number(it.tax_amount) || Number((((q * p - d) * g) / 100).toFixed(2));
+      sumSubtotal += q * p;
+      sumDisc += d;
+      sumTax += t;
+    }
+
+    const calculatedSubtotal = (subtotal !== undefined && subtotal !== null && Number(subtotal) > 0) ? Number(subtotal) : sumSubtotal;
+    const calculatedDiscount = (discount_amount !== undefined && discount_amount !== null) ? Number(discount_amount) : sumDisc;
+    const calculatedTax = (tax_amount !== undefined && tax_amount !== null && Number(tax_amount) > 0) ? Number(tax_amount) : sumTax;
+    const calculatedCgst = (cgst_amount !== undefined && cgst_amount !== null) ? Number(cgst_amount) : Number((calculatedTax / 2).toFixed(2));
+    const calculatedSgst = (sgst_amount !== undefined && sgst_amount !== null) ? Number(sgst_amount) : Number((calculatedTax / 2).toFixed(2));
+    const finalTotal = (total_amount !== undefined && total_amount !== null && Number(total_amount) > 0) ? Number(total_amount) : Math.max(0, calculatedSubtotal + calculatedTax - calculatedDiscount);
 
     // Accurate timestamp combining invoice_date with exact creation time
     const now = new Date();

@@ -187,6 +187,48 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/expenses/:id
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { category_id, project_id, amount, payment_method, date, recipient, reference_no, notes } = req.body;
+
+    const db = await getDb();
+    const result = await db.query(
+      `UPDATE expenses SET
+        category_id = COALESCE($1, category_id),
+        project_id = COALESCE($2, project_id),
+        amount = COALESCE($3, amount),
+        payment_method = COALESCE($4, payment_method),
+        date = COALESCE($5, date),
+        recipient = COALESCE($6, recipient),
+        reference_no = COALESCE($7, reference_no),
+        notes = COALESCE($8, notes)
+       WHERE id = $9
+       RETURNING *`,
+      [
+        category_id || null,
+        project_id || null,
+        amount !== undefined ? Number(amount) : null,
+        payment_method || null,
+        date || null,
+        recipient || null,
+        reference_no || null,
+        notes || null,
+        id
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DELETE /api/expenses/:id
 router.delete('/:id', async (req: Request, res: Response) => {
   try {

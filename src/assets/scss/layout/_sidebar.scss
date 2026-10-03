@@ -832,14 +832,8 @@ body.mini-sidebar{
         height: 65px;
         border-bottom: 1px solid variables.$border-color;
         .logo {
-            display: flex;
-            align-items: center;
             img {
-                max-height: 46px;
-                width: auto;
-                max-width: 140px;
-                object-fit: contain;
-                border-radius: 4px;
+                width: 130px;
             }
         }
         .logo-small {

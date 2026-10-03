@@ -731,4 +731,215 @@ router.get('/dashboard', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/reports/sales
+router.get('/sales', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const db = await getDb();
+    const isCombined = businessId === 'combined' || businessId === 'all';
+
+    const query = `
+      SELECT 
+        p.id,
+        p.name as product_name,
+        p.sku,
+        COALESCE(c.name, 'General') as category,
+        p.image_url,
+        COALESCE(p.stock_quantity, 0) as instock_qty,
+        COALESCE(SUM(ii.quantity), 0) as sold_qty,
+        COALESCE(SUM(ii.total), 0) as sold_amount
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN invoice_items ii ON ii.product_id = p.id
+      LEFT JOIN invoices inv ON ii.invoice_id = inv.id
+      WHERE (${isCombined ? 'TRUE' : 'p.business_id = $1'})
+      GROUP BY p.id, p.name, p.sku, c.name, p.image_url, p.stock_quantity
+      ORDER BY sold_amount DESC
+    `;
+    const params = isCombined ? [] : [businessId];
+    const result = await db.query(query, params);
+
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/reports/purchases
+router.get('/purchases', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const db = await getDb();
+    const isCombined = businessId === 'combined' || businessId === 'all';
+
+    const query = `
+      SELECT 
+        poi.product_name,
+        p.sku,
+        s.name as supplier_name,
+        COALESCE(SUM(poi.quantity), 0) as purchased_qty,
+        COALESCE(SUM(poi.total), 0) as purchased_amount,
+        COALESCE(p.stock_quantity, 0) as instock_qty
+      FROM purchase_order_items poi
+      JOIN purchase_orders po ON poi.po_id = po.id
+      LEFT JOIN suppliers s ON po.supplier_id = s.id
+      LEFT JOIN products p ON poi.product_id = p.id
+      WHERE (${isCombined ? 'TRUE' : 'po.business_id = $1'})
+      GROUP BY poi.product_name, p.sku, s.name, p.stock_quantity
+      ORDER BY purchased_amount DESC
+    `;
+    const params = isCombined ? [] : [businessId];
+    const result = await db.query(query, params);
+
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/reports/inventory
+router.get('/inventory', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const db = await getDb();
+    const isCombined = businessId === 'combined' || businessId === 'all';
+
+    const query = `
+      SELECT 
+        p.id,
+        p.name as product_name,
+        p.sku,
+        COALESCE(c.name, 'General') as category,
+        p.cost_price,
+        p.sale_price,
+        p.stock_quantity as instock_qty,
+        p.low_stock_threshold,
+        (p.cost_price * p.stock_quantity) as total_cost_value,
+        (p.sale_price * p.stock_quantity) as total_sale_value,
+        CASE WHEN p.stock_quantity <= p.low_stock_threshold THEN 'Low Stock' ELSE 'In Stock' END as stock_status
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE (${isCombined ? 'TRUE' : 'p.business_id = $1'})
+      ORDER BY p.name ASC
+    `;
+    const params = isCombined ? [] : [businessId];
+    const result = await db.query(query, params);
+
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/reports/profit-loss
+router.get('/profit-loss', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const db = await getDb();
+    const isCombined = businessId === 'combined' || businessId === 'all';
+    const params = isCombined ? [] : [businessId];
+
+    // Sales Revenue
+    const salesRes = await db.query(
+      `SELECT COALESCE(SUM(total_amount), 0) as total_sales, COALESCE(SUM(tax_amount), 0) as total_tax FROM invoices WHERE (${isCombined ? 'TRUE' : 'business_id = $1'})`,
+      params
+    );
+    const totalSales = Number(salesRes.rows[0]?.total_sales || 0);
+
+    // COGS: estimated 50% or based on product cost_price
+    const cogsRes = await db.query(
+      `SELECT COALESCE(SUM(ii.quantity * p.cost_price), 0) as cogs
+       FROM invoice_items ii
+       JOIN invoices inv ON ii.invoice_id = inv.id
+       JOIN products p ON ii.product_id = p.id
+       WHERE (${isCombined ? 'TRUE' : 'inv.business_id = $1'})`,
+      params
+    );
+    const cogs = Number(cogsRes.rows[0]?.cogs || 0) || (totalSales * 0.45);
+    const grossProfit = totalSales - cogs;
+
+    // Expenses
+    const expRes = await db.query(
+      `SELECT COALESCE(SUM(amount), 0) as total_expenses FROM expenses WHERE (${isCombined ? 'TRUE' : 'business_id = $1'})`,
+      params
+    );
+    const totalExpenses = Number(expRes.rows[0]?.total_expenses || 0);
+
+    // Damages
+    const dmgRes = await db.query(
+      `SELECT COALESCE(SUM(loss_amount), 0) as total_losses FROM inventory_losses WHERE (${isCombined ? 'TRUE' : 'business_id = $1'})`,
+      params
+    );
+    const totalLosses = Number(dmgRes.rows[0]?.total_losses || 0);
+
+    const netProfit = grossProfit - totalExpenses - totalLosses;
+
+    res.json({
+      total_sales: totalSales,
+      cogs: cogs,
+      gross_profit: grossProfit,
+      total_expenses: totalExpenses,
+      total_losses: totalLosses,
+      net_profit: netProfit,
+      profit_margin: totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(2) : '0.00'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/reports/customers
+router.get('/customers', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const result = await db.query(`
+      SELECT 
+        c.id,
+        c.name as customer_name,
+        c.phone,
+        c.email,
+        COUNT(inv.id) as total_orders,
+        COALESCE(SUM(inv.total_amount), 0) as total_spent,
+        COALESCE(SUM(inv.total_amount - inv.tax_amount), 0) as subtotal_spent
+      FROM customers c
+      LEFT JOIN invoices inv ON inv.customer_id = c.id
+      GROUP BY c.id, c.name, c.phone, c.email
+      ORDER BY total_spent DESC
+    `);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/reports/tax
+router.get('/tax', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const db = await getDb();
+    const isCombined = businessId === 'combined' || businessId === 'all';
+    const params = isCombined ? [] : [businessId];
+
+    const result = await db.query(`
+      SELECT 
+        inv.id,
+        inv.invoice_number,
+        inv.created_at,
+        inv.customer_name,
+        inv.subtotal as taxable_amount,
+        inv.cgst_amount,
+        inv.sgst_amount,
+        inv.tax_amount as total_tax,
+        inv.total_amount
+      FROM invoices inv
+      WHERE (${isCombined ? 'TRUE' : 'inv.business_id = $1'})
+      ORDER BY inv.created_at DESC
+    `, params);
+
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

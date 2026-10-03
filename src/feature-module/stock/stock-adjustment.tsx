@@ -1,51 +1,152 @@
-import { stockData } from "../../core/json/stock-data";
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import PrimeDataTable from "../../components/data-table";
 import SearchFromApi from "../../components/data-table/search";
 import DeleteModal from "../../components/delete-modal";
 import CommonSelect from "../../components/select/common-select";
 import TableTopHead from "../../components/table-top-head";
 import CommonFooter from "../../components/footer/commonFooter";
-import { stockImg02 } from "../../utils/imagepath";
-import { useState } from "react";
-import { Link } from "react-router";
+import { stockImg02, user04 } from "../../utils/imagepath";
+import { api, getActiveBusinessId } from "../../services/api";
 
 const StockAdjustment = () => {
-  const [listData, _setListData] = useState<any[]>(stockData);
+  const [adjustments, setAdjustments] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(5);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
-  const [selectedStore, setSelectedStore] = useState(null);
-  const [selectedPerson, setSelectedPerson] = useState(null);
-  const [selectedType, setSelectedType] = useState(null);
 
-  const warehouseOptions = [
-    { label: "Lavish Warehouse", value: "lavish" },
-    { label: "Quaint Warehouse", value: "quaint" },
-    { label: "Traditional Warehouse", value: "traditional" },
-    { label: "Cool Warehouse", value: "cool" },
-  ];
+  // Form states for Add Adjustment
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
+  const [adjustmentType, setAdjustmentType] = useState<any>({ label: "Addition (+)", value: "addition" });
+  const [adjustQty, setAdjustQty] = useState<number>(1);
+  const [adjustNotes, setAdjustNotes] = useState<string>("");
 
-  const storeOptions = [
-    { label: "General Vendor", value: "electro" },
-    { label: "Agri Supplies", value: "quantum" },
-    { label: "Plant Nursery Co", value: "prime" },
-    { label: "Gadget World", value: "gadget" },
-  ];
+  // View notes modal
+  const [activeNotes, setActiveNotes] = useState<string>("");
+  const [deleteAdjustmentId, setDeleteAdjustmentId] = useState<string | null>(null);
 
-  const personOptions = [
-    { label: "Customer", value: "james" },
-    { label: "Francis Chang", value: "francis" },
-    { label: "Steven", value: "steven" },
-    { label: "Gravely", value: "gravely" },
-  ];
+  const activeBusiness = getActiveBusinessId();
+
+  const fetchAdjustments = useCallback(async () => {
+    try {
+      const data = await api.get('/stock-adjustments', { business_id: activeBusiness });
+      const mapped = (Array.isArray(data) ? data : []).map((adj: any) => ({
+        id: adj.id,
+        warehouse: adj.business_id === 'nikhlesh-nursery' ? 'Nikhlesh Nursery Main Yard' : 'Grow Naturals Central Depot',
+        store: adj.business_name || (adj.business_id === 'nikhlesh-nursery' ? 'Nikhlesh Nursery' : 'Grow Naturals'),
+        product: {
+          name: adj.product_name || 'Product',
+          sku: adj.product_sku || '',
+          image: adj.product_image || stockImg02,
+        },
+        date: adj.created_at ? new Date(adj.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
+        person: {
+          name: adj.user_name || 'Store Manager',
+          image: user04,
+        },
+        qty: adj.quantity_change > 0 ? `+${adj.quantity_change}` : `${adj.quantity_change}`,
+        notes: adj.notes || '',
+        raw: adj,
+      }));
+      setAdjustments(mapped);
+    } catch (err) {
+      console.error("Failed to fetch stock adjustments:", err);
+    }
+  }, [activeBusiness]);
+
+  useEffect(() => {
+    fetchAdjustments();
+
+    // Fetch products
+    api.get('/products', { business_id: activeBusiness }).then((res) => {
+      setProducts(Array.isArray(res) ? res : []);
+    }).catch(() => {});
+
+    // Fetch warehouses
+    api.get('/warehouses', { business_id: activeBusiness }).then((res) => {
+      setWarehouses(Array.isArray(res) ? res : []);
+    }).catch(() => {});
+  }, [fetchAdjustments, activeBusiness]);
+
+  const productOptions = products.map((p: any) => ({
+    label: `${p.name} (Cur. Stock: ${p.stock_quantity})`,
+    value: p.id,
+    product: p,
+  }));
+
+  const warehouseOptions = warehouses.length > 0
+    ? warehouses.map((w: any) => ({ label: w.name, value: w.id }))
+    : [
+        { label: "Grow Naturals Central Depot", value: "wh-gn-central" },
+        { label: "Nikhlesh Nursery Main Yard", value: "wh-nn-yard" },
+      ];
+
   const typeOptions = [
-    { label: "Addition", value: "Addition" },
-    { label: "Addition", value: "Addition" },
-    { label: "Addition", value: "Addition" },
+    { label: "Addition (+)", value: "addition" },
+    { label: "Subtraction (-)", value: "subtraction" },
   ];
+
+  const handleSearch = (value: any) => {
+    setSearchQuery(value);
+  };
+
+  const handleAddAdjustment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct) {
+      alert("Please select a product");
+      return;
+    }
+    if (!adjustQty || adjustQty <= 0) {
+      alert("Please enter a valid quantity");
+      return;
+    }
+
+    try {
+      await api.post('/stock-adjustments', {
+        business_id: activeBusiness,
+        product_id: selectedProduct.value,
+        quantity: adjustQty,
+        adjustment_type: adjustmentType?.value || 'addition',
+        notes: adjustNotes || (adjustmentType?.value === 'addition' ? `Stock inward adjustment (+${adjustQty})` : `Damage / shrinkage write-off (-${adjustQty})`),
+      });
+
+      setSelectedProduct(null);
+      setAdjustQty(1);
+      setAdjustNotes("");
+      fetchAdjustments();
+
+      const closeBtn = document.querySelector('#add-stock-adjustment .close') as HTMLElement;
+      if (closeBtn) closeBtn.click();
+    } catch (err: any) {
+      alert(err.message || "Failed to create stock adjustment");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteAdjustmentId) return;
+    try {
+      await api.delete(`/stock-adjustments/${deleteAdjustmentId}`);
+      setDeleteAdjustmentId(null);
+      fetchAdjustments();
+      const closeBtn = document.querySelector('#delete-modal [data-bs-dismiss="modal"]') as HTMLElement;
+      if (closeBtn) closeBtn.click();
+    } catch (err: any) {
+      alert(err.message || 'Failed to revert stock adjustment');
+    }
+  };
+
+  const filteredAdjustments = adjustments.filter((item) => {
+    if (!searchQuery) return true;
+    return (
+      item.product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.warehouse.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.store.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   const columns = [
     { header: "Warehouse", field: "warehouse", key: "warehouse" },
@@ -59,7 +160,7 @@ const StockAdjustment = () => {
           <Link to="#" className="avatar avatar-md me-2">
             <img src={data?.product?.image} alt="product" />
           </Link>
-          <Link to="#">Areca Palm 3ft</Link>
+          <Link to="#">{data?.product?.name}</Link>
         </div>
       ),
     },
@@ -71,41 +172,44 @@ const StockAdjustment = () => {
       body: (data: any) => (
         <div className="d-flex align-items-center">
           <Link to="#" className="avatar avatar-md me-2">
-            <img src={data?.person?.image} alt="product" />
+            <img src={data?.person?.image} alt="user" />
           </Link>
-          <Link to="#">Customer</Link>
+          <Link to="#">{data?.person?.name}</Link>
         </div>
       ),
     },
-    { header: "Qty", field: "qty", key: "qty" },
+    {
+      header: "Qty",
+      field: "qty",
+      key: "qty",
+      body: (data: any) => (
+        <span className={`fw-bold ${String(data?.qty).startsWith('+') ? 'text-success' : 'text-danger'}`}>
+          {data?.qty}
+        </span>
+      ),
+    },
     {
       header: "",
       field: "actions",
       key: "actions",
       sortable: false,
-      body: (_row: any) => (
+      body: (row: any) => (
         <div className="d-flex align-items-center edit-delete-action">
           <Link
             className="me-2 border rounded d-flex align-items-center p-2"
             to="#"
             data-bs-toggle="modal"
             data-bs-target="#view-notes"
+            onClick={() => setActiveNotes(row.notes || "No notes provided for this adjustment.")}
           >
             <i className="feather icon-file-text" />
-          </Link>
-          <Link
-            className="me-2 border rounded d-flex align-items-center p-2"
-            to="#"
-            data-bs-toggle="modal"
-            data-bs-target="#edit-stock-adjustment"
-          >
-            <i  className="feather icon-edit" />
           </Link>
           <Link
             data-bs-toggle="modal"
             data-bs-target="#delete-modal"
             className="p-2 border rounded d-flex align-items-center"
             to="#"
+            onClick={() => setDeleteAdjustmentId(row.id)}
           >
             <i className="feather icon-trash-2" />
           </Link>
@@ -114,21 +218,15 @@ const StockAdjustment = () => {
     },
   ];
 
-  const handleSearch = (value: any) => {
-    setSearchQuery(value);
-  };
-
-
   return (
-    <>
-      {" "}
+    <div>
       <div className="page-wrapper">
         <div className="content">
           <div className="page-header">
             <div className="add-item d-flex">
               <div className="page-title">
                 <h4>Stock Adjustment</h4>
-                <h6>Manage your stock adjustment</h6>
+                <h6>Manage your stock adjustments</h6>
               </div>
             </div>
             <TableTopHead />
@@ -144,7 +242,8 @@ const StockAdjustment = () => {
               </Link>
             </div>
           </div>
-          <div className="card">
+          {/* /product list */}
+          <div className="card table-list-card">
             <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
               <SearchFromApi
                 callback={handleSearch}
@@ -160,56 +259,15 @@ const StockAdjustment = () => {
                   >
                     Warehouse
                   </Link>
-                  <ul className="dropdown-menu  dropdown-menu-end p-3">
+                  <ul className="dropdown-menu dropdown-menu-end p-3">
                     <li>
                       <Link to="#" className="dropdown-item rounded-1">
-                        Lavish Warehouse
+                        Grow Naturals Central Depot
                       </Link>
                     </li>
                     <li>
                       <Link to="#" className="dropdown-item rounded-1">
-                        Quaint Warehouse{" "}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Cool Warehouse
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-                <div className="dropdown">
-                  <Link
-                    to="#"
-                    className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                    data-bs-toggle="dropdown"
-                  >
-                    Sort By : Last 7 Days
-                  </Link>
-                  <ul className="dropdown-menu  dropdown-menu-end p-3">
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Recently Added
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Ascending
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Desending
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Last Month
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Last 7 Days
+                        Nikhlesh Nursery Main Yard
                       </Link>
                     </li>
                   </ul>
@@ -220,12 +278,12 @@ const StockAdjustment = () => {
               <div className="table-responsive">
                 <PrimeDataTable
                   column={columns}
-                  data={listData}
+                  data={filteredAdjustments}
                   rows={rows}
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={totalRecords}
+                  totalRecords={filteredAdjustments.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}
@@ -238,6 +296,7 @@ const StockAdjustment = () => {
         </div>
         <CommonFooter />
       </div>
+
       {/* Add Adjustment */}
       <div className="modal fade" id="add-stock-adjustment">
         <div className="modal-dialog modal-dialog-centered stock-adjust-modal">
@@ -255,23 +314,53 @@ const StockAdjustment = () => {
                 <span aria-hidden="true">×</span>
               </button>
             </div>
-            <form>
+            <form onSubmit={handleAddAdjustment}>
               <div className="modal-body">
                 <div className="search-form mb-3">
                   <label className="form-label">
                     Product<span className="text-danger ms-1">*</span>
                   </label>
-                  <div className="position-relative">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search Product"
-                    />
-                    <i className="feather icon-search feather-search" />
-                  </div>
+                  <CommonSelect
+                    className="w-100"
+                    options={productOptions}
+                    value={selectedProduct}
+                    onChange={(e: any) => setSelectedProduct(e)}
+                    placeholder="Select Product"
+                    filter={true}
+                  />
                 </div>
                 <div className="row">
                   <div className="col-lg-6">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Adjustment Type<span className="text-danger ms-1">*</span>
+                      </label>
+                      <CommonSelect
+                        className="w-100"
+                        options={typeOptions}
+                        value={adjustmentType}
+                        onChange={(e: any) => setAdjustmentType(e)}
+                        placeholder="Select Type"
+                        filter={false}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-6">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Quantity<span className="text-danger ms-1">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="form-control"
+                        value={adjustQty}
+                        onChange={(e) => setAdjustQty(Math.max(1, parseInt(e.target.value) || 1))}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-12">
                     <div className="mb-3">
                       <label className="form-label">
                         Warehouse<span className="text-danger ms-1">*</span>
@@ -279,49 +368,9 @@ const StockAdjustment = () => {
                       <CommonSelect
                         className="w-100"
                         options={warehouseOptions}
-                        value={selectedWarehouse}
-                        onChange={(e) => setSelectedWarehouse(e.value)}
+                        value={selectedWarehouse || warehouseOptions[0]}
+                        onChange={(e: any) => setSelectedWarehouse(e)}
                         placeholder="Select Warehouse"
-                        filter={false}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Reference Number
-                        <span className="text-danger ms-1">*</span>
-                      </label>
-                      <input type="text" className="form-control" />
-                    </div>
-                  </div>
-                  <div className="col-lg-12">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Store<span className="text-danger ms-1">*</span>
-                      </label>
-                      <CommonSelect
-                        className="w-100"
-                        options={storeOptions}
-                        value={selectedStore}
-                        onChange={(e) => setSelectedStore(e.value)}
-                        placeholder="Select Store"
-                        filter={false}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-lg-12">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Responsible Person
-                        <span className="text-danger ms-1">*</span>
-                      </label>
-                      <CommonSelect
-                        className="w-100"
-                        options={personOptions}
-                        value={selectedPerson}
-                        onChange={(e) => setSelectedPerson(e.value)}
-                        placeholder="Select Person"
                         filter={false}
                       />
                     </div>
@@ -332,7 +381,13 @@ const StockAdjustment = () => {
                     <label className="form-label">
                       Notes<span className="text-danger ms-1">*</span>
                     </label>
-                    <textarea className="form-control" defaultValue={""} />
+                    <textarea
+                      className="form-control"
+                      rows={3}
+                      value={adjustNotes}
+                      onChange={(e) => setAdjustNotes(e.target.value)}
+                      placeholder="Audit note: e.g. Count verification, damaged stock disposal, supplier bonus item"
+                    />
                   </div>
                 </div>
               </div>
@@ -353,213 +408,14 @@ const StockAdjustment = () => {
         </div>
       </div>
       {/* /Add Adjustment */}
-      {/* Edit Adjustment */}
-      <div className="modal fade" id="edit-stock-adjustment">
-        <div className="modal-dialog modal-dialog-centered stock-adjust-modal">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="page-title">
-                <h4>Edit Adjustment</h4>
-              </div>
-              <button
-                type="button"
-                className="close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              >
-                <span aria-hidden="true">×</span>
-              </button>
-            </div>
-            <form>
-              <div className="modal-body">
-                <div className="mb-3 search-form">
-                  <label className="form-label">
-                    Product<span className="text-danger ms-1">*</span>
-                  </label>
-                  <div className="position-relative">
-                    <input
-                      type="text"
-                      className="form-control"
-                      defaultValue="Organic Neem Oil 500ml"
-                    />
-                    <i className="feather icon-search feather-search" />
-                  </div>
-                </div>
-                <div className="row">
-                  <div className="col-lg-6">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Warehouse<span className="text-danger ms-1">*</span>
-                      </label>
-                      <CommonSelect
-                        className="w-100"
-                        options={warehouseOptions}
-                        value={selectedWarehouse}
-                        onChange={(e) => setSelectedWarehouse(e.value)}
-                        placeholder="Select Warehouse"
-                        filter={false}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Reference Number
-                        <span className="text-danger ms-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        defaultValue="PT003"
-                      />
-                    </div>
-                  </div>
-                  <div className="col-lg-12">
-                    <div className="p-3 border bg-light rounded mb-3">
-                      <div className="table-responsive">
-                        <table className="table">
-                          <thead>
-                            <tr>
-                              <th>Product</th>
-                              <th>SKU</th>
-                              <th>Category</th>
-                              <th>Qty</th>
-                              <th>Type</th>
-                              <th />
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td>
-                                <div className="d-flex align-items-center">
-                                  <Link
-                                    to="#"
-                                    className="avatar avatar-md me-2"
-                                  >
-                                    <img src={stockImg02} alt="product" />
-                                  </Link>
-                                  <Link to="#">Organic Neem Oil 500ml</Link>
-                                </div>
-                              </td>
-                              <td>PT002</td>
-                              <td>Grow Naturals</td>
-                              <td>
-                                <div className="product-quantity border-0 bg-gray-transparent">
-                                  <span className="quantity-btn">
-                                    <i className="feather icon-minus-circle feather-search" />
-                                  </span>
-                                  <input
-                                    type="text"
-                                    className="quntity-input bg-transparent"
-                                    defaultValue={2}
-                                  />
-                                  <span className="quantity-btn">
-                                    +
-                                    <i
-                                      
-                                      className="feather icon-plus-circle plus-circle"
-                                    />
-                                  </span>
-                                </div>
-                              </td>
-                              <td>
-                                <CommonSelect
-                                  className="w-100"
-                                  options={typeOptions}
-                                  value={selectedType}
-                                  onChange={(e) => setSelectedType(e.value)}
-                                  placeholder="Select"
-                                  filter={false}
-                                />
-                              </td>
-                              <td>
-                                <div className="edit-delete-action d-flex align-items-center">
-                                  <Link
-                                    className="p-2 border rounded d-flex align-items-center"
-                                    to="#"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#delete"
-                                  >
-                                    <i className="feather icon-trash-2" />
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-lg-12">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Store<span className="text-danger ms-1">*</span>
-                      </label>
-                      <CommonSelect
-                        className="w-100"
-                        options={storeOptions}
-                        value={selectedStore}
-                        onChange={(e) => setSelectedStore(e.value)}
-                        placeholder="Select Store"
-                        filter={false}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-lg-12">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Responsible Person
-                        <span className="text-danger ms-1">*</span>
-                      </label>
-                      <CommonSelect
-                        className="w-100"
-                        options={personOptions}
-                        value={selectedPerson}
-                        onChange={(e) => setSelectedPerson(e.value)}
-                        placeholder="Select Person"
-                        filter={false}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-lg-12">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Notes<span className="text-danger ms-1">*</span>
-                      </label>
-                      <textarea
-                        className="form-control"
-                        defaultValue={
-                          "The Jordan brand is owned by Grow Naturals (owned by the Knight family), as, at the time, the company was building its strategy to work with athletes to launch shows that could inspire consumers.Although Jordan preferred Converse and Nursery Brand, they simply could not match the offer Grow Naturals made. "
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary me-2"
-                  data-bs-dismiss="modal"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-      {/* /Edit Adjustment */}
+
       {/* View Notes */}
       <div className="modal fade" id="view-notes">
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
             <div className="modal-header">
               <div className="page-title">
-                <h4>Notes</h4>
+                <h4>Adjustment Notes & Audit</h4>
               </div>
               <button
                 type="button"
@@ -571,23 +427,24 @@ const StockAdjustment = () => {
               </button>
             </div>
             <div className="modal-body">
-              <p>
-                The Jordan brand is owned by Grow Naturals (owned by the Knight family),
-                as, at the time, the company was building its strategy to work
-                with athletes to launch shows that could inspire
-                consumers.Although Jordan preferred Converse and Nursery Brand, they
-                simply could not match the offer Grow Naturals made. Jordan also signed
-                with Grow Naturals because he loved the way they wanted to market him
-                with the banned colored shoes. Grow Naturals promised to cover the fine
-                Jordan would receive from the NBA.
-              </p>
+              <p className="text-dark fs-14 mb-0">{activeNotes}</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-primary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
       </div>
       {/* /View Notes */}
-      <DeleteModal />
-    </>
+
+      <DeleteModal onConfirm={handleDelete} />
+    </div>
   );
 };
 

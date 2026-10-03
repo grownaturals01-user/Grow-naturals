@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { purchasereportdata } from "../../core/json/purchasereportdata";
 import RefreshIcon from "../../components/tooltip-content/refresh";
 import CollapesIcon from "../../components/tooltip-content/collapes";
 import TooltipIcons from "../../components/tooltip-content/tooltipIcons";
@@ -9,30 +8,70 @@ import PrimeDataTable from "../../components/data-table";
 import SearchFromApi from "../../components/data-table/search";
 import CommonSelect from "../../components/select/common-select";
 import CommonDateRangePicker from "../../components/date-range-picker/common-date-range-picker";
+import { api, getActiveBusinessId } from "../../services/api";
 
 const PurchaseReport = () => {
-  const data = purchasereportdata;
-  const [listData, _setListData] = useState<any[]>(data);
+  const [listData, setListData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(5);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [selectedStore, setSelectedStore] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productOptions, setProductOptions] = useState<any[]>([{ label: "All Products", value: "all" }]);
 
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
 
-  const ProductName = [{ label: "All Products", value: "all" }];
   const Store = [
-    { label: "General Vendor", value: "1" },
-    { label: "Agri Supplies", value: "2" },
-    { label: "Plant Nursery Co", value: "3" },
-    { label: "Gadget World", value: "4" },
-    { label: "Volt Vault", value: "5" },
+    { label: "Grow Naturals", value: "grow-naturals" },
+    { label: "Nikhlesh Nursery", value: "nikhlesh-nursery" },
+    { label: "All Stores", value: "all" },
   ];
+
+  const fetchPurchaseReport = useCallback(async () => {
+    setLoading(true);
+    try {
+      const bizId = getActiveBusinessId();
+      const [purchRes, prodsRes] = await Promise.all([
+        api.get<any[]>("/reports/purchases", { business_id: bizId }),
+        api.get<any[]>("/products", { business_id: bizId }).catch(() => []),
+      ]);
+
+      if (Array.isArray(purchRes)) {
+        const mapped = purchRes.map((item: any, idx: number) => ({
+          id: item.id || `po-${idx}`,
+          productName: item.product_name || "Product",
+          img: item.image_url || "src/assets/img/products/stock-img-02.png",
+          productAmount: `₹${Number(item.purchased_amount || 0).toLocaleString("en-IN")}`,
+          productQty: Number(item.purchased_qty || 0),
+          instockQty: Number(item.instock_qty || 0),
+          raw: item,
+        }));
+        setListData(mapped);
+      } else {
+        setListData([]);
+      }
+
+      if (Array.isArray(prodsRes)) {
+        setProductOptions([
+          { label: "All Products", value: "all" },
+          ...prodsRes.map((p: any) => ({ label: p.name, value: p.id })),
+        ]);
+      }
+    } catch (err) {
+      console.warn("Failed to load purchase report:", err);
+      setListData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPurchaseReport();
+  }, [fetchPurchaseReport]);
 
   const columns = [
     {
@@ -46,27 +85,27 @@ const PurchaseReport = () => {
           <Link to="#">{text.productName}</Link>
         </span>
       ),
-      sorter: (a: any, b: any) => a.productName.length - b.productName.length,
+      sorter: (a: any, b: any) => (a.productName || "").localeCompare(b.productName || ""),
     },
     {
       header: "Product Amount",
       field: "productAmount",
-      sorter: (a: any, b: any) =>
-        a.productAmount.length - b.productAmount.length,
+      sorter: (a: any, b: any) => (a.raw?.purchased_amount || 0) - (b.raw?.purchased_amount || 0),
     },
 
     {
       header: "Product Qty",
       field: "productQty",
-      sorter: (a: any, b: any) => a.productQty.length - b.productQty.length,
+      sorter: (a: any, b: any) => a.productQty - b.productQty,
     },
 
     {
       header: "Instock Qty",
       field: "instockQty",
-      sorter: (a: any, b: any) => a.instockQty.length - b.instockQty.length,
+      sorter: (a: any, b: any) => a.instockQty - b.instockQty,
     },
   ];
+
   return (
     <div className="page-wrapper">
       <div className="content">
@@ -84,7 +123,7 @@ const PurchaseReport = () => {
         </div>
         <div className="card border-0">
           <div className="card-body pb-1">
-            <form>
+            <form onSubmit={(e) => { e.preventDefault(); fetchPurchaseReport(); }}>
               <div className="row align-items-end">
                 <div className="col-lg-10">
                   <div className="row">
@@ -117,7 +156,7 @@ const PurchaseReport = () => {
                         <label className="form-label">Products</label>
                         <CommonSelect
                           className="w-100"
-                          options={ProductName}
+                          options={productOptions}
                           value={selectedProduct}
                           onChange={(e) => setSelectedProduct(e.value)}
                           placeholder="Choose"
@@ -129,8 +168,8 @@ const PurchaseReport = () => {
                 </div>
                 <div className="col-lg-2">
                   <div className="mb-3">
-                    <button className="btn btn-primary w-100" type="submit">
-                      Generate Report
+                    <button className="btn btn-primary w-100" type="submit" disabled={loading}>
+                      {loading ? "Generating..." : "Generate Report"}
                     </button>
                   </div>
                 </div>
@@ -171,7 +210,7 @@ const PurchaseReport = () => {
                 setRows={setRows}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
-                totalRecords={totalRecords}
+                totalRecords={listData.length}
                 searchQuery={searchQuery}
                 selectionMode="checkbox"
                 selection={selectedProducts}

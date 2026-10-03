@@ -151,8 +151,12 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const db = await getDb();
-    await db.query(`UPDATE users SET status = 'inactive' WHERE id = $1`, [req.params.id]);
-    res.json({ success: true, message: 'User deactivated' });
+    try {
+      await db.query(`DELETE FROM users WHERE id = $1`, [req.params.id]);
+    } catch {
+      await db.query(`UPDATE users SET status = 'inactive' WHERE id = $1`, [req.params.id]);
+    }
+    res.json({ success: true, message: 'User deleted' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

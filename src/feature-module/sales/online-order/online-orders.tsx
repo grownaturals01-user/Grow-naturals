@@ -1,19 +1,68 @@
 import { Link } from "react-router-dom";
-import { onlineOrderData } from "../../../core/json/onlineOrderData";
 import OnlineorderModal from "./onlineorderModal";
 import CommonFooter from "../../../components/footer/commonFooter";
 import TableTopHead from "../../../components/table-top-head";
 import SearchFromApi from "../../../components/data-table/search";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import PrimeDataTable from "../../../components/data-table";
+import { api, getActiveBusinessId } from "../../../services/api";
 
 const OnlineOrder = () => {
-  const dataSource = onlineOrderData;
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const businessId = getActiveBusinessId();
+      const params: any = { business_id: businessId };
+      if (searchQuery) params.search = searchQuery;
+      const res = await api.get<any[]>("/delivery-challans", params);
+      if (Array.isArray(res)) {
+        const mapped = res.map((dc: any) => ({
+          id: dc.id,
+          reference: dc.challan_number || (dc.id ? dc.id.slice(-6).toUpperCase() : "-"),
+          date: dc.delivery_date ? new Date(dc.delivery_date).toLocaleDateString("en-IN") : (dc.created_at ? new Date(dc.created_at).toLocaleDateString("en-IN") : "-"),
+          status: dc.status === "delivered" ? "Completed" : "Pending",
+          total: `₹${Number(dc.total_amount || 0).toLocaleString("en-IN")}`,
+          paid: `₹${Number(dc.paid_amount || 0).toLocaleString("en-IN")}`,
+          due: `₹${Number((dc.total_amount || 0) - (dc.paid_amount || 0)).toLocaleString("en-IN")}`,
+          paymentstatus: dc.payment_status === "paid" ? "Paid" : "Unpaid",
+          biller: dc.business_name || "Admin",
+          raw: dc,
+        }));
+        setOrders(mapped);
+      } else {
+        setOrders([]);
+      }
+    } catch (err) {
+      console.warn("Failed to load delivery challans:", err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/delivery-challans/${deleteId}`);
+      setDeleteId(null);
+      await fetchOrders();
+    } catch (err) {
+      console.error("Failed to delete order:", err);
+    }
+  };
+
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
@@ -36,7 +85,7 @@ const OnlineOrder = () => {
       field: "status",
       sortable: true,
       key: "status",
-      body: (rowData:any) => (
+      body: (rowData: any) => (
         <span
           className={`badge ${rowData.status === "Pending" ? "badge-cyan" : rowData.status === "Completed" ? "badge-success" : ""} `}
         >
@@ -67,7 +116,7 @@ const OnlineOrder = () => {
       field: "paymentstatus",
       sortable: true,
       key: "paymentstatus",
-      body: (rowData:any) => (
+      body: (rowData: any) => (
         <span
           className={`badge badge-xs shadow-none ${rowData.paymentstatus === "Unpaid" ? "badge-soft-danger" : rowData.paymentstatus === "Paid" ? "badge-soft-success" : "badge-soft-warning"} `}
         >
@@ -87,7 +136,7 @@ const OnlineOrder = () => {
       field: "action",
       sortable: false,
       key: "action",
-      body: () => (
+      body: (row: any) => (
         <div className="text-center">
           <Link
             className="action-set"
@@ -154,6 +203,7 @@ const OnlineOrder = () => {
                 className="dropdown-item mb-0"
                 data-bs-toggle="modal"
                 data-bs-target="#delete-modal"
+                onClick={() => setDeleteId(row.id)}
               >
                 <i className="me-2 feather icon-trash-2 info-img" />
                 Delete Sale
@@ -317,12 +367,12 @@ const OnlineOrder = () => {
               <div className="custom-datatable-filter table-responsive">
                 <PrimeDataTable
                   column={columns}
-                  data={dataSource}
+                  data={orders}
                   rows={rows}
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={dataSource.length}
+                  totalRecords={orders.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}
@@ -337,43 +387,47 @@ const OnlineOrder = () => {
       </div>
       <OnlineorderModal />
       <>
-  {/* Delete */}
-  <div className="modal fade modal-default" id="delete-modal">
-    <div className="modal-dialog modal-dialog-centered">
-      <div className="modal-content">
-        <div className="modal-body p-0">
-          <div className="success-wrap text-center">
-            <form action="online-orders.html">
-              <div className="icon-success bg-danger-transparent text-danger mb-2">
-                <i className="ti ti-trash" />
+        {/* Delete */}
+        <div className="modal fade modal-default" id="delete-modal">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-body p-0">
+                <div className="success-wrap text-center">
+                  <div className="icon-success bg-danger-transparent text-danger mb-2">
+                    <i className="ti ti-trash" />
+                  </div>
+                  <h3 className="mb-2">Delete Sale</h3>
+                  <p className="fs-16 mb-3">
+                    Are you sure you want to delete sale?
+                  </p>
+                  <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      className="btn btn-md btn-secondary"
+                      data-bs-dismiss="modal"
+                    >
+                      No, Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-md btn-primary"
+                      data-bs-dismiss="modal"
+                      onClick={handleDelete}
+                    >
+                      Yes, Delete
+                    </button>
+                  </div>
+                </div>
               </div>
-              <h3 className="mb-2">Delete Sale</h3>
-              <p className="fs-16 mb-3">
-                Are you sure you want to delete sale?
-              </p>
-              <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  className="btn btn-md btn-secondary"
-                  data-bs-dismiss="modal"
-                >
-                  No, Cancel
-                </button>
-                <button type="submit" className="btn btn-md btn-primary">
-                  Yes, Delete
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-  {/* /Delete */}
-</>
+        {/* /Delete */}
+      </>
 
     </div>
   );
 };
 
 export default OnlineOrder;
+

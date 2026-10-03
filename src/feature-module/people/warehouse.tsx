@@ -1,53 +1,201 @@
-
-import { useState } from "react";
-import { Link } from "react-router";
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import CommonFooter from "../../components/footer/commonFooter";
 import PrimeDataTable from "../../components/data-table";
 import TableTopHead from "../../components/table-top-head";
 import SearchFromApi from "../../components/data-table/search";
 import CommonSelect from "../../components/select/common-select";
 import DeleteModal from "../../components/delete-modal";
-import { warehouseData } from "../../core/json/warehouse-data";
+import { editSupplier } from "../../utils/imagepath";
+import { api, getActiveBusinessId } from "../../services/api";
 
 const Warehouse = () => {
-  const [listData, _setListData] = useState<any[]>(warehouseData);
+  const [listData, setListData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(5);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [selectedCity, setSelectedCity] = useState("");
-  const [selectedState, setSelectedState] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("");
-  const [selectedContactPerson, setSelectedContactPerson] = useState("");
-  const handleSearch = (value: any) => {
-    setSearchQuery(value);
-  };
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Add form state
+  const [addName, setAddName] = useState("");
+  const [addContactPerson, setAddContactPerson] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addPhone, setAddPhone] = useState("");
+  const [addAddress, setAddAddress] = useState("");
+  const [addCity, setAddCity] = useState("");
+  const [addState, setAddState] = useState("");
+  const [addCountry, setAddCountry] = useState("India");
+  const [addPostalCode, setAddPostalCode] = useState("");
+
+  // Edit form state
+  const [editingWarehouse, setEditingWarehouse] = useState<any>(null);
+  const [editName, setEditName] = useState("");
+  const [editContactPerson, setEditContactPerson] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editState, setEditState] = useState("");
+  const [editCountry, setEditCountry] = useState("India");
+  const [editPostalCode, setEditPostalCode] = useState("");
+
   const cityOptions = [
     { label: "Select", value: "" },
-    { label: "Los Angles", value: "los-angles" },
-    { label: "New York City", value: "new-york-city" },
-    { label: "Houston", value: "houston" },
+    { label: "Bengaluru", value: "Bengaluru" },
+    { label: "Chennai", value: "Chennai" },
+    { label: "Mumbai", value: "Mumbai" },
+    { label: "Delhi", value: "Delhi" },
   ];
 
   const stateOptions = [
     { label: "Select", value: "" },
-    { label: "California", value: "california" },
-    { label: "New York", value: "new-york" },
-    { label: "Texas", value: "texas" },
+    { label: "Karnataka", value: "Karnataka" },
+    { label: "Tamil Nadu", value: "Tamil Nadu" },
+    { label: "Maharashtra", value: "Maharashtra" },
   ];
 
   const countryOptions = [
     { label: "Select", value: "" },
-    { label: "United States", value: "united-states" },
-    { label: "Canada", value: "canada" },
-    { label: "Germany", value: "germany" },
+    { label: "India", value: "India" },
   ];
+
   const contactPersonOptions = [
     { label: "Select", value: "" },
-    { label: "Steven", value: "steven" },
-    { label: "Gravely", value: "gravely" },
+    { label: "Rajesh Kumar", value: "Rajesh Kumar" },
+    { label: "Nikhlesh Gowda", value: "Nikhlesh Gowda" },
+    { label: "Warehouse Manager", value: "Warehouse Manager" },
   ];
+
+  const fetchWarehouses = useCallback(async () => {
+    setLoading(true);
+    try {
+      const businessId = getActiveBusinessId();
+      const params: any = { business_id: businessId };
+      if (searchQuery) params.search = searchQuery;
+      const res = await api.get<any[]>("/warehouses", params);
+      if (Array.isArray(res)) {
+        const mapped = res.map((w: any) => ({
+          id: w.id,
+          warehouse: w.name,
+          contactPerson: w.contact_person || "-",
+          avatar: editSupplier,
+          phone: w.phone || "-",
+          totalProducts: w.total_products || 0,
+          stock: w.total_stock || 0,
+          qty: w.total_stock || 0,
+          createdOn: w.created_at ? new Date(w.created_at).toLocaleDateString("en-IN") : "-",
+          status: w.status || "Active",
+          raw: w,
+        }));
+        setListData(mapped);
+      } else {
+        setListData([]);
+      }
+    } catch (err) {
+      console.warn("Failed to load warehouses:", err);
+      setListData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchWarehouses();
+  }, [fetchWarehouses]);
+
+  const handleEditClick = (row: any) => {
+    const raw = row.raw || row;
+    setEditingWarehouse(raw);
+    setEditName(raw.name || "");
+    setEditContactPerson(raw.contact_person || "");
+    setEditEmail(raw.email || "");
+    setEditPhone(raw.phone || "");
+    setEditAddress(raw.address || "");
+    setEditCity(raw.city || "");
+    setEditState(raw.state || "");
+    setEditCountry(raw.country || "India");
+    setEditPostalCode(raw.postal_code || "");
+  };
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!addName) return;
+      const businessId = getActiveBusinessId();
+      await api.post("/warehouses", {
+        business_id: businessId,
+        name: addName,
+        contact_person: addContactPerson,
+        email: addEmail,
+        phone: addPhone,
+        address: addAddress,
+        city: addCity,
+        state: addState,
+        country: addCountry,
+        postal_code: addPostalCode,
+        status: "Active",
+      });
+
+      const modalEl = document.getElementById("add-warehouse");
+      if (modalEl) {
+        const closeBtn = modalEl.querySelector("[data-bs-dismiss='modal']") as HTMLElement;
+        closeBtn?.click();
+      }
+      setAddName("");
+      setAddContactPerson("");
+      setAddEmail("");
+      setAddPhone("");
+      setAddAddress("");
+      setAddCity("");
+      setAddState("");
+      setAddPostalCode("");
+      await fetchWarehouses();
+    } catch (err) {
+      console.error("Failed to add warehouse:", err);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWarehouse) return;
+    try {
+      await api.put(`/warehouses/${editingWarehouse.id}`, {
+        name: editName,
+        contact_person: editContactPerson,
+        email: editEmail,
+        phone: editPhone,
+        address: editAddress,
+        city: editCity,
+        state: editState,
+        country: editCountry,
+        postal_code: editPostalCode,
+      });
+
+      const modalEl = document.getElementById("edit-warehouse");
+      if (modalEl) {
+        const closeBtn = modalEl.querySelector("[data-bs-dismiss='modal']") as HTMLElement;
+        closeBtn?.click();
+      }
+      await fetchWarehouses();
+    } catch (err) {
+      console.error("Failed to update warehouse:", err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/warehouses/${deleteId}`);
+      setDeleteId(null);
+      await fetchWarehouses();
+    } catch (err) {
+      console.error("Failed to delete warehouse:", err);
+    }
+  };
+
   const columns = [
     { header: "Warehouse", field: "warehouse", key: "warehouse" },
     {
@@ -90,26 +238,43 @@ const Warehouse = () => {
       field: "actions",
       key: "actions",
       sortable: false,
-      body: (_row: any) => (
+      body: (row: any) => (
         <div className="edit-delete-action">
           <Link className="me-2 p-2" to="#">
-            <i  className="feather icon-eye"></i>
+            <i className="feather icon-eye"></i>
           </Link>
           <Link
             className="me-2 p-2"
             to="#"
             data-bs-toggle="modal"
             data-bs-target="#edit-warehouse"
+            onClick={() => handleEditClick(row)}
           >
-            <i  className="feather icon-edit"></i>
+            <i className="feather icon-edit"></i>
           </Link>
-          <Link className="p-2" to="#"  data-bs-toggle="modal" data-bs-target="#delete-modal">
-            <i  className="feather icon-trash-2"></i>
+          <Link
+            className="p-2"
+            to="#"
+            data-bs-toggle="modal"
+            data-bs-target="#delete-modal"
+            onClick={() => setDeleteId(row.id)}
+          >
+            <i className="feather icon-trash-2"></i>
           </Link>
         </div>
       ),
     },
   ];
+
+  const handleSearch = (value: any) => {
+    setSearchQuery(value);
+  };
+
+  const filteredData = listData.filter((item) => {
+    if (statusFilter !== "all" && item.status !== statusFilter) return false;
+    return true;
+  });
+
   return (
     <>
       <div className="page-wrapper">
@@ -149,16 +314,33 @@ const Warehouse = () => {
                     className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
                     data-bs-toggle="dropdown"
                   >
-                    Status
+                    Status: {statusFilter === "all" ? "All" : statusFilter}
                   </Link>
-                  <ul className="dropdown-menu  dropdown-menu-end p-3">
+                  <ul className="dropdown-menu dropdown-menu-end p-3">
                     <li>
-                      <Link to="#" className="dropdown-item rounded-1">
+                      <Link
+                        to="#"
+                        className="dropdown-item rounded-1"
+                        onClick={() => setStatusFilter("all")}
+                      >
+                        All
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="#"
+                        className="dropdown-item rounded-1"
+                        onClick={() => setStatusFilter("Active")}
+                      >
                         Active
                       </Link>
                     </li>
                     <li>
-                      <Link to="#" className="dropdown-item rounded-1">
+                      <Link
+                        to="#"
+                        className="dropdown-item rounded-1"
+                        onClick={() => setStatusFilter("Inactive")}
+                      >
                         Inactive
                       </Link>
                     </li>
@@ -170,12 +352,12 @@ const Warehouse = () => {
               <div className="table-responsive">
                 <PrimeDataTable
                   column={columns}
-                  data={listData}
+                  data={filteredData}
                   rows={rows}
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={totalRecords}
+                  totalRecords={filteredData.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}
@@ -186,7 +368,7 @@ const Warehouse = () => {
           </div>
           {/* /product list */}
         </div>
-      <CommonFooter />
+        <CommonFooter />
       </div>
       {/* Add Warehouse */}
       <div className="modal fade" id="add-warehouse">
@@ -205,72 +387,92 @@ const Warehouse = () => {
                 <span aria-hidden="true">×</span>
               </button>
             </div>
-            <form>
+            <form onSubmit={handleAddSubmit}>
               <div className="modal-body">
                 <div className="row">
                   <div className="col-lg-12">
                     <div className="mb-3">
                       <label className="form-label">
-                        Warehouse <span className="text-danger">*</span>
+                        Warehouse Name <span className="text-danger">*</span>
                       </label>
-                      <input type="text" className="form-control" />
-                    </div>
-                  </div>
-                  <div className="col-lg-12">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Contact Person <span className="text-danger">*</span>
-                      </label>
-                      <CommonSelect
-                        className="w-100"
-                        options={contactPersonOptions}
-                        value={selectedContactPerson}
-                        onChange={(e:any) => setSelectedContactPerson(e.value)}
-                        placeholder="Select Contact Person"
-                        filter={false}
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={addName}
+                        onChange={(e) => setAddName(e.target.value)}
+                        required
                       />
                     </div>
                   </div>
                   <div className="col-lg-12">
                     <div className="mb-3">
                       <label className="form-label">
-                        Email <span className="text-danger">*</span>
+                        Contact Person
                       </label>
-                      <input type="email" className="form-control" />
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={addContactPerson}
+                        onChange={(e) => setAddContactPerson(e.target.value)}
+                        placeholder="Enter contact person name"
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-12">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        className="form-control"
+                        value={addEmail}
+                        onChange={(e) => setAddEmail(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="col-lg-6">
                     <div className="mb-3">
                       <label className="form-label">
-                        Phone <span className="text-danger">*</span>
+                        Phone
                       </label>
-                      <input type="text" className="form-control" />
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={addPhone}
+                        onChange={(e) => setAddPhone(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="col-lg-6">
                     <div className="mb-3">
-                      <label className="form-label">Phone(Work)</label>
+                      <label className="form-label">Phone (Work)</label>
                       <input type="text" className="form-control" />
                     </div>
                   </div>
                   <div className="col-lg-12">
                     <div className="mb-3">
                       <label className="form-label">
-                        Address <span className="text-danger">*</span>
+                        Address
                       </label>
-                      <input type="text" className="form-control" />
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={addAddress}
+                        onChange={(e) => setAddAddress(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="col-lg-6 col-sm-10 col-10">
                     <div className="mb-3">
                       <label className="form-label">
-                        City <span className="text-danger">*</span>
+                        City
                       </label>
                       <CommonSelect
                         className="w-100"
                         options={cityOptions}
-                        value={selectedCity}
-                        onChange={(e) => setSelectedCity(e.value)}
+                        value={addCity}
+                        onChange={(e: any) => setAddCity(e.value)}
                         placeholder="Select City"
                         filter={false}
                       />
@@ -279,13 +481,13 @@ const Warehouse = () => {
                   <div className="col-lg-6 col-sm-10 col-10">
                     <div className="mb-3">
                       <label className="form-label">
-                        State <span className="text-danger">*</span>
+                        State
                       </label>
                       <CommonSelect
                         className="w-100"
                         options={stateOptions}
-                        value={selectedState}
-                        onChange={(e) => setSelectedState(e.value)}
+                        value={addState}
+                        onChange={(e: any) => setAddState(e.value)}
                         placeholder="Select State"
                         filter={false}
                       />
@@ -294,13 +496,13 @@ const Warehouse = () => {
                   <div className="col-lg-6 col-sm-10 col-10">
                     <div className="mb-3">
                       <label className="form-label">
-                        Country <span className="text-danger">*</span>
+                        Country
                       </label>
                       <CommonSelect
                         className="w-100"
                         options={countryOptions}
-                        value={selectedCountry}
-                        onChange={(e) => setSelectedCountry(e.value)}
+                        value={addCountry}
+                        onChange={(e: any) => setAddCountry(e.value)}
                         placeholder="Select Country"
                         filter={false}
                       />
@@ -309,9 +511,14 @@ const Warehouse = () => {
                   <div className="col-lg-6">
                     <div className="mb-3">
                       <label className="form-label">
-                        Postal Code <span className="text-danger">*</span>
+                        Postal Code
                       </label>
-                      <input type="text" className="form-control" />
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={addPostalCode}
+                        onChange={(e) => setAddPostalCode(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="col-md-12">
@@ -364,7 +571,7 @@ const Warehouse = () => {
                 <span aria-hidden="true">×</span>
               </button>
             </div>
-            <form>
+            <form onSubmit={handleEditSubmit}>
               <div className="modal-body">
                 <div className="row">
                   <div className="col-lg-12">
@@ -375,81 +582,80 @@ const Warehouse = () => {
                       <input
                         type="text"
                         className="form-control"
-                        defaultValue="Lavish Warehouse"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        required
                       />
                     </div>
                   </div>
                   <div className="col-lg-12">
                     <div className="mb-3">
                       <label className="form-label">
-                        Contact Person <span className="text-danger">*</span>
+                        Contact Person
                       </label>
-                      <CommonSelect
-                        className="w-100"
-                        options={contactPersonOptions}
-                        value={selectedContactPerson}
-                        onChange={(e) => setSelectedContactPerson(e.value)}
-                        placeholder="Select Contact Person"
-                        filter={false}
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={editContactPerson}
+                        onChange={(e) => setEditContactPerson(e.target.value)}
                       />
                     </div>
                   </div>
                   <div className="col-lg-12">
                     <div className="mb-3">
                       <label className="form-label">
-                        Email <span className="text-danger">*</span>
+                        Email
                       </label>
                       <input
                         type="email"
                         className="form-control"
-                        defaultValue="electromart@example.com"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
                       />
                     </div>
                   </div>
                   <div className="col-lg-6">
                     <div className="mb-3">
                       <label className="form-label">
-                        Phone <span className="text-danger">*</span>
+                        Phone
                       </label>
                       <input
                         type="text"
                         className="form-control"
-                        defaultValue={+12498345785}
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
                       />
                     </div>
                   </div>
                   <div className="col-lg-6">
                     <div className="mb-3">
                       <label className="form-label">Phone(Work)</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        defaultValue={+17538647943}
-                      />
+                      <input type="text" className="form-control" />
                     </div>
                   </div>
                   <div className="col-lg-12">
                     <div className="mb-3">
                       <label className="form-label">
-                        Address <span className="text-danger">*</span>
+                        Address
                       </label>
                       <input
                         type="text"
                         className="form-control"
-                        defaultValue="46 Perry Street"
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
                       />
                     </div>
                   </div>
                   <div className="col-lg-6 col-sm-10 col-10">
                     <div className="mb-3">
                       <label className="form-label">
-                        City <span className="text-danger">*</span>
+                        City
                       </label>
                       <CommonSelect
                         className="w-100"
                         options={cityOptions}
-                        value={selectedCity}
-                        onChange={(e) => setSelectedCity(e.value)}
+                        value={editCity}
+                        onChange={(e: any) => setEditCity(e.value)}
                         placeholder="Select City"
                         filter={false}
                       />
@@ -458,13 +664,13 @@ const Warehouse = () => {
                   <div className="col-lg-6 col-sm-10 col-10">
                     <div className="mb-3">
                       <label className="form-label">
-                        State <span className="text-danger">*</span>
+                        State
                       </label>
                       <CommonSelect
                         className="w-100"
                         options={stateOptions}
-                        value={selectedState}
-                        onChange={(e) => setSelectedState(e.value)}
+                        value={editState}
+                        onChange={(e: any) => setEditState(e.value)}
                         placeholder="Select State"
                         filter={false}
                       />
@@ -473,13 +679,13 @@ const Warehouse = () => {
                   <div className="col-lg-6 col-sm-10 col-10">
                     <div className="mb-3">
                       <label className="form-label">
-                        Country <span className="text-danger">*</span>
+                        Country
                       </label>
                       <CommonSelect
                         className="w-100"
                         options={countryOptions}
-                        value={selectedCountry}
-                        onChange={(e) => setSelectedCountry(e.value)}
+                        value={editCountry}
+                        onChange={(e: any) => setEditCountry(e.value)}
                         placeholder="Select Country"
                         filter={false}
                       />
@@ -488,12 +694,13 @@ const Warehouse = () => {
                   <div className="col-lg-6">
                     <div className="mb-3">
                       <label className="form-label">
-                        Postal Code <span className="text-danger">*</span>
+                        Postal Code
                       </label>
                       <input
                         type="text"
                         className="form-control"
-                        defaultValue={10176}
+                        value={editPostalCode}
+                        onChange={(e) => setEditPostalCode(e.target.value)}
                       />
                     </div>
                   </div>
@@ -530,7 +737,7 @@ const Warehouse = () => {
         </div>
       </div>
       {/* /Edit Warehouse */}
-     <DeleteModal />
+      <DeleteModal onConfirm={handleDelete} />
     </>
   );
 };

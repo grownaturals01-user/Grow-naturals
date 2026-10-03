@@ -396,6 +396,65 @@ CREATE TABLE IF NOT EXISTS inventory_modules (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 23. Brands
+CREATE TABLE IF NOT EXISTS brands (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+  name VARCHAR(128) NOT NULL,
+  slug VARCHAR(128) DEFAULT '',
+  logo_url TEXT DEFAULT '',
+  status VARCHAR(32) DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 24. Units
+CREATE TABLE IF NOT EXISTS units (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+  name VARCHAR(64) NOT NULL,
+  short_name VARCHAR(32) NOT NULL,
+  status VARCHAR(32) DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 25. Warranties
+CREATE TABLE IF NOT EXISTS warranties (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+  name VARCHAR(128) NOT NULL,
+  description TEXT DEFAULT '',
+  duration VARCHAR(32) NOT NULL,
+  period VARCHAR(32) NOT NULL,
+  status VARCHAR(32) DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 26. Purchase Returns
+CREATE TABLE IF NOT EXISTS purchase_returns (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+  purchase_id VARCHAR(64) REFERENCES purchase_orders(id) ON DELETE SET NULL,
+  supplier_id VARCHAR(64) REFERENCES suppliers(id) ON DELETE SET NULL,
+  supplier_name VARCHAR(255) NOT NULL,
+  reference_no VARCHAR(64) NOT NULL,
+  return_date DATE DEFAULT CURRENT_DATE,
+  status VARCHAR(32) DEFAULT 'Received',
+  total_amount NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 27. Purchase Return Items
+CREATE TABLE IF NOT EXISTS purchase_return_items (
+  id VARCHAR(64) PRIMARY KEY,
+  return_id VARCHAR(64) NOT NULL REFERENCES purchase_returns(id) ON DELETE CASCADE,
+  product_id VARCHAR(64) REFERENCES products(id) ON DELETE SET NULL,
+  product_name VARCHAR(255) NOT NULL,
+  quantity INTEGER NOT NULL,
+  unit_price NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+  total NUMERIC(12,2) NOT NULL DEFAULT 0.00
+);
+
 -- Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_products_business ON products(business_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);

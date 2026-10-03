@@ -1,5 +1,16 @@
-import { Link } from "react-router";
-const DeleteModal = () => {
+import { Link } from "react-router-dom";
+
+interface DeleteModalProps {
+  onConfirm?: () => void;
+  onDelete?: () => void;
+}
+
+const DeleteModal = ({ onConfirm, onDelete }: DeleteModalProps = {}) => {
+  const handleConfirm = () => {
+    if (onConfirm) onConfirm();
+    if (onDelete) onDelete();
+  };
+
   return (
     <>
       <div className="modal fade" id="delete-modal">
@@ -25,6 +36,7 @@ const DeleteModal = () => {
                     to="#"
                     className="btn btn-primary fs-13 fw-medium p-2 px-3"
                     data-bs-dismiss="modal"
+                    onClick={handleConfirm}
                   >
                     Yes Delete
                   </Link>

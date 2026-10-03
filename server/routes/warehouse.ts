@@ -29,8 +29,8 @@ async function getOrCreateWarehouseStock(db: any, businessId: string, productId:
   return res.rows[0] || { stock_quantity: 0, location_bin: '' };
 }
 
-// GET /api/warehouse/inventory - List products with warehouse stock balances
-router.get('/inventory', async (req: Request, res: Response) => {
+// GET /api/warehouse/inventory or /api/warehouse/stock - List products with warehouse stock balances
+router.get(['/inventory', '/stock'], async (req: Request, res: Response) => {
   try {
     const businessId = (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
     const search = req.query.search as string;

@@ -102,7 +102,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/purchases
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { supplier_id, supplier_invoice_no, order_date, delivery_date, items, tax_amount, paid_amount, notes, auto_receive } = req.body;
+    const { supplier_id, supplier_invoice_no, order_date, delivery_date, items, tax_amount, paid_amount, notes, auto_receive, status } = req.body;
 
     if (!supplier_id) {
       return res.status(400).json({ error: 'Supplier is required' });
@@ -145,7 +145,8 @@ router.post('/', async (req: Request, res: Response) => {
     const totalAmount = subtotal + tax;
     const paid = Number(paid_amount) || 0;
     const paymentStatus = paid >= totalAmount ? 'paid' : (paid > 0 ? 'partial' : 'due');
-    const initialStatus = auto_receive ? 'received' : 'pending';
+    const isReceived = auto_receive === true || status === 'received';
+    const initialStatus = isReceived ? 'received' : (status || 'pending');
 
     await db.query(
       `INSERT INTO purchase_orders (
@@ -178,8 +179,8 @@ router.post('/', async (req: Request, res: Response) => {
         [item.id, item.po_id, item.product_id, item.product_name, item.quantity, item.unit_price, item.total]
       );
 
-      // If auto_receive is set, immediately increase stock and log movement
-      if (auto_receive && item.product_id) {
+      // If received, immediately increase stock and log movement
+      if (isReceived && item.product_id) {
         const prodRes = await db.query(`SELECT stock_quantity FROM products WHERE id = $1`, [item.product_id]);
         if (prodRes.rows.length > 0) {
           const oldStock = prodRes.rows[0].stock_quantity;
@@ -265,6 +266,22 @@ router.put('/:id/payment', async (req: Request, res: Response) => {
     );
 
     res.json({ success: true, paid_amount: paid, payment_status: paymentStatus });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/purchases/:id
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.query(`DELETE FROM purchase_order_items WHERE po_id = $1`, [id]);
+    const result = await db.query(`DELETE FROM purchase_orders WHERE id = $1 RETURNING id`, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Purchase order not found' });
+    }
+    res.json({ message: 'Purchase deleted successfully', id });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

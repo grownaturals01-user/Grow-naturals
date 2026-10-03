@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import CommonFooter from "../../components/footer/commonFooter";
 import { brandIcon2 } from "../../utils/imagepath";
@@ -6,28 +6,122 @@ import PrimeDataTable from "../../components/data-table";
 import TableTopHead from "../../components/table-top-head";
 import DeleteModal from "../../components/delete-modal";
 import SearchFromApi from "../../components/data-table/search";
-import { brandlistdata } from "./brandlistData";
+import { api, getActiveBusinessId } from "../../services/api";
 
-// Type definitions
-interface Brand {
+interface BrandItem {
+  id: string;
   brand: string;
   logo: string;
   createdon: string;
   status: string;
+  raw: any;
 }
 
-
-
 const BrandList: React.FC = () => {
+  const [brands, setBrands] = useState<BrandItem[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(5);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
 
+  // Form states for Add / Edit / Delete
+  const [brandName, setBrandName] = useState("");
+  const [brandStatus, setBrandStatus] = useState(true);
+
+  const [editingBrand, setEditingBrand] = useState<any>(null);
+  const [editBrandName, setEditBrandName] = useState("");
+  const [editBrandStatus, setEditBrandStatus] = useState(true);
+
+  const [deleteBrandId, setDeleteBrandId] = useState<string | null>(null);
+
+  const activeBusiness = getActiveBusinessId();
+
+  const fetchBrands = useCallback(async () => {
+    try {
+      const data = await api.get('/brands', { business_id: activeBusiness });
+      const mapped: BrandItem[] = (Array.isArray(data) ? data : []).map((b: any) => ({
+        id: b.id,
+        brand: b.name,
+        logo: b.logo_url || brandIcon2,
+        createdon: b.created_at ? new Date(b.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
+        status: b.status || 'Active',
+        raw: b
+      }));
+      setBrands(mapped);
+    } catch (err) {
+      console.error("Failed to fetch brands:", err);
+    }
+  }, [activeBusiness]);
+
+  useEffect(() => {
+    fetchBrands();
+  }, [fetchBrands]);
+
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
+
+  const handleAddBrand = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!brandName.trim()) return;
+    try {
+      await api.post('/brands', {
+        name: brandName.trim(),
+        status: brandStatus ? 'Active' : 'Inactive',
+        business_id: activeBusiness
+      });
+      setBrandName("");
+      setBrandStatus(true);
+      fetchBrands();
+      // Dismiss modal
+      const closeBtn = document.querySelector('#add-brand .close') as HTMLElement;
+      if (closeBtn) closeBtn.click();
+    } catch (err: any) {
+      alert(err.message || 'Failed to add brand');
+    }
+  };
+
+  const handleStartEdit = (rowData: BrandItem) => {
+    setEditingBrand(rowData.raw);
+    setEditBrandName(rowData.raw.name);
+    setEditBrandStatus(rowData.raw.status === 'Active');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBrand || !editBrandName.trim()) return;
+    try {
+      await api.put(`/brands/${editingBrand.id}`, {
+        name: editBrandName.trim(),
+        status: editBrandStatus ? 'Active' : 'Inactive'
+      });
+      setEditingBrand(null);
+      fetchBrands();
+      const closeBtn = document.querySelector('#edit-brand .close') as HTMLElement;
+      if (closeBtn) closeBtn.click();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update brand');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteBrandId) return;
+    try {
+      await api.delete(`/brands/${deleteBrandId}`);
+      setDeleteBrandId(null);
+      fetchBrands();
+      const closeBtn = document.querySelector('#delete-modal [data-bs-dismiss="modal"]') as HTMLElement;
+      if (closeBtn) closeBtn.click();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete brand');
+    }
+  };
+
+  const filteredBrands = brands.filter((item) => {
+    if (!searchQuery) return true;
+    return item.brand.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   const columns = [
     {
       field: "brand",
@@ -40,7 +134,7 @@ const BrandList: React.FC = () => {
       header: "Image",
       key: "logo",
       sortable: true,
-      body: (rowData: Brand) => (
+      body: (rowData: BrandItem) => (
         <span className="productimgname">
           <Link to="#" className="product-img stock-img">
             <img alt="" src={rowData.logo} />
@@ -60,8 +154,8 @@ const BrandList: React.FC = () => {
       header: "Status",
       key: "status",
       sortable: true,
-      body: (rowData: Brand) => (
-        <span className="badge table-badge bg-success fw-medium fs-10">
+      body: (rowData: BrandItem) => (
+        <span className={`badge table-badge fw-medium fs-10 ${rowData.status === 'Active' ? 'bg-success' : 'bg-danger'}`}>
           {rowData.status}
         </span>
       ),
@@ -71,22 +165,25 @@ const BrandList: React.FC = () => {
       field: "actions",
       key: "actions",
       sortable: false,
-      body: (_row: any) => (
+      body: (row: BrandItem) => (
         <div className="edit-delete-action d-flex align-items-center">
           <Link
             className="me-2 p-2 d-flex align-items-center border rounded"
             to="#"
             data-bs-toggle="modal"
-            data-bs-target="#edit-customer"
+            data-bs-target="#edit-brand"
+            onClick={() => handleStartEdit(row)}
           >
-            <i  className="feather icon-edit"></i>
+            <i className="feather icon-edit"></i>
           </Link>
           <Link
             className="p-2 d-flex align-items-center border rounded"
             to="#"
-            data-bs-toggle="modal" data-bs-target="#delete-modal"
+            data-bs-toggle="modal"
+            data-bs-target="#delete-modal"
+            onClick={() => setDeleteBrandId(row.id)}
           >
-            <i  className="feather icon-trash-2"></i>
+            <i className="feather icon-trash-2"></i>
           </Link>
         </div>
       ),
@@ -189,12 +286,12 @@ const BrandList: React.FC = () => {
               <div className="table-responsive brand-table">
                 <PrimeDataTable
                   column={columns}
-                  data={brandlistdata}
+                  data={filteredBrands}
                   rows={rows}
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={totalRecords}
+                  totalRecords={filteredBrands.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}
@@ -228,7 +325,7 @@ const BrandList: React.FC = () => {
                     </button>
                   </div>
                   <div className="modal-body custom-modal-body new-employee-field">
-                    <form>
+                    <form onSubmit={handleAddBrand}>
                       <div className="profile-pic-upload mb-3">
                         <div className="profile-pic brand-pic">
                           <span>
@@ -250,37 +347,44 @@ const BrandList: React.FC = () => {
                         <label className="form-label">
                           Brand<span className="text-danger ms-1">*</span>
                         </label>
-                        <input type="text" className="form-control" />
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={brandName}
+                          onChange={(e) => setBrandName(e.target.value)}
+                          placeholder="Enter brand name"
+                          required
+                        />
                       </div>
                       <div className="mb-0">
                         <div className="status-toggle modal-status d-flex justify-content-between align-items-center">
                           <span className="status-label">Status</span>
                           <input
                             type="checkbox"
-                            id="user2"
+                            id="brand-add-status"
                             className="check"
-                            defaultChecked
+                            checked={brandStatus}
+                            onChange={(e) => setBrandStatus(e.target.checked)}
                           />
-                          <label htmlFor="user2" className="checktoggle" />
+                          <label htmlFor="brand-add-status" className="checktoggle" />
                         </div>
                       </div>
+                      <div className="modal-footer px-0 pb-0 mt-3">
+                        <button
+                          type="button"
+                          className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none"
+                          data-bs-dismiss="modal"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary fs-13 fw-medium p-2 px-3"
+                        >
+                          Add Brand
+                        </button>
+                      </div>
                     </form>
-                  </div>
-                  <div className="modal-footer">
-                    <button
-                      type="button"
-                      className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none"
-                      data-bs-dismiss="modal"
-                    >
-                      Cancel
-                    </button>
-                    <Link
-                      to="#"
-                      data-bs-dismiss="modal"
-                      className="btn btn-primary fs-13 fw-medium p-2 px-3"
-                    >
-                      Add Brand
-                    </Link>
                   </div>
                 </div>
               </div>
@@ -308,7 +412,7 @@ const BrandList: React.FC = () => {
                     </button>
                   </div>
                   <div className="modal-body custom-modal-body new-employee-field">
-                    <form>
+                    <form onSubmit={handleSaveEdit}>
                       <div className="profile-pic-upload mb-3">
                         <div className="profile-pic brand-pic">
                           <span>
@@ -335,37 +439,44 @@ const BrandList: React.FC = () => {
                         <label className="form-label">
                           Brand<span className="text-danger ms-1">*</span>
                         </label>
-                        <input type="text" className="form-control" />
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={editBrandName}
+                          onChange={(e) => setEditBrandName(e.target.value)}
+                          placeholder="Enter brand name"
+                          required
+                        />
                       </div>
                       <div className="mb-0">
                         <div className="status-toggle modal-status d-flex justify-content-between align-items-center">
                           <span className="status-label">Status</span>
                           <input
                             type="checkbox"
-                            id="user4"
+                            id="brand-edit-status"
                             className="check"
-                            defaultChecked
+                            checked={editBrandStatus}
+                            onChange={(e) => setEditBrandStatus(e.target.checked)}
                           />
-                          <label htmlFor="user4" className="checktoggle" />
+                          <label htmlFor="brand-edit-status" className="checktoggle" />
                         </div>
                       </div>
+                      <div className="modal-footer px-0 pb-0 mt-3">
+                        <button
+                          type="button"
+                          className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none"
+                          data-bs-dismiss="modal"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary fs-13 fw-medium p-2 px-3"
+                        >
+                          Save Changes
+                        </button>
+                      </div>
                     </form>
-                  </div>
-                  <div className="modal-footer">
-                    <button
-                      type="button"
-                      className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none"
-                      data-bs-dismiss="modal"
-                    >
-                      Cancel
-                    </button>
-                    <Link
-                      to="#"
-                      data-bs-dismiss="modal"
-                      className="btn btn-primary fs-13 fw-medium p-2 px-3"
-                    >
-                      Save Changes
-                    </Link>
                   </div>
                 </div>
               </div>
@@ -373,7 +484,7 @@ const BrandList: React.FC = () => {
           </div>
         </div>
         {/* Edit Brand */}
-        <DeleteModal />
+        <DeleteModal onConfirm={handleDelete} />
       </>
     </div>
   );

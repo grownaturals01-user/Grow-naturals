@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import CommonFooter from "../../components/footer/commonFooter";
 import TooltipIcons from "../../components/tooltip-content/tooltipIcons";
@@ -8,23 +8,56 @@ import { all_routes } from "../../routes/all_routes";
 import PrimeDataTable from "../../components/data-table";
 import SearchFromApi from "../../components/data-table/search";
 import CommonSelect from "../../components/select/common-select";
-import { taxreportdata } from "../../core/json/taxreport";
 import CommonDateRangePicker from "../../components/date-range-picker/common-date-range-picker";
+import { api, getActiveBusinessId } from "../../services/api";
 
 const TaxReport = () => {
-  const [listData, _setListData] = useState<any[]>(taxreportdata);
+  const [listData, setListData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(5);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [selectedStore, setSelectedStore] = useState(null);
+  const [selectedStore, setSelectedStore] = useState<any>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<any>(null);
 
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
-  const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+
+  const fetchTaxReport = useCallback(async () => {
+    setLoading(true);
+    try {
+      const bizId = getActiveBusinessId();
+      const res = await api.get<any[]>("/reports/tax", { business_id: bizId });
+      if (Array.isArray(res)) {
+        const mapped = res.map((inv: any) => ({
+          Reference: inv.invoice_number,
+          Supplier: inv.customer_name || "Walk-in Customer",
+          Date: inv.created_at ? new Date(inv.created_at).toLocaleDateString("en-IN") : "-",
+          Store: "Grow Naturals",
+          Amount: `₹${Number(inv.total_amount || 0).toLocaleString("en-IN")}`,
+          Payment_Method: "Cash",
+          Discount: "₹0",
+          Tax_Amount: `₹${Number(inv.total_tax || 0).toLocaleString("en-IN")}`,
+          raw: inv,
+        }));
+        setListData(mapped);
+      } else {
+        setListData([]);
+      }
+    } catch (err) {
+      console.warn("Failed to load tax report:", err);
+      setListData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTaxReport();
+  }, [fetchTaxReport]);
 
   const columns = [
     {
@@ -35,64 +68,60 @@ const TaxReport = () => {
           {text.Reference}
         </Link>
       ),
-      sorter: (a: any, b: any) => a.Customer.length - b.Customer.length,
+      sorter: (a: any, b: any) => (a.Reference || "").localeCompare(b.Reference || ""),
     },
     {
-      header: "Supplier",
+      header: "Customer / Supplier",
       field: "Supplier",
-      sorter: (a: any, b: any) => a.Supplier.length - b.Supplier.length,
+      sorter: (a: any, b: any) => (a.Supplier || "").localeCompare(b.Supplier || ""),
     },
 
     {
       header: "Date",
       field: "Date",
-      sorter: (a: any, b: any) => a.Date.length - b.Date.length,
+      sorter: (a: any, b: any) => (a.Date || "").localeCompare(b.Date || ""),
     },
     {
       header: "Store",
       field: "Store",
-      sorter: (a: any, b: any) => a.Store.length - b.Store.length,
+      sorter: (a: any, b: any) => (a.Store || "").localeCompare(b.Store || ""),
     },
     {
       header: "Amount",
       field: "Amount",
-      sorter: (a: any, b: any) => a.Amount.length - b.Amount.length,
+      sorter: (a: any, b: any) => (a.raw?.total_amount || 0) - (b.raw?.total_amount || 0),
     },
     {
       header: "Payment Method",
       field: "Payment_Method",
-      sorter: (a: any, b: any) =>
-        a.Payment_Method.length - b.Payment_Method.length,
+      sorter: (a: any, b: any) => (a.Payment_Method || "").localeCompare(b.Payment_Method || ""),
     },
     {
       header: "Discount",
       field: "Discount",
-      sorter: (a: any, b: any) => a.Discount.length - b.Discount.length,
+      sorter: (a: any, b: any) => (a.Discount || "").localeCompare(b.Discount || ""),
     },
     {
       header: "Tax Amount",
       field: "Tax_Amount",
-      sorter: (a: any, b: any) => a.Tax_Amount.length - b.Tax_Amount.length,
+      sorter: (a: any, b: any) => (a.raw?.total_tax || 0) - (b.raw?.total_tax || 0),
     },
   ];
 
   const Store = [
-    { value: "All", label: "All" },
-    { value: "General Vendor", label: "General Vendor" },
-    { value: "Agri Supplies", label: "Agri Supplies" },
-    { value: "Plant Nursery Co", label: "Plant Nursery Co" },
+    { value: "All", label: "All Stores" },
+    { value: "grow-naturals", label: "Grow Naturals" },
+    { value: "nikhlesh-nursery", label: "Nikhlesh Nursery" },
   ];
   const Supplier = [
     { value: "All", label: "All" },
-    { value: "Grow Naturals Supplier", label: "Grow Naturals Supplier" },
-    { value: "Beats Headphones", label: "Beats Headphones" },
-    { value: "Dazzle Shoes", label: "Dazzle Shoes" },
+    { value: "Walk-in Customer", label: "Walk-in Customer" },
   ];
   const Payment_Method = [
     { value: "All", label: "All" },
-    { value: "Stripe", label: "Stripe" },
-    { value: "Paypal", label: "Paypal" },
     { value: "Cash", label: "Cash" },
+    { value: "UPI", label: "UPI" },
+    { value: "Card", label: "Card" },
   ];
 
   const route = all_routes;
@@ -118,8 +147,8 @@ const TaxReport = () => {
           <div className="page-header">
             <div className="add-item d-flex">
               <div className="page-title">
-                <h4>Purchase Tax</h4>
-                <h6>View Reports of Purchase Tax</h6>
+                <h4>Tax Report</h4>
+                <h6>View Reports of Sales and Purchase Tax</h6>
               </div>
             </div>
             <ul className="table-top-head">
@@ -129,7 +158,7 @@ const TaxReport = () => {
           </div>
           <div className="card border-0">
             <div className="card-body pb-1">
-              <form>
+              <form onSubmit={(e) => { e.preventDefault(); fetchTaxReport(); }}>
                 <div className="row align-items-end">
                   <div className="col-lg-10">
                     <div className="row">
@@ -159,7 +188,7 @@ const TaxReport = () => {
                       </div>
                       <div className="col-md-3">
                         <div className="mb-3">
-                          <label className="form-label">Supplier</label>
+                          <label className="form-label">Supplier / Customer</label>
                           <CommonSelect
                             className="w-100"
                             options={Supplier}
@@ -187,8 +216,8 @@ const TaxReport = () => {
                   </div>
                   <div className="col-lg-2">
                     <div className="mb-3">
-                      <button className="btn btn-primary w-100" type="submit">
-                        Generate Report
+                      <button className="btn btn-primary w-100" type="submit" disabled={loading}>
+                        {loading ? "Generating..." : "Generate Report"}
                       </button>
                     </div>
                   </div>
@@ -227,7 +256,7 @@ const TaxReport = () => {
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={totalRecords}
+                  totalRecords={listData.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}

@@ -1,14 +1,69 @@
 import PrimeDataTable from "../../../components/data-table";
-import { onlineOrderData } from "../../../core/json/onlineOrderData";
 import { Link } from "react-router-dom";
 import OnlineorderModal from "../online-order/onlineorderModal";
 import CommonFooter from "../../../components/footer/commonFooter";
 import TableTopHead from "../../../components/table-top-head";
 import SearchFromApi from "../../../components/data-table/search";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { api, getActiveBusinessId } from "../../../services/api";
 
 const PosOrder = () => {
-  const dataSource = onlineOrderData;
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [rows, setRows] = useState<number>(10);
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const fetchInvoices = useCallback(async () => {
+    setLoading(true);
+    try {
+      const businessId = getActiveBusinessId();
+      const params: any = { business_id: businessId };
+      if (searchQuery) params.search = searchQuery;
+      const res = await api.get<any[]>("/invoices", params);
+      if (Array.isArray(res)) {
+        const mapped = res.map((inv: any) => ({
+          id: inv.id,
+          customer: inv.customer_name || "Walk-in Customer",
+          image: "src/assets/img/users/user-01.jpg",
+          reference: inv.invoice_number,
+          date: inv.created_at ? new Date(inv.created_at).toLocaleDateString("en-IN") : "-",
+          status: inv.payment_status === "paid" ? "Completed" : "Pending",
+          total: `₹${Number(inv.total_amount || 0).toLocaleString("en-IN")}`,
+          paid: `₹${Number(inv.paid_amount || (inv.payment_status === "paid" ? inv.total_amount : 0)).toLocaleString("en-IN")}`,
+          due: `₹${Number(inv.payment_status === "paid" ? 0 : inv.total_amount).toLocaleString("en-IN")}`,
+          paymentstatus: inv.payment_status === "paid" ? "Paid" : "Unpaid",
+          biller: inv.business_name || "Cashier",
+          raw: inv,
+        }));
+        setOrders(mapped);
+      } else {
+        setOrders([]);
+      }
+    } catch (err) {
+      console.warn("Failed to load invoices:", err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/invoices/${deleteId}`);
+      setDeleteId(null);
+      await fetchInvoices();
+    } catch (err) {
+      console.error("Failed to delete invoice:", err);
+    }
+  };
 
   const columns = [
     {
@@ -75,7 +130,7 @@ const PosOrder = () => {
     {
       header: "",
       field: "action",
-      body: () => (
+      body: (row: any) => (
         <>
           <Link
             className="action-set"
@@ -127,7 +182,7 @@ const PosOrder = () => {
                 data-bs-target="#createpayment"
               >
                 <i className="feather icon-plus-circle info-img" />
-                
+
                 Create Payment
               </Link>
             </li>
@@ -143,6 +198,7 @@ const PosOrder = () => {
                 className="dropdown-item mb-0"
                 data-bs-toggle="modal"
                 data-bs-target="#delete-modal"
+                onClick={() => setDeleteId(row?.id)}
               >
                 <i className="feather icon-trash-2 info-img" />
                 Delete Sale
@@ -154,10 +210,6 @@ const PosOrder = () => {
     },
   ];
 
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rows, setRows] = useState<number>(10);
-  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
-  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
@@ -173,7 +225,7 @@ const PosOrder = () => {
                 <h6>Manage Your pos orders</h6>
               </div>
             </div>
-           <TableTopHead />
+            <TableTopHead />
             <div className="page-btn">
               <Link
                 to="#"
@@ -314,12 +366,12 @@ const PosOrder = () => {
               <div className="custom-datatable-filter table-responsive">
                 <PrimeDataTable
                   column={columns}
-                  data={dataSource}
+                  data={orders}
                   rows={rows}
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={dataSource.length}
+                  totalRecords={orders.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}
@@ -333,41 +385,47 @@ const PosOrder = () => {
         <CommonFooter />
       </div>
       <OnlineorderModal />
-       {/* Delete */}
-  <div className="modal fade modal-default" id="delete-modal">
-    <div className="modal-dialog modal-dialog-centered">
-      <div className="modal-content">
-        <div className="modal-body p-0">
-          <div className="success-wrap text-center">
-            <form action="pos-orders.html">
-              <div className="icon-success bg-danger-transparent text-danger mb-2">
-                <i className="ti ti-trash" />
+      {/* Delete */}
+      <div className="modal fade modal-default" id="delete-modal">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-body p-0">
+              <div className="success-wrap text-center">
+                <form onSubmit={(e) => { e.preventDefault(); handleDelete(); }}>
+                  <div className="icon-success bg-danger-transparent text-danger mb-2">
+                    <i className="ti ti-trash" />
+                  </div>
+                  <h3 className="mb-2">Delete Sale</h3>
+                  <p className="fs-16 mb-3">
+                    Are you sure you want to delete sale?
+                  </p>
+                  <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      className="btn btn-md btn-secondary"
+                      data-bs-dismiss="modal"
+                    >
+                      No, Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-md btn-primary"
+                      data-bs-dismiss="modal"
+                      onClick={handleDelete}
+                    >
+                      Yes, Delete
+                    </button>
+                  </div>
+                </form>
               </div>
-              <h3 className="mb-2">Delete Sale</h3>
-              <p className="fs-16 mb-3">
-                Are you sure you want to delete sale?
-              </p>
-              <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  className="btn btn-md btn-secondary"
-                  data-bs-dismiss="modal"
-                >
-                  No, Cancel
-                </button>
-                <button type="submit" className="btn btn-md btn-primary">
-                  Yes, Delete
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-  {/* /Delete */}
+      {/* /Delete */}
     </div>
   );
 };
 
 export default PosOrder;
+

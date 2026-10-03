@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { customerreportdata } from "../../core/json/customerreportdata";
 import { all_routes } from "../../routes/all_routes";
 import RefreshIcon from "../../components/tooltip-content/refresh";
 import CollapesIcon from "../../components/tooltip-content/collapes";
@@ -9,24 +8,66 @@ import PrimeDataTable from "../../components/data-table";
 import CommonSelect from "../../components/select/common-select";
 import CommonDateRangePicker from "../../components/date-range-picker/common-date-range-picker";
 import SearchFromApi from "../../components/data-table/search";
+import { api, getActiveBusinessId } from "../../services/api";
 
 const CustomerReport = () => {
-  const data = customerreportdata;
-  const [listData, _setListData] = useState<any[]>(data);
+  const [listData, setListData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(5);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
-  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<any>(null);
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<any>(null);
+  const [customerOptions, setCustomerOptions] = useState<any[]>([{ value: "all", label: "All Customers" }]);
 
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
 
   const route = all_routes;
+
+  const fetchCustomerReport = useCallback(async () => {
+    setLoading(true);
+    try {
+      const bizId = getActiveBusinessId();
+      const res = await api.get<any[]>("/reports/customers", { business_id: bizId });
+      if (Array.isArray(res)) {
+        let filtered = res;
+        if (selectedCustomer && selectedCustomer.value !== "all") {
+          filtered = filtered.filter((c: any) => c.id === selectedCustomer.value);
+        }
+        const mapped = filtered.map((c: any) => ({
+          Reference: c.id ? `CUST-${c.id.toString().slice(-4).toUpperCase()}` : "CUST-001",
+          Code: c.phone || "-",
+          Customer: c.customer_name || "Walk-in Customer",
+          image: "src/assets/img/users/user-01.jpg",
+          Total_Orders: Number(c.total_orders || 0),
+          Amount: `₹${Number(c.total_spent || 0).toLocaleString("en-IN")}`,
+          Payment_Method: "Cash / UPI",
+          Status: Number(c.total_orders || 0) > 0 ? "Completed" : "Unpaid",
+          raw: c,
+        }));
+        setListData(mapped);
+        setCustomerOptions([
+          { value: "all", label: "All Customers" },
+          ...res.map((c: any) => ({ value: c.id, label: c.customer_name })),
+        ]);
+      } else {
+        setListData([]);
+      }
+    } catch (err) {
+      console.warn("Failed to load customer report:", err);
+      setListData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCustomer]);
+
+  useEffect(() => {
+    fetchCustomerReport();
+  }, [fetchCustomerReport]);
 
   const columns = [
     {
@@ -37,12 +78,12 @@ const CustomerReport = () => {
           {text.Reference}
         </Link>
       ),
-      sorter: (a: any, b: any) => a.Reference.length - b.Reference.length,
+      sorter: (a: any, b: any) => (a.Reference || "").localeCompare(b.Reference || ""),
     },
     {
-      header: "Code",
+      header: "Phone / Code",
       field: "Code",
-      sorter: (a: any, b: any) => a.Code.length - b.Code.length,
+      sorter: (a: any, b: any) => (a.Code || "").localeCompare(b.Code || ""),
     },
 
     {
@@ -62,57 +103,49 @@ const CustomerReport = () => {
           </div>
         </>
       ),
-      sorter: (a: any, b: any) => a.Customer.length - b.Customer.length,
+      sorter: (a: any, b: any) => (a.Customer || "").localeCompare(b.Customer || ""),
     },
 
     {
       header: "Total Orders",
       field: "Total_Orders",
-      sorter: (a: any, b: any) => a.Total_Orders.length - b.Total_Orders.length,
+      sorter: (a: any, b: any) => a.Total_Orders - b.Total_Orders,
     },
     {
       header: "Amount",
       field: "Amount",
-      sorter: (a: any, b: any) => a.Amount.length - b.Amount.length,
+      sorter: (a: any, b: any) => (a.raw?.total_spent || 0) - (b.raw?.total_spent || 0),
     },
 
     {
       header: "Payment Method",
       field: "Payment_Method",
-      sorter: (a: any, b: any) =>
-        a.Payment_Method.length - b.Payment_Method.length,
+      sorter: (a: any, b: any) => (a.Payment_Method || "").localeCompare(b.Payment_Method || ""),
     },
     {
       header: "Status",
       field: "Status",
       body: (text: any) => (
         <span
-          className={`badge ${text === "Completed" ? "badge-success" : "badge-danger"} d-inline-flex align-items-center badge-xs`}
+          className={`badge ${text.Status === "Completed" ? "badge-success" : "badge-danger"} d-inline-flex align-items-center badge-xs`}
         >
           {text.Status}
         </span>
       ),
-      sorter: (a: any, b: any) => a.Status.length - b.Status.length,
+      sorter: (a: any, b: any) => (a.Status || "").localeCompare(b.Status || ""),
     },
   ];
 
-  const Customer = [
-    { value: "All", label: "All" },
-    { value: "Walk-in Customer", label: "Walk-in Customer" },
-    { value: "Minerva Rameriz", label: "Minerva Rameriz" },
-    { value: "Robert Lamon", label: "Robert Lamon" },
-  ];
   const PaymentMethod = [
-    { value: "All", label: "All" },
+    { value: "All", label: "All Methods" },
     { value: "Cash", label: "Cash" },
-    { value: "Paypal", label: "Paypal" },
-    { value: "Stripe", label: "Stripe" },
+    { value: "UPI", label: "UPI" },
+    { value: "Card", label: "Card" },
   ];
   const PaymentStatus = [
-    { value: "All", label: "All" },
+    { value: "All", label: "All Statuses" },
     { value: "Completed", label: "Completed" },
     { value: "Unpaid", label: "Unpaid" },
-    { value: "Paid", label: "Paid" },
   ];
 
   return (
@@ -147,7 +180,7 @@ const CustomerReport = () => {
           </div>
           <div className="card border-0">
             <div className="card-body pb-1">
-              <form>
+              <form onSubmit={(e) => { e.preventDefault(); fetchCustomerReport(); }}>
                 <div className="row align-items-end">
                   <div className="col-lg-10">
                     <div className="row">
@@ -167,7 +200,7 @@ const CustomerReport = () => {
                           <label className="form-label">Customer</label>
                           <CommonSelect
                             className="w-100"
-                            options={Customer}
+                            options={customerOptions}
                             value={selectedCustomer}
                             onChange={(e) => setSelectedCustomer(e.value)}
                             placeholder="Choose"
@@ -205,8 +238,8 @@ const CustomerReport = () => {
                   </div>
                   <div className="col-lg-2">
                     <div className="mb-3">
-                      <button className="btn btn-primary w-100" type="submit">
-                        Generate Report
+                      <button className="btn btn-primary w-100" type="submit" disabled={loading}>
+                        {loading ? "Generating..." : "Generate Report"}
                       </button>
                     </div>
                   </div>
@@ -244,7 +277,7 @@ const CustomerReport = () => {
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={totalRecords}
+                  totalRecords={listData.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}

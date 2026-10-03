@@ -1,22 +1,79 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import TooltipIcons from "../../components/tooltip-content/tooltipIcons";
 import RefreshIcon from "../../components/tooltip-content/refresh";
 import CollapesIcon from "../../components/tooltip-content/collapes";
 import PrimeDataTable from "../../components/data-table";
-import { userlisadata } from "../../core/json/users";
 import UserModal from "../../core/modals/usermanagement/userModal";
 import SearchFromApi from "../../components/data-table/search";
+import { api } from "../../services/api";
+import { user49 } from "../../utils/imagepath";
 
 const Users = () => {
-  const dataSource = userlisadata;
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [filterStatus, setFilterStatus] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: any = {};
+      if (filterStatus !== "All") {
+        params.status = filterStatus.toLowerCase();
+      }
+      if (searchQuery) {
+        params.search = searchQuery;
+      }
+      const res = await api.get<any[]>("/staff", params);
+      if (Array.isArray(res)) {
+        const mapped = res.map((u: any) => ({
+          id: u.id,
+          username: u.name || u.username,
+          img: user49,
+          phone: u.phone || "-",
+          email: u.email || "-",
+          role: u.role ? (u.role.charAt(0).toUpperCase() + u.role.slice(1)) : "Staff",
+          createdon: u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN") : "-",
+          status: u.status === "active" ? "Active" : "Inactive",
+          raw: u,
+        }));
+        setUsers(mapped);
+      } else {
+        setUsers([]);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch staff:", err);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filterStatus, searchQuery]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/staff/${deleteId}`);
+      setDeleteId(null);
+      await fetchUsers();
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+    }
+  };
+
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
+
   const columns = [
     {
       header: "User Name",
@@ -67,14 +124,12 @@ const Users = () => {
         <div>
           {rowData.status === "Active" && (
             <span className="d-inline-flex align-items-center p-1 pe-2 rounded-1 text-white bg-success fs-10">
-              {" "}
               <i className="ti ti-point-filled me-1 fs-11"></i>
               {rowData.status}
             </span>
           )}
           {rowData.status === "Inactive" && (
             <span className="d-inline-flex align-items-center p-1 pe-2 rounded-1 text-white bg-danger fs-10">
-              {" "}
               <i className="ti ti-point-filled me-1 fs-11"></i>
               {rowData.status}
             </span>
@@ -87,29 +142,28 @@ const Users = () => {
       field: "actions",
       sortable: false,
       key: "actions",
-      body: () => (
+      body: (rowData: any) => (
         <div className="action-table-data">
           <div className="edit-delete-action">
-            <Link className="me-2 p-2" to="#">
-              <i
-                data-feather="eye"
-                className="feather feather-eye action-eye"
-              ></i>
-            </Link>
             <Link
               className="me-2 p-2"
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#edit-user"
+              onClick={() => setSelectedUser(rowData.raw)}
             >
               <i data-feather="edit" className="feather-edit"></i>
             </Link>
-            <Link className="confirm-text p-2" to="#">
+            <Link
+              className="confirm-text p-2"
+              to="#"
+              data-bs-toggle="modal"
+              data-bs-target="#delete-modal"
+              onClick={() => setDeleteId(rowData.raw?.id)}
+            >
               <i
                 data-feather="trash-2"
                 className="feather-trash-2"
-                data-bs-toggle="modal"
-                data-bs-target="#delete-modal"
               ></i>
             </Link>
           </div>
@@ -151,10 +205,10 @@ const Users = () => {
             <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
               <div className="search-set">
                 <SearchFromApi
-                callback={handleSearch}
-                rows={rows}
-                setRows={setRows}
-              />
+                  callback={handleSearch}
+                  rows={rows}
+                  setRows={setRows}
+                />
               </div>
               <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
                 <div className="dropdown me-2">
@@ -163,16 +217,33 @@ const Users = () => {
                     className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
                     data-bs-toggle="dropdown"
                   >
-                    Status
+                    Status: {filterStatus}
                   </Link>
-                  <ul className="dropdown-menu  dropdown-menu-end p-3">
+                  <ul className="dropdown-menu dropdown-menu-end p-3">
                     <li>
-                      <Link to="#" className="dropdown-item rounded-1">
+                      <Link
+                        to="#"
+                        className="dropdown-item rounded-1"
+                        onClick={(e) => { e.preventDefault(); setFilterStatus("All"); }}
+                      >
+                        All
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="#"
+                        className="dropdown-item rounded-1"
+                        onClick={(e) => { e.preventDefault(); setFilterStatus("Active"); }}
+                      >
                         Active
                       </Link>
                     </li>
                     <li>
-                      <Link to="#" className="dropdown-item rounded-1">
+                      <Link
+                        to="#"
+                        className="dropdown-item rounded-1"
+                        onClick={(e) => { e.preventDefault(); setFilterStatus("Inactive"); }}
+                      >
                         Inactive
                       </Link>
                     </li>
@@ -185,12 +256,12 @@ const Users = () => {
               <div className="table-responsive">
                 <PrimeDataTable
                   column={columns}
-                  data={dataSource}
+                  data={users}
                   rows={rows}
                   setRows={setRows}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
-                  totalRecords={dataSource.length}
+                  totalRecords={users.length}
                   searchQuery={searchQuery}
                   selectionMode="checkbox"
                   selection={selectedProducts}
@@ -202,9 +273,7 @@ const Users = () => {
           {/* /product list */}
         </div>
       </div>
-      {/* <AddUsers />
-      <EditUser /> */}
-      <UserModal />
+      <UserModal editUser={selectedUser} onSuccess={fetchUsers} />
       <div className="modal fade" id="delete-modal">
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
@@ -226,8 +295,10 @@ const Users = () => {
                     Cancel
                   </button>
                   <button
-                    type="submit"
+                    type="button"
                     className="btn btn-primary fs-13 fw-medium p-2 px-3"
+                    data-bs-dismiss="modal"
+                    onClick={handleDelete}
                   >
                     Yes Delete
                   </button>

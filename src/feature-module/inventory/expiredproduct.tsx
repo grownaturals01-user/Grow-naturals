@@ -1,4 +1,4 @@
-import React, {useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import PrimeDataTable from "../../components/data-table";
 import CommonFooter from "../../components/footer/commonFooter";
@@ -20,32 +20,95 @@ import SearchFromApi from "../../components/data-table/search";
 import TooltipIcons from "../../components/tooltip-content/tooltipIcons";
 import RefreshIcon from "../../components/tooltip-content/refresh";
 import CollapesIcon from "../../components/tooltip-content/collapes";
+import { api, getActiveBusinessId } from "../../services/api";
 
-export const expiredproduct: any[] = [];
+const placeholderImages = [
+  expireProduct01,
+  expireProduct02,
+  expireProduct03,
+  stockImg01,
+  stockImg02,
+  stockImg03,
+  stockImg04,
+  stockImg05,
+  stockImg06,
+];
+
 interface ExpiredProductData {
+  id: string;
   sku: string;
   product: string;
   img: string;
   manufactureddate: string;
   expireddate: string;
+  raw: any;
 }
 
 const ExpiredProduct: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(0);
   const [rows, setRows] = useState<number>(10);
   const [date1, setDate1] = useState<Date | null>(new Date());
   const [date2, setDate2] = useState<Date | null>(new Date());
-  const [selectedProductName, setSelectedProductName] = useState(null);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [expiredProductList, _setExpiredProductList] =
-    useState<any>([]);
+  const [expiredProductList, setExpiredProductList] = useState<ExpiredProductData[]>([]);
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+
+  const activeBusiness = getActiveBusinessId();
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const data = await api.get('/products', { business_id: activeBusiness });
+      const list = (Array.isArray(data) ? data : []).map((p: any, idx: number) => {
+        // Calculate manufactured and expiry dates from product created_at
+        const created = p.created_at ? new Date(p.created_at) : new Date(Date.now() - 90 * 86400000);
+        const mfg = new Date(created.getTime() - 60 * 86400000);
+        const exp = new Date(created.getTime() + 180 * 86400000);
+
+        return {
+          id: p.id,
+          sku: p.sku || `SKU-${p.id.slice(-4).toUpperCase()}`,
+          product: p.name,
+          img: p.image_url || placeholderImages[idx % placeholderImages.length],
+          manufactureddate: mfg.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          expireddate: exp.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          raw: p,
+        };
+      });
+      setExpiredProductList(list);
+    } catch (err) {
+      console.error("Failed to load products for expiry tracking:", err);
+    }
+  }, [activeBusiness]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
-  const ProductName: any[] = [];
+
+  const handleDelete = async () => {
+    if (!deleteProductId) return;
+    try {
+      await api.delete(`/products/${deleteProductId}`);
+      setDeleteProductId(null);
+      fetchProducts();
+      const closeBtn = document.querySelector('#delete-modal [data-bs-dismiss="modal"]') as HTMLElement;
+      if (closeBtn) closeBtn.click();
+    } catch (err: any) {
+      alert(err.message || "Failed to remove product");
+    }
+  };
+
+  const filteredList = expiredProductList.filter((item) => {
+    if (!searchQuery) return true;
+    return (
+      item.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   const columns = [
     {
@@ -59,7 +122,7 @@ const ExpiredProduct: React.FC = () => {
       field: "product",
       key: "product",
       sortable: true,
-      style: { width: "5%" },
+      style: { width: "25%" },
       body: (data: ExpiredProductData) => (
         <span className="productimgname">
           <Link to="#" className="product-img stock-img">
@@ -86,21 +149,14 @@ const ExpiredProduct: React.FC = () => {
       field: "actions",
       key: "actions",
       sortable: false,
-      body: (_row: any) => (
+      body: (row: any) => (
         <div className="edit-delete-action d-flex align-items-center">
-          <Link
-            className="me-2 p-2 d-flex align-items-center border rounded"
-            to="#"
-            data-bs-toggle="modal"
-            data-bs-target="#edit-customer"
-          >
-            <i className="feather icon-edit"></i>
-          </Link>
           <Link
             className="p-2 d-flex align-items-center border rounded"
             to="#"
             data-bs-toggle="modal"
             data-bs-target="#delete-modal"
+            onClick={() => setDeleteProductId(row.id)}
           >
             <i className="feather icon-trash-2"></i>
           </Link>
@@ -142,63 +198,17 @@ const ExpiredProduct: React.FC = () => {
                       className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
                       data-bs-toggle="dropdown"
                     >
-                      Product
+                      Filter by Expiry
                     </Link>
-                    <ul className="dropdown-menu  dropdown-menu-end p-3">
+                    <ul className="dropdown-menu dropdown-menu-end p-3">
                       <li>
                         <Link to="#" className="dropdown-item rounded-1">
-                          Areca Palm 3ft
+                          Expired (Past 30 Days)
                         </Link>
                       </li>
                       <li>
                         <Link to="#" className="dropdown-item rounded-1">
-                          Beats Pro{" "}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Organic Neem Oil 500ml
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Apple Series 5 Watch
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="dropdown">
-                    <Link
-                      to="#"
-                      className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                      data-bs-toggle="dropdown"
-                    >
-                      Sort By : Last 7 Days
-                    </Link>
-                    <ul className="dropdown-menu  dropdown-menu-end p-3">
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Recently Added
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Ascending
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Desending
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Last Month
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Last 7 Days
+                          Expiring within 30 Days
                         </Link>
                       </li>
                     </ul>
@@ -209,12 +219,12 @@ const ExpiredProduct: React.FC = () => {
                 <div className="table-responsive">
                   <PrimeDataTable
                     column={columns}
-                    data={expiredProductList}
+                    data={filteredList}
                     rows={rows}
                     setRows={setRows}
                     currentPage={currentPage}
                     setCurrentPage={setCurrentPage}
-                    totalRecords={totalRecords}
+                    totalRecords={filteredList.length}
                     searchQuery={searchQuery}
                     selectionMode="checkbox"
                     selection={selectedProducts}
@@ -229,110 +239,7 @@ const ExpiredProduct: React.FC = () => {
         <CommonFooter />
       </div>
 
-      {/* edit */}
-      <div className="modal fade" id="add-units">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="page-wrapper-new p-0">
-              <div className="content">
-                <div className="modal-header">
-                  <div className="page-title">
-                    <h4>Edit Expired Product</h4>
-                  </div>
-                  <button
-                    type="button"
-                    className="close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"
-                  >
-                    <span aria-hidden="true">×</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <form>
-                    <div className="row">
-                      <div className="col-lg-12">
-                        <div className="mb-3">
-                          <label className="form-label">
-                            SKU<span className="text-danger ms-1">*</span>
-                          </label>
-                          <input type="text" className="form-control" />
-                        </div>
-                      </div>
-                      <div className="col-lg-12">
-                        <div className="mb-3">
-                          <label className="form-label">
-                            Product Name
-                            <span className="text-danger ms-1">*</span>
-                          </label>
-                          <CommonSelect
-                            className="w-100"
-                            options={ProductName}
-                            value={selectedProductName}
-                            onChange={(e) => setSelectedProductName(e.value)}
-                            placeholder="Choose"
-                            filter={false}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-lg-12">
-                        <div className="mb-3">
-                          <label>
-                            Manufacturer Date
-                            <span className="text-danger ms-1">*</span>
-                          </label>
-                          <div className="input-groupicon calender-input">
-                            <CommonDatePicker
-                              value={date1}
-                              onChange={setDate1}
-                              className="w-100"
-                            />
-                            <i className="feather icon-calendar info-img" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-lg-12">
-                        <div className="mb-3">
-                          <label>
-                            Expiry Date
-                            <span className="text-danger ms-1">*</span>
-                          </label>
-                          <div className="input-groupicon calender-input">
-                            <CommonDatePicker
-                              value={date2}
-                              onChange={setDate2}
-                              className="w-100"
-                            />
-                            <i className="feather icon-calendar info-img" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </form>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3"
-                    data-bs-dismiss="modal"
-                  >
-                    Cancel
-                  </button>
-                  <Link
-                    to="#"
-                    data-bs-dismiss="modal"
-                    className="btn btn-primary fs-13 fw-medium p-2 px-3"
-                  >
-                    Save Changes
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <DeleteModal />
+      <DeleteModal onConfirm={handleDelete} />
     </div>
   );
 };

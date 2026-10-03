@@ -203,7 +203,22 @@ router.post('/', async (req: Request, res: Response) => {
       total_refund_amount: totalRefundAmount
     });
   } catch (error: any) {
-    console.error('Process refund error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/refunds/:id
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.query(`DELETE FROM refund_items WHERE refund_id = $1`, [id]);
+    const result = await db.query(`DELETE FROM refunds WHERE id = $1 RETURNING id`, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Refund not found' });
+    }
+    res.json({ message: 'Refund deleted successfully', id });
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });

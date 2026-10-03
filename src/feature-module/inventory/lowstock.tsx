@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import EditLowStock from "../../core/modals/inventory/editlowstock";
 import TooltipIcons from "../../components/tooltip-content/tooltipIcons";
@@ -15,12 +15,19 @@ import {
 import PrimeDataTable from "../../components/data-table";
 import DeleteModal from "../../components/delete-modal";
 import SearchFromApi from "../../components/data-table/search";
+import { api, getActiveBusinessId } from "../../services/api";
 
-
-export const lowstockdata: any[] = [];
+const placeholderImages = [
+  stockImg01,
+  stockImg02,
+  stockImg03,
+  stockImg04,
+  stockImg05,
+];
 
 // Interface for low stock data item
 interface LowStockItem {
+  id: string;
   warehouse: string;
   store: string;
   product: string;
@@ -29,20 +36,98 @@ interface LowStockItem {
   qty: string;
   qtyalert: string;
   img: string;
+  raw?: any;
 }
 
 const LowStock: React.FC = () => {
+  const [listData, setListData] = useState<LowStockItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalRecords, _setTotalRecords] = useState<any>(lowstockdata.length);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
- 
-    const handleSearch = (value: any) => {
+  const fetchLowStock = useCallback(async () => {
+    setLoading(true);
+    try {
+      const businessId = getActiveBusinessId();
+      const res = await api.get<any[]>("/products", { business_id: businessId });
+      if (Array.isArray(res)) {
+        const mapped: LowStockItem[] = res.map((p: any, idx: number) => ({
+          id: p.id,
+          warehouse: p.business_name ? `${p.business_name} Depot` : "Main Warehouse",
+          store: p.business_name || (businessId === 'nikhlesh-nursery' ? "Nikhlesh Nursery" : "Grow Naturals"),
+          product: p.name,
+          category: p.category_name || "General",
+          sku: p.sku || `SKU-${p.id.slice(-4).toUpperCase()}`,
+          qty: String(p.stock_quantity ?? 0),
+          qtyalert: String(p.low_stock_threshold ?? 10),
+          img: p.image_url || placeholderImages[idx % placeholderImages.length],
+          raw: p,
+        }));
+        setListData(mapped);
+      } else {
+        setListData([]);
+      }
+    } catch (err) {
+      console.warn("Failed to load low stock:", err);
+      setListData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLowStock();
+  }, [fetchLowStock]);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/products/${deleteId}`);
+      setDeleteId(null);
+      await fetchLowStock();
+      const closeBtn = document.querySelector('#delete-modal [data-bs-dismiss="modal"]') as HTMLElement;
+      if (closeBtn) closeBtn.click();
+    } catch (err) {
+      console.error("Failed to delete low stock item:", err);
+    }
+  };
+
+  const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
- 
+
+  // Filter low stock (stock <= threshold) vs out of stock (stock <= 0)
+  const lowStockOnly = listData.filter((p) => {
+    const q = Number(p.qty);
+    const th = Number(p.qtyalert);
+    return q <= th;
+  });
+
+  const outOfStockOnly = listData.filter((p) => {
+    return Number(p.qty) <= 0;
+  });
+
+  // If no items are strictly low, show all products sorted ascending by stock quantity
+  const activeLowStockList = (lowStockOnly.length > 0 ? lowStockOnly : [...listData].sort((a, b) => Number(a.qty) - Number(b.qty))).filter((item) => {
+    if (!searchQuery) return true;
+    return (
+      item.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
+  const activeOutOfStockList = (outOfStockOnly.length > 0 ? outOfStockOnly : listData.filter(i => Number(i.qty) <= 0)).filter((item) => {
+    if (!searchQuery) return true;
+    return (
+      item.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   const columns = [
     {
@@ -50,7 +135,7 @@ const LowStock: React.FC = () => {
       field: "warehouse",
       key: "warehouse",
       sortable: true,
-      style: { width: "5%" },
+      style: { width: "15%" },
     },
     {
       header: "Store",
@@ -79,7 +164,7 @@ const LowStock: React.FC = () => {
       sortable: true,
     },
     {
-      header: "SkU",
+      header: "SKU",
       field: "sku",
       key: "sku",
       sortable: true,
@@ -89,6 +174,11 @@ const LowStock: React.FC = () => {
       field: "qty",
       key: "qty",
       sortable: true,
+      body: (data: LowStockItem) => (
+        <span className={`fw-bold ${Number(data.qty) <= 0 ? 'text-danger' : 'text-warning'}`}>
+          {data.qty}
+        </span>
+      ),
     },
     {
       header: "Qty Alert",
@@ -101,13 +191,13 @@ const LowStock: React.FC = () => {
       field: "actions",
       key: "actions",
       sortable: false,
-      body: (_row: any) => (
+      body: (row: any) => (
         <div className="edit-delete-action d-flex align-items-center">
           <Link
             className="me-2 p-2 d-flex align-items-center border rounded"
             to="#"
             data-bs-toggle="modal"
-            data-bs-target="#edit-customer"
+            data-bs-target="#edit-stock"
           >
             <i className="feather icon-edit"></i>
           </Link>
@@ -116,6 +206,7 @@ const LowStock: React.FC = () => {
             to="#"
             data-bs-toggle="modal"
             data-bs-target="#delete-modal"
+            onClick={() => setDeleteId(row.id)}
           >
             <i className="feather icon-trash-2"></i>
           </Link>
@@ -135,7 +226,9 @@ const LowStock: React.FC = () => {
             </div>
             <ul className="table-top-head low-stock-top-head">
               <TooltipIcons />
-              <RefreshIcon />
+              <li onClick={() => fetchLowStock()}>
+                <RefreshIcon />
+              </li>
               <CollapesIcon />
               <li>
                 <Link
@@ -168,7 +261,7 @@ const LowStock: React.FC = () => {
                     aria-controls="pills-home"
                     aria-selected="true"
                   >
-                    Low Stocks
+                    Low Stocks ({activeLowStockList.length})
                   </button>
                 </li>
                 <li className="nav-item" role="presentation">
@@ -182,7 +275,7 @@ const LowStock: React.FC = () => {
                     aria-controls="pills-profile"
                     aria-selected="false"
                   >
-                    Out of Stocks
+                    Out of Stocks ({activeOutOfStockList.length})
                   </button>
                 </li>
               </ul>
@@ -223,120 +316,17 @@ const LowStock: React.FC = () => {
                           className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
                           data-bs-toggle="dropdown"
                         >
-                          Warehouse
+                          Status
                         </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
+                        <ul className="dropdown-menu dropdown-menu-end p-3">
                           <li>
                             <Link to="#" className="dropdown-item rounded-1">
-                              Areca Palm 3ft
+                              Low Stock Alert
                             </Link>
                           </li>
                           <li>
                             <Link to="#" className="dropdown-item rounded-1">
-                              Beats Pro{" "}
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Organic Neem Oil 500ml
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Apple Series 5 Watch
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Store
-                        </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Customer
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Francis Chang
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Customer
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Customer
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Category
-                        </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Computers
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Electronics
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Shoe
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Electronics
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Product
-                        </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Indoor Greens
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Beats
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Grow Naturals
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Apple
+                              Reorder Required
                             </Link>
                           </li>
                         </ul>
@@ -347,16 +337,16 @@ const LowStock: React.FC = () => {
                     <div className="table-responsive">
                       <PrimeDataTable
                         column={columns}
-                        data={lowstockdata}
+                        data={activeLowStockList}
                         rows={rows}
                         setRows={setRows}
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
-                        totalRecords={totalRecords}
+                        totalRecords={activeLowStockList.length}
                         searchQuery={searchQuery}
                         selectionMode="checkbox"
                         selection={selectedProducts}
-                        onSelectionChange={(e) => setSelectedProducts(e.value)}
+                        onSelectionChange={(e: any) => setSelectedProducts(e.value)}
                       />
                     </div>
                   </div>
@@ -377,183 +367,21 @@ const LowStock: React.FC = () => {
                       rows={rows}
                       setRows={setRows}
                     />
-                    <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Warehouse
-                        </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Areca Palm 3ft
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Beats Pro{" "}
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Organic Neem Oil 500ml
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Apple Series 5 Watch
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Store
-                        </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Customer
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Francis Chang
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Customer
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Customer
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Category
-                        </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Computers
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Electronics
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Shoe
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Electronics
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Product
-                        </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Indoor Greens
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Beats
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Grow Naturals
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Apple
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="dropdown">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Sort By : Last 7 Days
-                        </Link>
-                        <ul className="dropdown-menu  dropdown-menu-end p-3">
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Recently Added
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Ascending
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Desending
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Last Month
-                            </Link>
-                          </li>
-                          <li>
-                            <Link to="#" className="dropdown-item rounded-1">
-                              Last 7 Days
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
                   </div>
                   <div className="card-body">
                     <div className="table-responsive">
                       <PrimeDataTable
                         column={columns}
-                        data={lowstockdata}
+                        data={activeOutOfStockList}
                         rows={rows}
                         setRows={setRows}
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
-                        totalRecords={totalRecords}
+                        totalRecords={activeOutOfStockList.length}
                         searchQuery={searchQuery}
                         selectionMode="checkbox"
                         selection={selectedProducts}
-                        onSelectionChange={(e) => setSelectedProducts(e.value)}
+                        onSelectionChange={(e: any) => setSelectedProducts(e.value)}
                       />
                     </div>
                   </div>
@@ -590,7 +418,7 @@ const LowStock: React.FC = () => {
       {/* /Send Mail */}
 
       <EditLowStock />
-      <DeleteModal />
+      <DeleteModal onConfirm={handleDelete} />
     </div>
   );
 };

@@ -70,6 +70,48 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/projects/work-types
+router.get('/work-types', async (req: Request, res: Response) => {
+  try {
+    const businessId = getBusinessId(req);
+    const db = await getDb();
+    const result = await db.query(
+      `SELECT * FROM project_work_types
+       WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1)
+       ORDER BY sort_order ASC, name ASC`,
+      [businessId]
+    );
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/projects/work-types
+router.post('/work-types', async (req: Request, res: Response) => {
+  try {
+    const { name, description, sort_order } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Work type name is required' });
+    }
+
+    const db = await getDb();
+    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
+    const id = `pwt-${businessId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+
+    const result = await db.query(
+      `INSERT INTO project_work_types (id, business_id, name, description, sort_order)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [id, businessId, name.trim(), description ? description.trim() : '', Number(sort_order) || 0]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/projects/:id
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -156,48 +198,6 @@ router.get('/:id', async (req: Request, res: Response) => {
       updates: updates.rows,
       challans: challans.rows
     });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET /api/projects/work-types
-router.get('/work-types', async (req: Request, res: Response) => {
-  try {
-    const businessId = getBusinessId(req);
-    const db = await getDb();
-    const result = await db.query(
-      `SELECT * FROM project_work_types
-       WHERE ($1 = 'all' OR $1 = 'combined' OR business_id = $1)
-       ORDER BY sort_order ASC, name ASC`,
-      [businessId]
-    );
-    res.json(result.rows);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST /api/projects/work-types
-router.post('/work-types', async (req: Request, res: Response) => {
-  try {
-    const { name, description, sort_order } = req.body;
-    if (!name || !name.trim()) {
-      return res.status(400).json({ error: 'Work type name is required' });
-    }
-
-    const db = await getDb();
-    const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
-    const id = `pwt-${businessId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
-
-    const result = await db.query(
-      `INSERT INTO project_work_types (id, business_id, name, description, sort_order)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [id, businessId, name.trim(), description ? description.trim() : '', Number(sort_order) || 0]
-    );
-
-    res.status(201).json(result.rows[0]);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

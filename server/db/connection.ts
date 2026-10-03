@@ -250,7 +250,104 @@ export async function initDb(): Promise<void> {
     );`,
     `CREATE INDEX IF NOT EXISTS idx_subcat_biz ON subcategories(business_id);`,
     `CREATE INDEX IF NOT EXISTS idx_subcat_cat ON subcategories(category_id);`,
-    `ALTER TABLE products ADD COLUMN IF NOT EXISTS subcategory_id VARCHAR(64) REFERENCES subcategories(id) ON DELETE SET NULL;`
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS subcategory_id VARCHAR(64) REFERENCES subcategories(id) ON DELETE SET NULL;`,
+    `CREATE TABLE IF NOT EXISTS warehouses (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      name VARCHAR(128) NOT NULL,
+      contact_person VARCHAR(128) DEFAULT '',
+      phone VARCHAR(32) DEFAULT '',
+      email VARCHAR(128) DEFAULT '',
+      address TEXT DEFAULT '',
+      city VARCHAR(64) DEFAULT '',
+      state VARCHAR(64) DEFAULT '',
+      country VARCHAR(64) DEFAULT 'India',
+      postal_code VARCHAR(32) DEFAULT '',
+      status VARCHAR(32) DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE INDEX IF NOT EXISTS idx_warehouses_biz ON warehouses(business_id);`,
+    `INSERT INTO warehouses (id, business_id, name, contact_person, phone, email, address, city, state, country, postal_code, status)
+     VALUES
+       ('wh-gn-central', 'grow-naturals', 'Grow Naturals Central Depot', 'Rajesh Kumar', '+91 98765 43210', 'warehouse@grownaturals.in', 'Plot 42, HSR Layout, Sector 2', 'Bengaluru', 'Karnataka', 'India', '560102', 'Active'),
+       ('wh-nn-yard', 'nikhlesh-nursery', 'Nikhlesh Nursery Main Yard', 'Nikhlesh Gowda', '+91 98450 11223', 'stock@nikhleshnursery.com', 'Survey 18, Kanakapura Main Road', 'Bengaluru', 'Karnataka', 'India', '560062', 'Active')
+     ON CONFLICT (id) DO NOTHING;`,
+    `CREATE TABLE IF NOT EXISTS brands (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      name VARCHAR(128) NOT NULL,
+      slug VARCHAR(128) DEFAULT '',
+      logo_url TEXT DEFAULT '',
+      status VARCHAR(32) DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS units (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      name VARCHAR(64) NOT NULL,
+      short_name VARCHAR(32) NOT NULL,
+      status VARCHAR(32) DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS warranties (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      name VARCHAR(128) NOT NULL,
+      description TEXT DEFAULT '',
+      duration VARCHAR(32) NOT NULL,
+      period VARCHAR(32) NOT NULL,
+      status VARCHAR(32) DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS purchase_returns (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      purchase_id VARCHAR(64) REFERENCES purchase_orders(id) ON DELETE SET NULL,
+      supplier_id VARCHAR(64) REFERENCES suppliers(id) ON DELETE SET NULL,
+      supplier_name VARCHAR(255) NOT NULL,
+      reference_no VARCHAR(64) NOT NULL,
+      return_date DATE DEFAULT CURRENT_DATE,
+      status VARCHAR(32) DEFAULT 'Received',
+      total_amount NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+      notes TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS purchase_return_items (
+      id VARCHAR(64) PRIMARY KEY,
+      return_id VARCHAR(64) NOT NULL REFERENCES purchase_returns(id) ON DELETE CASCADE,
+      product_id VARCHAR(64) REFERENCES products(id) ON DELETE SET NULL,
+      product_name VARCHAR(255) NOT NULL,
+      quantity INTEGER NOT NULL,
+      unit_price NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+      total NUMERIC(12,2) NOT NULL DEFAULT 0.00
+    );`,
+    `INSERT INTO brands (id, business_id, name, slug, status)
+     VALUES
+       ('br-gn-1', 'grow-naturals', 'GreenLife Organics', 'greenlife-organics', 'Active'),
+       ('br-gn-2', 'grow-naturals', 'BioGrow Solutions', 'biogrow-solutions', 'Active'),
+       ('br-gn-3', 'grow-naturals', 'EcoFlora Nursery', 'ecoflora-nursery', 'Active'),
+       ('br-gn-4', 'grow-naturals', 'TerraPot Artisans', 'terrapot-artisans', 'Active'),
+       ('br-nn-1', 'nikhlesh-nursery', 'Nursery Greens', 'nursery-greens', 'Active'),
+       ('br-nn-2', 'nikhlesh-nursery', 'AgriSoil Prime', 'agrisoil-prime', 'Active')
+     ON CONFLICT (id) DO NOTHING;`,
+    `INSERT INTO units (id, business_id, name, short_name, status)
+     VALUES
+       ('un-gn-1', 'grow-naturals', 'Piece', 'pc', 'Active'),
+       ('un-gn-2', 'grow-naturals', 'Kilogram', 'kg', 'Active'),
+       ('un-gn-3', 'grow-naturals', 'Box', 'bx', 'Active'),
+       ('un-gn-4', 'grow-naturals', 'Liter', 'ltr', 'Active'),
+       ('un-gn-5', 'grow-naturals', 'Bundle', 'bdl', 'Active'),
+       ('un-nn-1', 'nikhlesh-nursery', 'Piece', 'pc', 'Active'),
+       ('un-nn-2', 'nikhlesh-nursery', 'Kilogram', 'kg', 'Active'),
+       ('un-nn-3', 'nikhlesh-nursery', 'Packet', 'pkt', 'Active')
+     ON CONFLICT (id) DO NOTHING;`,
+    `INSERT INTO warranties (id, business_id, name, description, duration, period, status)
+     VALUES
+       ('war-gn-1', 'grow-naturals', 'Plant Healthy Establishment Warranty', 'Covers replacement if plant wilts within 30 days under proper care', '1', 'Month', 'Active'),
+       ('war-gn-2', 'grow-naturals', 'Artisan Ceramic Pot Warranty', 'Protects against cracks or manufacturing defects', '6', 'Month', 'Active'),
+       ('war-gn-3', 'grow-naturals', 'Drip Irrigation Equipment Warranty', 'Complete replacement guarantee on pump and drippers', '1', 'Year', 'Active'),
+       ('war-nn-1', 'nikhlesh-nursery', 'Fruit Sapling Survival Warranty', 'Guaranteed true-to-type sapling survival', '3', 'Month', 'Active')
+     ON CONFLICT (id) DO NOTHING;`
   ];
 
   for (const m of migrations) {

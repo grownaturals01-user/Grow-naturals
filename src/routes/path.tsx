@@ -575,7 +575,7 @@ export const authRoutes = [
     id: 1,
     path: routes.dashboard,
     name: "home",
-    element: <NewDashboard />,
+    element: <Dashboard />,
     route: Route,
   },
   {

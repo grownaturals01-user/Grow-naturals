@@ -1,22 +1,119 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CommonSelect from "../../../components/select/common-select";
 import { user49 } from "../../../utils/imagepath";
+import { api } from "../../../services/api";
 
-const UserModal = () => {
-    const status = [
-        { value: "Choose", label: "Choose" },
-        { value: "Manager", label: "Manager" },
-        { value: "Admin", label: "Admin" },
-      ];
-      const [showPassword, setShowPassword] = useState(false);
-      const [selectedStatus, setSelectedStatus] = useState(null);
-      const handleTogglePassword = () => {
-        setShowPassword((prevShowPassword) => !prevShowPassword);
+interface UserModalProps {
+  onSuccess?: () => void;
+  editUser?: any;
+}
+
+const UserModal = ({ onSuccess, editUser }: UserModalProps) => {
+  const status = [
+    { value: "Admin", label: "Admin" },
+    { value: "Manager", label: "Manager" },
+    { value: "Cashier", label: "Cashier" },
+    { value: "Staff", label: "Staff" },
+  ];
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setConfirmPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Add user state
+  const [selectedStatus, setSelectedStatus] = useState<any>({ value: "Staff", label: "Staff" });
+  const [addName, setAddName] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addPhone, setAddPhone] = useState("");
+  const [addPassword, setAddPassword] = useState("");
+  const [addConfirmPassword, setAddConfirmPassword] = useState("");
+  const [addActive, setAddActive] = useState(true);
+
+  // Edit user state
+  const [editRole, setEditRole] = useState<any>({ value: "Staff", label: "Staff" });
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editConfirmPassword, setEditConfirmPassword] = useState("");
+  const [editActive, setEditActive] = useState(true);
+
+  useEffect(() => {
+    if (editUser) {
+      setEditName(editUser.name || editUser.username || "");
+      setEditEmail(editUser.email || "");
+      setEditPhone(editUser.phone || "");
+      const roleCapitalized = editUser.role
+        ? editUser.role.charAt(0).toUpperCase() + editUser.role.slice(1)
+        : "Staff";
+      setEditRole({ value: roleCapitalized, label: roleCapitalized });
+      setEditActive(editUser.status === "active");
+      setEditPassword("");
+      setEditConfirmPassword("");
+    }
+  }, [editUser]);
+
+  const handleTogglePassword = () => {
+    setShowPassword((prev) => !prev);
+  };
+  const handleToggleConfirmPassword = () => {
+    setConfirmPassword((prev) => !prev);
+  };
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addName.trim() || !addEmail.trim()) return;
+    setSubmitting(true);
+    try {
+      const username = addEmail.split("@")[0] + "_" + Math.floor(100 + Math.random() * 900);
+      await api.post("/staff", {
+        name: addName.trim(),
+        username,
+        email: addEmail.trim(),
+        phone: addPhone.trim(),
+        role: (selectedStatus?.value || "Staff").toLowerCase(),
+        status: addActive ? "active" : "inactive",
+        password: addPassword || "password123",
+      });
+      setAddName("");
+      setAddEmail("");
+      setAddPhone("");
+      setAddPassword("");
+      setAddConfirmPassword("");
+      const closeBtn = document.querySelector("#add-user [data-bs-dismiss='modal']") as HTMLButtonElement;
+      if (closeBtn) closeBtn.click();
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
+      console.error("Failed to create staff member:", err);
+      alert(err.message || "Failed to create user");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser?.id) return;
+    setSubmitting(true);
+    try {
+      const payload: any = {
+        name: editName.trim(),
+        email: editEmail.trim(),
+        phone: editPhone.trim(),
+        role: (editRole?.value || "Staff").toLowerCase(),
+        status: editActive ? "active" : "inactive",
       };
-      const [showConfirmPassword, setConfirmPassword] = useState(false);
-      const handleToggleConfirmPassword = () => {
-        setConfirmPassword((prevShowPassword) => !prevShowPassword);
-      };
+      if (editPassword) payload.password = editPassword;
+      await api.put(`/staff/${editUser.id}`, payload);
+      const closeBtn = document.querySelector("#edit-user [data-bs-dismiss='modal']") as HTMLButtonElement;
+      if (closeBtn) closeBtn.click();
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
+      console.error("Failed to update staff member:", err);
+      alert(err.message || "Failed to update user");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -39,7 +136,7 @@ const UserModal = () => {
                     <span aria-hidden="true">×</span>
                   </button>
                 </div>
-                <form action="users.html">
+                <form onSubmit={handleAddSubmit}>
                   <div className="modal-body">
                     <div className="row">
                       <div className="col-lg-12">
@@ -68,7 +165,13 @@ const UserModal = () => {
                           <label className="form-label">
                             User<span className="text-danger ms-1">*</span>
                           </label>
-                          <input type="text" className="form-control" />
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={addName}
+                            onChange={(e) => setAddName(e.target.value)}
+                            required
+                          />
                         </div>
                       </div>
                       <div className="col-lg-12">
@@ -91,7 +194,13 @@ const UserModal = () => {
                           <label className="form-label">
                             Email<span className="text-danger ms-1">*</span>
                           </label>
-                          <input type="email" className="form-control" />
+                          <input
+                            type="email"
+                            className="form-control"
+                            value={addEmail}
+                            onChange={(e) => setAddEmail(e.target.value)}
+                            required
+                          />
                         </div>
                       </div>
                       <div className="col-lg-12">
@@ -99,7 +208,12 @@ const UserModal = () => {
                           <label className="form-label">
                             Phone<span className="text-danger ms-1">*</span>
                           </label>
-                          <input type="tel" className="form-control" />
+                          <input
+                            type="tel"
+                            className="form-control"
+                            value={addPhone}
+                            onChange={(e) => setAddPhone(e.target.value)}
+                          />
                         </div>
                       </div>
                       <div className="col-lg-6">
@@ -112,6 +226,8 @@ const UserModal = () => {
                               type={showPassword ? "text" : "password"}
                               className="pass-input form-control"
                               placeholder="Enter your password"
+                              value={addPassword}
+                              onChange={(e) => setAddPassword(e.target.value)}
                             />
                             <span
                               className={`ti toggle-password text-gray-9 ${showPassword ? "ti-eye" : "ti-eye-off"}`}
@@ -131,6 +247,8 @@ const UserModal = () => {
                               type={showConfirmPassword ? "text" : "password"}
                               className="pass-input form-control"
                               placeholder="Enter your password"
+                              value={addConfirmPassword}
+                              onChange={(e) => setAddConfirmPassword(e.target.value)}
                             />
                             <span
                               className={`ti  toggle-password text-gray-9 ${showConfirmPassword ? "ti-eye" : "ti-eye-off"}`}
@@ -146,7 +264,8 @@ const UserModal = () => {
                             type="checkbox"
                             id="user1"
                             className="check"
-                            defaultChecked
+                            checked={addActive}
+                            onChange={(e) => setAddActive(e.target.checked)}
                           />
                           <label htmlFor="user1" className="checktoggle">
                             {" "}
@@ -163,8 +282,8 @@ const UserModal = () => {
                     >
                       Cancel
                     </button>
-                    <button type="submit" className="btn btn-primary">
-                      Add User
+                    <button type="submit" className="btn btn-primary" disabled={submitting}>
+                      {submitting ? "Adding..." : "Add User"}
                     </button>
                   </div>
                 </form>
@@ -193,7 +312,7 @@ const UserModal = () => {
                     <span aria-hidden="true">×</span>
                   </button>
                 </div>
-                <form action="users.html">
+                <form onSubmit={handleEditSubmit}>
                   <div className="modal-body">
                     <div className="row">
                       <div className="col-lg-12">
@@ -229,7 +348,9 @@ const UserModal = () => {
                           <input
                             type="text"
                             className="form-control"
-                            defaultValue="Henry Bryant"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            required
                           />
                         </div>
                       </div>
@@ -241,8 +362,8 @@ const UserModal = () => {
                           <CommonSelect
                             className="w-100"
                             options={status}
-                            value={selectedStatus}
-                            onChange={(e) => setSelectedStatus(e.value)}
+                            value={editRole}
+                            onChange={(e) => setEditRole(e.value)}
                             placeholder="Choose"
                             filter={false}
                           />
@@ -256,7 +377,9 @@ const UserModal = () => {
                           <input
                             type="email"
                             className="form-control"
-                            defaultValue="henry@example.com"
+                            value={editEmail}
+                            onChange={(e) => setEditEmail(e.target.value)}
+                            required
                           />
                         </div>
                       </div>
@@ -268,20 +391,23 @@ const UserModal = () => {
                           <input
                             type="tel"
                             className="form-control"
-                            defaultValue={+12498345785}
+                            value={editPhone}
+                            onChange={(e) => setEditPhone(e.target.value)}
                           />
                         </div>
                       </div>
                       <div className="col-lg-6">
                         <div className="mb-3">
                           <label className="form-label">
-                            Password<span className="text-danger ms-1">*</span>
+                            Password
                           </label>
                           <div className="pass-group">
                             <input
                               type={showPassword ? "text" : "password"}
                               className="pass-input form-control"
-                              placeholder="Enter your password"
+                              placeholder="Leave blank to keep unchanged"
+                              value={editPassword}
+                              onChange={(e) => setEditPassword(e.target.value)}
                             />
                             <span
                               className={`ti toggle-password text-gray-9 ${showPassword ? "ti-eye" : "ti-eye-off"}`}
@@ -294,13 +420,14 @@ const UserModal = () => {
                         <div className="mb-3">
                           <label className="form-label">
                             Confirm Password
-                            <span className="text-danger ms-1">*</span>
                           </label>
                           <div className="pass-group">
                             <input
                               type={showConfirmPassword ? "text" : "password"}
                               className="pass-input form-control"
-                              placeholder="Enter your password"
+                              placeholder="Leave blank to keep unchanged"
+                              value={editConfirmPassword}
+                              onChange={(e) => setEditConfirmPassword(e.target.value)}
                             />
                             <span
                               className={`ti   toggle-password text-gray-9 ${showConfirmPassword ? "ti-eye" : "ti-eye-off"}`}
@@ -316,7 +443,8 @@ const UserModal = () => {
                             type="checkbox"
                             id="user2"
                             className="check"
-                            defaultChecked
+                            checked={editActive}
+                            onChange={(e) => setEditActive(e.target.checked)}
                           />
                           <label htmlFor="user2" className="checktoggle">
                             {" "}
@@ -333,8 +461,8 @@ const UserModal = () => {
                     >
                       Cancel
                     </button>
-                    <button type="submit" className="btn btn-primary">
-                      Save Changes
+                    <button type="submit" className="btn btn-primary" disabled={submitting}>
+                      {submitting ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </form>

@@ -20,17 +20,6 @@ import "./assets/icons/boxicons/css/boxicons.min.css";
 import "@fortawesome/fontawesome-free/css/fontawesome.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 
-// Design Token Stylesheets
-import './styles/fonts.css';
-import './styles/tokens.css';
-import './styles/base.css';
-import './styles/layout.css';
-import './styles/components.css';
-import './styles/pos.css';
-import './styles/print.css';
-import './styles/create-sales-invoice.css';
-import './styles/dashboard-modern.css';
-import './styles/customizer.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
