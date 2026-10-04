@@ -1156,7 +1156,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex justify-content-between align-items-center">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-primary fs-16 ms-2">
+                  <span className="title-icon bg-soft-primary fs-16 me-2">
                     <i className="ti ti-shopping-cart" />
                   </span>
                   <h5 className="card-title mb-0">Sales &amp; Purchase</h5>
@@ -1382,7 +1382,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-info fs-16 ms-2">
+                  <span className="title-icon bg-soft-info fs-16 me-2">
                     <i className="ti ti-info-circle" />
                   </span>
                   <h5 className="card-title mb-0">Overall Information</h5>
@@ -1393,19 +1393,19 @@ const LayoutDemo = () => {
                   <div className="col-md-4">
                     <div className="info-item border bg-light p-3 text-center">
                       <div className="mb-3 text-info fs-24">
-                        <i className="ti ti-user-check" />
+                        <i className="ti ti-users" />
                       </div>
-                      <p className="mb-1">Suppliers</p>
-                      <h5>6987</h5>
+                      <p className="mb-1">Customer</p>
+                      <h5>10</h5>
                     </div>
                   </div>
                   <div className="col-md-4">
                     <div className="info-item border bg-light p-3 text-center">
                       <div className="mb-3 text-orange fs-24">
-                        <i className="ti ti-users" />
+                        <i className="ti ti-clock-hour-4" />
                       </div>
-                      <p className="mb-1">Customer</p>
-                      <h5>4896</h5>
+                      <p className="mb-1">Preorders</p>
+                      <h5>5</h5>
                     </div>
                   </div>
                   <div className="col-md-4">
@@ -1414,7 +1414,7 @@ const LayoutDemo = () => {
                         <i className="ti ti-shopping-cart" />
                       </div>
                       <p className="mb-1">Orders</p>
-                      <h5>487</h5>
+                      <h5>20</h5>
                     </div>
                   </div>
                 </div>
@@ -1497,7 +1497,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-pink fs-16 ms-2">
+                  <span className="title-icon bg-soft-pink fs-16 me-2">
                     <i className="ti ti-box" />
                   </span>
                   <h5 className="card-title mb-0">Top Selling Products</h5>
@@ -1533,7 +1533,7 @@ const LayoutDemo = () => {
               </div>
               <div className="card-body sell-product">
                 <div className="d-flex align-items-center justify-content-between border-bottom">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product1} alt="img" />
                     </Link>
@@ -1553,7 +1553,7 @@ const LayoutDemo = () => {
                   </span>
                 </div>
                 <div className="d-flex align-items-center justify-content-between border-bottom">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product16} alt="img" />
                     </Link>
@@ -1573,7 +1573,7 @@ const LayoutDemo = () => {
                   </span>
                 </div>
                 <div className="d-flex align-items-center justify-content-between border-bottom">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product3} alt="img" />
                     </Link>
@@ -1593,7 +1593,7 @@ const LayoutDemo = () => {
                   </span>
                 </div>
                 <div className="d-flex align-items-center justify-content-between border-bottom">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product4} alt="img" />
                     </Link>
@@ -1613,7 +1613,7 @@ const LayoutDemo = () => {
                   </span>
                 </div>
                 <div className="d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product5} alt="img" />
                     </Link>
@@ -1641,7 +1641,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-danger fs-16 ms-2">
+                  <span className="title-icon bg-soft-danger fs-16 me-2">
                     <i className="ti ti-alert-triangle" />
                   </span>
                   <h5 className="card-title mb-0">Low Stock Products</h5>
@@ -1655,7 +1655,7 @@ const LayoutDemo = () => {
               </div>
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product6} alt="img" />
                     </Link>
@@ -1672,7 +1672,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product7} alt="img" />
                     </Link>
@@ -1689,7 +1689,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product8} alt="img" />
                     </Link>
@@ -1706,7 +1706,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product9} alt="img" />
                     </Link>
@@ -1723,7 +1723,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between mb-0">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product10} alt="img" />
                     </Link>
@@ -1748,7 +1748,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-pink fs-16 ms-2">
+                  <span className="title-icon bg-soft-pink fs-16 me-2">
                     <i className="ti ti-box" />
                   </span>
                   <h5 className="card-title mb-0">Recent Sales</h5>
@@ -1784,7 +1784,7 @@ const LayoutDemo = () => {
               </div>
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product11} alt="img" />
                     </Link>
@@ -1807,7 +1807,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product12} alt="img" />
                     </Link>
@@ -1830,7 +1830,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product13} alt="img" />
                     </Link>
@@ -1853,7 +1853,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product14} alt="img" />
                     </Link>
@@ -1876,7 +1876,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between mb-0">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg">
                       <img src={product15} alt="img" />
                     </Link>
@@ -1909,7 +1909,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex justify-content-between align-items-center">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-danger fs-16 ms-2">
+                  <span className="title-icon bg-soft-danger fs-16 me-2">
                     <i className="ti ti-alert-triangle" />
                   </span>
                   <h5 className="card-title mb-0">Sales Statics</h5>
@@ -1946,20 +1946,20 @@ const LayoutDemo = () => {
               <div className="card-body pb-0">
                 <div className="d-flex align-items-center flex-wrap gap-2">
                   <div className="border p-2 br-8">
-                    <h5 className="d-inline-flex align-items-center text-teal">
+                    <h5 className="d-inline-flex align-items-center gap-2 text-teal">
                       $12,189
-                      <span className="badge badge-success badge-xs d-inline-flex align-items-center me-2">
-                        <i className="ti ti-arrow-up-left ms-2" />
+                      <span className="badge badge-success badge-xs d-inline-flex align-items-center gap-1 ms-2">
+                        <i className="ti ti-arrow-up-left" />
                         25%
                       </span>
                     </h5>
                     <p>Revenue</p>
                   </div>
                   <div className="border p-2 br-8">
-                    <h5 className="d-inline-flex align-items-center text-orange">
+                    <h5 className="d-inline-flex align-items-center gap-2 text-orange">
                       $48,988,078
-                      <span className="badge badge-danger badge-xs d-inline-flex align-items-center me-2">
-                        <i className="ti ti-arrow-down-right ms-2" />
+                      <span className="badge badge-danger badge-xs d-inline-flex align-items-center gap-1 ms-2">
+                        <i className="ti ti-arrow-down-right" />
                         25%
                       </span>
                     </h5>
@@ -1983,7 +1983,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-orange fs-16 ms-2">
+                  <span className="title-icon bg-soft-orange fs-16 me-2">
                     <i className="ti ti-flag" />
                   </span>
                   <h5 className="card-title mb-0">Recent Transactions</h5>
@@ -2766,7 +2766,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-orange fs-16 ms-2">
+                  <span className="title-icon bg-soft-orange fs-16 me-2">
                     <i className="ti ti-users" />
                   </span>
                   <h5 className="card-title mb-0">Top Customers</h5>
@@ -2780,7 +2780,7 @@ const LayoutDemo = () => {
               </div>
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between border-bottom mb-3 pb-3 flex-wrap gap-2">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg flex-shrink-0">
                       <img src={customer11} alt="img" />
                     </Link>
@@ -2802,7 +2802,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between border-bottom mb-3 pb-3 flex-wrap gap-2">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg flex-shrink-0">
                       <img src={customer12} alt="img" />
                     </Link>
@@ -2824,7 +2824,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between border-bottom mb-3 pb-3 flex-wrap gap-2">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg flex-shrink-0">
                       <img src={customer13} alt="img" />
                     </Link>
@@ -2846,7 +2846,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between border-bottom mb-3 pb-3 flex-wrap gap-2">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg flex-shrink-0">
                       <img src={customer14} alt="img" />
                     </Link>
@@ -2868,7 +2868,7 @@ const LayoutDemo = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center gap-12">
                     <Link to="#" className="avatar avatar-lg flex-shrink-0">
                       <img src={customer15} alt="img" />
                     </Link>
@@ -2898,7 +2898,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-orange fs-16 ms-2">
+                  <span className="title-icon bg-soft-orange fs-16 me-2">
                     <i className="ti ti-users" />
                   </span>
                   <h5 className="card-title mb-0">Top Categories</h5>
@@ -3001,7 +3001,7 @@ const LayoutDemo = () => {
             <div className="card flex-fill">
               <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div className="d-inline-flex align-items-center">
-                  <span className="title-icon bg-soft-indigo fs-16 ms-2">
+                  <span className="title-icon bg-soft-indigo fs-16 me-2">
                     <i className="ti ti-package" />
                   </span>
                   <h5 className="card-title mb-0">Order Statistics</h5>

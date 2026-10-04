@@ -19,6 +19,8 @@ import { LazyWrapper } from "./components/lazy-loading";
 import "./assets/icons/boxicons/css/boxicons.min.css";
 import "@fortawesome/fontawesome-free/css/fontawesome.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
+import "./assets/fonts/lucide/lucide.css";
+import "swiper/swiper-bundle.css";
 
 
 createRoot(document.getElementById('root')!).render(

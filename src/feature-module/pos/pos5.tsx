@@ -5,6 +5,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import PosModals from "../../core/modals/pos-modal/posModalstjsx";
+import { Banknote, CreditCard, Sparkles, QrCode, ReceiptText } from "lucide-react";
 
 import {
   card,
@@ -1446,61 +1447,53 @@ const Pos5 = () => {
                 <div className="block-section payment-method">
                   <h5 className="mb-2">Select Payment</h5>
                   <div className="row align-items-center justify-content-center methods g-2 mb-4">
-                    <div className="col-sm-6 col-md-4 col-xl d-flex">
-                      <Link
-                        to="#"
-                        className="payment-item flex-fill"
-                        data-bs-toggle="modal"
-                        data-bs-target="#payment-cash"
-                      >
-                        <img src={cashIcon} alt="img" />
-                        <p className="fw-medium">Cash</p>
-                      </Link>
-                    </div>
-                    <div className="col-sm-6 col-md-4 col-xl d-flex">
-                      <Link
-                        to="#"
-                        className="payment-item flex-fill"
-                        data-bs-toggle="modal"
-                        data-bs-target="#payment-card"
-                      >
-                        <img src={card} alt="img" />
-                        <p className="fw-medium">Card</p>
-                      </Link>
-                    </div>
-                    <div className="col-sm-6 col-md-4 col-xl d-flex">
-                      <Link
-                        to="#"
-                        className="payment-item flex-fill"
-                        data-bs-toggle="modal"
-                        data-bs-target="#payment-points"
-                      >
-                        <img src={points} alt="img" />
-                        <p className="fw-medium">Points</p>
-                      </Link>
-                    </div>
-                    <div className="col-sm-6 col-md-4 col-xl d-flex">
-                      <Link
-                        to="#"
-                        className="payment-item flex-fill"
-                        data-bs-toggle="modal"
-                        data-bs-target="#payment-deposit"
-                      >
-                        <img src={desposit} alt="img" />
-                        <p className="fw-medium">Deposit</p>
-                      </Link>
-                    </div>
-                    <div className="col-sm-6 col-md-4 col-xl d-flex">
-                      <Link
-                        to="#"
-                        className="payment-item flex-fill"
-                        data-bs-toggle="modal"
-                        data-bs-target="#payment-cheque"
-                      >
-                        <img src={cheque} alt="img" />
-                        <p className="fw-medium">Cheque</p>
-                      </Link>
-                    </div>
+                    {[
+                      { target: "#payment-cash", label: "Cash", Icon: Banknote, iconColor: "#10b981" },
+                      { target: "#payment-card", label: "Card", Icon: CreditCard, iconColor: "#3b82f6" },
+                      { target: "#payment-points", label: "Points", Icon: Sparkles, iconColor: "#f59e0b" },
+                      { target: "#payment-deposit", label: "UPI", Icon: QrCode, iconColor: "#06b6d4" },
+                      { target: "#payment-cheque", label: "Cheque", Icon: ReceiptText, iconColor: "#8b5cf6" },
+                    ].map(({ target, label, Icon, iconColor }) => (
+                      <div className="col-sm-6 col-md-4 col-xl d-flex" key={label}>
+                        <Link
+                          to="#"
+                          className="payment-item flex-fill text-center p-2 rounded border"
+                          data-bs-toggle="modal"
+                          data-bs-target={target}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: "72px",
+                            backgroundColor: "#ffffff",
+                            borderColor: "#e2e8f0",
+                            borderWidth: "1.5px",
+                            borderStyle: "solid",
+                            borderRadius: "10px",
+                            textDecoration: "none",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: "34px",
+                              height: "34px",
+                              borderRadius: "8px",
+                              backgroundColor: "#f8fafc",
+                              color: iconColor,
+                              marginBottom: "4px",
+                            }}
+                          >
+                            <Icon size={20} strokeWidth={2} />
+                          </div>
+                          <p className="fw-medium mb-0 fs-12 text-dark">{label}</p>
+                        </Link>
+                      </div>
+                    ))}
                   </div>
                   <div className="btn-block m-0">
                     <Link className="btn btn-teal w-100" to="#">

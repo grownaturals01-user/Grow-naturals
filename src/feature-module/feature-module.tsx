@@ -83,6 +83,12 @@ const FeatureModule = () => {
       }
     }
   }, [location.pathname, dataTheme, dispatch]);
+  // Synchronize data-layout and data-width on documentElement
+  useEffect(() => {
+    document.documentElement.setAttribute("data-layout", dataLayout || "default");
+    document.documentElement.setAttribute("data-width", dataWidth || "fluid");
+  }, [dataLayout, dataWidth]);
+
   const Preloader = () => {
     return (
       <div id="global-loader">
@@ -166,16 +172,9 @@ const FeatureModule = () => {
                   className={`main-wrapper ${data ? "header-collapse" : ""}`}
                 >
                   <Header />
-                  {dataLayout === "horizontal" ||
-                  dataLayout === "horizontal-single" ||
-                  dataLayout === "horizontal-overlay" ||
-                  dataLayout === "horizontal-box" ? (
-                    <HorizontalSidebar />
-                  ) : dataLayout === "twocolumn" ? (
-                    <TwoColumnSidebar />
-                  ) : (
-                    <Sidebar />
-                  )}
+                  <Sidebar />
+                  <TwoColumnSidebar />
+                  <HorizontalSidebar />
                   <Outlet />
                   {location.pathname.includes("layout") ? (
                     <></>
@@ -185,9 +184,11 @@ const FeatureModule = () => {
                   <div
                     className="sidebar-overlay"
                     onClick={() => {
-                      document.querySelector(".main-wrapper")?.classList.remove("slide-nav");
-                      document.querySelector(".sidebar-overlay")?.classList.remove("opened");
-                      document.querySelector("html")?.classList.remove("menu-opened");
+                      document?.querySelectorAll(".main-wrapper")?.forEach((el) => el.classList.remove("slide-nav"));
+                      document?.body?.classList?.remove("slide-nav");
+                      document?.body?.classList?.remove("menu-opened");
+                      document?.querySelectorAll(".sidebar-overlay")?.forEach((el) => el.classList.remove("opened"));
+                      document?.documentElement?.classList?.remove("menu-opened");
                     }}
                   />
                 </div>

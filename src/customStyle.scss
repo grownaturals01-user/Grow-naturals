@@ -961,9 +961,278 @@ div.rti--container {
   }
 }
 
-[data-layout="horizontal"] {
-  #sidebar {
-    display: none;
+@media (min-width: 992px) {
+  [data-layout="horizontal"],
+  [data-layout="horizontal-single"],
+  [data-layout="horizontal-overlay"],
+  [data-layout="horizontal-box"],
+  .menu-horizontal {
+    #sidebar,
+    .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol) {
+      display: none !important;
+    }
+    #toggle_btn,
+    .mobile_btn,
+    #mobile_btn {
+      display: none !important;
+    }
+
+    .header {
+      display: block !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      height: 60px !important;
+      z-index: 1020 !important;
+      background-color: #ffffff !important;
+      border-bottom: 1px solid #e8ebed !important;
+
+      .main-header {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 60px !important;
+        margin: 0 !important;
+        padding: 0 24px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        
+        .header-left {
+          display: flex !important;
+          align-items: center !important;
+          padding-left: 0 !important;
+          width: auto !important;
+          float: none !important;
+        }
+        .user-menu {
+          padding-right: 0 !important;
+          margin-left: auto !important;
+        }
+      }
+    }
+
+    #horizontal-menu,
+    .sidebar.sidebar-horizontal {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      background-color: #ffffff !important;
+      position: fixed !important;
+      top: 60px !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      max-height: 48px !important;
+      z-index: 1010 !important;
+      border-bottom: 1px solid #e8ebed !important;
+      border-top: none !important;
+      border-left: none !important;
+      border-right: none !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      
+      .sidebar-menu {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 48px !important;
+        margin: 0 !important;
+        padding: 0 24px !important;
+        display: flex !important;
+        align-items: center !important;
+
+        .main-menu {
+          width: 100% !important;
+          height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+
+          > ul.nav {
+            display: flex !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            gap: 4px !important;
+            width: 100% !important;
+            height: 100% !important;
+
+            > li.submenu {
+              position: relative !important;
+              list-style: none !important;
+              height: 100% !important;
+              display: flex !important;
+              align-items: center !important;
+
+              > a {
+                display: flex !important;
+                align-items: center !important;
+                padding: 6px 12px !important;
+                font-size: 13px !important;
+                font-weight: 500 !important;
+                color: #4b5563 !important;
+                border-radius: 6px !important;
+                text-decoration: none !important;
+                white-space: nowrap !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+
+                i {
+                  font-size: 15px !important;
+                  margin-right: 6px !important;
+                }
+
+                .menu-arrow {
+                  margin-left: 6px !important;
+                  display: inline-block !important;
+                }
+
+                &:hover,
+                &.active {
+                  background-color: rgba(254, 159, 67, 0.1) !important;
+                  color: #fe9f43 !important;
+
+                  i {
+                    color: #fe9f43 !important;
+                  }
+                }
+              }
+
+              // Dropdown Level 2
+              > ul.submenus-two {
+                position: absolute !important;
+                top: 44px !important;
+                left: 0 !important;
+                min-width: 200px !important;
+                background: #ffffff !important;
+                border: 1px solid #e8ebed !important;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+                border-radius: 8px !important;
+                padding: 8px !important;
+                z-index: 1050 !important;
+                list-style: none !important;
+
+                li {
+                  list-style: none !important;
+                  position: relative !important;
+
+                  a {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                    padding: 8px 12px !important;
+                    font-size: 13px !important;
+                    color: #4b5563 !important;
+                    border-radius: 6px !important;
+                    text-decoration: none !important;
+
+                    &:hover,
+                    &.active {
+                      background-color: rgba(254, 159, 67, 0.1) !important;
+                      color: #fe9f43 !important;
+                    }
+                  }
+
+                  // Dropdown Level 3
+                  > ul.submenus-three {
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 100% !important;
+                    min-width: 200px !important;
+                    background: #ffffff !important;
+                    border: 1px solid #e8ebed !important;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+                    border-radius: 8px !important;
+                    padding: 8px !important;
+                    z-index: 1055 !important;
+                    list-style: none !important;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .page-wrapper {
+      margin: 0 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      padding-top: 125px !important;
+      min-height: 100vh !important;
+      transition: none !important;
+
+      .content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 24px !important;
+      }
+    }
+  }
+}
+
+
+
+// Boxed mode: ONLY active when data-width is "box" or .layout-box-mode is active
+[data-width="box"],
+.layout-box-mode {
+  &[data-layout="horizontal"],
+  &.menu-horizontal,
+  .menu-horizontal {
+    .header .main-header {
+      max-width: 1320px !important;
+      margin: 0 auto !important;
+      @media (max-width: 1399px) {
+        max-width: 1170px !important;
+      }
+      @media (max-width: 1199px) {
+        max-width: 950px !important;
+      }
+      @media (max-width: 991px) {
+        max-width: 100% !important;
+      }
+    }
+    #horizontal-menu .sidebar-menu,
+    .sidebar-horizontal .sidebar-menu {
+      max-width: 1320px !important;
+      margin: 0 auto !important;
+      @media (max-width: 1399px) {
+        max-width: 1170px !important;
+      }
+      @media (max-width: 1199px) {
+        max-width: 950px !important;
+      }
+      @media (max-width: 991px) {
+        max-width: 100% !important;
+      }
+    }
+    .page-wrapper {
+      max-width: 1320px !important;
+      margin: 0 auto !important;
+      @media (max-width: 1399px) {
+        max-width: 1170px !important;
+      }
+      @media (max-width: 1199px) {
+        max-width: 950px !important;
+      }
+      @media (max-width: 991px) {
+        max-width: 100% !important;
+      }
+      .content {
+        padding: 20px 0 !important;
+      }
+    }
   }
 }
 
@@ -2542,3 +2811,329 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
   scrollbar-width: thin;
   scrollbar-color: #FE9F43 transparent;
 }
+
+/* ==========================================================================
+   UNIVERSAL MOBILE RESPONSIVE SIDEBAR (Fixes all layout modes)
+   ========================================================================== */
+@media (max-width: 991.98px) {
+  /* 1. Header & Mobile Toggle Button */
+  .header {
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 60px !important;
+    z-index: 1030 !important;
+    background: #ffffff !important;
+
+    .main-header {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      height: 60px !important;
+      padding: 0 15px !important;
+      width: 100% !important;
+
+      .header-left {
+        display: flex !important;
+        align-items: center !important;
+        padding-left: 45px !important;
+      }
+    }
+
+    .mobile_btn,
+    #mobile_btn {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: absolute !important;
+      left: 10px !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      height: 60px !important;
+      width: 44px !important;
+      z-index: 1035 !important;
+      cursor: pointer !important;
+      color: #333333 !important;
+
+      .bar-icon {
+        display: inline-block;
+        width: 21px;
+        span {
+          background-color: #333333;
+          display: block;
+          float: left;
+          height: 2px;
+          margin-bottom: 5px;
+          width: 21px;
+          border-radius: 2px;
+          transition: all 0.5s;
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+  }
+
+  // RTL mobile header adjustment
+  body.layout-mode-rtl .header,
+  [data-layout="rtl"] .header,
+  [dir="rtl"] .header {
+    .main-header .header-left {
+      padding-left: 0 !important;
+      padding-right: 45px !important;
+    }
+    .mobile_btn,
+    #mobile_btn {
+      left: auto !important;
+      right: 10px !important;
+    }
+  }
+
+  /* 2. Hide alternative desktop navigation on mobile */
+  #horizontal-menu,
+  .sidebar-horizontal,
+  #two-col-sidebar,
+  .two-col-sidebar {
+    display: none !important;
+  }
+
+  /* 3. Base closed state for sidebar on mobile across ALL layout selections */
+  #sidebar,
+  .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol) {
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    margin-left: -575px !important;
+    margin-right: 0 !important;
+    width: 260px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    z-index: 1050 !important;
+    background-color: #ffffff !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border-right: 1px solid #e8ebed !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: none !important;
+
+    // Header inside sidebar
+    .sidebar-logo {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      height: 60px !important;
+      padding: 0 16px !important;
+      border-bottom: 1px solid #e8ebed !important;
+
+      .logo {
+        display: block !important;
+        img {
+          max-height: 38px;
+        }
+      }
+      .logo-small {
+        display: none !important;
+      }
+      #toggle_btn {
+        display: none !important;
+      }
+    }
+
+    // Sidebar menu items and labels visibility
+    .sidebar-menu {
+      display: block !important;
+      padding: 12px 16px !important;
+      
+      .nav-label,
+      .nav-section-title,
+      .brand-text,
+      .sidebar-profile-card,
+      .sidebar-profile-info {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+
+      > ul > li {
+        display: block !important;
+        width: 100% !important;
+
+        > a {
+          display: flex !important;
+          align-items: center !important;
+          width: 100% !important;
+          padding: 10px 14px !important;
+
+          span {
+            display: inline-block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+          }
+        }
+      }
+    }
+  }
+
+  // RTL mobile closed state
+  body.layout-mode-rtl #sidebar,
+  [data-layout="rtl"] #sidebar,
+  [dir="rtl"] #sidebar,
+  body.layout-mode-rtl .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol),
+  [data-layout="rtl"] .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol),
+  [dir="rtl"] .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol) {
+    left: auto !important;
+    right: 0 !important;
+    margin-right: -575px !important;
+    margin-left: 0 !important;
+    border-right: none !important;
+    border-left: 1px solid #e8ebed !important;
+  }
+
+  /* 4. OPEN state for mobile sidebar */
+  .main-wrapper.slide-nav #sidebar,
+  .slide-nav #sidebar,
+  .slide-nav .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol),
+  .menu-opened #sidebar,
+  .menu-opened .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol),
+  html.menu-opened #sidebar,
+  html.menu-opened .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol),
+  body.slide-nav #sidebar,
+  body.slide-nav .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol),
+  body.menu-opened #sidebar,
+  body.menu-opened .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin-left: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.25) !important;
+    z-index: 1050 !important;
+  }
+
+  // RTL Open State
+  body.layout-mode-rtl.slide-nav #sidebar,
+  body.layout-mode-rtl .slide-nav #sidebar,
+  body.layout-mode-rtl.menu-opened #sidebar,
+  html.menu-opened body.layout-mode-rtl #sidebar,
+  [data-layout="rtl"] .slide-nav #sidebar,
+  [data-layout="rtl"].menu-opened #sidebar,
+  [dir="rtl"] .slide-nav #sidebar,
+  [dir="rtl"].menu-opened #sidebar {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    right: 0 !important;
+    left: auto !important;
+  }
+
+  /* 5. Sidebar Overlay on mobile */
+  .sidebar-overlay {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    z-index: 1040 !important;
+    backdrop-filter: blur(2px);
+
+    &.opened {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+  }
+
+  .slide-nav ~ .sidebar-overlay,
+  .menu-opened .sidebar-overlay,
+  html.menu-opened .sidebar-overlay,
+  body.slide-nav .sidebar-overlay,
+  body.menu-opened .sidebar-overlay {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* 6. Page wrapper mobile padding */
+  .page-wrapper {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-top: 60px !important;
+  }
+}
+
+/* ==========================================================================
+   TITLE ICON SPACING (10px gap between icon and title text)
+   ========================================================================== */
+.title-icon,
+.dash-panel-title-icon {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+  flex-shrink: 0;
+}
+
+.card-header .d-inline-flex.align-items-center,
+.card-header .d-flex.align-items-center,
+.dash-panel-title {
+  gap: 10px;
+}
+
+body.layout-mode-rtl .title-icon,
+body.layout-mode-rtl .dash-panel-title-icon,
+[data-layout="rtl"] .title-icon,
+[data-layout="rtl"] .dash-panel-title-icon,
+[dir="rtl"] .title-icon,
+[dir="rtl"] .dash-panel-title-icon {
+  margin-right: 0 !important;
+  margin-left: 10px !important;
+}
+
+/* ==========================================================================
+   AVATAR & TEXT SPACING (12px gap between avatar and text)
+   ========================================================================== */
+.gap-12 {
+  gap: 12px !important;
+}
+
+.sell-product .d-flex.align-items-center,
+.card-body .d-flex.align-items-center:has(> .avatar),
+.card-body .d-flex.align-items-center:has(> a.avatar) {
+  gap: 12px !important;
+}
+
+.card-body .d-flex.align-items-center > a.avatar:first-child,
+.card-body .d-flex.align-items-center > .avatar:first-child {
+  flex-shrink: 0;
+}
+
+/* Sales Statics & heading badge spacing */
+.card-body h5 > .badge,
+.card-body h6 > .badge {
+  margin-left: 8px;
+}
+
+body.layout-mode-rtl .card-body h5 > .badge,
+body.layout-mode-rtl .card-body h6 > .badge,
+[data-layout="rtl"] .card-body h5 > .badge,
+[data-layout="rtl"] .card-body h6 > .badge {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+
+
+

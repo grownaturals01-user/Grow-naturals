@@ -502,128 +502,130 @@
    DYNAMIC LAYOUT MODES (DreamsPOS 1:1 Complete Execution)
    ========================================================================== */
 
-/* 1. Without Header Layout */
-[data-layout="without-header"] .header {
-  display: none !important;
+@media (min-width: 992px) {
+  /* 1. Without Header Layout */
+  [data-layout="without-header"] .header {
+    display: none !important;
+  }
+
+  [data-layout="without-header"] .main-content {
+    min-height: 100vh !important;
+  }
+
+  /* 2. Detached Sidebar Layout */
+  [data-layout="detached"] .sidebar {
+    top: 16px !important;
+    left: 16px !important;
+    bottom: 16px !important;
+    height: calc(100vh - 32px) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid var(--color-border) !important;
+  }
+
+  .app-shell[data-layout="detached"] .main-wrapper {
+    margin-left: 292px !important;
+  }
+
+  /* 3. Mini Sidebar Layout */
+  [data-layout="mini"] .sidebar,
+  body.mini-sidebar .sidebar,
+  .sidebar.collapsed {
+    width: 76px !important;
+  }
+
+  [data-layout="mini"] .sidebar-header,
+  body.mini-sidebar .sidebar-header,
+  .sidebar.collapsed .sidebar-header {
+    padding: 14px 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 64px !important;
+  }
+
+  [data-layout="mini"] .sidebar-toggle-btn,
+  body.mini-sidebar .sidebar-toggle-btn,
+  .sidebar.collapsed .sidebar-toggle-btn {
+    display: none !important;
+  }
+
+  [data-layout="mini"] .sidebar-profile-card,
+  [data-layout="mini"] .brand-text,
+  [data-layout="mini"] .nav-section-title,
+  [data-layout="mini"] .nav-label,
+  body.mini-sidebar .sidebar-profile-card,
+  body.mini-sidebar .brand-text,
+  body.mini-sidebar .nav-section-title,
+  body.mini-sidebar .nav-label,
+  .sidebar.collapsed .sidebar-profile-card,
+  .sidebar.collapsed .brand-text,
+  .sidebar.collapsed .nav-section-title,
+  .sidebar.collapsed .nav-label {
+    display: none !important;
+  }
+
+  [data-layout="mini"] .nav-link,
+  body.mini-sidebar .nav-link,
+  .sidebar.collapsed .nav-link {
+    justify-content: center !important;
+    padding: 10px !important;
+    width: 44px !important;
+    height: 44px !important;
+    margin: 2px auto !important;
+    gap: 0 !important;
+  }
+
+  [data-layout="mini"] .nav-icon,
+  body.mini-sidebar .nav-icon,
+  .sidebar.collapsed .nav-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    margin: 0 !important;
+  }
+
+  .app-shell [data-layout="mini"] .main-wrapper,
+  .app-shell body.mini-sidebar .main-wrapper,
+  .app-shell .main-wrapper.sidebar-collapsed {
+    margin-left: 76px !important;
+  }
+
+  /* 4. Boxed Width */
+  .app-shell [data-width="box"] .main-wrapper {
+    max-width: 1400px !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
+  }
+
+  /* 5. RTL Layout */
+  [dir="rtl"] .sidebar {
+    left: auto !important;
+    right: 0 !important;
+    border-right: none !important;
+    border-left: 1px solid var(--color-sidebar-border) !important;
+  }
+
+  [dir="rtl"] .app-shell .main-wrapper {
+    margin-left: 0 !important;
+    margin-right: 260px !important;
+  }
+
+  [dir="rtl"] .app-shell [data-layout="mini"] .main-wrapper,
+  [dir="rtl"] .app-shell body.mini-sidebar .main-wrapper {
+    margin-right: 76px !important;
+    margin-left: 0 !important;
+  }
 }
 
-[data-layout="without-header"] .main-content {
-  min-height: 100vh !important;
-}
-
-/* 2. Detached Sidebar Layout */
-[data-layout="detached"] .sidebar {
-  top: 16px !important;
-  left: 16px !important;
-  bottom: 16px !important;
-  height: calc(100vh - 32px) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
-  border: 1px solid var(--color-border) !important;
-}
-
-.app-shell[data-layout="detached"] .main-wrapper {
-  margin-left: 292px !important;
-}
-
-/* 3. Mini Sidebar Layout */
-[data-layout="mini"] .sidebar,
-body.mini-sidebar .sidebar,
-.sidebar.collapsed {
-  width: 76px !important;
-}
-
-[data-layout="mini"] .sidebar-header,
-body.mini-sidebar .sidebar-header,
-.sidebar.collapsed .sidebar-header {
-  padding: 14px 8px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: 64px !important;
-}
-
-[data-layout="mini"] .sidebar-toggle-btn,
-body.mini-sidebar .sidebar-toggle-btn,
-.sidebar.collapsed .sidebar-toggle-btn {
-  display: none !important;
-}
-
-[data-layout="mini"] .sidebar-profile-card,
-[data-layout="mini"] .brand-text,
-[data-layout="mini"] .nav-section-title,
-[data-layout="mini"] .nav-label,
-body.mini-sidebar .sidebar-profile-card,
-body.mini-sidebar .brand-text,
-body.mini-sidebar .nav-section-title,
-body.mini-sidebar .nav-label,
-.sidebar.collapsed .sidebar-profile-card,
-.sidebar.collapsed .brand-text,
-.sidebar.collapsed .nav-section-title,
-.sidebar.collapsed .nav-label {
-  display: none !important;
-}
-
-[data-layout="mini"] .nav-link,
-body.mini-sidebar .nav-link,
-.sidebar.collapsed .nav-link {
-  justify-content: center !important;
-  padding: 10px !important;
-  width: 44px !important;
-  height: 44px !important;
-  margin: 2px auto !important;
-  gap: 0 !important;
-}
-
-[data-layout="mini"] .nav-icon,
-body.mini-sidebar .nav-icon,
-.sidebar.collapsed .nav-icon {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
-  margin: 0 !important;
-}
-
-.app-shell [data-layout="mini"] .main-wrapper,
-.app-shell body.mini-sidebar .main-wrapper,
-.app-shell .main-wrapper.sidebar-collapsed {
-  margin-left: 76px !important;
-}
-
-/* 4. Boxed Width */
-.app-shell [data-width="box"] .main-wrapper {
-  max-width: 1400px !important;
-  margin-right: auto !important;
-  margin-left: auto !important;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
-}
-
-/* 5. RTL Layout */
 [dir="rtl"] {
   direction: rtl;
   text-align: right;
-}
-
-[dir="rtl"] .sidebar {
-  left: auto !important;
-  right: 0 !important;
-  border-right: none !important;
-  border-left: 1px solid var(--color-sidebar-border) !important;
-}
-
-[dir="rtl"] .app-shell .main-wrapper {
-  margin-left: 0 !important;
-  margin-right: 260px !important;
-}
-
-[dir="rtl"] .app-shell [data-layout="mini"] .main-wrapper,
-[dir="rtl"] .app-shell body.mini-sidebar .main-wrapper {
-  margin-right: 76px !important;
-  margin-left: 0 !important;
 }
 
 [dir="rtl"] .sidebar-contact {
@@ -646,3 +648,4 @@ body.mini-sidebar .nav-icon,
 [dir="rtl"] .sidebar-themesettings.offcanvas-drawer.open {
   transform: translateX(0) !important;
 }
+

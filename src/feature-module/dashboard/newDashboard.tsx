@@ -23,6 +23,7 @@ import { all_routes } from "../../routes/all_routes";
 import CommonDateRangePicker from "../../components/date-range-picker/common-date-range-picker";
 import CommonSelect from "../../components/select/common-select";
 import { api, getActiveBusinessId } from "../../services/api";
+import { useBusiness } from "../../context/BusinessContext";
 
 ChartJS.register(
   CategoryScale,
@@ -43,25 +44,33 @@ const formatINR = (val: number | string) => {
 
 const NewDashboard = () => {
   const route: any = all_routes;
+  const { businessId, activeBusiness, businesses, switchBusiness } = useBusiness();
   const [dashboardData, setDashboardData] = useState<any>(null);
-  const [_loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [timeRange, setTimeRange] = useState<string>("1Y");
 
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
-  const [selectedStore, setSelectedStore] = useState(null);
+  const [selectedStore, setSelectedStore] = useState<any>(businessId || "all");
   const [selectedResponsible, setSelectedResponsible] = useState(null);
 
   const Warehouse: any[] = [];
-  const Store: any[] = [];
+  const Store: any[] = [
+    { value: "all", label: "All Businesses" },
+    ...businesses.map((b) => ({ value: b.id, label: b.name })),
+  ];
   const Responsible: any[] = [];
+
+  useEffect(() => {
+    setSelectedStore(businessId || "all");
+  }, [businessId]);
 
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
 
-    const businessId = getActiveBusinessId();
+    const currentBiz = businessId || getActiveBusinessId() || "all";
     api
-      .get("/reports/dashboard", { business_id: businessId, range: timeRange })
+      .get("/reports/dashboard", { business_id: currentBiz, range: timeRange })
       .then((res) => {
         if (isMounted) setDashboardData(res);
       })
@@ -75,7 +84,7 @@ const NewDashboard = () => {
     return () => {
       isMounted = false;
     };
-  }, [timeRange]);
+  }, [businessId, timeRange]);
 
   const metrics = dashboardData?.metrics || {
     today_sales: 0,
@@ -395,16 +404,48 @@ const NewDashboard = () => {
         <div className="content">
           <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
             <div className="mb-3">
-              <h1 className="mb-1">Welcome, Admin</h1>
+              <h1 className="mb-1 d-flex align-items-center flex-wrap gap-2">
+                <span>Welcome, Admin</span>
+                <span className="badge badge-tag badge-soft-primary fs-12 fw-medium">
+                  <i className="ti ti-building-store me-1" />
+                  {activeBusiness?.name || (businessId === "all" ? "All Businesses" : "Grow Naturals")}
+                </span>
+                {loading && (
+                  <span className="spinner-border spinner-border-sm text-primary ms-2" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </span>
+                )}
+              </h1>
               <p className="fw-medium">
-                You have <span className="text-primary fw-bold">{metrics.today_bills || 0}</span> Orders, Today
+                You have <span className="text-primary fw-bold">{metrics.today_bills || 0}</span> Orders Today for{" "}
+                <span className="text-dark fw-semibold">
+                  {activeBusiness?.name || (businessId === "all" ? "All Businesses" : "Grow Naturals")}
+                </span>
               </p>
             </div>
-            <div className="input-icon-start position-relative mb-3">
-              <span className="input-icon-addon fs-16 text-gray-9">
-                <i className="ti ti-calendar" />
-              </span>
-              <CommonDateRangePicker />
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-icon"
+                title="Refresh dashboard data"
+                onClick={() => {
+                  setLoading(true);
+                  const currentBiz = businessId || getActiveBusinessId() || "all";
+                  api
+                    .get("/reports/dashboard", { business_id: currentBiz, range: timeRange })
+                    .then((res) => setDashboardData(res))
+                    .catch((err) => console.error("Dashboard data reload error:", err))
+                    .finally(() => setLoading(false));
+                }}
+              >
+                <i className="ti ti-refresh" />
+              </button>
+              <div className="input-icon-start position-relative">
+                <span className="input-icon-addon fs-16 text-gray-9">
+                  <i className="ti ti-calendar" />
+                </span>
+                <CommonDateRangePicker />
+              </div>
             </div>
           </div>
 
@@ -710,19 +751,19 @@ const NewDashboard = () => {
                     <div className="col-md-4">
                       <div className="info-item border bg-light p-3 text-center">
                         <div className="mb-3 text-info fs-24">
-                          <i className="ti ti-user-check" />
+                          <i className="ti ti-users" />
                         </div>
-                        <p className="mb-1">Suppliers</p>
-                        <h5>{metrics.total_suppliers || 6987}</h5>
+                        <p className="mb-1">Customer</p>
+                        <h5>{metrics.total_customers || 10}</h5>
                       </div>
                     </div>
                     <div className="col-md-4">
                       <div className="info-item border bg-light p-3 text-center">
                         <div className="mb-3 text-orange fs-24">
-                          <i className="ti ti-users" />
+                          <i className="ti ti-clock-hour-4" />
                         </div>
-                        <p className="mb-1">Customer</p>
-                        <h5>{metrics.total_customers || 4896}</h5>
+                        <p className="mb-1">Preorders</p>
+                        <h5>{metrics.total_preorders || metrics.total_quotations || 5}</h5>
                       </div>
                     </div>
                     <div className="col-md-4">
@@ -731,7 +772,7 @@ const NewDashboard = () => {
                           <i className="ti ti-shopping-cart" />
                         </div>
                         <p className="mb-1">Orders</p>
-                        <h5>{metrics.total_orders || 487}</h5>
+                        <h5>{metrics.total_orders || 20}</h5>
                       </div>
                     </div>
                   </div>
@@ -1348,7 +1389,12 @@ const NewDashboard = () => {
                         filter={false}
                         options={Store}
                         value={selectedStore}
-                        onChange={(e) => setSelectedStore(e.value)}
+                        onChange={(e) => {
+                          setSelectedStore(e.value);
+                          if (e.value) {
+                            switchBusiness(e.value);
+                          }
+                        }}
                         placeholder="Choose Store"
                       />
                     </div>

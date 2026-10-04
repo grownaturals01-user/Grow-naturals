@@ -7,6 +7,7 @@ import { HiIcon, totalSalesIcon, weeklyEarning } from "../../utils/imagepath";
 import CommonDateRangePicker from "../../components/date-range-picker/common-date-range-picker";
 import { useState, useEffect } from "react";
 import { api, getActiveBusinessId } from "../../services/api";
+import { useBusiness } from "../../context/BusinessContext";
 
 const formatINR = (val: number | string) => {
   const num = Number(val) || 0;
@@ -15,27 +16,43 @@ const formatINR = (val: number | string) => {
 
 const SalesDashbaord = () => {
   const route = all_routes;
+  const { businessId, activeBusiness } = useBusiness();
   const [data, setData] = useState<any>(null);
+  const [_loading, setLoading] = useState<boolean>(true);
+
+  const fetchData = () => {
+    setLoading(true);
+    const currentBiz = businessId || getActiveBusinessId() || "all";
+    api
+      .get("/reports/dashboard", { business_id: currentBiz })
+      .then((res) => setData(res))
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    const businessId = getActiveBusinessId();
-    api.get("/reports/dashboard", { business_id: businessId })
-      .then((res) => setData(res))
-      .catch((err) => console.error(err));
-  }, []);
+    fetchData();
+  }, [businessId]);
 
   const metrics = data?.metrics || {
     today_sales: 0,
     period_sales: 0,
     today_bills: 0,
-    total_orders: 0
+    total_orders: 0,
   };
+
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthlySalesMap: Record<string, number> = {};
+  (data?.monthly_sales || []).forEach((m: any) => {
+    monthlySalesMap[m.month] = Number(m.sales) || 0;
+  });
+  const salesSeriesData = months.map((m) => monthlySalesMap[m] || 0);
 
   const options: any = {
     series: [
       {
         name: "Sales Analysis",
-        data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        data: salesSeriesData,
       },
     ],
     chart: {
@@ -64,6 +81,9 @@ const SalesDashbaord = () => {
             <h3 className="d-flex align-items-center">
               <img src={HiIcon} alt="img" />
               &nbsp;Hi Admin,
+              <span className="badge badge-tag badge-soft-primary ms-2 fs-12 fw-medium">
+                {activeBusiness?.name || (businessId === "all" ? "All Businesses" : "Grow Naturals")}
+              </span>
             </h3>
             &nbsp;
             <h6>here&apos;s what&apos;s happening with your store today.</h6>

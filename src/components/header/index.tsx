@@ -112,15 +112,19 @@ const Header = () => {
   };
 
   const sidebarOverlay = () => {
-    document?.querySelector(".main-wrapper")?.classList?.toggle("slide-nav");
-    document?.querySelector(".sidebar-overlay")?.classList?.toggle("opened");
-    document?.querySelector("html")?.classList?.toggle("menu-opened");
+    document?.querySelectorAll(".main-wrapper")?.forEach((el) => el.classList.toggle("slide-nav"));
+    document?.body?.classList?.toggle("slide-nav");
+    document?.body?.classList?.toggle("menu-opened");
+    document?.querySelectorAll(".sidebar-overlay")?.forEach((el) => el.classList.toggle("opened"));
+    document?.documentElement?.classList?.toggle("menu-opened");
   };
 
   useEffect(() => {
-    document.querySelector(".main-wrapper")?.classList.remove("slide-nav");
-    document.querySelector(".sidebar-overlay")?.classList.remove("opened");
-    document.querySelector("html")?.classList.remove("menu-opened");
+    document?.querySelectorAll(".main-wrapper")?.forEach((el) => el.classList.remove("slide-nav"));
+    document?.body?.classList?.remove("slide-nav");
+    document?.body?.classList?.remove("menu-opened");
+    document?.querySelectorAll(".sidebar-overlay")?.forEach((el) => el.classList.remove("opened"));
+    document?.documentElement?.classList?.remove("menu-opened");
   }, [location.pathname]);
 
   const pathname = location.pathname;

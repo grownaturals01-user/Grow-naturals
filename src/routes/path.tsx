@@ -2279,7 +2279,7 @@ export const posPages=[
     id: 25,
     path: routes.pos,
     name: "pos",
-    element: <Pos />,
+    element: <Pos4 />,
     route: Route,
   },
   {

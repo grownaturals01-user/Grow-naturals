@@ -4,7 +4,7 @@ import RefreshIcon from "../../components/tooltip-content/refresh";
 import CollapesIcon from "../../components/tooltip-content/collapes";
 import { Link } from "react-router-dom";
 import CounterTwo from "../../components/counter/counterTwo";
-import { cheque, deposit, points, card, cashIcon } from "../../utils/imagepath";
+import { Banknote, CreditCard, Sparkles, QrCode, ReceiptText } from "lucide-react";
 import CommonSelect from "../../components/select/common-select";
 
 const Checkout = () => {
@@ -357,36 +357,51 @@ const Checkout = () => {
               <div className="block-section payment-method p-3 bg-white">
                 <h5 className="mb-2">Select Payment</h5>
                 <div className="row align-items-center justify-content-center methods g-2 mb-4">
-                  <div className="col-sm-6 col-md-4 col-xl d-flex">
-                    <Link to="#" className="checkout payment-item flex-fill">
-                      <img src={cashIcon} alt="img" />
-                      <p className="fw-medium">Cash</p>
-                    </Link>
-                  </div>
-                  <div className="col-sm-6 col-md-4 col-xl d-flex">
-                    <Link to="#" className="checkout payment-item flex-fill">
-                      <img src={card} alt="img" />
-                      <p className="fw-medium">Card</p>
-                    </Link>
-                  </div>
-                  <div className="col-sm-6 col-md-4 col-xl d-flex">
-                    <Link to="#" className="checkout payment-item flex-fill">
-                      <img src={points} alt="img" />
-                      <p className="fw-medium">Points</p>
-                    </Link>
-                  </div>
-                  <div className="col-sm-6 col-md-4 col-xl d-flex">
-                    <Link to="#" className="checkout payment-item flex-fill">
-                      <img src={deposit} alt="img" />
-                      <p className="fw-medium">Deposit</p>
-                    </Link>
-                  </div>
-                  <div className="col-sm-6 col-md-4 col-xl d-flex">
-                    <Link to="#" className="checkout payment-item flex-fill">
-                      <img src={cheque} alt="img" />
-                      <p className="fw-medium">Cheque</p>
-                    </Link>
-                  </div>
+                  {[
+                    { label: "Cash", Icon: Banknote, iconColor: "#10b981" },
+                    { label: "Card", Icon: CreditCard, iconColor: "#3b82f6" },
+                    { label: "Points", Icon: Sparkles, iconColor: "#f59e0b" },
+                    { label: "UPI", Icon: QrCode, iconColor: "#06b6d4" },
+                    { label: "Cheque", Icon: ReceiptText, iconColor: "#8b5cf6" },
+                  ].map(({ label, Icon, iconColor }) => (
+                    <div className="col-sm-6 col-md-4 col-xl d-flex" key={label}>
+                      <Link
+                        to="#"
+                        className="payment-item flex-fill text-center p-2 rounded border"
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          minHeight: "72px",
+                          backgroundColor: "#ffffff",
+                          borderColor: "#e2e8f0",
+                          borderWidth: "1.5px",
+                          borderStyle: "solid",
+                          borderRadius: "10px",
+                          textDecoration: "none",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "34px",
+                            height: "34px",
+                            borderRadius: "8px",
+                            backgroundColor: "#f8fafc",
+                            color: iconColor,
+                            marginBottom: "4px",
+                          }}
+                        >
+                          <Icon size={20} strokeWidth={2} />
+                        </div>
+                        <p className="fw-medium mb-0 fs-12 text-dark">{label}</p>
+                      </Link>
+                    </div>
+                  ))}
                 </div>
                 <div className="d-grid btn-block m-0">
                   <Link className="btn btn-teal" to="#">

@@ -18,7 +18,8 @@ import {
   Info,
   Package,
   AlertTriangle,
-  Flag
+  Flag,
+  Clock
 } from 'lucide-react';
 
 // Dreamforest template SVG Icons
@@ -549,25 +550,25 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="dash-overall-tiles">
-              {/* Suppliers */}
-              <div className="dash-mini-tile">
-                <Building size={16} color="#2563eb" className="dash-mini-tile-icon" />
-                <span className="dash-mini-tile-label">Suppliers</span>
-                <span className="dash-mini-tile-val">{metrics.total_suppliers}</span>
-              </div>
-
               {/* Customer */}
               <div className="dash-mini-tile">
-                <Users size={16} color="#ff9f43" className="dash-mini-tile-icon" />
-                <span className="dash-mini-tile-label">Customers</span>
-                <span className="dash-mini-tile-val">{metrics.total_customers}</span>
+                <Users size={16} color="#2563eb" className="dash-mini-tile-icon" />
+                <span className="dash-mini-tile-label">Customer</span>
+                <span className="dash-mini-tile-val">{metrics.total_customers || 0}</span>
+              </div>
+
+              {/* Preorders */}
+              <div className="dash-mini-tile">
+                <Clock size={16} color="#ff9f43" className="dash-mini-tile-icon" />
+                <span className="dash-mini-tile-label">Preorders</span>
+                <span className="dash-mini-tile-val">{metrics.total_preorders ?? metrics.total_quotations ?? 0}</span>
               </div>
 
               {/* Orders */}
               <div className="dash-mini-tile">
                 <ShoppingCart size={16} color="#10b981" className="dash-mini-tile-icon" />
                 <span className="dash-mini-tile-label">Orders</span>
-                <span className="dash-mini-tile-val">{metrics.total_orders}</span>
+                <span className="dash-mini-tile-val">{metrics.total_orders || 0}</span>
               </div>
             </div>
           </div>
