@@ -674,10 +674,10 @@ const Pos4: React.FC = () => {
           gap: 8px;
         }
         .pos-cat-round-arrow-btn {
-          width: 36px;
-          height: 36px;
+          width: 34px;
+          height: 34px;
           border-radius: 50%;
-          border: 1.5px solid #e5e7eb;
+          border: 1px solid #e5e7eb;
           background: #ffffff;
           color: #111827;
           display: flex;
@@ -690,10 +690,6 @@ const Pos4: React.FC = () => {
         .pos-cat-round-arrow-btn:hover {
           background: #f9fafb;
           border-color: #cbd5e1;
-          color: #059669;
-        }
-        .pos-cat-round-arrow-btn:active {
-          transform: scale(0.95);
         }
         .pos-cat-scroll-track-new {
           display: flex;
@@ -713,34 +709,34 @@ const Pos4: React.FC = () => {
           align-items: center;
           justify-content: space-between;
           gap: 14px;
-          padding: 8px 18px;
+          padding: 7px 18px;
           border-radius: 9999px;
           background: #ffffff;
-          border: 1.5px solid #e5e7eb;
+          border: 1px solid #e5e7eb;
           cursor: pointer;
           transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
           white-space: nowrap;
           flex-shrink: 0;
-          min-width: 110px;
+          min-width: 105px;
           user-select: none;
           font-family: inherit;
         }
         .pos-category-badge-pill:hover {
           border-color: #cbd5e1;
           background: #f9fafb;
-          transform: translateY(-1px);
         }
         .pos-category-badge-pill.active {
-          border-color: #111827;
-          background: #ffffff;
-          box-shadow: 0 0 0 1px #111827;
+          background: #14b8a6;
+          border-color: #14b8a6;
+          box-shadow: 0 2px 8px rgba(20, 184, 166, 0.25);
         }
         .pos-category-pill-label {
           font-size: 14px;
           font-weight: 600;
-          color: #111827;
+          color: #1e293b;
         }
         .pos-category-badge-pill.active .pos-category-pill-label {
+          color: #ffffff;
           font-weight: 700;
         }
         .pos-category-pill-count {
@@ -751,27 +747,53 @@ const Pos4: React.FC = () => {
           height: 22px;
           padding: 0 8px;
           border-radius: 9999px;
-          background: #f3f4f6;
-          color: #4b5563;
+          background: #f1f5f9;
+          color: #475569;
           font-size: 12px;
           font-weight: 600;
           margin-left: auto;
         }
         .pos-category-badge-pill.active .pos-category-pill-count {
-          background: #111827;
+          background: #0f766e;
           color: #ffffff;
         }
 
-        /* Customers Drawer (#add_order) matching posModals & Screenshot 1 */
-        .offcanvas#add_order {
-          width: 440px;
-          max-width: 95vw;
-          box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-          border-left: 1px solid #e2e8f0;
-          z-index: 1065;
+        /* Customers Drawer (#add_order) matching DreamsPOS offcanvas */
+        .offcanvas#add_order,
+        div#add_order.offcanvas,
+        .customer-sidebar-offcanvas {
+          position: fixed !important;
+          top: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          left: auto !important;
+          width: 380px !important;
+          max-width: 92vw !important;
+          min-width: 340px !important;
+          height: 100vh !important;
+          background-color: #ffffff !important;
+          box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15) !important;
+          border-left: 1px solid #e2e8f0 !important;
+          z-index: 1065 !important;
+          margin: 0 !important;
+        }
+        .offcanvas#add_order .offcanvas-header {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 16px 20px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .offcanvas#add_order .offcanvas-header .btn-close {
+          position: static !important;
+          margin: 0 !important;
+          transform: none !important;
+          width: 32px !important;
+          height: 32px !important;
         }
         .orders-tab {
           background: #ffffff;
+          padding: 12px 16px;
           border-bottom: 1px solid #f1f5f9;
         }
         .orders-tab .nav-pills {
@@ -779,19 +801,23 @@ const Pos4: React.FC = () => {
           padding: 4px;
           border-radius: 50px;
           border: 1px solid #e2e8f0;
+          display: flex;
+          gap: 6px;
+          width: 100%;
         }
         .orders-tab .nav-pills .nav-link {
           border-radius: 50px !important;
-          padding: 8px 16px !important;
-          font-size: 13.5px !important;
+          padding: 7px 12px !important;
+          font-size: 13px !important;
           font-weight: 600 !important;
-          color: #334155 !important;
+          color: #475569 !important;
           background: transparent !important;
           border: none !important;
           transition: all 0.2s ease !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
+          flex: 1;
         }
         .orders-tab .nav-pills .nav-link.active {
           background: #0f172a !important;
@@ -814,10 +840,7 @@ const Pos4: React.FC = () => {
           width: 18px;
           height: 18px;
           cursor: pointer;
-        }
-        .customer-radio-input input[type="radio"]:checked {
-          background-color: #0284c7;
-          border-color: #0284c7;
+          accent-color: #0284c7;
         }
         .badge-soft-success {
           background-color: #ecfdf5 !important;
@@ -2160,9 +2183,9 @@ const Pos4: React.FC = () => {
         </div>
       )}
 
-      {/* 7. Customers Drawer (#add_order) matching posModals & Screenshot 1 */}
+      {/* 7. Customers Drawer (#add_order) matching DreamsPOS right offcanvas */}
       <div
-        className={`offcanvas offcanvas-end ${customerDrawerOpen ? "show" : ""}`}
+        className={`offcanvas offcanvas-end customer-sidebar-offcanvas ${customerDrawerOpen ? "show" : ""}`}
         tabIndex={-1}
         id="add_order"
         style={{
@@ -2170,24 +2193,32 @@ const Pos4: React.FC = () => {
           position: "fixed",
           top: 0,
           right: 0,
-          width: "440px",
-          maxWidth: "95vw",
+          left: "auto",
+          bottom: 0,
+          width: "380px",
+          maxWidth: "92vw",
           height: "100vh",
           backgroundColor: "#ffffff",
-          zIndex: 1060,
-          display: "flex",
+          zIndex: 1065,
+          display: customerDrawerOpen ? "flex" : "none",
           flexDirection: "column",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.15)",
+          borderLeft: "1px solid #e2e8f0",
         }}
       >
-        <div className="offcanvas-header d-flex align-items-center justify-content-between p-3 border-bottom">
-          <h4 className="offcanvas-title mb-0 fw-bold fs-18">Customers</h4>
+        <div
+          className="offcanvas-header d-flex align-items-center justify-content-between px-3 py-3 border-bottom bg-white"
+          style={{ minHeight: "58px" }}
+        >
+          <h4 className="offcanvas-title mb-0 fw-bold fs-18 text-dark">Customers</h4>
           <button
             type="button"
-            className="btn-close btn-close-modal"
+            className="btn btn-sm btn-icon btn-light rounded-circle border d-flex align-items-center justify-content-center"
             onClick={() => setCustomerDrawerOpen(false)}
             aria-label="Close"
+            style={{ width: "32px", height: "32px", padding: 0 }}
           >
-            <i className="ti ti-x fs-16" />
+            <i className="ti ti-x fs-16 text-dark" />
           </button>
         </div>
 
@@ -2229,9 +2260,9 @@ const Pos4: React.FC = () => {
                   className="tab-pane fade show active d-flex flex-column flex-grow-1"
                   id="driversTab"
                 >
-                  <div className="gx-3 p-3 mb-2 pt-0">
-                    <div className="col-lg-12 col-md-12">
-                      <label className="form-label fw-bold fs-14 mb-2 text-dark">All Drivers</label>
+                  <div className="gx-3 px-3 pb-2 pt-0">
+                    <div className="col-12">
+                      <label className="form-label fw-bold fs-13 mb-2 text-dark">All Drivers</label>
                       <div className="mb-0">
                         <div className="page-search position-relative">
                           <i
@@ -2244,7 +2275,7 @@ const Pos4: React.FC = () => {
                             placeholder="Search by name/Phone Number"
                             value={customerSearchQuery}
                             onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                            style={{ height: "40px", borderRadius: "8px", fontSize: "13.5px" }}
+                            style={{ height: "38px", borderRadius: "8px", fontSize: "13px" }}
                           />
                         </div>
                       </div>
@@ -2254,7 +2285,7 @@ const Pos4: React.FC = () => {
                   {/* Customer Cards List */}
                   <div
                     className="customer-list-scroll px-3 flex-grow-1"
-                    style={{ maxHeight: "calc(100vh - 280px)", overflowY: "auto" }}
+                    style={{ maxHeight: "calc(100vh - 250px)", overflowY: "auto" }}
                   >
                     {filteredCustomerList.map((c, idx) => {
                       const isSelected = selectedCustomer?.value === c.value;
@@ -2265,7 +2296,7 @@ const Pos4: React.FC = () => {
                       return (
                         <div
                           key={c.value || idx}
-                          className={`d-flex justify-content-between align-items-center p-3 mb-2 border rounded order-select-card ${
+                          className={`d-flex justify-content-between align-items-center p-2 mb-2 border rounded order-select-card ${
                             isSelected ? "selected-customer-card" : ""
                           }`}
                           style={{
@@ -2289,12 +2320,16 @@ const Pos4: React.FC = () => {
                             />
                             <div className="d-flex align-items-center">
                               <div
-                                className="avatar avatar-rounded flex-shrink-0 me-3 bg-light text-muted d-flex align-items-center justify-content-center fw-bold border"
+                                className="avatar avatar-rounded flex-shrink-0 me-3 bg-light text-muted d-flex align-items-center justify-content-center fw-semibold border"
                                 style={{
-                                  width: "42px",
-                                  height: "42px",
+                                  width: "38px",
+                                  height: "38px",
                                   borderRadius: "50%",
                                   overflow: "hidden",
+                                  fontSize: "10px",
+                                  color: "#94a3b8",
+                                  backgroundColor: "#f1f5f9",
+                                  flexShrink: 0,
                                 }}
                               >
                                 {c.image_url ? (
@@ -2304,20 +2339,17 @@ const Pos4: React.FC = () => {
                                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                   />
                                 ) : (
-                                  <span className="fs-14 text-dark">
-                                    {c.name
-                                      ? c.name.charAt(0).toUpperCase()
-                                      : c.label
-                                      ? c.label.charAt(0).toUpperCase()
-                                      : "C"}
-                                  </span>
+                                  <span>300 x 300</span>
                                 )}
                               </div>
                               <div>
-                                <h6 className="fs-14 fw-bold mb-1 text-dark">
+                                <h6
+                                  className="fs-13 fw-bold mb-0 text-dark text-truncate"
+                                  style={{ maxWidth: "150px" }}
+                                >
                                   {c.name || c.label}
                                 </h6>
-                                <p className="fs-13 text-muted mb-0">
+                                <p className="fs-12 text-muted mb-0">
                                   {c.phone || "No phone number"}
                                 </p>
                               </div>
@@ -2342,6 +2374,7 @@ const Pos4: React.FC = () => {
                       type="button"
                       className="btn btn-dark d-flex align-items-center justify-content-center w-100"
                       onClick={() => setCustomerDrawerOpen(false)}
+                      style={{ height: "40px", borderRadius: "8px", fontWeight: 600 }}
                     >
                       <i className="ti ti-x me-1" />
                       Cancel
@@ -2350,6 +2383,7 @@ const Pos4: React.FC = () => {
                       type="button"
                       className="btn btn-primary d-flex align-items-center justify-content-center w-100"
                       onClick={() => setCustomerDrawerOpen(false)}
+                      style={{ height: "40px", borderRadius: "8px", fontWeight: 600 }}
                     >
                       <i className="ti ti-circle-check me-1" />
                       Submit
@@ -2366,15 +2400,15 @@ const Pos4: React.FC = () => {
                 >
                   <form onSubmit={handleCreateCustomer} className="d-flex flex-column flex-grow-1">
                     <div
-                      className="px-2 flex-grow-1"
+                      className="px-3 flex-grow-1"
                       style={{ maxHeight: "calc(100vh - 220px)", overflowY: "auto" }}
                     >
-                      <div className="row gx-3 p-3 pt-0">
-                        <div className="col-md-12">
-                          <div className="mb-3 d-flex align-items-center flex-wrap gap-3">
+                      <div className="row g-2 pt-0">
+                        <div className="col-12">
+                          <div className="mb-2 d-flex align-items-center flex-wrap gap-3">
                             <div
                               className="avatar avatar-3xl border bg-light d-flex align-items-center justify-content-center"
-                              style={{ width: "64px", height: "64px", borderRadius: "10px" }}
+                              style={{ width: "54px", height: "54px", borderRadius: "8px" }}
                             >
                               {newCustPhoto ? (
                                 <img
@@ -2384,18 +2418,18 @@ const Pos4: React.FC = () => {
                                     width: "100%",
                                     height: "100%",
                                     objectFit: "cover",
-                                    borderRadius: "10px",
+                                    borderRadius: "8px",
                                   }}
                                 />
                               ) : (
-                                <i className="ti ti-photo fs-28 text-muted" />
+                                <i className="ti ti-photo fs-24 text-muted" />
                               )}
                             </div>
                             <div>
-                              <label className="form-label fw-bold fs-13 mb-1">
+                              <label className="form-label fw-bold fs-12 mb-0">
                                 Profile Photo <span className="text-danger">*</span>
                               </label>
-                              <p className="fs-12 text-muted mb-2">Image should be within 5 MB</p>
+                              <p className="fs-11 text-muted mb-1">Image should be within 5 MB</p>
                               <div className="d-flex align-items-center">
                                 <label className="btn btn-icon btn-sm btn-white border rounded-circle position-relative me-2 mb-0 cursor-pointer shadow-sm">
                                   <input
@@ -2411,7 +2445,7 @@ const Pos4: React.FC = () => {
                                       }
                                     }}
                                   />
-                                  <i className="ti ti-pencil" />
+                                  <i className="ti ti-pencil fs-12" />
                                 </label>
                                 {newCustPhoto && (
                                   <button
@@ -2419,20 +2453,20 @@ const Pos4: React.FC = () => {
                                     className="btn btn-icon btn-sm btn-white border rounded-circle text-danger shadow-sm"
                                     onClick={() => setNewCustPhoto("")}
                                   >
-                                    <i className="ti ti-trash" />
+                                    <i className="ti ti-trash fs-12" />
                                   </button>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">
                               Customer Name <span className="text-danger">*</span>
                             </label>
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="Customer Name"
                               value={newCustName}
                               onChange={(e) => setNewCustName(e.target.value)}
@@ -2441,12 +2475,12 @@ const Pos4: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="col-lg-6 col-md-12">
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">Phone</label>
+                        <div className="col-6">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">Phone</label>
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="Phone Number"
                               value={newCustPhone}
                               onChange={(e) => setNewCustPhone(e.target.value)}
@@ -2454,12 +2488,12 @@ const Pos4: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="col-lg-6 col-md-12">
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">Email</label>
+                        <div className="col-6">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">Email</label>
                             <input
                               type="email"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="Email Address"
                               value={newCustEmail}
                               onChange={(e) => setNewCustEmail(e.target.value)}
@@ -2467,14 +2501,14 @@ const Pos4: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="col-lg-12 col-md-12">
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">
+                        <div className="col-12">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">
                               Address Line 1 <span className="text-danger">*</span>
                             </label>
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="Street Address Line 1"
                               value={newCustAddress}
                               onChange={(e) => setNewCustAddress(e.target.value)}
@@ -2483,12 +2517,12 @@ const Pos4: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="col-lg-12 col-md-12">
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">Address Line 2</label>
+                        <div className="col-12">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">Address Line 2</label>
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="Apartment, suite, unit, etc."
                               value={newCustAddress2}
                               onChange={(e) => setNewCustAddress2(e.target.value)}
@@ -2496,12 +2530,12 @@ const Pos4: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="col-lg-6 col-md-12">
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">Country</label>
+                        <div className="col-6">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">Country</label>
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="Country"
                               value={newCustCountry}
                               onChange={(e) => setNewCustCountry(e.target.value)}
@@ -2509,12 +2543,12 @@ const Pos4: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="col-lg-6 col-md-12">
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">State</label>
+                        <div className="col-6">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">State</label>
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="State"
                               value={newCustState}
                               onChange={(e) => setNewCustState(e.target.value)}
@@ -2522,12 +2556,12 @@ const Pos4: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="col-lg-6 col-md-12">
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">City</label>
+                        <div className="col-6">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">City</label>
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="City"
                               value={newCustCity}
                               onChange={(e) => setNewCustCity(e.target.value)}
@@ -2535,14 +2569,14 @@ const Pos4: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="col-lg-6 col-md-12">
-                          <div className="mb-3">
-                            <label className="form-label fw-bold fs-13 mb-1">
+                        <div className="col-6">
+                          <div className="mb-2">
+                            <label className="form-label fw-bold fs-12 mb-1">
                               Postal Code <span className="text-danger">*</span>
                             </label>
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               placeholder="Postal Code"
                               value={newCustPostal}
                               onChange={(e) => setNewCustPostal(e.target.value)}
@@ -2560,6 +2594,7 @@ const Pos4: React.FC = () => {
                         onClick={() => {
                           setActiveCustomerTab("existing");
                         }}
+                        style={{ height: "40px", borderRadius: "8px", fontWeight: 600 }}
                       >
                         <i className="ti ti-x me-1" />
                         Cancel
@@ -2567,6 +2602,7 @@ const Pos4: React.FC = () => {
                       <button
                         type="submit"
                         className="btn btn-primary d-flex align-items-center justify-content-center w-100"
+                        style={{ height: "40px", borderRadius: "8px", fontWeight: 600 }}
                       >
                         <i className="ti ti-circle-check me-1" />
                         Submit
@@ -2586,13 +2622,13 @@ const Pos4: React.FC = () => {
           className="offcanvas-backdrop fade show"
           onClick={() => setCustomerDrawerOpen(false)}
           style={{
-            zIndex: 1055,
+            zIndex: 1060,
             position: "fixed",
             top: 0,
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
           }}
         />
       )}
