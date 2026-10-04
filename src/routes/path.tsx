@@ -600,6 +600,20 @@ export const authRoutes = [
     route: Route,
   },
   {
+    id: 301,
+    path: routes.editproduct,
+    name: "editproduct",
+    element: <EditProduct />,
+    route: Route,
+  },
+  {
+    id: 302,
+    path: "/edit-product/:id",
+    name: "editproduct-id",
+    element: <EditProduct />,
+    route: Route,
+  },
+  {
     id: 4,
     path: routes.salesdashboard,
     name: "salesdashboard",

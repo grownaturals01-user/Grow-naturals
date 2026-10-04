@@ -1973,6 +1973,37 @@ ul.p-inputtext.p-chips-multiple-container {
 .sidebar [data-simplebar] {
   height: 100vh;
   overflow-y: auto;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+.sidebar,
+.sidebar-inner,
+.sidebar-nav,
+.sidebar-menu,
+.sidebar .simplebar-content-wrapper,
+.sidebar .slimScrollDiv {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+.sidebar .simplebar-scrollbar,
+.sidebar .simplebar-scrollbar:before {
+  display: none !important;
+  background: transparent !important;
+  opacity: 0 !important;
 }
 
 .sales-cards .card.color-info i {

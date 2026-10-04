@@ -5,6 +5,7 @@ export const all_routes = {
   addsales: "/create-sales-invoice",
   productlist: "/product-list",
   addproduct: "/add-product",
+  editproduct: "/edit-product",
   salesdashboard: "/sales-dashboard",
   brandlist: "/brand-list",
   units: "/units",

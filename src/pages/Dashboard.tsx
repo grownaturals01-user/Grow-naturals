@@ -409,12 +409,12 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Invoice Due */}
+        {/* Due to Collect */}
         <div className="dash-white-card">
           <div className="dash-white-top">
             <div className="dash-white-val-group">
-              <span className="dash-white-amount">{formatINR(metrics.invoice_due)}</span>
-              <span className="dash-white-label">Invoice Due (Receivables)</span>
+              <span className="dash-white-amount">{formatINR(metrics.due_to_collect ?? metrics.invoice_due)}</span>
+              <span className="dash-white-label"> Total Due to Collect</span>
             </div>
             <div className="dash-soft-icon icon-mint">
               <img src={walletIcon} alt="Receivables" style={{ width: '20px', height: '20px' }} />
@@ -447,12 +447,12 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Total Supplier Dues */}
+        {/* Total Due to Pay */}
         <div className="dash-white-card">
           <div className="dash-white-top">
             <div className="dash-white-val-group">
-              <span className="dash-white-amount">{formatINR(metrics.supplier_dues)}</span>
-              <span className="dash-white-label">Supplier Payables</span>
+              <span className="dash-white-amount">{formatINR(metrics.due_to_pay ?? metrics.supplier_dues)}</span>
+              <span className="dash-white-label">Total Due to Pay</span>
             </div>
             <div className="dash-soft-icon icon-purple">
               <img src={purInvoiceIcon} alt="Payables" style={{ width: '20px', height: '20px' }} />

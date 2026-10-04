@@ -88,6 +88,8 @@ const NewDashboard = () => {
     total_pre_orders: 0,
     pre_orders_count: 0,
     total_due_pending: 0,
+    due_to_pay: 0,
+    due_to_collect: 0,
     total_cash_in_bank: 0,
     total_cash_in_hand: 0,
     profit: 0,
@@ -506,7 +508,7 @@ const NewDashboard = () => {
               </div>
             </div>
 
-            {/* 4th: Total Due Pending */}
+            {/* 4th: Total Due to pay */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
               <div className="card bg-info sale-widget flex-fill">
                 <div className="card-body d-flex align-items-center">
@@ -514,14 +516,14 @@ const NewDashboard = () => {
                     <i className="ti ti-brand-pocket fs-24" />
                   </span>
                   <div className="ms-2">
-                    <p className="text-white mb-1">Total Due Pending</p>
+                    <p className="text-white mb-1">Total Due to pay</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
                       <h4 className="text-white">
-                        {formatINR(metrics.total_due_pending || metrics.invoice_due || 0)}
+                        {formatINR(metrics.due_to_pay ?? metrics.supplier_dues ?? metrics.total_due_pending ?? 0)}
                       </h4>
                       <span className="badge badge-soft-info">
                         <i className="ti ti-alert-circle me-1" />
-                        Pending
+                        Payables
                       </span>
                     </div>
                   </div>
@@ -538,7 +540,7 @@ const NewDashboard = () => {
                 <div className="card-body">
                   <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
                     <div>
-                      <h4 className="mb-1">{metrics.profit ? formatINR(metrics.profit) : "$8,458,798"}</h4>
+                      <h4 className="mb-1">{metrics.profit ? formatINR(metrics.profit) : "₹0.00"}</h4>
                       <p>Profit</p>
                     </div>
                     <span className="revenue-icon bg-cyan-transparent text-cyan">
@@ -557,14 +559,16 @@ const NewDashboard = () => {
               </div>
             </div>
 
-            {/* Invoice Due */}
+            {/* Due to Collect */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
               <div className="card revenue-widget flex-fill">
                 <div className="card-body">
                   <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
                     <div>
-                      <h4 className="mb-1">{metrics.invoice_due ? formatINR(metrics.invoice_due) : "$48,988,78"}</h4>
-                      <p>Invoice Due</p>
+                      <h4 className="mb-1">
+                        {formatINR(metrics.due_to_collect ?? metrics.invoice_due ?? 0)}
+                      </h4>
+                      <p> Total Due to Collect</p>
                     </div>
                     <span className="revenue-icon bg-teal-transparent text-teal">
                       <i className="ti ti-chart-pie fs-16" />

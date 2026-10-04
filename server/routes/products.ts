@@ -200,6 +200,18 @@ router.post('/', async (req: Request, res: Response) => {
         ? req.body.tax
         : 0.00;
 
+    // Resolve Image URL
+    const rawImageUrl =
+      req.body.image_url !== undefined
+        ? req.body.image_url
+        : req.body.imageUrl !== undefined
+        ? req.body.imageUrl
+        : req.body.image !== undefined
+        ? req.body.image
+        : req.body.productImage !== undefined
+        ? req.body.productImage
+        : '';
+
     if (!name || !sku) {
       return res.status(400).json({ error: 'Product name and SKU are required' });
     }
@@ -245,7 +257,7 @@ router.post('/', async (req: Request, res: Response) => {
         Number(rawStockQuantity) || 0,
         Number(rawLowStock) || 5,
         supplier_id || null,
-        image_url || '',
+        rawImageUrl || '',
         typeof attributes === 'object' ? JSON.stringify(attributes) : (attributes || '{}'),
         Number(discount_pieces) || 0,
         Number(discount_percent) || 0.00
@@ -338,6 +350,17 @@ router.put('/:id', async (req: Request, res: Response) => {
       ? Number(req.body.gst_rate ?? req.body.tax_rate ?? req.body.tax)
       : undefined;
 
+    const rawImageUrl =
+      req.body.image_url !== undefined
+        ? req.body.image_url
+        : req.body.imageUrl !== undefined
+        ? req.body.imageUrl
+        : req.body.image !== undefined
+        ? req.body.image
+        : req.body.productImage !== undefined
+        ? req.body.productImage
+        : undefined;
+
     const db = await getDb();
 
     // Check existing
@@ -388,7 +411,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         rawStockQuantity !== undefined ? Number(rawStockQuantity) : undefined,
         rawLowStock !== undefined ? Number(rawLowStock) : undefined,
         supplier_id !== undefined ? supplier_id : oldProduct.supplier_id,
-        image_url !== undefined ? image_url : undefined,
+        rawImageUrl !== undefined ? rawImageUrl : undefined,
         attributes !== undefined ? (typeof attributes === 'object' ? JSON.stringify(attributes) : attributes) : undefined,
         discount_pieces !== undefined ? Number(discount_pieces) : undefined,
         discount_percent !== undefined ? Number(discount_percent) : undefined,
