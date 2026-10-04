@@ -159,177 +159,286 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
         </button>
       </div>
 
-      <div ref={sheetRef} className="a4-invoice-sheet a4-invoice-container">
+      <div ref={sheetRef} className="a4-invoice-sheet a4-invoice-container" style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '32px 36px', maxWidth: '850px', margin: '0 auto', fontFamily: 'Nunito, system-ui, sans-serif' }}>
         {/* Invoice Branding Header */}
-        <div className="invoice-branding-header">
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', maxWidth: '65%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '20px', gap: '20px' }}>
+          {/* Company Info with Bounded Logo */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1 }}>
             <img
               src={gnLogo}
               alt="Grow Naturals Logo"
-              className="invoice-header-logo"
+              style={{
+                width: '64px',
+                height: '64px',
+                minWidth: '64px',
+                maxWidth: '64px',
+                minHeight: '64px',
+                maxHeight: '64px',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: '#ffffff',
+                padding: '2px',
+                flexShrink: 0
+              }}
               loading="eager"
             />
-            <div>
-              <h1 className="invoice-biz-title">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#166534', margin: 0, lineHeight: 1.2 }}>
                 {invoice.business_legal_name || invoice.business_name || (isTaxable ? 'Grow Naturals Private Limited' : 'Nikhlesh Nursery & Farm')}
               </h1>
-              <p style={{ fontSize: '13px', color: '#475569', marginTop: '4px' }}>
+              <p style={{ fontSize: '11.5px', color: '#475569', margin: '2px 0 0', lineHeight: 1.35 }}>
                 {invoice.business_address || 'No. 19/7, Annasalai, K K Nagar, 80 Feet Road, Madurai-625020, Tamil Nadu'}
               </p>
-              <p style={{ fontSize: '13px', color: '#475569' }}>
+              <p style={{ fontSize: '11.5px', color: '#475569', margin: 0 }}>
                 Phone: {invoice.business_phone || '+91 98220 12345'} | Email: {invoice.business_email || 'billing@grownaturals.in'}
               </p>
               {isTaxable && invoice.business_gstin && (
-                <p style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
-                  GSTIN: {invoice.business_gstin}
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', margin: '2px 0 0' }}>
+                  GSTIN: <span style={{ fontFamily: 'monospace' }}>{invoice.business_gstin}</span>
                 </p>
               )}
             </div>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
+          {/* Invoice Title & Metadata */}
+          <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '200px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
               {isTaxable ? 'TAX INVOICE' : 'RETAIL INVOICE'}
             </h2>
-            <div className="invoice-tax-badge">
-              {isTaxable ? 'GST Registered Entity' : 'Retail Invoice'}
+            <span style={{
+              display: 'inline-block',
+              fontSize: '10px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              backgroundColor: isTaxable ? '#dcfce7' : '#f1f5f9',
+              color: isTaxable ? '#15803d' : '#334155',
+              marginTop: '4px'
+            }}>
+              {isTaxable ? 'GST Registered Entity' : 'Bill of Supply'}
+            </span>
+            <div style={{ marginTop: '8px', fontSize: '13px', lineHeight: 1.4 }}>
+              <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                Invoice #: <span style={{ fontFamily: 'monospace', fontSize: '13.5px' }}>{invoice.invoice_number}</span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b' }}>
+                Date: <strong style={{ color: '#334155' }}>{new Date(invoice.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+              </div>
+              {invoice.due_date && (
+                <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                  Due Date: <strong style={{ color: '#334155' }}>{new Date(invoice.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+                </div>
+              )}
             </div>
-            <p style={{ fontSize: '14px', fontWeight: 700, marginTop: '8px' }}>
-              Invoice #: <span className="tabular">{invoice.invoice_number}</span>
-            </p>
-            <p style={{ fontSize: '13px', color: '#64748b' }}>
-              Date: {new Date(invoice.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </p>
           </div>
         </div>
 
-        {/* Billed To, Shipped To & Order Details */}
-        <div className="invoice-details-grid">
-          <div className="invoice-detail-block">
-            <h4>Billed To:</h4>
-            <p style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>{invoice.customer_name || 'Walk-in Customer'}</p>
-            {invoice.customer_phone && <p style={{ fontSize: '13px', color: '#475569' }}>Phone: {invoice.customer_phone}</p>}
-            {invoice.customer_address && <p style={{ fontSize: '12px', color: '#64748b' }}>Address: {invoice.customer_address}</p>}
-            {invoice.customer_gstin && <p style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>GSTIN: {invoice.customer_gstin}</p>}
-            {invoice.project_name && <p style={{ fontSize: '13px', color: '#166534', fontWeight: 600 }}>Project: {invoice.project_name}</p>}
+        {/* Billed To, Shipped To & Details Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: (invoice.ship_to_name || invoice.ship_to_address) ? '1.2fr 1.2fr 1fr' : '1.5fr 1fr',
+          gap: '16px',
+          padding: '12px 14px',
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          marginBottom: '20px'
+        }}>
+          {/* Billed To */}
+          <div>
+            <span style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+              Billed To:
+            </span>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
+              {invoice.customer_name || 'Walk-in Customer'}
+            </div>
+            {invoice.customer_phone && (
+              <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
+                Phone: {invoice.customer_phone}
+              </div>
+            )}
+            {invoice.customer_address && (
+              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px', lineHeight: 1.3 }}>
+                {invoice.customer_address}
+              </div>
+            )}
+            {invoice.customer_gstin && (
+              <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#0f172a', marginTop: '2px' }}>
+                GSTIN: <span style={{ fontFamily: 'monospace' }}>{invoice.customer_gstin}</span>
+              </div>
+            )}
+            {invoice.project_name && (
+              <div style={{ fontSize: '11.5px', color: '#166534', fontWeight: 600, marginTop: '2px' }}>
+                Project: {invoice.project_name}
+              </div>
+            )}
           </div>
 
+          {/* Shipped To (if present) */}
           {(invoice.ship_to_name || invoice.ship_to_address) && (
-            <div className="invoice-detail-block">
-              <h4>Shipped To:</h4>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{invoice.ship_to_name || invoice.customer_name}</p>
-              {invoice.ship_to_phone && <p style={{ fontSize: '13px', color: '#475569' }}>Phone: {invoice.ship_to_phone}</p>}
-              {invoice.ship_to_address && <p style={{ fontSize: '12px', color: '#64748b' }}>Address: {invoice.ship_to_address}</p>}
+            <div>
+              <span style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                Shipped To:
+              </span>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
+                {invoice.ship_to_name || invoice.customer_name}
+              </div>
+              {invoice.ship_to_phone && (
+                <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
+                  Phone: {invoice.ship_to_phone}
+                </div>
+              )}
+              {invoice.ship_to_address && (
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px', lineHeight: 1.3 }}>
+                  {invoice.ship_to_address}
+                </div>
+              )}
             </div>
           )}
 
-          <div className="invoice-detail-block" style={{ textAlign: 'right' }}>
-            <h4>Payment Info:</h4>
-            <p style={{ fontSize: '13px', color: '#475569' }}>
-              Payment Mode:{' '}
-              <strong style={{ textTransform: 'uppercase' }}>
+          {/* Payment & Status info */}
+          <div style={{ textAlign: (invoice.ship_to_name || invoice.ship_to_address) ? 'left' : 'right' }}>
+            <span style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+              Payment Details:
+            </span>
+            <div style={{ fontSize: '12px', color: '#475569' }}>
+              Mode: <strong style={{ color: '#0f172a', textTransform: 'uppercase' }}>
                 {invoice.payment_method === 'split'
-                  ? `SPLIT (Cash: ₹${Number(invoice.split_cash_amount || 0).toFixed(2)} + UPI: ₹${Number(invoice.split_upi_amount || 0).toFixed(2)})`
-                  : invoice.payment_method}
+                  ? `SPLIT (₹${Number(invoice.split_cash_amount || 0).toFixed(0)} Cash + ₹${Number(invoice.split_upi_amount || 0).toFixed(0)} UPI)`
+                  : (invoice.payment_method || 'Cash')}
               </strong>
-            </p>
-            <p style={{ fontSize: '13px', color: '#475569' }}>Payment Status: <strong style={{ textTransform: 'uppercase', color: invoice.payment_status === 'paid' ? '#16a34a' : '#d97706' }}>{invoice.payment_status}</strong></p>
-            {invoice.cashier_name && <p style={{ fontSize: '12px', color: '#64748b' }}>Billed By: {invoice.cashier_name}</p>}
+            </div>
+            <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
+              Status: <strong style={{ textTransform: 'uppercase', color: invoice.payment_status === 'paid' ? '#16a34a' : '#d97706' }}>
+                {invoice.payment_status || 'Paid'}
+              </strong>
+            </div>
+            {invoice.cashier_name && (
+              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                Billed By: {invoice.cashier_name}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Line Items Table */}
-        <table className="invoice-table">
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <thead>
-            <tr>
-              <th style={{ width: '40px' }}>#</th>
-              <th>Description of Goods / Plants</th>
-              {isTaxable && <th>HSN</th>}
-              <th className="text-right">Qty</th>
-              <th className="text-right">Rate (₹)</th>
-              {isTaxable && <th className="text-right">GST %</th>}
-              {isTaxable && <th className="text-right">Tax (₹)</th>}
-              <th className="text-right">Amount (₹)</th>
+            <tr style={{ backgroundColor: '#f1f5f9', borderTop: '1px solid #cbd5e1', borderBottom: '2px solid #cbd5e1' }}>
+              <th style={{ width: '35px', padding: '8px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#334155', textAlign: 'center' }}>#</th>
+              <th style={{ padding: '8px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#334155', textAlign: 'left' }}>Item / Description</th>
+              {isTaxable && <th style={{ padding: '8px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#334155', textAlign: 'center', width: '70px' }}>HSN</th>}
+              <th style={{ padding: '8px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#334155', textAlign: 'right', width: '55px' }}>Qty</th>
+              <th style={{ padding: '8px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#334155', textAlign: 'right', width: '85px' }}>Rate (₹)</th>
+              {isTaxable && <th style={{ padding: '8px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#334155', textAlign: 'right', width: '60px' }}>GST %</th>}
+              {isTaxable && <th style={{ padding: '8px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#334155', textAlign: 'right', width: '75px' }}>Tax (₹)</th>}
+              <th style={{ padding: '8px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#334155', textAlign: 'right', width: '95px' }}>Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
             {(invoice.items || []).map((item, idx) => (
-              <tr key={item.id || idx}>
-                <td>{idx + 1}</td>
-                <td>
-                  <strong>{item.product_name}</strong>
-                  {item.sku && <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>SKU: {item.sku}</span>}
+              <tr key={item.id || idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 1 ? '#fafafa' : '#ffffff' }}>
+                <td style={{ padding: '8px 10px', fontSize: '12px', color: '#64748b', textAlign: 'center' }}>{idx + 1}</td>
+                <td style={{ padding: '8px 10px', fontSize: '12.5px', color: '#0f172a' }}>
+                  <div style={{ fontWeight: 600 }}>{item.product_name}</div>
+                  {item.sku && <div style={{ fontSize: '10.5px', color: '#64748b' }}>SKU: {item.sku}</div>}
                 </td>
-                {isTaxable && <td className="tabular">{item.hsn_code || '0602'}</td>}
-                <td className="text-right tabular">{item.quantity}</td>
-                <td className="text-right tabular">{Number(item.unit_price).toFixed(2)}</td>
-                {isTaxable && <td className="text-right tabular">{Number(item.gst_rate || 0).toFixed(2)}%</td>}
-                {isTaxable && <td className="text-right tabular">{Number(item.tax_amount || 0).toFixed(2)}</td>}
-                <td className="text-right tabular" style={{ fontWeight: 700 }}>{Number(item.total).toFixed(2)}</td>
+                {isTaxable && <td style={{ padding: '8px 10px', fontSize: '11.5px', fontFamily: 'monospace', color: '#475569', textAlign: 'center' }}>{item.hsn_code || '0602'}</td>}
+                <td style={{ padding: '8px 10px', fontSize: '12.5px', color: '#0f172a', textAlign: 'right', fontFamily: 'monospace' }}>{item.quantity}</td>
+                <td style={{ padding: '8px 10px', fontSize: '12.5px', color: '#0f172a', textAlign: 'right', fontFamily: 'monospace' }}>{Number(item.unit_price).toFixed(2)}</td>
+                {isTaxable && <td style={{ padding: '8px 10px', fontSize: '11.5px', color: '#64748b', textAlign: 'right', fontFamily: 'monospace' }}>{Number(item.gst_rate || 0).toFixed(0)}%</td>}
+                {isTaxable && <td style={{ padding: '8px 10px', fontSize: '12px', color: '#475569', textAlign: 'right', fontFamily: 'monospace' }}>{Number(item.tax_amount || 0).toFixed(2)}</td>}
+                <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 700, color: '#0f172a', textAlign: 'right', fontFamily: 'monospace' }}>{Number(item.total).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* Totals & Tax Split + Payment QR */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '14px 0 6px', gap: '20px' }}>
-          {/* Left: Payment QR if active */}
-          {invoice.show_payment_qr && invoice.upi_id ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', maxWidth: '320px' }}>
-              <img
-                src={invoice.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`upi://pay?pa=${invoice.upi_id}&pn=${invoice.business_name || ''}&am=${Number(invoice.total_amount || 0).toFixed(2)}&cu=INR`)}`}
-                alt="UPI Payment QR"
-                style={{ width: '80px', height: '80px', objectFit: 'contain', background: '#ffffff', padding: '2px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-              />
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', display: 'block' }}>Scan & Pay via UPI</span>
-                <span style={{ fontSize: '10px', color: '#475569', fontFamily: 'monospace', display: 'block', marginTop: '2px' }}>{invoice.upi_id}</span>
-                <span style={{ fontSize: '9.5px', color: '#64748b', marginTop: '2px', display: 'block' }}>Accepts GPay, PhonePe, Paytm & BHIM</span>
+        {/* Lower Grid: Bank & QR on Left, Calculation Breakdown on Right */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', alignItems: 'flex-start', marginBottom: '16px' }}>
+          {/* Left: Bank Details & UPI QR */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Bank Details Box */}
+            <div style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc', fontSize: '11.5px' }}>
+              <span style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#475569', display: 'block', marginBottom: '4px' }}>
+                Bank Account Details:
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: '85px 1fr', rowGap: '3px', color: '#334155' }}>
+                <span style={{ color: '#64748b' }}>Bank Name:</span>
+                <strong>{isTaxable ? 'Axis Bank Ltd' : 'Canara Bank'}</strong>
+                <span style={{ color: '#64748b' }}>A/C Number:</span>
+                <strong style={{ fontFamily: 'monospace' }}>{isTaxable ? '923020048192831' : '1084201004921'}</strong>
+                <span style={{ color: '#64748b' }}>IFSC Code:</span>
+                <strong style={{ fontFamily: 'monospace' }}>{isTaxable ? 'UTIB0000142' : 'CNRB0001084'}</strong>
+                <span style={{ color: '#64748b' }}>Branch:</span>
+                <span>{isTaxable ? 'Madurai Main Branch' : 'K K Nagar Branch'}</span>
               </div>
             </div>
-          ) : (
-            <div />
-          )}
+
+            {/* UPI QR if enabled */}
+            {invoice.show_payment_qr && invoice.upi_id && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc' }}>
+                <img
+                  src={invoice.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`upi://pay?pa=${invoice.upi_id}&pn=${invoice.business_name || ''}&am=${Number(invoice.total_amount || 0).toFixed(2)}&cu=INR`)}`}
+                  alt="UPI QR"
+                  style={{ width: '65px', height: '65px', objectFit: 'contain', background: '#ffffff', padding: '2px', border: '1px solid #cbd5e1', borderRadius: '6px', flexShrink: 0 }}
+                />
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', display: 'block' }}>Scan & Pay via UPI</span>
+                  <span style={{ fontSize: '10px', color: '#475569', fontFamily: 'monospace', display: 'block', marginTop: '2px' }}>{invoice.upi_id}</span>
+                  <span style={{ fontSize: '9.5px', color: '#64748b', marginTop: '2px', display: 'block' }}>Google Pay / PhonePe / Paytm</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Right: Totals Table */}
-          <div className="invoice-totals-wrapper" style={{ margin: 0, width: 'auto', minWidth: '260px' }}>
-            <table className="invoice-totals-table">
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
               <tbody>
-                <tr>
-                  <td style={{ color: '#64748b' }}>Subtotal:</td>
-                  <td className="text-right tabular">₹{Number(invoice.subtotal).toFixed(2)}</td>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '6px 12px', color: '#64748b' }}>Subtotal:</td>
+                  <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>₹{Number(invoice.subtotal).toFixed(2)}</td>
                 </tr>
                 {Number(invoice.discount_amount) > 0 && (
-                  <tr>
-                    <td style={{ color: '#64748b' }}>Discount:</td>
-                    <td className="text-right tabular" style={{ color: '#dc2626' }}>-₹{Number(invoice.discount_amount).toFixed(2)}</td>
+                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '6px 12px', color: '#64748b' }}>Discount:</td>
+                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#dc2626', fontWeight: 600 }}>-₹{Number(invoice.discount_amount).toFixed(2)}</td>
                   </tr>
                 )}
                 {Number(invoice.additional_charges) > 0 && (
-                  <tr>
-                    <td style={{ color: '#64748b' }}>Additional Charges:</td>
-                    <td className="text-right tabular">₹{Number(invoice.additional_charges).toFixed(2)}</td>
+                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '6px 12px', color: '#64748b' }}>Additional Charges:</td>
+                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>₹{Number(invoice.additional_charges).toFixed(2)}</td>
                   </tr>
                 )}
                 {isTaxable && (
                   <>
-                    <tr>
-                      <td style={{ color: '#64748b' }}>CGST:</td>
-                      <td className="text-right tabular">₹{Number(invoice.cgst_amount || 0).toFixed(2)}</td>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '6px 12px', color: '#64748b' }}>CGST:</td>
+                      <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' }}>₹{Number(invoice.cgst_amount || 0).toFixed(2)}</td>
                     </tr>
-                    <tr>
-                      <td style={{ color: '#64748b' }}>SGST:</td>
-                      <td className="text-right tabular">₹{Number(invoice.sgst_amount || 0).toFixed(2)}</td>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '6px 12px', color: '#64748b' }}>SGST:</td>
+                      <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' }}>₹{Number(invoice.sgst_amount || 0).toFixed(2)}</td>
                     </tr>
-                    <tr>
-                      <td style={{ color: '#64748b' }}>Total GST Tax:</td>
-                      <td className="text-right tabular">₹{Number(invoice.tax_amount || 0).toFixed(2)}</td>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '6px 12px', color: '#64748b' }}>Total GST:</td>
+                      <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>₹{Number(invoice.tax_amount || 0).toFixed(2)}</td>
                     </tr>
                   </>
                 )}
-                <tr className="invoice-grand-total">
-                  <td style={{ fontWeight: 800 }}>Grand Total:</td>
-                  <td className="text-right tabular" style={{ fontWeight: 800, color: '#166534' }}>
+                {Number(invoice.round_off || 0) !== 0 && (
+                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '6px 12px', color: '#64748b' }}>Round Off:</td>
+                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{Number(invoice.round_off) > 0 ? `+₹${Number(invoice.round_off).toFixed(2)}` : `-₹${Math.abs(Number(invoice.round_off)).toFixed(2)}`}</td>
+                  </tr>
+                )}
+                <tr style={{ backgroundColor: '#f0fdf4', borderTop: '2px solid #16a34a' }}>
+                  <td style={{ padding: '10px 12px', fontWeight: 800, fontSize: '14px', color: '#166534' }}>Grand Total:</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: '15px', color: '#166534' }}>
                     ₹{Number(invoice.total_amount).toFixed(2)}
                   </td>
                 </tr>
@@ -339,17 +448,37 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
         </div>
 
         {/* Amount in Words */}
-        <div style={{ margin: '14px 0 10px', padding: '8px 12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px' }}>
+        <div style={{ margin: '12px 0', padding: '8px 12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11.5px' }}>
           <span style={{ color: '#64748b', fontWeight: 600 }}>Amount in Words: </span>
           <strong style={{ color: '#0f172a' }}>{invoice.amount_in_words || numberToIndianWords(Number(invoice.total_amount || 0))}</strong>
         </div>
 
-        {/* Footer Terms & Thanks */}
-        <div className="invoice-footer-notes">
-          <p style={{ fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
-            {invoice.business_footer || (isTaxable ? 'Thank you for shopping at Grow Naturals! Plants bring life to spaces.' : 'Thank you for choosing Nikhlesh Nursery. Live green, grow happy!')}
-          </p>
-          <p>This is a computer generated invoice and requires no physical signature.</p>
+        {/* Terms and Signature Row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '16px', gap: '20px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+          {/* Terms & Conditions */}
+          <div style={{ flex: 1, fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>
+            <strong style={{ color: '#334155', display: 'block', marginBottom: '2px' }}>Terms & Conditions:</strong>
+            <div>1. Goods once sold will not be returned or exchanged without receipt.</div>
+            <div>2. Plants require proper watering and care as per nursery instructions.</div>
+            <div>3. Subject to Madurai jurisdiction only.</div>
+          </div>
+
+          {/* Signature */}
+          <div style={{ textAlign: 'center', minWidth: '170px', flexShrink: 0 }}>
+            {invoice.signature_url ? (
+              <img
+                src={invoice.signature_url}
+                alt="Signature"
+                style={{ maxHeight: '42px', maxWidth: '140px', objectFit: 'contain', marginBottom: '4px' }}
+              />
+            ) : (
+              <div style={{ height: '36px' }} />
+            )}
+            <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px', fontSize: '11px', fontWeight: 700, color: '#334155' }}>
+              For {invoice.business_legal_name || invoice.business_name || 'Grow Naturals Pvt Ltd'}
+            </div>
+            <div style={{ fontSize: '10px', color: '#64748b' }}>Authorized Signatory</div>
+          </div>
         </div>
       </div>
 

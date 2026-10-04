@@ -118,13 +118,13 @@ export const ExpenseNew: React.FC = () => {
                   <DollarSign size={16} className="input-icon" />
                   <input
                     type="number"
-                    step="1"
-                    min="0"
+                    step="0.01"
+                    min="0.01"
                     className="form-input tabular-nums"
                     style={{ fontSize: 'var(--font-lg)', fontWeight: 600 }}
-                    placeholder="0"
+                    placeholder="0.00"
                     value={amount}
-                    onChange={e => setAmount(e.target.value === '' ? '' : Math.round(Number(e.target.value)))}
+                    onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     required
                     autoFocus
                   />

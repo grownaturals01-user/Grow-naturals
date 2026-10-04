@@ -12,6 +12,19 @@ const HorizontalSidebar = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
+  const isInvoiceCreatePage =
+    location.pathname.includes("create-sales-invoice") ||
+    location.pathname.includes("add-sales") ||
+    location.pathname.includes("create-sales") ||
+    location.pathname.includes("invoices/create") ||
+    location.pathname.includes("invoices/new") ||
+    location.pathname.includes("sales/create") ||
+    location.pathname.includes("sales/new");
+
+  if (isInvoiceCreatePage) {
+    return null;
+  }
+
   /* ================= TOGGLES ================= */
 
   const showMenu = (title: string) => {

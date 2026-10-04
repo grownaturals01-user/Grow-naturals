@@ -560,17 +560,17 @@ export const DeliveryChallanNew: React.FC = () => {
                       <td style={{ textAlign: 'right' }}>
                         <input
                           type="number"
-                          step="1"
+                          step="0.01"
                           min="0"
                           className="form-input tabular"
                           style={{ height: '36px', padding: '6px 10px', fontSize: '0.8125rem', textAlign: 'right' }}
                           value={item.unit_price}
-                          onChange={(e) => handleUpdateItem(idx, 'unit_price', Math.round(parseFloat(e.target.value) || 0))}
+                          onChange={(e) => handleUpdateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)}
                         />
                       </td>
 
                       <td style={{ textAlign: 'right', fontWeight: 700 }} className="tabular">
-                        ₹{Math.round(item.total || 0)}
+                        ₹{(item.total || 0).toFixed(2)}
                       </td>
 
                       <td style={{ textAlign: 'center' }}>
@@ -682,12 +682,12 @@ export const DeliveryChallanNew: React.FC = () => {
                     <span className="input-addon-prefix">₹</span>
                     <input
                       type="number"
-                      step="1"
+                      step="0.01"
                       min="0"
                       max={totalAmount}
                       className="form-input tabular"
-                      value={paymentOption === 'paid' ? Math.round(totalAmount) : paidAmount}
-                      onChange={(e) => setPaidAmount(e.target.value === '' ? '' : String(Math.round(Number(e.target.value))))}
+                      value={paymentOption === 'paid' ? totalAmount : paidAmount}
+                      onChange={(e) => setPaidAmount(e.target.value)}
                       disabled={paymentOption === 'paid'}
                     />
                   </div>

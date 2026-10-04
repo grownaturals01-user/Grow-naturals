@@ -1,10 +1,24 @@
 
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { customer15, logo, logoSmall, logoWhite } from "../../utils/imagepath";
 import { all_routes } from "../../routes/all_routes";
 
 const TwoColumnSidebar = () => {
   const route = all_routes;
+  const location = useLocation();
+
+  const isInvoiceCreatePage =
+    location.pathname.includes("create-sales-invoice") ||
+    location.pathname.includes("add-sales") ||
+    location.pathname.includes("create-sales") ||
+    location.pathname.includes("invoices/create") ||
+    location.pathname.includes("invoices/new") ||
+    location.pathname.includes("sales/create") ||
+    location.pathname.includes("sales/new");
+
+  if (isInvoiceCreatePage) {
+    return null;
+  }
 
   return (
     <>

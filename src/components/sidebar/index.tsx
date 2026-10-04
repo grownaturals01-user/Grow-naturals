@@ -11,6 +11,7 @@ import {
   logoWhite,
   logoSmallWhite,
 } from "../../utils/imagepath";
+import { useAuth } from "../../context/AuthContext";
 
 // Recursively check if any nested child is active
 const hasActiveNestedChild = (menuItem: any, currentPath: string): boolean => {
@@ -25,9 +26,22 @@ const hasActiveNestedChild = (menuItem: any, currentPath: string): boolean => {
   return false;
 };
 
-const Sidebar = () => {
+export interface SidebarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({
+  collapsed,
+  onToggleCollapse,
+  mobileOpen,
+  onCloseMobile,
+}) => {
   const route = all_routes;
   const Location = useLocation();
+  const { user } = useAuth();
   // const { t } = useTranslation();
 
   const [subOpen, setSubopen] = useState("");
@@ -36,6 +50,19 @@ const Sidebar = () => {
   const [activeLinksSubdropToggled, setActiveLinksSubdropToggled] = useState<
     Map<string, boolean>
   >(new Map());
+
+  const isInvoiceCreatePage =
+    Location.pathname.includes("create-sales-invoice") ||
+    Location.pathname.includes("add-sales") ||
+    Location.pathname.includes("create-sales") ||
+    Location.pathname.includes("invoices/create") ||
+    Location.pathname.includes("invoices/new") ||
+    Location.pathname.includes("sales/create") ||
+    Location.pathname.includes("sales/new");
+
+  if (isInvoiceCreatePage) {
+    return null;
+  }
 
   const toggleSidebar = (title: string) => {
     setSubopen((prev) => (prev === title ? "" : title));
@@ -145,96 +172,6 @@ const Sidebar = () => {
             </Link>
           </div>
           {/* /Logo */}
-          <div className="modern-profile p-3 pb-0">
-            <div className="text-center rounded bg-light p-3 mb-4 border">
-              <div className="avatar avatar-lg online mb-3">
-                <img
-                  src={customer15}
-                  alt="Img"
-                  className="img-fluid rounded-circle"
-                />
-              </div>
-              <h6 className="fs-14 fw-bold mb-1">Adrian Herman</h6>
-              <p className="fs-12 mb-0">System Admin</p>
-            </div>
-            <div className="sidebar-nav mb-3">
-              <ul
-                className="nav nav-tabs nav-tabs-solid nav-tabs-rounded nav-justified bg-transparent"
-                role="tablist"
-              >
-                <li className="nav-item">
-                  <Link className="nav-link active border-0" to="#">
-                    Menu
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link border-0" to={route.chat}>
-                    Chats
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link border-0" to={route.email}>
-                    Inbox
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="sidebar-header p-3 pb-0 pt-2">
-            <div className="text-center rounded bg-light p-2 mb-4 sidebar-profile d-flex align-items-center">
-              <div className="avatar avatar-md onlin">
-                <img
-                  src={customer15}
-                  alt="Img"
-                  className="img-fluid rounded-circle"
-                />
-              </div>
-              <div className="text-start sidebar-profile-info ms-2">
-                <h6 className="fs-14 fw-bold mb-1">Adrian Herman</h6>
-                <p className="fs-12">System Admin</p>
-              </div>
-            </div>
-            <div className="d-flex align-items-center justify-content-between menu-item mb-3">
-              <div>
-                <Link
-                  to={route.newdashboard}
-                  className="btn btn-sm btn-icon bg-light"
-                >
-                  <i className="ti ti-layout-grid-remove" />
-                </Link>
-              </div>
-              <div>
-                <Link to={route.chat} className="btn btn-sm btn-icon bg-light">
-                  <i className="ti ti-brand-hipchat" />
-                </Link>
-              </div>
-              <div>
-                <Link
-                  to={route.email}
-                  className="btn btn-sm btn-icon bg-light position-relative"
-                >
-                  <i className="ti ti-message" />
-                </Link>
-              </div>
-              <div className="notification-item">
-                <Link
-                  to={route.activities}
-                  className="btn btn-sm btn-icon bg-light position-relative"
-                >
-                  <i className="ti ti-bell" />
-                  <span className="notification-status-dot" />
-                </Link>
-              </div>
-              <div className="me-0">
-                <Link
-                  to={route.generalsettings}
-                  className="btn btn-sm btn-icon bg-light"
-                >
-                  <i className="ti ti-settings" />
-                </Link>
-              </div>
-            </div>
-          </div>
         </>
         <div data-simplebar="">
           <div className="sidebar-inner ">

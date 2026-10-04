@@ -3,10 +3,10 @@
  */
 
 .app-shell {
-  display: flex;
   min-height: 100vh;
   background-color: var(--color-bg-app);
   font-family: 'Nunito', sans-serif;
+  position: relative;
 }
 
 /* Sidebar Styles - DreamsPOS Signature (Scoped to App Shell) */
@@ -17,19 +17,21 @@
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 0;
+  top: 60px;
   bottom: 0;
   left: 0;
-  z-index: 40;
+  height: calc(100vh - 60px);
+  z-index: 99;
   transition: width var(--transition-normal), transform var(--transition-normal);
   color: var(--color-sidebar-text) !important;
   user-select: none;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.03);
   font-family: 'Nunito', sans-serif !important;
+  overflow-y: auto;
 }
 
 .app-shell .sidebar.collapsed {
-  width: 76px;
+  width: 80px;
 }
 
 .app-shell .sidebar-header {
@@ -301,8 +303,9 @@
 
 /* Main Content Area (Scoped to App Shell) */
 .app-shell .main-wrapper {
-  flex: 1;
   margin-left: 260px;
+  padding-top: 60px;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -311,24 +314,34 @@
 }
 
 .app-shell .sidebar.collapsed ~ .main-wrapper,
-.app-shell .main-wrapper.sidebar-collapsed {
-  margin-left: 76px;
+.app-shell .main-wrapper.sidebar-collapsed,
+.app-shell.mini-sidebar .main-wrapper {
+  margin-left: 80px;
+}
+
+.pos-fullscreen-mode .main-wrapper,
+.no-sidebar-mode .main-wrapper,
+.main-wrapper.pos-fullwidth {
+  margin-left: 0 !important;
+  padding-top: 60px !important;
 }
 
 /* Header Styles - DreamsPOS Signature Clean Topbar (Scoped to App Shell) */
 .app-shell .header {
-  height: 62px;
-  background: var(--color-header-bg) !important;
-  border-bottom: 1px solid var(--color-header-border) !important;
-  color: var(--color-header-text) !important;
-  padding: 0 24px;
+  height: 60px;
+  background: var(--color-header-bg, #ffffff) !important;
+  border-bottom: 1px solid var(--color-header-border, #e2e8f0) !important;
+  color: var(--color-header-text, #334155) !important;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 30;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   transition: all var(--transition-normal);
 }
 

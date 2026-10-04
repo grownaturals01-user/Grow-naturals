@@ -1,16 +1,18 @@
 import { excel, pdf } from "../../utils/imagepath";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { Tooltip } from "primereact/tooltip";
-import { useSelector } from "react-redux";
-import { useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { setToggleHeader } from "../../core/redux/sidebarSlice";
 
 const TableTopHead = () => {
   const dispatch = useDispatch();
   const { toggleHeader } = useSelector((state: any) => state.sidebar);
-  const handleToggleHeader = () => {
+
+  const handleToggleHeader = (e: React.MouseEvent) => {
+    e.preventDefault();
     dispatch(setToggleHeader(!toggleHeader));
   };
+
   return (
     <>
       <Tooltip target=".pr-tooltip" />
@@ -48,14 +50,14 @@ const TableTopHead = () => {
         <li>
           <Link
             to="#"
-            className="pr-tooltip"
-            data-pr-tooltip="Collapse"
+            className={`pr-tooltip ${toggleHeader ? "active" : ""}`}
+            data-pr-tooltip={toggleHeader ? "Expand" : "Collapse"}
             data-pr-position="top"
             id="collapse-header"
             onClick={handleToggleHeader}
           >
             <i
-              className={`ti  ${toggleHeader ? "ti-chevron-down" : "ti-chevron-up"}`}
+              className={`ti ${toggleHeader ? "ti-chevron-down" : "ti-chevron-up"}`}
             />
           </Link>
         </li>

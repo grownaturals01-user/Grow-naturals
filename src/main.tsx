@@ -22,6 +22,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./assets/fonts/lucide/lucide.css";
 import "swiper/swiper-bundle.css";
 
+import "./styles/create-sales-invoice.css";
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -38,5 +39,5 @@ createRoot(document.getElementById('root')!).render(
         </LazyWrapper>
       </PrimeReactProvider>
     </Provider>
-  </StrictMode>,
+  </StrictMode>
 );

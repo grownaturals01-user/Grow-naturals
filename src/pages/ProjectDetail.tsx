@@ -536,8 +536,8 @@ export const ProjectDetail: React.FC = () => {
                   border: '1px solid rgba(254, 159, 67, 0.4)',
                   letterSpacing: '0.3px'
                 }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#e67e22', display: 'inline-block' }} />
-                  IN PROGRESS
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#e67e22', display: 'inline-block' }} />
+                  ⚡ IN PROGRESS
                 </span>
               ) : (
                 <Badge variant={getStatusBadgeVariant(project.status)}>
@@ -553,7 +553,7 @@ export const ProjectDetail: React.FC = () => {
                 title="Change Project Status"
               >
                 <option value="planning">Planning</option>
-                <option value="in_progress">In Progress</option>
+                <option value="in_progress">⚡ In Progress</option>
                 <option value="active">Active Execution</option>
                 <option value="completed">Completed</option>
                 <option value="on_hold">On Hold</option>
@@ -561,18 +561,10 @@ export const ProjectDetail: React.FC = () => {
             </div>
           </div>
 
-          <p className="page-description" style={{ margin: '2px 0 0 0', fontSize: '13px', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span><strong>Client:</strong> {project.client_name} {project.company && `(${project.company})`}</span>
-            {project.location && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                • <MapPin size={12} style={{ flexShrink: 0 }} /> {project.location}
-              </span>
-            )}
-            {project.work_type && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                • <Briefcase size={12} style={{ flexShrink: 0 }} /> {project.work_type}
-              </span>
-            )}
+          <p className="page-description" style={{ margin: '2px 0 0 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+            <strong>Client:</strong> {project.client_name} {project.company && `(${project.company})`}
+            {project.location && ` • 📍 ${project.location}`}
+            {project.work_type && ` • 🌿 ${project.work_type}`}
           </p>
         </div>
 
@@ -2053,13 +2045,13 @@ export const ProjectDetail: React.FC = () => {
                   </span>
                   <input
                     type="number"
-                    step="1"
+                    step="0.01"
                     min="0"
                     className="form-input"
                     style={{ paddingLeft: '28px', fontSize: '16px', fontWeight: 700 }}
                     value={advanceInput}
-                    onChange={(e) => setAdvanceInput(e.target.value === '' ? '' : String(Math.round(Number(e.target.value))))}
-                    placeholder="0"
+                    onChange={(e) => setAdvanceInput(e.target.value)}
+                    placeholder="0.00"
                     required
                   />
                 </div>
@@ -2246,12 +2238,12 @@ export const ProjectDetail: React.FC = () => {
                   <label className="form-label">Amount (₹)</label>
                   <input
                     type="number"
-                    step="1"
-                    min="0"
+                    step="0.01"
+                    min="0.01"
                     className="form-input"
-                    placeholder="0"
+                    placeholder="0.00"
                     value={expenseForm.amount}
-                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value === '' ? '' : String(Math.round(Number(e.target.value))) })}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
                     required
                   />
                 </div>

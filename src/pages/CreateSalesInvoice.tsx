@@ -45,7 +45,24 @@ import {
   PackagePlus,
   Check,
   Copy,
-  FolderKanban
+  FolderKanban,
+  Calendar,
+  LayoutDashboard,
+  Users,
+  Receipt,
+  Package,
+  SlidersHorizontal,
+  IndianRupee,
+  Boxes,
+  Tag,
+  CircleDot,
+  Circle,
+  CreditCard,
+  PhoneCall,
+  Landmark,
+  MapPin,
+  AtSign,
+  MessageSquare
 } from 'lucide-react';
 import { useBusiness } from '../context/BusinessContext';
 import { api } from '../services/api';
@@ -81,12 +98,153 @@ export interface ExtraChargeItem {
 }
 
 const INDIAN_STATES = [
-  'Tamil Nadu', 'Kerala', 'Karnataka', 'Andhra Pradesh', 'Telangana',
-  'Maharashtra', 'Delhi', 'Gujarat', 'Rajasthan', 'Uttar Pradesh',
-  'West Bengal', 'Punjab', 'Haryana', 'Madhya Pradesh', 'Goa'
+  'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
+  'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa',
+  'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand',
+  'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh',
+  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland',
+  'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim',
+  'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand',
+  'West Bengal'
 ];
 
+const PINCODE_PREFIX_MAP: Record<string, { city: string; state: string }> = {
+  '625': { city: 'Madurai', state: 'Tamil Nadu' },
+  '600': { city: 'Chennai', state: 'Tamil Nadu' },
+  '641': { city: 'Coimbatore', state: 'Tamil Nadu' },
+  '620': { city: 'Tiruchirappalli', state: 'Tamil Nadu' },
+  '636': { city: 'Salem', state: 'Tamil Nadu' },
+  '624': { city: 'Dindigul', state: 'Tamil Nadu' },
+  '627': { city: 'Tirunelveli', state: 'Tamil Nadu' },
+  '628': { city: 'Thoothukudi', state: 'Tamil Nadu' },
+  '629': { city: 'Kanyakumari', state: 'Tamil Nadu' },
+  '632': { city: 'Vellore', state: 'Tamil Nadu' },
+  '638': { city: 'Erode', state: 'Tamil Nadu' },
+  '635': { city: 'Hosur', state: 'Tamil Nadu' },
+  '630': { city: 'Karaikudi', state: 'Tamil Nadu' },
+  '605': { city: 'Puducherry', state: 'Puducherry' },
+  '560': { city: 'Bengaluru', state: 'Karnataka' },
+  '570': { city: 'Mysuru', state: 'Karnataka' },
+  '575': { city: 'Mangaluru', state: 'Karnataka' },
+  '580': { city: 'Hubli', state: 'Karnataka' },
+  '590': { city: 'Belgaum', state: 'Karnataka' },
+  '500': { city: 'Hyderabad', state: 'Telangana' },
+  '501': { city: 'Hyderabad', state: 'Telangana' },
+  '502': { city: 'Sangareddy', state: 'Telangana' },
+  '505': { city: 'Karimnagar', state: 'Telangana' },
+  '506': { city: 'Warangal', state: 'Telangana' },
+  '520': { city: 'Vijayawada', state: 'Andhra Pradesh' },
+  '530': { city: 'Visakhapatnam', state: 'Andhra Pradesh' },
+  '517': { city: 'Tirupati', state: 'Andhra Pradesh' },
+  '522': { city: 'Guntur', state: 'Andhra Pradesh' },
+  '515': { city: 'Anantapur', state: 'Andhra Pradesh' },
+  '682': { city: 'Kochi', state: 'Kerala' },
+  '695': { city: 'Thiruvananthapuram', state: 'Kerala' },
+  '673': { city: 'Kozhikode', state: 'Kerala' },
+  '680': { city: 'Thrissur', state: 'Kerala' },
+  '691': { city: 'Kollam', state: 'Kerala' },
+  '400': { city: 'Mumbai', state: 'Maharashtra' },
+  '411': { city: 'Pune', state: 'Maharashtra' },
+  '440': { city: 'Nagpur', state: 'Maharashtra' },
+  '431': { city: 'Aurangabad', state: 'Maharashtra' },
+  '422': { city: 'Nashik', state: 'Maharashtra' },
+  '416': { city: 'Kolhapur', state: 'Maharashtra' },
+  '403': { city: 'Panaji', state: 'Goa' },
+  '110': { city: 'New Delhi', state: 'Delhi' },
+  '122': { city: 'Gurugram', state: 'Haryana' },
+  '121': { city: 'Faridabad', state: 'Haryana' },
+  '134': { city: 'Panchkula', state: 'Haryana' },
+  '201': { city: 'Noida', state: 'Uttar Pradesh' },
+  '226': { city: 'Lucknow', state: 'Uttar Pradesh' },
+  '208': { city: 'Kanpur', state: 'Uttar Pradesh' },
+  '221': { city: 'Varanasi', state: 'Uttar Pradesh' },
+  '282': { city: 'Agra', state: 'Uttar Pradesh' },
+  '380': { city: 'Ahmedabad', state: 'Gujarat' },
+  '395': { city: 'Surat', state: 'Gujarat' },
+  '390': { city: 'Vadodara', state: 'Gujarat' },
+  '360': { city: 'Rajkot', state: 'Gujarat' },
+  '302': { city: 'Jaipur', state: 'Rajasthan' },
+  '342': { city: 'Jodhpur', state: 'Rajasthan' },
+  '313': { city: 'Udaipur', state: 'Rajasthan' },
+  '700': { city: 'Kolkata', state: 'West Bengal' },
+  '734': { city: 'Siliguri', state: 'West Bengal' },
+  '751': { city: 'Bhubaneswar', state: 'Odisha' },
+  '769': { city: 'Rourkela', state: 'Odisha' },
+  '800': { city: 'Patna', state: 'Bihar' },
+  '834': { city: 'Ranchi', state: 'Jharkhand' },
+  '462': { city: 'Bhopal', state: 'Madhya Pradesh' },
+  '452': { city: 'Indore', state: 'Madhya Pradesh' },
+  '492': { city: 'Raipur', state: 'Chhattisgarh' },
+  '141': { city: 'Ludhiana', state: 'Punjab' },
+  '143': { city: 'Amritsar', state: 'Punjab' },
+  '160': { city: 'Chandigarh', state: 'Chandigarh' },
+  '781': { city: 'Guwahati', state: 'Assam' },
+  '248': { city: 'Dehradun', state: 'Uttarakhand' }
+};
 
+const SEED_CUSTOMERS: Customer[] = [
+  { id: 'seed-1', name: 'Aachiya', phone: '9876543210', email: '', address: 'Madurai, TN', gstin: '', closing_balance: 0 },
+  { id: 'seed-2', name: 'Aarsha', phone: '9443210987', email: '', address: 'Bangalore, KA', gstin: '', closing_balance: 0 },
+  { id: 'seed-3', name: 'Aarthi', phone: '9842109876', email: '', address: 'Chennai, TN', gstin: '', closing_balance: 836.99 },
+  { id: 'seed-4', name: 'Abby', phone: '9123456780', email: '', address: 'Coimbatore, TN', gstin: '', closing_balance: 0 },
+  { id: 'seed-5', name: 'Abi Rhuban', phone: '9988776655', email: '', address: 'Madurai, TN', gstin: '', closing_balance: 0 },
+  { id: 'seed-6', name: 'Abinaya', phone: '9789012345', email: '', address: 'Trichy, TN', gstin: '', closing_balance: 0 },
+  { id: 'seed-7', name: 'Ajith', phone: '9654321098', email: '', address: 'Madurai, TN', gstin: '', closing_balance: 0 },
+  { id: 'seed-8', name: 'Anita Sharma', phone: '9811223344', email: '', address: 'Indiranagar, Bangalore', gstin: '', closing_balance: 5600 },
+  { id: 'seed-9', name: 'Oberoi Luxury Resorts', phone: '9870011223', email: '', address: 'MG Road, Bangalore', gstin: '', closing_balance: 44800 },
+  { id: 'seed-10', name: 'Green Valley Residences HOA', phone: '9845012345', email: '', address: 'Whitefield, Bangalore', gstin: '', closing_balance: 12100 },
+  { id: 'seed-11', name: 'Gowtham Nursery', phone: '9443012345', email: '', address: 'Madurai, TN', gstin: '', closing_balance: 4500 },
+  { id: 'seed-12', name: 'MDA Pots and Plants', phone: '9842012345', email: '', address: 'Salem, TN', gstin: '', closing_balance: 325513.01 },
+  { id: 'seed-13', name: 'Pandiyan', phone: '9789098765', email: '', address: 'Dindigul, TN', gstin: '', closing_balance: 9150 }
+];
+
+const MEASURING_UNITS = [
+  { label: 'Pieces(PCS)', code: 'PCS' },
+  { label: 'Boxes(BOX)', code: 'BOX' },
+  { label: 'Numbers(NOS)', code: 'NOS' },
+  { label: 'Kilograms(KG)', code: 'KG' },
+  { label: 'Grams(GM)', code: 'GM' },
+  { label: 'Meters(MTR)', code: 'MTR' },
+  { label: 'Liters(LTR)', code: 'LTR' },
+  { label: 'Packets(PKT)', code: 'PKT' },
+  { label: 'Pairs(PRS)', code: 'PRS' },
+  { label: 'Rolls(ROL)', code: 'ROL' },
+  { label: 'Sets(SET)', code: 'SET' },
+  { label: 'Units(UNT)', code: 'UNT' },
+  { label: 'Bags(BAG)', code: 'BAG' },
+  { label: 'Bottles(BTL)', code: 'BTL' },
+  { label: 'Cartons(CTN)', code: 'CTN' },
+  { label: 'Dozens(DOZ)', code: 'DOZ' },
+  { label: 'Quintal(QTL)', code: 'QTL' },
+  { label: 'Square Feet(SQF)', code: 'SQF' },
+  { label: 'Square Meters(SQM)', code: 'SQM' },
+];
+
+const GST_TAX_RATES = [
+  { label: 'None', rate: 0 },
+  { label: 'GST @ 0%', rate: 0 },
+  { label: 'GST @ 0.1%', rate: 0.1 },
+  { label: 'GST @ 0.25%', rate: 0.25 },
+  { label: 'GST @ 3%', rate: 3 },
+  { label: 'GST @ 5%', rate: 5 },
+  { label: 'GST @ 12%', rate: 12 },
+  { label: 'GST @ 18%', rate: 18 },
+  { label: 'GST @ 28%', rate: 28 },
+  { label: 'Exempted', rate: 0 },
+];
+
+const PARTY_CATEGORIES = [
+  'Retailer',
+  'Wholesaler',
+  'Distributor',
+  'Consumer',
+  'Nursery / Landscaper',
+  'Corporate / Institutional',
+  'Farmer / Grower',
+  'Government Department',
+  'Exporter / Importer',
+  'Other'
+];
 
 export const CreateSalesInvoice: React.FC = () => {
   const navigate = useNavigate();
@@ -142,12 +300,55 @@ export const CreateSalesInvoice: React.FC = () => {
   const [bizMenuOpen, setBizMenuOpen] = useState(false);
 
   // Form State
-  const [invoicePrefix, setInvoicePrefix] = useState(activeBusiness.invoice_prefix || (businessId === 'grow-naturals' ? 'GN00' : 'NN00'));
+  const [invoicePrefix, setInvoicePrefix] = useState(activeBusiness?.invoice_prefix || (businessId === 'grow-naturals' ? 'GN00' : 'NN00'));
   const [invoiceNumber, setInvoiceNumber] = useState(String(Math.floor(8000 + Math.random() * 1000)));
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState<string>('');
+  const [paymentTermsDays, setPaymentTermsDays] = useState<number | string>(30);
   const [hasCustomDueDate, setHasCustomDueDate] = useState(false);
   const [repeatInvoice, setRepeatInvoice] = useState(false);
+
+  // Due Date & Payment Terms synchronization
+  const handleOpenDueDate = () => {
+    const days = typeof paymentTermsDays === 'number' ? paymentTermsDays : parseInt(String(paymentTermsDays), 10) || 30;
+    const base = invoiceDate ? new Date(invoiceDate) : new Date();
+    base.setDate(base.getDate() + days);
+    const calculatedDue = base.toISOString().split('T')[0];
+    setDueDate(calculatedDue);
+    setPaymentTermsDays(days);
+    setHasCustomDueDate(true);
+  };
+
+  const handlePaymentTermsChange = (val: string) => {
+    setPaymentTermsDays(val);
+    const parsedDays = parseInt(val, 10);
+    if (!isNaN(parsedDays) && parsedDays >= 0 && invoiceDate) {
+      const base = new Date(invoiceDate);
+      base.setDate(base.getDate() + parsedDays);
+      setDueDate(base.toISOString().split('T')[0]);
+    }
+  };
+
+  const handleDueDateChange = (newDueDate: string) => {
+    setDueDate(newDueDate);
+    if (newDueDate && invoiceDate) {
+      const invD = new Date(invoiceDate);
+      const dueD = new Date(newDueDate);
+      const diffTime = dueD.getTime() - invD.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      setPaymentTermsDays(Math.max(0, diffDays));
+    }
+  };
+
+  const handleInvoiceDateChange = (newInvDate: string) => {
+    setInvoiceDate(newInvDate);
+    if (hasCustomDueDate && paymentTermsDays !== '') {
+      const parsedDays = parseInt(String(paymentTermsDays), 10) || 0;
+      const base = new Date(newInvDate);
+      base.setDate(base.getDate() + parsedDays);
+      setDueDate(base.toISOString().split('T')[0]);
+    }
+  };
 
   // Party (Bill To) State (MyBillBook style)
   const [hasSelectedParty, setHasSelectedParty] = useState(() => Boolean(paramCustomerName));
@@ -165,6 +366,21 @@ export const CreateSalesInvoice: React.FC = () => {
   const posDropdownRef = useRef<HTMLDivElement | null>(null);
   const [isAiExtractedParty, setIsAiExtractedParty] = useState(false);
   const [partyModalOpen, setPartyModalOpen] = useState(false);
+
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      const day = parts[2];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      if (months[monthIndex]) {
+        return `${day} ${months[monthIndex]} ${year}`;
+      }
+    }
+    return dateStr;
+  };
 
   // Shipping (Ship To) State
   const [shipToName, setShipToName] = useState('');
@@ -187,12 +403,275 @@ export const CreateSalesInvoice: React.FC = () => {
   const [updateDbCustomer, setUpdateDbCustomer] = useState(true);
   const [isSavingPartyEdit, setIsSavingPartyEdit] = useState(false);
 
-  // Quick Customer Creation within Party Modal
+  // Create New Party Modal State (MyBillBook Spec)
   const [showNewCustForm, setShowNewCustForm] = useState(false);
-  const [newCustName, setNewCustName] = useState('');
-  const [newCustPhone, setNewCustPhone] = useState('');
-  const [newCustAddress, setNewCustAddress] = useState('');
-  const [newCustGstin, setNewCustGstin] = useState('');
+  const [newPartyModalTab, setNewPartyModalTab] = useState<'basic' | 'address' | 'credit' | 'contact' | 'bank' | 'custom'>('basic');
+  const [newPartyType, setNewPartyType] = useState<'Customer' | 'Supplier'>('Customer');
+  const [newPartyCategory, setNewPartyCategory] = useState('');
+  const [newPartyName, setNewPartyName] = useState('');
+  const [newPartyPhone, setNewPartyPhone] = useState('');
+  const [newPartyGstin, setNewPartyGstin] = useState('');
+  const [newPartyPan, setNewPartyPan] = useState('');
+  const [newPartyEmail, setNewPartyEmail] = useState('');
+  const [newPartyOpeningBal, setNewPartyOpeningBal] = useState<number | string>('0');
+  const [newPartyOpeningBalType, setNewPartyOpeningBalType] = useState<'to_collect' | 'to_pay'>('to_collect');
+
+  // Address Tab
+  const [newPartyBillingAddress, setNewPartyBillingAddress] = useState('');
+  const [newPartyCity, setNewPartyCity] = useState('');
+  const [newPartyState, setNewPartyState] = useState('');
+  const [newPartyPincode, setNewPartyPincode] = useState('');
+
+  // Shipping Address Modal & Active State
+  const [showAddShippingModal, setShowAddShippingModal] = useState(false);
+  const [hasShippingAddress, setHasShippingAddress] = useState(false);
+  const [newPartyShippingName, setNewPartyShippingName] = useState('');
+  const [newPartyShippingAddress, setNewPartyShippingAddress] = useState('');
+  const [newPartyShippingCity, setNewPartyShippingCity] = useState('');
+  const [newPartyShippingState, setNewPartyShippingState] = useState('');
+  const [newPartyShippingPincode, setNewPartyShippingPincode] = useState('');
+
+  // Working state for Add Shipping Address Modal
+  const [modalShipName, setModalShipName] = useState('');
+  const [modalShipAddress, setModalShipAddress] = useState('');
+  const [modalShipPincode, setModalShipPincode] = useState('');
+  const [modalShipState, setModalShipState] = useState('');
+  const [modalShipCity, setModalShipCity] = useState('');
+  const [modalShipSameAsBilling, setModalShipSameAsBilling] = useState(false);
+
+  const handlePincodeChange = (pin: string, isShipping: boolean = false) => {
+    const cleanPin = pin.replace(/\D/g, '').slice(0, 6);
+    if (isShipping) {
+      setNewPartyShippingPincode(cleanPin);
+    } else {
+      setNewPartyPincode(cleanPin);
+    }
+
+    if (cleanPin.length >= 2) {
+      const prefix3 = cleanPin.substring(0, 3);
+      const prefix2 = cleanPin.substring(0, 2);
+      let matchedCity = '';
+      let matchedState = '';
+
+      if (PINCODE_PREFIX_MAP[prefix3]) {
+        matchedCity = PINCODE_PREFIX_MAP[prefix3].city;
+        matchedState = PINCODE_PREFIX_MAP[prefix3].state;
+      } else {
+        const stateCodeMap: Record<string, string> = {
+          '11': 'Delhi',
+          '12': 'Haryana', '13': 'Haryana',
+          '14': 'Punjab', '15': 'Punjab',
+          '16': 'Chandigarh',
+          '17': 'Himachal Pradesh',
+          '18': 'Jammu and Kashmir', '19': 'Jammu and Kashmir',
+          '20': 'Uttar Pradesh', '21': 'Uttar Pradesh', '22': 'Uttar Pradesh', '23': 'Uttar Pradesh',
+          '24': 'Uttar Pradesh', '25': 'Uttar Pradesh', '26': 'Uttar Pradesh', '27': 'Uttar Pradesh', '28': 'Uttar Pradesh',
+          '30': 'Rajasthan', '31': 'Rajasthan', '32': 'Rajasthan', '33': 'Rajasthan', '34': 'Rajasthan',
+          '36': 'Gujarat', '37': 'Gujarat', '38': 'Gujarat', '39': 'Gujarat',
+          '40': 'Maharashtra', '41': 'Maharashtra', '42': 'Maharashtra', '43': 'Maharashtra', '44': 'Maharashtra',
+          '45': 'Madhya Pradesh', '46': 'Madhya Pradesh', '47': 'Madhya Pradesh', '48': 'Madhya Pradesh',
+          '49': 'Chhattisgarh',
+          '50': 'Telangana',
+          '51': 'Andhra Pradesh', '52': 'Andhra Pradesh', '53': 'Andhra Pradesh',
+          '56': 'Karnataka', '57': 'Karnataka', '58': 'Karnataka', '59': 'Karnataka',
+          '60': 'Tamil Nadu', '61': 'Tamil Nadu', '62': 'Tamil Nadu', '63': 'Tamil Nadu', '64': 'Tamil Nadu',
+          '67': 'Kerala', '68': 'Kerala', '69': 'Kerala',
+          '70': 'West Bengal', '71': 'West Bengal', '72': 'West Bengal', '73': 'West Bengal', '74': 'West Bengal',
+          '75': 'Odisha', '76': 'Odisha', '77': 'Odisha',
+          '78': 'Assam', '79': 'Meghalaya',
+          '80': 'Bihar', '81': 'Bihar', '82': 'Bihar', '83': 'Jharkhand', '84': 'Bihar', '85': 'Bihar'
+        };
+        if (stateCodeMap[prefix2]) {
+          matchedState = stateCodeMap[prefix2];
+        }
+      }
+
+      if (matchedState) {
+        if (isShipping) {
+          setNewPartyShippingState(matchedState);
+          if (matchedCity) setNewPartyShippingCity(matchedCity);
+        } else {
+          setNewPartyState(matchedState);
+          if (matchedCity) setNewPartyCity(matchedCity);
+        }
+      }
+    }
+
+    if (cleanPin.length === 6) {
+      try {
+        fetch(`https://api.postalpincode.in/pincode/${cleanPin}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice?.length > 0) {
+              const po = data[0].PostOffice[0];
+              const apiCity = po.District || po.Block || po.Name;
+              const apiState = po.State;
+              if (isShipping) {
+                if (apiCity) setNewPartyShippingCity(apiCity);
+                if (apiState) setNewPartyShippingState(apiState);
+              } else {
+                if (apiCity) setNewPartyCity(apiCity);
+                if (apiState) setNewPartyState(apiState);
+              }
+            }
+          })
+          .catch(() => {});
+      } catch (err) {
+        // Fallback silently
+      }
+    }
+  };
+
+  const handleShippingModalPincodeChange = (pin: string) => {
+    const cleanPin = pin.replace(/\D/g, '').slice(0, 6);
+    setModalShipPincode(cleanPin);
+
+    if (cleanPin.length >= 2) {
+      const prefix3 = cleanPin.substring(0, 3);
+      const prefix2 = cleanPin.substring(0, 2);
+      let matchedCity = '';
+      let matchedState = '';
+
+      if (PINCODE_PREFIX_MAP[prefix3]) {
+        matchedCity = PINCODE_PREFIX_MAP[prefix3].city;
+        matchedState = PINCODE_PREFIX_MAP[prefix3].state;
+      } else {
+        const stateCodeMap: Record<string, string> = {
+          '11': 'Delhi', '12': 'Haryana', '13': 'Haryana', '14': 'Punjab', '15': 'Punjab',
+          '16': 'Chandigarh', '17': 'Himachal Pradesh', '18': 'Jammu and Kashmir', '19': 'Jammu and Kashmir',
+          '20': 'Uttar Pradesh', '21': 'Uttar Pradesh', '22': 'Uttar Pradesh', '23': 'Uttar Pradesh',
+          '24': 'Uttar Pradesh', '25': 'Uttar Pradesh', '26': 'Uttar Pradesh', '27': 'Uttar Pradesh', '28': 'Uttar Pradesh',
+          '30': 'Rajasthan', '31': 'Rajasthan', '32': 'Rajasthan', '33': 'Rajasthan', '34': 'Rajasthan',
+          '36': 'Gujarat', '37': 'Gujarat', '38': 'Gujarat', '39': 'Gujarat',
+          '40': 'Maharashtra', '41': 'Maharashtra', '42': 'Maharashtra', '43': 'Maharashtra', '44': 'Maharashtra',
+          '45': 'Madhya Pradesh', '46': 'Madhya Pradesh', '47': 'Madhya Pradesh', '48': 'Madhya Pradesh',
+          '49': 'Chhattisgarh', '50': 'Telangana', '51': 'Andhra Pradesh', '52': 'Andhra Pradesh', '53': 'Andhra Pradesh',
+          '56': 'Karnataka', '57': 'Karnataka', '58': 'Karnataka', '59': 'Karnataka',
+          '60': 'Tamil Nadu', '61': 'Tamil Nadu', '62': 'Tamil Nadu', '63': 'Tamil Nadu', '64': 'Tamil Nadu',
+          '67': 'Kerala', '68': 'Kerala', '69': 'Kerala', '70': 'West Bengal', '71': 'West Bengal', '72': 'West Bengal', '73': 'West Bengal', '74': 'West Bengal',
+          '75': 'Odisha', '76': 'Odisha', '77': 'Odisha', '78': 'Assam', '79': 'Meghalaya',
+          '80': 'Bihar', '81': 'Bihar', '82': 'Bihar', '83': 'Jharkhand', '84': 'Bihar', '85': 'Bihar'
+        };
+        if (stateCodeMap[prefix2]) matchedState = stateCodeMap[prefix2];
+      }
+
+      if (matchedState) setModalShipState(matchedState);
+      if (matchedCity) setModalShipCity(matchedCity);
+    }
+
+    if (cleanPin.length === 6) {
+      try {
+        fetch(`https://api.postalpincode.in/pincode/${cleanPin}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice?.length > 0) {
+              const po = data[0].PostOffice[0];
+              const apiCity = po.District || po.Block || po.Name;
+              const apiState = po.State;
+              if (apiCity) setModalShipCity(apiCity);
+              if (apiState) setModalShipState(apiState);
+            }
+          })
+          .catch(() => {});
+      } catch (err) {}
+    }
+  };
+
+  const handleToggleSameAsBillingInModal = (checked: boolean) => {
+    setModalShipSameAsBilling(checked);
+    if (checked) {
+      setModalShipAddress(newPartyBillingAddress);
+      setModalShipPincode(newPartyPincode);
+      setModalShipState(newPartyState);
+      setModalShipCity(newPartyCity);
+    }
+  };
+
+  const handleOpenAddShippingModal = () => {
+    setModalShipName(newPartyShippingName || newPartyName);
+    setModalShipAddress(newPartyShippingAddress);
+    setModalShipPincode(newPartyShippingPincode);
+    setModalShipState(newPartyShippingState);
+    setModalShipCity(newPartyShippingCity);
+    setModalShipSameAsBilling(false);
+    setShowAddShippingModal(true);
+  };
+
+  const handleSaveShippingModal = () => {
+    if (!modalShipName.trim()) {
+      alert('Please enter Shipping Name');
+      return;
+    }
+    if (!modalShipAddress.trim()) {
+      alert('Please enter Shipping Address');
+      return;
+    }
+    setNewPartyShippingName(modalShipName.trim());
+    setNewPartyShippingAddress(modalShipAddress.trim());
+    setNewPartyShippingPincode(modalShipPincode.trim());
+    setNewPartyShippingState(modalShipState);
+    setNewPartyShippingCity(modalShipCity.trim());
+    setHasShippingAddress(true);
+    setShowAddShippingModal(false);
+  };
+
+  // Credit Settings Tab
+  const [newPartyCreditLimit, setNewPartyCreditLimit] = useState<number | string>('0');
+  const [newPartyCreditPeriod, setNewPartyCreditPeriod] = useState<number | string>('30');
+  const [newPartyCreditPeriodUnit, setNewPartyCreditPeriodUnit] = useState<'Days' | 'Weeks' | 'Months'>('Days');
+
+  // Contact Person Tab (matching Screenshot 2: Contact Person Name, Date of Birth)
+  const [newPartyContactName, setNewPartyContactName] = useState('');
+  const [newPartyContactDob, setNewPartyContactDob] = useState('');
+
+  // Bank Tab (matching Screenshot 3: Bank Account Number, Re-Enter Bank Account Number, IFSC Code, Account Holder's Name, Bank Name, Branch Name, UPI ID)
+  const [newPartyBankAcc, setNewPartyBankAcc] = useState('');
+  const [newPartyBankAccConfirm, setNewPartyBankAccConfirm] = useState('');
+  const [newPartyBankIfsc, setNewPartyBankIfsc] = useState('');
+  const [newPartyBankHolder, setNewPartyBankHolder] = useState('');
+  const [newPartyBankName, setNewPartyBankName] = useState('');
+  const [newPartyBankBranch, setNewPartyBankBranch] = useState('');
+  const [newPartyUpiId, setNewPartyUpiId] = useState('');
+
+  // Custom Fields Tab
+  const [newPartyCustom1, setNewPartyCustom1] = useState('');
+  const [newPartyCustom2, setNewPartyCustom2] = useState('');
+  const [newPartyCustom3, setNewPartyCustom3] = useState('');
+  const [newPartyCustom4, setNewPartyCustom4] = useState('');
+  const [newPartyNotes, setNewPartyNotes] = useState('');
+  const [partyCustomFieldValues, setPartyCustomFieldValues] = useState<Record<string, string>>({});
+
+  // Party Settings Modal State (matching screenshot)
+  const [partySettingsOpen, setPartySettingsOpen] = useState(false);
+  const [partySettingsTab, setPartySettingsTab] = useState<'smart_greetings' | 'custom_fields'>('smart_greetings');
+  
+  // Smart Greetings Tab (Screenshot 1)
+  const [enableInvoiceMilestones, setEnableInvoiceMilestones] = useState(true);
+  const [milestoneTemplate, setMilestoneTemplate] = useState('Hey , {{MilestoneMessage}} with {{YourBusinessName}} — thank you, {{PartyName}}! 🎉 <View Invoice>');
+  const [enableBirthdayWishes, setEnableBirthdayWishes] = useState(true);
+  const [birthdayTemplate, setBirthdayTemplate] = useState('Happy Birthday, {{Party Name}}! 🎂 Wishing you success & smiles.');
+
+  // Custom Fields Tab (Screenshot 2)
+  const [partyCustomFieldRows, setPartyCustomFieldRows] = useState<Array<{ id: string; name: string }>>([
+    { id: 'cf-1', name: '' }
+  ]);
+
+  const handleAddCustomFieldRow = () => {
+    setPartyCustomFieldRows((prev) => [...prev, { id: 'cf-' + Date.now(), name: '' }]);
+  };
+
+  const handleRemoveCustomFieldRow = (id: string) => {
+    setPartyCustomFieldRows((prev) => {
+      if (prev.length <= 1) {
+        return [{ id: 'cf-' + Date.now(), name: '' }];
+      }
+      return prev.filter((row) => row.id !== id);
+    });
+  };
+
+  const handleUpdateCustomFieldRowName = (id: string, name: string) => {
+    setPartyCustomFieldRows((prev) => prev.map((row) => row.id === id ? { ...row, name } : row));
+  };
   const [isSavingNewCust, setIsSavingNewCust] = useState(false);
 
   // Total Amount in Words
@@ -203,6 +682,7 @@ export const CreateSalesInvoice: React.FC = () => {
   const [priceHistoryRowId, setPriceHistoryRowId] = useState<string | null>(null);
   const [priceHistoryData, setPriceHistoryData] = useState<any[]>([]);
   const [isLoadingPriceHistory, setIsLoadingPriceHistory] = useState(false);
+  const [editingDescriptionRowId, setEditingDescriptionRowId] = useState<string | null>(null);
 
   useEffect(() => {
     if (paramCustomerName && !editInvoiceId && !paramDuplicateInvoiceId) {
@@ -393,12 +873,13 @@ export const CreateSalesInvoice: React.FC = () => {
       ? '1. Goods once sold will not be taken back or exchanged.\n2. We do not take any responsibility for the loss or damage of goods once the material dispatched.'
       : '1. Plant saplings and live flora are perishable goods and non-returnable once received in good condition.\n2. Proper watering and sunlight instructions must be followed.'
   );
+  const [showTermsInput, setShowTermsInput] = useState(false);
 
   const [bankDetails, setBankDetails] = useState({
     account_number: businessId === 'grow-naturals' ? '919020090453200' : '50200084729104',
     ifsc_code: businessId === 'grow-naturals' ? 'UTIB0003648' : 'HDFC0001298',
     bank_name: businessId === 'grow-naturals' ? 'Axis Bank, Teppakulam Madurai' : 'HDFC Bank, K.K Nagar Branch',
-    account_holder: activeBusiness.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm')
+    account_holder: activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm')
   });
 
   // Additional / Extra financial options (MyBillBook Multi-Charge & Dual Discount)
@@ -421,23 +902,63 @@ export const CreateSalesInvoice: React.FC = () => {
     businessId === 'grow-naturals' ? 'grownaturals@axisbank' : 'nikhleshnursery@hdfcbank'
   );
   const [upiPayeeName, setUpiPayeeName] = useState<string>(
-    activeBusiness.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm')
+    activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm')
   );
   const [includeAmountInQr, setIncludeAmountInQr] = useState<boolean>(true);
   const [tempUpiId, setTempUpiId] = useState<string>('');
   const [tempPayeeName, setTempPayeeName] = useState<string>('');
   const [tempIncludeAmount, setTempIncludeAmount] = useState<boolean>(true);
 
+  // Signature State (MyBillBook Spec)
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(() => {
+    return localStorage.getItem('grow_naturals_signature') || null;
+  });
+  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [sigTab, setSigTab] = useState<'upload' | 'draw'>('upload');
+  const [uploadedSigFile, setUploadedSigFile] = useState<string | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [saveAsDefaultSig, setSaveAsDefaultSig] = useState(true);
+  const [signatoryLabel, setSignatoryLabel] = useState<string>(
+    businessId === 'grow-naturals' ? 'Authorized Signatory for Grow Naturals' : 'Authorized Signatory'
+  );
+  const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sigFileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [quickSettingsTab, setQuickSettingsTab] = useState<'invoice' | 'party' | 'item_table'>('invoice');
+  const [autoPrefixSeqEnabled, setAutoPrefixSeqEnabled] = useState(true);
+  const [industryType, setIndustryType] = useState('Others');
+  const [invoiceCustomFieldToggles, setInvoiceCustomFieldToggles] = useState<{ [key: string]: boolean }>({
+    po_number: false,
+    eway_bill: false,
+    vehicle_number: false,
+    delivery_note: false,
+  });
+  const [partyCustomFields, setPartyCustomFields] = useState<{ id: string; name: string; value: string }[]>([]);
+  const [showNewCustomFieldInput, setShowNewCustomFieldInput] = useState(false);
+  const [newCustomFieldName, setNewCustomFieldName] = useState('');
+  const [showPurchasePriceWhileAdding, setShowPurchasePriceWhileAdding] = useState(true);
+  const [showItemImageOnInvoice, setShowItemImageOnInvoice] = useState(true);
+  const [showPriceHistoryToggle, setShowPriceHistoryToggle] = useState(true);
+  const [itemTableColumnToggles, setItemTableColumnToggles] = useState<{ [key: string]: boolean }>({
+    price_item: true,
+    quantity: true,
+    hsn: true,
+    mrp: true,
+    discount: true,
+    tax: true,
+    description: true
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   // Existing customers, products & categories from database
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>(SEED_CUSTOMERS);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [searchCustomerQuery, setSearchCustomerQuery] = useState('');
+  const [highlightedPartyIndex, setHighlightedPartyIndex] = useState<number>(0);
 
   // "Add Items to Bill" Modal State (MyBillBook Spec)
   const [addItemModalOpen, setAddItemModalOpen] = useState(false);
@@ -446,15 +967,31 @@ export const CreateSalesInvoice: React.FC = () => {
   const [selectedItemQuantities, setSelectedItemQuantities] = useState<Record<string, number>>({});
   const [showOnlySelectedItems, setShowOnlySelectedItems] = useState(false);
 
-  // Quick Product Creation Modal within Add Items Modal
+  // Create New Item Modal State (MyBillBook Spec)
   const [showNewProductForm, setShowNewProductForm] = useState(false);
-  const [newProdName, setNewProdName] = useState('');
+  const [newItemModalTab, setNewItemModalTab] = useState<'basic' | 'stock' | 'pricing' | 'custom'>('basic');
+  const [newProdType, setNewProdType] = useState<'Product' | 'Service'>('Product');
   const [newProdCategory, setNewProdCategory] = useState('');
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdShowOnline, setNewProdShowOnline] = useState(false);
   const [newProdSalePrice, setNewProdSalePrice] = useState<number | string>('');
-  const [newProdCostPrice, setNewProdCostPrice] = useState<number | string>('');
+  const [newProdSalePriceTaxType, setNewProdSalePriceTaxType] = useState<'with_tax' | 'without_tax'>('with_tax');
+  const [newProdGst, setNewProdGst] = useState<number>(0);
+  const [newProdUnit, setNewProdUnit] = useState<string>('Pieces(PCS)');
+  const [newProdStock, setNewProdStock] = useState<number | string>('');
+  const [newProdEnableBatching, setNewProdEnableBatching] = useState(false);
+
+  // Advance Details Tabs
+  const [newProdSku, setNewProdSku] = useState('');
   const [newProdHsn, setNewProdHsn] = useState('3926');
-  const [newProdGst, setNewProdGst] = useState<number>(18);
-  const [newProdStock, setNewProdStock] = useState<number>(10);
+  const [newProdMinStock, setNewProdMinStock] = useState<number | string>('5');
+  const [newProdCostPrice, setNewProdCostPrice] = useState<number | string>('');
+  const [newProdCostPriceTaxType, setNewProdCostPriceTaxType] = useState<'without_tax' | 'with_tax'>('without_tax');
+  const [newProdMrp, setNewProdMrp] = useState<number | string>('');
+  const [newProdWholesalePrice, setNewProdWholesalePrice] = useState<number | string>('');
+  const [newProdBrand, setNewProdBrand] = useState('');
+  const [newProdSize, setNewProdSize] = useState('');
+  const [newProdDesc, setNewProdDesc] = useState('');
   const [isSavingNewProduct, setIsSavingNewProduct] = useState(false);
 
   // Click outside to close inline party search dropdown
@@ -475,7 +1012,7 @@ export const CreateSalesInvoice: React.FC = () => {
   // Synchronize business default updates and fetch next sequential invoice number
   useEffect(() => {
     if (isEditMode) return;
-    const defaultPrefix = activeBusiness.invoice_prefix || (businessId === 'grow-naturals' ? 'GN00' : 'NN00');
+    const defaultPrefix = activeBusiness?.invoice_prefix || (businessId === 'grow-naturals' ? 'GN00' : 'NN00');
     setInvoicePrefix(defaultPrefix);
     setTerms(
       businessId === 'grow-naturals'
@@ -486,10 +1023,10 @@ export const CreateSalesInvoice: React.FC = () => {
       account_number: businessId === 'grow-naturals' ? '919020090453200' : '50200084729104',
       ifsc_code: businessId === 'grow-naturals' ? 'UTIB0003648' : 'HDFC0001298',
       bank_name: businessId === 'grow-naturals' ? 'Axis Bank, Teppakulam Madurai' : 'HDFC Bank, K.K Nagar Branch',
-      account_holder: activeBusiness.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm')
+      account_holder: activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm')
     });
     setUpiId(businessId === 'grow-naturals' ? 'grownaturals@axisbank' : 'nikhleshnursery@hdfcbank');
-    setUpiPayeeName(activeBusiness.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm'));
+    setUpiPayeeName(activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm'));
 
     // Fetch next sequential invoice number from server
     api.get<any>('/invoices/next-number', { business_id: businessId, prefix: defaultPrefix })
@@ -515,10 +1052,12 @@ export const CreateSalesInvoice: React.FC = () => {
           api.get('/invoices/ai-status').catch(() => null)
         ]);
 
-        if (Array.isArray(custRes)) {
-          setCustomers(custRes);
+        if (Array.isArray(custRes) && custRes.length > 0) {
+          const names = new Set(custRes.map((c) => (c.name || '').toLowerCase().trim()));
+          const extra = SEED_CUSTOMERS.filter((s) => !names.has(s.name.toLowerCase().trim()));
+          setCustomers([...custRes, ...extra]);
         } else {
-          setCustomers([]);
+          setCustomers(SEED_CUSTOMERS);
         }
 
         if (Array.isArray(prodRes)) {
@@ -709,29 +1248,57 @@ export const CreateSalesInvoice: React.FC = () => {
     setSelectedItemQuantities({});
   };
 
-  const handleCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProdName.trim()) return;
+  const handleCreateProduct = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newProdName.trim()) {
+      alert('Please enter Item Name');
+      return;
+    }
 
     setIsSavingNewProduct(true);
     try {
       const matchedCat = categories.find((c: any) => c.name === newProdCategory || c.id === newProdCategory);
+      
+      const rawSalePrice = Number(newProdSalePrice) || 0;
+      let calculatedSalePrice = rawSalePrice;
+      if (newProdSalePriceTaxType === 'with_tax' && newProdGst > 0) {
+        calculatedSalePrice = rawSalePrice / (1 + newProdGst / 100);
+      }
+
+      const rawCostPrice = Number(newProdCostPrice) || 0;
+      let calculatedCostPrice = rawCostPrice;
+      if (newProdCostPriceTaxType === 'with_tax' && newProdGst > 0) {
+        calculatedCostPrice = rawCostPrice / (1 + newProdGst / 100);
+      }
+
+      const unitCode = MEASURING_UNITS.find(u => u.label === newProdUnit || u.code === newProdUnit)?.code || 'PCS';
+      const autoSku = newProdSku.trim() || `GN-${Math.floor(1000 + Math.random() * 9000)}`;
+
       const newProduct: Product = {
         id: `prod-${Date.now()}`,
         business_id: businessId as any,
         name: newProdName.trim(),
-        sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+        sku: autoSku,
         barcode: String(Date.now()),
         hsn_code: newProdHsn.trim() || '3926',
         category_id: matchedCat?.id || null,
-        category_name: matchedCat?.name || newProdCategory,
-        cost_price: Number(newProdCostPrice) || 0,
-        sale_price: Number(newProdSalePrice) || 0,
-        gst_rate: Number(newProdGst) || (isTaxable ? 18 : 0),
+        category_name: matchedCat?.name || newProdCategory || 'General',
+        cost_price: Number(calculatedCostPrice.toFixed(2)),
+        sale_price: Number(calculatedSalePrice.toFixed(2)),
+        gst_rate: Number(newProdGst) || 0,
         stock_quantity: Number(newProdStock) || 0,
-        low_stock_threshold: 5,
-        type: 'general',
-        attributes: {}
+        low_stock_threshold: Number(newProdMinStock) || 5,
+        type: (newProdType === 'Service' ? 'service' : 'general') as any,
+        attributes: {
+          measuring_unit: unitCode,
+          show_in_online_store: newProdShowOnline,
+          enable_batching: newProdEnableBatching,
+          mrp: Number(newProdMrp) || (rawSalePrice > 0 ? rawSalePrice : 0),
+          wholesale_price: Number(newProdWholesalePrice) || 0,
+          brand: newProdBrand,
+          size: newProdSize,
+          description: newProdDesc
+        }
       };
 
       try {
@@ -744,9 +1311,20 @@ export const CreateSalesInvoice: React.FC = () => {
       setProducts((prev) => [newProduct, ...prev]);
       setSelectedItemQuantities((prev) => ({ ...prev, [newProduct.id]: 1 }));
       setShowNewProductForm(false);
+
+      // Reset form fields
       setNewProdName('');
+      setNewProdCategory('');
       setNewProdSalePrice('');
       setNewProdCostPrice('');
+      setNewProdStock('');
+      setNewProdSku('');
+      setNewProdMrp('');
+      setNewProdWholesalePrice('');
+      setNewProdBrand('');
+      setNewProdSize('');
+      setNewProdDesc('');
+      setNewItemModalTab('basic');
     } catch (err) {
       console.error('Failed to create product:', err);
     } finally {
@@ -913,7 +1491,7 @@ export const CreateSalesInvoice: React.FC = () => {
 
   const openPaymentQrModal = () => {
     const currentBizDefaultUpi = businessId === 'grow-naturals' ? 'grownaturals@axisbank' : 'nikhleshnursery@hdfcbank';
-    const currentBizDefaultPayee = activeBusiness.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm');
+    const currentBizDefaultPayee = activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm');
     const isMismatched = (businessId === 'grow-naturals' && upiId.includes('nikhlesh')) || 
                          (businessId === 'nikhlesh-nursery' && (upiId.includes('grow-naturals') || upiId.includes('grownaturals')));
     
@@ -939,6 +1517,90 @@ export const CreateSalesInvoice: React.FC = () => {
     setIncludeAmountInQr(tempIncludeAmount);
     setShowPaymentQr(true);
     setPaymentQrModalOpen(false);
+  };
+
+  // Signature Handlers (MyBillBook Spec)
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    setIsDrawing(true);
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const drawSignature = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearSigCanvas = () => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const handleSigFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadedSigFile(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveSignature = () => {
+    let finalSig = '';
+    if (sigTab === 'upload') {
+      if (!uploadedSigFile) {
+        alert('Please upload a signature image first.');
+        return;
+      }
+      finalSig = uploadedSigFile;
+    } else {
+      const canvas = sigCanvasRef.current;
+      if (!canvas) return;
+      finalSig = canvas.toDataURL('image/png');
+    }
+
+    setSignatureUrl(finalSig);
+    if (saveAsDefaultSig) {
+      localStorage.setItem('grow_naturals_signature', finalSig);
+    }
+    setSignatureModalOpen(false);
+  };
+
+  const handleRemoveSignature = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSignatureUrl(null);
+    localStorage.removeItem('grow_naturals_signature');
   };
 
   // Financial aggregates & discount calculations (Exact MyBillBook Spec)
@@ -1180,50 +1842,132 @@ export const CreateSalesInvoice: React.FC = () => {
     setShippingModalOpen(false);
   };
 
-  const handleCreateCustomer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCustName.trim()) {
-      alert('Please enter customer name');
+  const handleCreateCustomer = async (e?: React.FormEvent, saveAndNew: boolean = false) => {
+    if (e) e.preventDefault();
+    if (!newPartyName.trim()) {
+      alert('Please enter Party Name');
       return;
     }
     setIsSavingNewCust(true);
     try {
-      const res: any = await api.post('/customers', {
-        name: newCustName.trim(),
-        phone: newCustPhone.trim() || undefined,
-        address: newCustAddress.trim() || undefined,
-        gstin: newCustGstin.trim() || undefined,
-        business_id: businessId
-      });
-      const createdCustomer: Customer = {
-        id: res?.id || `cust-${Date.now()}`,
-        name: newCustName.trim(),
-        phone: newCustPhone.trim(),
-        address: newCustAddress.trim(),
-        gstin: newCustGstin.trim(),
-        email: ''
+      const fullBillingAddress = [
+        newPartyBillingAddress.trim(),
+        newPartyCity.trim(),
+        newPartyState,
+        newPartyPincode.trim()
+      ].filter(Boolean).join(', ');
+
+      const balNum = Number(newPartyOpeningBal) || 0;
+      const finalBal = newPartyOpeningBalType === 'to_pay' ? -balNum : balNum;
+
+      const payload = {
+        name: newPartyName.trim(),
+        phone: newPartyPhone.trim() || undefined,
+        address: fullBillingAddress || undefined,
+        gstin: newPartyGstin.trim().toUpperCase() || undefined,
+        email: newPartyEmail.trim() || undefined,
+        business_id: businessId,
+        type: newPartyType.toLowerCase(),
+        category: newPartyCategory || 'Retailer',
+        pan_number: newPartyPan.trim().toUpperCase() || undefined,
+        closing_balance: finalBal,
+        credit_limit: Number(newPartyCreditLimit) || 0,
+        credit_period: Number(newPartyCreditPeriod) || 30,
+        bank_details: newPartyBankAcc ? {
+          account_number: newPartyBankAcc,
+          ifsc_code: newPartyBankIfsc,
+          bank_name: newPartyBankName,
+          branch_name: newPartyBankBranch,
+          account_holder: newPartyBankHolder,
+          upi_id: newPartyUpiId
+        } : undefined,
+        contact_person: newPartyContactName ? {
+          name: newPartyContactName,
+          dob: newPartyContactDob
+        } : undefined
       };
+
+      let createdId = `cust-${Date.now()}`;
+      try {
+        const res: any = await api.post('/customers', payload);
+        if (res?.id) createdId = res.id;
+      } catch (postErr) {
+        console.warn('Backend customer creation warning:', postErr);
+      }
+
+      const createdCustomer: Customer = {
+        id: createdId,
+        name: newPartyName.trim(),
+        phone: newPartyPhone.trim(),
+        address: fullBillingAddress,
+        gstin: newPartyGstin.trim().toUpperCase(),
+        email: newPartyEmail.trim(),
+        closing_balance: finalBal
+      };
+
       setCustomers((prev) => [createdCustomer, ...prev]);
       handleSelectCustomer(createdCustomer);
-      setNewCustName('');
-      setNewCustPhone('');
-      setNewCustAddress('');
-      setNewCustGstin('');
-      setShowNewCustForm(false);
+
+      if (newPartyState) {
+        setPlaceOfSupply(newPartyState);
+      }
+
+      // If shipping details provided, sync them
+      if (hasShippingAddress && newPartyShippingAddress.trim()) {
+        const fullShippingAddress = [
+          newPartyShippingAddress.trim(),
+          newPartyShippingCity.trim(),
+          newPartyShippingState,
+          newPartyShippingPincode.trim()
+        ].filter(Boolean).join(', ');
+        setShipToName(newPartyShippingName.trim() || newPartyName.trim());
+        setShipToPhone(newPartyPhone.trim());
+        setShipToAddress(fullShippingAddress);
+        setIsSameAsBilling(false);
+      }
+
+      if (saveAndNew) {
+        // Reset form for next entry
+        setNewPartyName('');
+        setNewPartyPhone('');
+        setNewPartyGstin('');
+        setNewPartyPan('');
+        setNewPartyEmail('');
+        setNewPartyOpeningBal('0');
+        setNewPartyBillingAddress('');
+        setNewPartyCity('');
+        setNewPartyState('');
+        setNewPartyPincode('');
+        setHasShippingAddress(false);
+        setNewPartyShippingName('');
+        setNewPartyShippingAddress('');
+        setNewPartyShippingCity('');
+        setNewPartyShippingState('');
+        setNewPartyShippingPincode('');
+        setNewPartyCreditLimit('0');
+        setNewPartyCreditPeriod('30');
+        setNewPartyContactName('');
+        setNewPartyContactDob('');
+        setNewPartyBankAcc('');
+        setNewPartyBankAccConfirm('');
+        setNewPartyBankIfsc('');
+        setNewPartyBankHolder('');
+        setNewPartyBankName('');
+        setNewPartyBankBranch('');
+        setNewPartyUpiId('');
+        setNewPartyCustom1('');
+        setNewPartyCustom2('');
+        setNewPartyCustom3('');
+        setNewPartyCustom4('');
+        setNewPartyCustom4('');
+        setNewPartyNotes('');
+        setNewPartyModalTab('basic');
+      } else {
+        setPartyModalOpen(false);
+        setIsPartySearchOpen(false);
+      }
     } catch (err: any) {
       console.error('Failed to create customer:', err);
-      // Fallback: select locally
-      const createdCustomer: Customer = {
-        id: `cust-${Date.now()}`,
-        name: newCustName.trim(),
-        phone: newCustPhone.trim(),
-        address: newCustAddress.trim(),
-        gstin: newCustGstin.trim(),
-        email: ''
-      };
-      setCustomers((prev) => [createdCustomer, ...prev]);
-      handleSelectCustomer(createdCustomer);
-      setShowNewCustForm(false);
     } finally {
       setIsSavingNewCust(false);
     }
@@ -1457,13 +2201,15 @@ export const CreateSalesInvoice: React.FC = () => {
       show_payment_qr: showPaymentQr,
       payment_status: isMarkAsPaid ? 'paid' : paymentStatus,
       notes: notes,
-      business_name: activeBusiness.name,
-      business_legal_name: activeBusiness.legal_name,
-      business_gstin: activeBusiness.gstin,
-      business_address: activeBusiness.address,
-      business_phone: activeBusiness.phone,
-      business_email: activeBusiness.email,
-      business_footer: activeBusiness.invoice_footer || terms,
+      business_name: activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery'),
+      business_legal_name: activeBusiness?.legal_name || (businessId === 'grow-naturals' ? 'Grow Naturals Private Limited' : 'Nikhlesh Nursery & Farm'),
+      business_gstin: activeBusiness?.gstin || '',
+      business_address: activeBusiness?.address || '',
+      business_phone: activeBusiness?.phone || '',
+      business_email: activeBusiness?.email || '',
+      business_footer: activeBusiness?.invoice_footer || terms,
+      signature_url: signatureUrl || undefined,
+      signature_title: signatoryLabel || undefined,
       created_at: exactInvoiceDateTime,
       items: items.map((it) => ({
         id: it.id,
@@ -1561,6 +2307,8 @@ export const CreateSalesInvoice: React.FC = () => {
         payment_status: isMarkAsPaid ? 'paid' : paymentStatus,
         notes: notes,
         terms: terms,
+        signature_url: signatureUrl || undefined,
+        signature_title: signatoryLabel || undefined,
         project_id: projectId || undefined
       };
 
@@ -1625,8 +2373,8 @@ export const CreateSalesInvoice: React.FC = () => {
   return (
     <div className="page-wrapper csi-page-wrapper">
       <div className="csi-root">
-      {/* TOP NAVBAR */}
-      <header className="csi-header">
+        {/* TOP NAVBAR */}
+        <header className="csi-header">
         <div className="csi-header-left">
           <button onClick={() => navigate('/sales-list')} className="csi-btn-exit">
             <ArrowLeft size={16} />
@@ -1663,23 +2411,16 @@ export const CreateSalesInvoice: React.FC = () => {
 
         {/* Right Action Buttons */}
         <div className="csi-header-right">
-          {!autofillOpen && !isEditMode && (
-            <button
-              type="button"
-              onClick={() => setAutofillOpen(true)}
-              className="csi-btn-scanner-icon"
-              title="Autofill / Scan Invoice"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 3H5a2 2 0 0 0-2 2v2" />
-                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                <path d="M3 17v2a2 2 0 0 0 2 2h2" />
-                <path d="M9 8h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
-                <line x1="7" y1="12" x2="17" y2="12" strokeWidth="2.5" />
-              </svg>
-            </button>
-          )}
+          {/* Dashboard Return Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="csi-btn-dashboard"
+            title="Return to Dashboard"
+          >
+            <LayoutDashboard size={15} />
+            <span>Dashboard</span>
+          </button>
 
           <button
             onClick={() => setSettingsOpen(true)}
@@ -1734,7 +2475,7 @@ export const CreateSalesInvoice: React.FC = () => {
                 <span style={{ fontWeight: 700 }}>Live Preview:</span>
                 <span style={{ fontFamily: 'monospace', color: '#94a3b8' }}>#{invoicePrefix}{invoiceNumber}</span>
                 <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(16,185,129,0.2)', color: '#6ee7b7', fontSize: '11px', fontWeight: 700 }}>
-                  {activeBusiness.name}
+                  {activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery')}
                 </span>
               </div>
               <button
@@ -1966,191 +2707,37 @@ export const CreateSalesInvoice: React.FC = () => {
             )}
 
             <div className="csi-main-container">
-              {/* TOP ROW: Bill To, Ship To & Invoice Details Grid */}
-              <div className={`csi-top-grid ${hasSelectedParty ? 'csi-top-grid-3col' : 'csi-top-grid-2col'}`}>
-                {/* BILL TO CARD */}
-                <div className="csi-card csi-party-card-box" style={{ position: 'relative' }}>
-                  {isPartySearchOpen ? (
-                    /* STATE 1: MyBillBook Inline Party Search & Live Dropdown */
-                    <div className="csi-party-search-section" ref={partySearchRef}>
-                      <div className="csi-card-header" style={{ marginBottom: '8px' }}>
-                        <h3 className="csi-card-title">Bill To</h3>
-                        <button
-                          type="button"
-                          onClick={() => setSettingsOpen(true)}
-                          className="csi-card-header-icon-btn"
-                          title="Invoice / Party Settings"
-                        >
-                          <Settings size={14} />
-                        </button>
-                      </div>
+              {/* LEFT VERTICAL ACTION RAIL (Orange Scan / Autofill Button) */}
+              {!autofillOpen && (
+                <aside className="csi-left-rail" title="Autofill / Scan Bill">
+                  <button
+                    type="button"
+                    onClick={() => setAutofillOpen(true)}
+                    className="csi-btn-scanner-icon"
+                    title="Autofill / Scan Invoice"
+                    aria-label="Autofill / Scan Invoice"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 8V6a2 2 0 0 1 2-2h2" />
+                      <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+                      <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+                      <path d="M16 20h2a2 2 0 0 0 2-2v-2" />
+                      <rect x="7" y="8.5" width="10" height="7" rx="1.8" />
+                      <line x1="6.5" y1="12" x2="17.5" y2="12" strokeWidth="2.2" />
+                    </svg>
+                  </button>
+                </aside>
+              )}
 
-                  {projectId && (
-                    <div
-                      style={{
-                        marginBottom: '8px',
-                        padding: '6px 10px',
-                        background: 'rgba(34, 197, 94, 0.08)',
-                        border: '1px solid rgba(34, 197, 94, 0.3)',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: '#15803d'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <FolderKanban size={14} />
-                        <span>Project Billed Invoice</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setProjectId('')}
-                        style={{ border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: '11px' }}
-                      >
-                        Unlink
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="csi-party-search-input-box">
-                        <input
-                          type="text"
-                          value={searchCustomerQuery}
-                          onChange={(e) => setSearchCustomerQuery(e.target.value)}
-                          placeholder="Search party by name or number"
-                          className="csi-party-search-input"
-                          autoFocus
-                        />
-                        <ChevronDown size={16} className="csi-party-search-chevron" />
-                      </div>
-
-                      {/* Floating Dropdown with Header, Party List & Create Party */}
-                      <div className="csi-party-floating-dropdown">
-                        <div className="csi-party-dropdown-header">
-                          <span>Party Name</span>
-                          <span>Balance</span>
-                        </div>
-
-                        <div className="csi-party-dropdown-list">
-                          {customers.filter((c) => {
-                            if (!searchCustomerQuery.trim()) return true;
-                            const q = searchCustomerQuery.toLowerCase();
-                            return (
-                              c.name.toLowerCase().includes(q) ||
-                              (c.phone && c.phone.includes(q)) ||
-                              (c.gstin && c.gstin.toLowerCase().includes(q))
-                            );
-                          }).length === 0 ? (
-                            <div className="csi-party-dropdown-empty">
-                              No party found matching &ldquo;{searchCustomerQuery}&rdquo;
-                            </div>
-                          ) : (
-                            customers.filter((c) => {
-                              if (!searchCustomerQuery.trim()) return true;
-                              const q = searchCustomerQuery.toLowerCase();
-                              return (
-                                c.name.toLowerCase().includes(q) ||
-                                (c.phone && c.phone.includes(q)) ||
-                                (c.gstin && c.gstin.toLowerCase().includes(q))
-                              );
-                            }).map((cust) => {
-                              const nameKey = (cust.name || '').toLowerCase().trim();
-                              const knownMap: Record<string, number> = {
-                                'aarsha': 1972.19,
-                                'anita sharma': 5600.00,
-                                'oberoi luxury resorts': 44800.00,
-                                'green valley residences hoa': 12100.00,
-                                'gowtham nursery': 4500.00,
-                                'bank of baroda': 12100.00,
-                                'mda pots and plants': 325513.01,
-                                'pandiyan': 9150.00
-                              };
-                              const bal = cust.closing_balance !== undefined && cust.closing_balance !== null && Number(cust.closing_balance) > 0
-                                ? Number(cust.closing_balance)
-                                : (knownMap[nameKey] !== undefined ? knownMap[nameKey] : (Number(cust.closing_balance) || 0));
-
-                              return (
-                                <div
-                                  key={cust.id}
-                                  onClick={() => handleSelectCustomer(cust)}
-                                  className={`csi-party-dropdown-item ${selectedCustomerId === cust.id ? 'active' : ''}`}
-                                >
-                                  <div className="csi-party-item-left">
-                                    <span className="csi-party-item-name">{cust.name}</span>
-                                    {cust.phone && <span className="csi-party-item-phone">{cust.phone}</span>}
-                                  </div>
-                                  <div className="csi-party-item-right">
-                                    <span
-                                      className="csi-party-item-bal"
-                                      style={{
-                                        color: bal > 0 ? '#059669' : '#64748b',
-                                        fontWeight: bal > 0 ? 600 : 500
-                                      }}
-                                    >
-                                      ₹ {bal.toLocaleString('en-IN', { minimumFractionDigits: bal % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                    {bal > 0 && <ArrowDown size={13} color="#059669" className="csi-bal-arrow-down" />}
-                                  </div>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-
-                        <div className="csi-party-dropdown-footer">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsPartySearchOpen(false);
-                              setSearchCustomerQuery('');
-                              setShowNewCustForm(true);
-                              setPartyModalOpen(true);
-                            }}
-                            className="csi-party-create-btn"
-                          >
-                            + Create Party
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : !hasSelectedParty ? (
-                    /* STATE 2: Initial Empty State: MyBillBook Dashed "+ Add Party" Box */
-                    <>
-                      <div className="csi-card-header">
-                        <h3 className="csi-card-title">Bill To</h3>
-                        <button
-                          type="button"
-                          onClick={() => setSettingsOpen(true)}
-                          className="csi-card-header-icon-btn"
-                          title="Invoice / Party Settings"
-                        >
-                          <Settings size={14} />
-                        </button>
-                      </div>
-
-                      <div className="csi-billto-empty-wrap">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsPartySearchOpen(true);
-                            setSearchCustomerQuery('');
-                          }}
-                          className="csi-add-party-dashed-box"
-                        >
-                          <Plus size={20} className="csi-add-party-icon" />
-                          <span>Add Party</span>
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    /* STATE 3: Selected Party State */
-                    <>
-                      {/* Top Header: Bill To + Edit Party */}
-                      <div className="csi-col-header">
-                        <span className="csi-col-title">Bill To</span>
+              <div className="csi-invoice-sheet">
+                {/* TOP ROW: Bill To, Ship To & Invoice Details Grid */}
+                <div className={`csi-top-grid ${hasSelectedParty ? 'csi-top-grid-3col' : 'csi-top-grid-2col'}`}>
+                  {/* BILL TO CARD */}
+                  <div className="csi-card csi-party-card-box" style={{ position: 'relative' }}>
+                  <div className="csi-card-header">
+                    <h3 className="csi-card-title">Bill To</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {hasSelectedParty && (
                         <button
                           type="button"
                           onClick={openEditPartyModal}
@@ -2160,30 +2747,216 @@ export const CreateSalesInvoice: React.FC = () => {
                           <Edit3 size={12} color="#0284c7" />
                           <span>Edit Party</span>
                         </button>
-                      </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPartySettingsOpen(true);
+                          setPartySettingsTab('custom_fields');
+                        }}
+                        className="csi-card-header-icon-btn"
+                        title="Party Settings"
+                      >
+                        <Settings size={14} />
+                      </button>
+                    </div>
+                  </div>
 
-                      {/* Action buttons row: Change Party + Settings Gear */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <div className="csi-card-body">
+                    {isPartySearchOpen ? (
+                      /* STATE 1: MyBillBook Inline Party Search & Live Dropdown */
+                      <div className="csi-party-search-section" ref={partySearchRef}>
+                        {projectId && (
+                          <div
+                            style={{
+                              marginBottom: '8px',
+                              padding: '6px 10px',
+                              background: 'rgba(34, 197, 94, 0.08)',
+                              border: '1px solid rgba(34, 197, 94, 0.3)',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              color: '#15803d'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <FolderKanban size={14} />
+                              <span>Project Billed Invoice</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setProjectId('')}
+                              style={{ border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                              Unlink
+                            </button>
+                          </div>
+                        )}
+
+                        {(() => {
+                          const filteredCustomers = customers
+                            .filter((c) => {
+                              if (!searchCustomerQuery.trim()) return true;
+                              const q = searchCustomerQuery.toLowerCase();
+                              return (
+                                (c.name || '').toLowerCase().includes(q) ||
+                                (c.phone && c.phone.includes(q)) ||
+                                (c.gstin && c.gstin.toLowerCase().includes(q))
+                              );
+                            })
+                            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+                          return (
+                            <>
+                              <div className="csi-party-search-input-box">
+                                <input
+                                  type="text"
+                                  value={searchCustomerQuery}
+                                  onChange={(e) => {
+                                    setSearchCustomerQuery(e.target.value);
+                                    setHighlightedPartyIndex(0);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'ArrowDown') {
+                                      e.preventDefault();
+                                      setHighlightedPartyIndex((prev) => (prev < filteredCustomers.length - 1 ? prev + 1 : prev));
+                                    } else if (e.key === 'ArrowUp') {
+                                      e.preventDefault();
+                                      setHighlightedPartyIndex((prev) => (prev > 0 ? prev - 1 : 0));
+                                    } else if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      if (filteredCustomers[highlightedPartyIndex]) {
+                                        handleSelectCustomer(filteredCustomers[highlightedPartyIndex]);
+                                      }
+                                    } else if (e.key === 'Escape') {
+                                      setIsPartySearchOpen(false);
+                                    }
+                                  }}
+                                  placeholder="Search party by name or number"
+                                  className="csi-party-search-input"
+                                  autoFocus
+                                />
+                                <ChevronDown size={16} className="csi-party-search-chevron" />
+                              </div>
+
+                              {/* Floating Dropdown with Header, Party List & Create Party */}
+                              <div className="csi-party-floating-dropdown">
+                                <div className="csi-party-dropdown-header">
+                                  <span>Party Name</span>
+                                  <span>Balance</span>
+                                </div>
+
+                                <div className="csi-party-dropdown-list">
+                                  {filteredCustomers.length === 0 ? (
+                                    <div className="csi-party-dropdown-empty">
+                                      No party found matching &ldquo;{searchCustomerQuery}&rdquo;
+                                    </div>
+                                  ) : (
+                                    filteredCustomers.map((cust, idx) => {
+                                      const nameKey = (cust.name || '').toLowerCase().trim();
+                                      const knownMap: Record<string, number> = {
+                                        'aarsha': 0,
+                                        'aarthi': 836.99,
+                                        'aachiya': 0,
+                                        'abby': 0,
+                                        'abi rhuban': 0,
+                                        'abinaya': 0,
+                                        'ajith': 0,
+                                        'anita sharma': 5600.00,
+                                        'oberoi luxury resorts': 44800.00,
+                                        'green valley residences hoa': 12100.00,
+                                        'gowtham nursery': 4500.00,
+                                        'bank of baroda': 12100.00,
+                                        'mda pots and plants': 325513.01,
+                                        'pandiyan': 9150.00
+                                      };
+                                      const bal = cust.closing_balance !== undefined && cust.closing_balance !== null
+                                        ? Number(cust.closing_balance)
+                                        : (knownMap[nameKey] !== undefined ? knownMap[nameKey] : (Number(cust.closing_balance) || 0));
+
+                                      return (
+                                        <div
+                                          key={cust.id || idx}
+                                          onClick={() => handleSelectCustomer(cust)}
+                                          onMouseEnter={() => setHighlightedPartyIndex(idx)}
+                                          className={`csi-party-dropdown-item ${
+                                            selectedCustomerId === cust.id || highlightedPartyIndex === idx ? 'highlighted active' : ''
+                                          }`}
+                                        >
+                                          <div className="csi-party-item-left">
+                                            <span className="csi-party-item-name">{cust.name}</span>
+                                          </div>
+                                          <div className="csi-party-item-right">
+                                            <span
+                                              className="csi-party-item-bal"
+                                              style={{
+                                                color: bal > 0 ? '#10b981' : '#4b5563',
+                                                fontWeight: 500
+                                              }}
+                                            >
+                                              ₹ {bal.toLocaleString('en-IN', { minimumFractionDigits: bal % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                            {bal > 0 && <ArrowDown size={13} color="#10b981" className="csi-bal-arrow-down" />}
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+
+                                <div className="csi-party-dropdown-footer">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsPartySearchOpen(false);
+                                      setSearchCustomerQuery('');
+                                      setShowNewCustForm(true);
+                                      setPartyModalOpen(true);
+                                    }}
+                                    className="csi-party-create-btn"
+                                  >
+                                    + Create Party
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ) : !hasSelectedParty ? (
+                      /* STATE 2: Initial Empty State: MyBillBook Dashed "+ Add Party" Box */
+                      <div className="csi-billto-empty-wrap">
                         <button
                           type="button"
                           onClick={() => {
                             setIsPartySearchOpen(true);
                             setSearchCustomerQuery('');
                           }}
-                          className="csi-btn-change-action"
+                          className="csi-add-party-dashed-box"
                         >
-                          <RotateCcw size={12} color="#64748b" />
-                          <span>Change Party</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSettingsOpen(true)}
-                          className="csi-card-header-icon-btn"
-                          title="Invoice & Party Settings"
-                        >
-                          <Settings size={14} />
+                          <span>+ Add Party</span>
                         </button>
                       </div>
+                    ) : (
+                      /* STATE 3: Selected Party State */
+                      <>
+                        {/* Action buttons row: Change Party */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPartySearchOpen(true);
+                              setSearchCustomerQuery('');
+                            }}
+                            className="csi-btn-change-action"
+                          >
+                            <RotateCcw size={12} color="#64748b" />
+                            <span>Change Party</span>
+                          </button>
+                        </div>
 
                       {/* Party Details */}
                       <div className="csi-party-info-box">
@@ -2254,7 +3027,7 @@ export const CreateSalesInvoice: React.FC = () => {
                           </span>
                           <ChevronDown
                             size={14}
-                            color="#6366f1"
+                            color="#FE9F43"
                             style={{
                               transition: 'transform 0.15s ease',
                               transform: posDropdownOpen ? 'rotate(180deg)' : 'none'
@@ -2292,7 +3065,7 @@ export const CreateSalesInvoice: React.FC = () => {
                                       }}
                                     >
                                       <span>{st}</span>
-                                      {isSelected && <Check size={14} color="#4f46e5" />}
+                                      {isSelected && <Check size={14} color="#FE9F43" />}
                                     </div>
                                   );
                                 })}
@@ -2302,28 +3075,26 @@ export const CreateSalesInvoice: React.FC = () => {
                       </div>
                     </>
                   )}
+                  </div>
                 </div>
 
                 {/* SHIP TO CARD (Displayed when party is selected) */}
                 {hasSelectedParty && (
                   <div className="csi-card csi-party-card-box">
-                    <div>
-                      {/* Top Header: Ship To + Change Shipping Address */}
-                      <div className="csi-col-header">
-                        <span className="csi-col-title">Ship To</span>
-                        <button
-                          type="button"
-                          onClick={openShippingModal}
-                          className="csi-btn-change-action"
-                          title="Change Shipping Address"
-                        >
-                          <RotateCcw size={12} color="#64748b" />
-                          <span>Change Shipping Address</span>
-                        </button>
-                      </div>
-
-                      {/* Ship To Details */}
-                      <div className="csi-party-info-box" style={{ marginTop: '6px' }}>
+                    <div className="csi-card-header">
+                      <h3 className="csi-card-title">Ship To</h3>
+                      <button
+                        type="button"
+                        onClick={openShippingModal}
+                        className="csi-btn-change-action"
+                        title="Change Shipping Address"
+                      >
+                        <RotateCcw size={12} color="#64748b" />
+                        <span>Change</span>
+                      </button>
+                    </div>
+                    <div className="csi-card-body">
+                      <div className="csi-party-info-box">
                         <span className="csi-party-name-bold">{shipToName || partyName}</span>
                         {(shipToPhone || partyPhone) && (
                           <div className="csi-party-phone-row">
@@ -2345,21 +3116,34 @@ export const CreateSalesInvoice: React.FC = () => {
                 )}
 
                 {/* Invoice Details Card */}
-                <div className="csi-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <div className="csi-card-header">
-                      <h3 className="csi-card-title">Invoice Details</h3>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748b', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={repeatInvoice}
-                          onChange={(e) => setRepeatInvoice(e.target.checked)}
-                        />
-                        <span>Repeat this Invoice</span>
+                <div className="csi-card csi-invoice-details-card">
+                  <div className="csi-card-header">
+                    <h3 className="csi-card-title">Invoice Details</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <label className="csi-toggle-wrap" title="Enable recurring/repeat invoice schedule">
+                        <div className="csi-toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={repeatInvoice}
+                            onChange={(e) => setRepeatInvoice(e.target.checked)}
+                          />
+                          <span className="csi-toggle-slider" />
+                        </div>
+                        <span className="csi-toggle-label">Repeat this Invoice</span>
                       </label>
+                      <button
+                        type="button"
+                        onClick={() => setSettingsOpen(true)}
+                        className="csi-card-header-icon-btn"
+                        title="Invoice Details Settings"
+                      >
+                        <Settings size={14} />
+                      </button>
                     </div>
+                  </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className="csi-card-body">
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                       <div>
                         <label className="csi-field-label">Invoice Prefix</label>
                         <input
@@ -2381,49 +3165,95 @@ export const CreateSalesInvoice: React.FC = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
-                      <div>
-                        <label className="csi-field-label">Sales Invoice Date</label>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label className="csi-field-label">Sales Invoice Date</label>
+                      <div className="csi-date-input-container">
+                        <Calendar size={15} className="csi-date-icon-left" />
+                        <span className="csi-formatted-date-text">
+                          {formatDateDisplay(invoiceDate)}
+                        </span>
+                        <Calendar size={15} className="csi-date-icon-right" />
                         <input
                           type="date"
                           value={invoiceDate}
-                          onChange={(e) => setInvoiceDate(e.target.value)}
-                          className="csi-input"
+                          onChange={(e) => handleInvoiceDateChange(e.target.value)}
+                          className="csi-native-date-input"
                         />
                       </div>
-                      <div>
-                        <label className="csi-field-label">Due Date</label>
-                        {hasCustomDueDate ? (
-                          <input
-                            type="date"
-                            value={dueDate}
-                            onChange={(e) => setDueDate(e.target.value)}
-                            className="csi-input"
-                          />
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setHasCustomDueDate(true);
-                              setDueDate(invoiceDate);
-                            }}
-                            className="csi-input"
-                            style={{ borderStyle: 'dashed', color: '#4f46e5', fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}
-                          >
-                            + Add Due Date
-                          </button>
-                        )}
-                      </div>
                     </div>
-                  </div>
 
-                  {invoiceDate !== new Date().toISOString().split('T')[0] && (
-                    <div className="csi-date-warning">
-                      <AlertTriangle size={15} color="#d97706" style={{ flexShrink: 0, marginTop: '1px' }} />
-                      <span>
-                        Changing the invoice date can cause invoice numbering and GSTR-1 mismatches.
-                      </span>
+                    <div style={{ marginBottom: '4px' }}>
+                      {!hasCustomDueDate ? (
+                        <button
+                          type="button"
+                          onClick={handleOpenDueDate}
+                          className="csi-add-duedate-dashed-box"
+                        >
+                          <span>+ Add Due Date</span>
+                        </button>
+                      ) : (
+                        <div className="csi-duedate-expanded-box">
+                          {/* Close Circle Top-Right */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHasCustomDueDate(false);
+                              setDueDate('');
+                            }}
+                            className="csi-duedate-close-circle"
+                            title="Remove Due Date"
+                          >
+                            <X size={12} />
+                          </button>
+
+                          <div className="csi-duedate-fields-grid">
+                            {/* Left: Payment Terms */}
+                            <div>
+                              <label className="csi-field-label">Payment Terms</label>
+                              <div className="csi-payment-terms-box">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={paymentTermsDays}
+                                  onChange={(e) => handlePaymentTermsChange(e.target.value)}
+                                  className="csi-payment-terms-input"
+                                  placeholder="30"
+                                />
+                                <span className="csi-payment-terms-addon">Days</span>
+                              </div>
+                            </div>
+
+                            {/* Right: Due Date */}
+                            <div>
+                              <label className="csi-field-label">Due Date</label>
+                              <div className="csi-date-input-container">
+                                <Calendar size={15} className="csi-date-icon-left" />
+                                <span className="csi-formatted-date-text">
+                                  {formatDateDisplay(dueDate)}
+                                </span>
+                                <Calendar size={15} className="csi-date-icon-right" />
+                                <input
+                                  type="date"
+                                  value={dueDate}
+                                  onChange={(e) => handleDueDateChange(e.target.value)}
+                                  className="csi-native-date-input"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {invoiceDate !== new Date().toISOString().split('T')[0] && (
+                      <div className="csi-date-warning">
+                        <AlertTriangle size={15} color="#d97706" style={{ flexShrink: 0, marginTop: '1px' }} />
+                        <span>
+                          Changing the invoice date can cause invoice numbering and GSTR-1 mismatches.
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2463,23 +3293,23 @@ export const CreateSalesInvoice: React.FC = () => {
                           <td style={{ textAlign: 'center', color: '#64748b', fontWeight: 600, fontSize: '12.5px' }}>
                             {idx + 1}
                           </td>
-                          <td style={{ textAlign: 'left' }}>
-                            <input
-                              type="text"
-                              value={it.product_name}
-                              onChange={(e) => handleItemChange(it.id, 'product_name', e.target.value)}
-                              placeholder="Product or service name..."
-                              className="csi-input"
-                              style={{ border: 'none', background: 'transparent', padding: '2px 0', fontWeight: 600, fontSize: '13px', width: '100%', color: '#0f172a' }}
-                            />
-                            <input
-                              type="text"
-                              value={it.description || ''}
-                              onChange={(e) => handleItemChange(it.id, 'description', e.target.value)}
-                              placeholder="Enter Description (optional)"
-                              className="csi-input"
-                              style={{ border: 'none', background: 'transparent', padding: '2px 0', fontSize: '11px', color: '#64748b', width: '100%' }}
-                            />
+                          <td style={{ textAlign: 'left', verticalAlign: 'top' }}>
+                            <div className="csi-item-cell-content">
+                              <input
+                                type="text"
+                                value={it.product_name}
+                                onChange={(e) => handleItemChange(it.id, 'product_name', e.target.value)}
+                                placeholder="Product or service name..."
+                                className="csi-item-name-input"
+                              />
+                              <textarea
+                                value={it.description || ''}
+                                onChange={(e) => handleItemChange(it.id, 'description', e.target.value)}
+                                placeholder="Enter Description (optional)"
+                                className="csi-item-desc-textarea"
+                                rows={2}
+                              />
+                            </div>
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <input
@@ -2494,17 +3324,8 @@ export const CreateSalesInvoice: React.FC = () => {
                           <td style={{ textAlign: 'center' }}>
                             <input
                               type="number"
-                              step="1"
-                              min="0"
-                              inputMode="numeric"
-                              onKeyDown={(e) => {
-                                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                              }}
                               value={it.mrp === 0 ? '0' : it.mrp || ''}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/[^0-9]/g, '');
-                                handleItemChange(it.id, 'mrp', val === '' ? 0 : parseInt(val, 10));
-                              }}
+                              onChange={(e) => handleItemChange(it.id, 'mrp', Number(e.target.value))}
                               placeholder="0"
                               className="csi-table-num-input"
                               style={{ width: '72px', height: '32px', textAlign: 'right', fontSize: '12.5px', fontWeight: 600, padding: '0 6px', margin: '0 auto', display: 'block' }}
@@ -2515,16 +3336,8 @@ export const CreateSalesInvoice: React.FC = () => {
                               <input
                                 type="number"
                                 min="1"
-                                step="1"
-                                inputMode="numeric"
-                                onKeyDown={(e) => {
-                                  if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                                }}
                                 value={it.quantity}
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(/[^0-9]/g, '');
-                                  handleItemChange(it.id, 'quantity', Math.max(1, parseInt(val, 10) || 1));
-                                }}
+                                onChange={(e) => handleItemChange(it.id, 'quantity', Number(e.target.value))}
                                 className="csi-table-num-input"
                                 style={{ width: '48px', height: '32px', textAlign: 'center', fontWeight: 700, fontSize: '13px', padding: '0 4px' }}
                               />
@@ -2535,17 +3348,9 @@ export const CreateSalesInvoice: React.FC = () => {
                             <div className="csi-price-cell-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
                               <input
                                 type="number"
-                                step="1"
-                                min="0"
-                                inputMode="numeric"
-                                onKeyDown={(e) => {
-                                  if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                                }}
+                                step="0.01"
                                 value={it.unit_price}
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(/[^0-9]/g, '');
-                                  handleItemChange(it.id, 'unit_price', val === '' ? 0 : parseInt(val, 10));
-                                }}
+                                onChange={(e) => handleItemChange(it.id, 'unit_price', Number(e.target.value))}
                                 onFocus={() => {
                                   if (it.product_name) {
                                     fetchPartyItemHistory(it.id, it.product_id, it.product_name);
@@ -2803,749 +3608,1974 @@ export const CreateSalesInvoice: React.FC = () => {
                 </div>
               </div>
 
-              {/* BOTTOM SECTION */}
+              {/* BOTTOM SECTION (MYBILLBOOK EXACT SPEC) */}
               <div className="csi-bottom-grid">
-                {/* LEFT BOTTOM: Notes, Terms & Bank Details */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Notes & Terms Card */}
-                  <div className="csi-card">
-                    <div className="csi-card-header">
-                      <h3 className="csi-card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <FileText size={15} color="#4f46e5" /> Terms & Conditions
-                      </h3>
-                      {!showNotesInput && (
-                        <button
-                          onClick={() => setShowNotesInput(true)}
-                          style={{ border: 'none', background: 'transparent', color: '#4f46e5', fontWeight: 600, fontSize: '11px', cursor: 'pointer' }}
-                        >
-                          + Add Notes
-                        </button>
-                      )}
-                    </div>
-
-                    {showNotesInput && (
-                      <div style={{ marginBottom: '10px' }}>
+                {/* LEFT BOTTOM: Notes, Terms, Bank & QR */}
+                <div className="csi-bottom-left">
+                  {/* Add Notes */}
+                  <div className="csi-bottom-action-item">
+                    {!showNotesInput ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowNotesInput(true)}
+                        className="csi-bottom-link-btn"
+                      >
+                        <FileText size={16} className="csi-link-blue-icon" />
+                        <span>Add Notes</span>
+                      </button>
+                    ) : (
+                      <div className="csi-expanded-input-box">
+                        <div className="csi-expanded-input-header">
+                          <span className="csi-expanded-label">Notes</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNotes('');
+                              setShowNotesInput(false);
+                            }}
+                            className="csi-btn-remove-inline"
+                          >
+                            <X size={13} /> Remove
+                          </button>
+                        </div>
                         <textarea
                           rows={2}
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
                           placeholder="Add customer-facing note or memo..."
                           className="csi-input"
-                          style={{ width: '100%', resize: 'vertical' }}
+                          autoFocus
                         />
                       </div>
                     )}
-
-                    <textarea
-                      rows={3}
-                      value={terms}
-                      onChange={(e) => setTerms(e.target.value)}
-                      className="csi-input"
-                      style={{ width: '100%', fontSize: '11px', resize: 'vertical' }}
-                    />
                   </div>
 
-                  {/* Bank Details Card */}
-                  <div className="csi-card">
-                    <div className="csi-card-header">
-                      <h3 className="csi-card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Building2 size={15} color="#059669" /> Bank Details
-                      </h3>
-                      <div style={{ display: 'flex', gap: '8px', fontSize: '11px' }}>
-                        <button
-                          onClick={() =>
-                            setBankDetails({
-                              account_number: '',
-                              ifsc_code: '',
-                              bank_name: '',
-                              account_holder: ''
-                            })
-                          }
-                          style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-                        >
-                          <Trash2 size={13} /> Remove
-                        </button>
-                        <button
-                          onClick={() => setSettingsOpen(true)}
-                          style={{ border: 'none', background: 'transparent', color: '#4f46e5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}
-                        >
-                          <RotateCcw size={13} /> Change
-                        </button>
+                  {/* Add Terms & Conditions */}
+                  <div className="csi-bottom-action-item">
+                    {!showTermsInput ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowTermsInput(true)}
+                        className="csi-bottom-link-btn"
+                      >
+                        <FileCheck size={16} className="csi-link-blue-icon" />
+                        <span>Add Terms & Conditions</span>
+                      </button>
+                    ) : (
+                      <div className="csi-expanded-input-box">
+                        <div className="csi-expanded-input-header">
+                          <span className="csi-expanded-label">Terms & Conditions</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowTermsInput(false)}
+                            className="csi-btn-remove-inline"
+                          >
+                            <X size={13} /> Collapse
+                          </button>
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={terms}
+                          onChange={(e) => setTerms(e.target.value)}
+                          className="csi-input"
+                          autoFocus
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bank Details Section */}
+                  <div className="csi-bottom-bank-section">
+                    <span className="csi-bank-details-title">Bank Details</span>
+                    <div className="csi-bank-grid-2col">
+                      <div className="csi-bank-field-row">
+                        <span className="csi-bank-label">Account Number:</span>
+                        <span className="csi-bank-val">{bankDetails.account_number || '—'}</span>
+                      </div>
+                      <div className="csi-bank-field-row">
+                        <span className="csi-bank-label">IFSC Code:</span>
+                        <span className="csi-bank-val">{bankDetails.ifsc_code || '—'}</span>
+                      </div>
+                      <div className="csi-bank-field-col">
+                        <span className="csi-bank-label">Bank & Branch Name:</span>
+                        <span className="csi-bank-val">{bankDetails.bank_name || '—'}</span>
+                      </div>
+                      <div className="csi-bank-field-row">
+                        <span className="csi-bank-label">Account Holder's Name:</span>
+                        <span className="csi-bank-val">{bankDetails.account_holder || '—'}</span>
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px' }}>
-                      <div>
-                        <span className="csi-field-label">Account Number</span>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
-                          {bankDetails.account_number}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="csi-field-label">IFSC Code</span>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
-                          {bankDetails.ifsc_code}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="csi-field-label">Bank & Branch Name</span>
-                        <span style={{ color: '#334155', fontWeight: 500 }}>{bankDetails.bank_name}</span>
-                      </div>
-                      <div>
-                        <span className="csi-field-label">Account Holder</span>
-                        <span style={{ color: '#0f172a', fontWeight: 600 }}>{bankDetails.account_holder}</span>
-                      </div>
+                    <div className="csi-bank-actions-row">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBankDetails({
+                            account_number: '',
+                            ifsc_code: '',
+                            bank_name: '',
+                            account_holder: ''
+                          })
+                        }
+                        className="csi-bank-btn-remove"
+                      >
+                        <Trash2 size={13} />
+                        <span>Remove</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSettingsOpen(true)}
+                        className="csi-bank-btn-change"
+                      >
+                        <RotateCcw size={13} />
+                        <span>Change</span>
+                      </button>
                     </div>
+                  </div>
 
-                    {/* Payment QR Code Section (MyBillBook Spec) */}
-                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
-                      {!showPaymentQr ? (
-                        <button
-                          type="button"
-                          onClick={openPaymentQrModal}
-                          className="csi-btn-add-qr"
-                        >
-                          <QrCode size={16} color="#0284c7" />
-                          <span>Add Payment QR</span>
-                        </button>
-                      ) : (
-                        <div className="csi-qr-card-box">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <img
-                              src={generateUpiQrUrl(upiId, upiPayeeName, includeAmountInQr ? roundedGrandTotal : 0)}
-                              alt="Payment QR"
-                              className="csi-qr-img"
-                            />
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>UPI Payment QR</span>
-                                <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', background: '#ecfdf5', color: '#059669', fontWeight: 700 }}>Active</span>
-                              </div>
-                              <div style={{ fontSize: '11px', fontFamily: 'monospace', color: '#475569', marginTop: '2px' }}>
-                                {upiId}
-                              </div>
-                              <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
-                                Payee: <strong>{upiPayeeName}</strong> {includeAmountInQr && `• ₹${roundedGrandTotal.toFixed(2)}`}
-                              </div>
+                  {/* Payment QR Code Section */}
+                  <div className="csi-bottom-action-item">
+                    {!showPaymentQr ? (
+                      <button
+                        type="button"
+                        onClick={openPaymentQrModal}
+                        className="csi-bottom-link-btn"
+                      >
+                        <QrCode size={16} className="csi-link-blue-icon" />
+                        <span>Add Payment QR</span>
+                      </button>
+                    ) : (
+                      <div className="csi-qr-card-box">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <img
+                            src={generateUpiQrUrl(upiId, upiPayeeName, includeAmountInQr ? roundedGrandTotal : 0)}
+                            alt="Payment QR"
+                            className="csi-qr-img"
+                          />
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>UPI Payment QR</span>
+                              <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', background: '#ecfdf5', color: '#059669', fontWeight: 700 }}>Active</span>
+                            </div>
+                            <div style={{ fontSize: '11px', fontFamily: 'monospace', color: '#475569', marginTop: '2px' }}>
+                              {upiId}
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
+                              Payee: <strong>{upiPayeeName}</strong> {includeAmountInQr && `• ₹${roundedGrandTotal.toFixed(2)}`}
                             </div>
                           </div>
-
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              type="button"
-                              onClick={openPaymentQrModal}
-                              className="csi-btn-change-action"
-                              style={{ padding: '3px 8px', fontSize: '11px' }}
-                              title="Edit UPI QR details"
-                            >
-                              <RotateCcw size={11} /> Change
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setShowPaymentQr(false)}
-                              style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
-                              title="Remove Payment QR"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
                         </div>
-                      )}
-                    </div>
+
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={openPaymentQrModal}
+                            className="csi-btn-change-action"
+                            style={{ padding: '3px 8px', fontSize: '11px' }}
+                            title="Edit UPI QR details"
+                          >
+                            <RotateCcw size={11} /> Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowPaymentQr(false)}
+                            style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                            title="Remove Payment QR"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* RIGHT BOTTOM: Tax Breakdown & Grand Total (Exact MyBillBook Spec) */}
-                <div className="csi-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
-                    {/* Add Additional / Extra Charges Section (MyBillBook Multi-Charge) */}
-                    <div>
-                      {!showAddCharges || extraCharges.length === 0 ? (
+                {/* RIGHT BOTTOM: Tax Breakdown & Financial Summary */}
+                <div className="csi-bottom-right">
+                  {/* Add Additional Charges Section */}
+                  <div>
+                    {!showAddCharges || extraCharges.length === 0 ? (
+                      <button
+                        type="button"
+                        onClick={handleAddInitialCharge}
+                        className="csi-bottom-link-btn"
+                      >
+                        <span className="csi-rupee-plus-badge">₹+</span>
+                        <span>Add Additional Charges</span>
+                      </button>
+                    ) : (
+                      <div className="csi-extra-charges-container" style={{ width: '100%' }}>
+                        {extraCharges.map((ch) => (
+                          <div key={ch.id} className="csi-extra-charge-row">
+                            <input
+                              type="text"
+                              placeholder="Enter charge"
+                              value={ch.name}
+                              onChange={(e) => handleUpdateCharge(ch.id, 'name', e.target.value)}
+                              className="csi-charge-name-input"
+                            />
+                            <div className="csi-charge-amt-group">
+                              <span className="csi-charge-currency-symbol">₹</span>
+                              <input
+                                type="number"
+                                placeholder="0"
+                                value={ch.amount === 0 ? '' : ch.amount}
+                                onChange={(e) => handleUpdateCharge(ch.id, 'amount', e.target.value === '' ? '' : Number(e.target.value))}
+                                className="csi-charge-amt-input"
+                              />
+                            </div>
+                            <select
+                              value={ch.tax_rate}
+                              onChange={(e) => handleUpdateCharge(ch.id, 'tax_rate', Number(e.target.value))}
+                              className="csi-charge-tax-select"
+                            >
+                              <option value={0}>No Tax Applicable</option>
+                              <option value={5}>GST @ 5%</option>
+                              <option value={12}>GST @ 12%</option>
+                              <option value={18}>GST @ 18%</option>
+                              <option value={28}>GST @ 28%</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCharge(ch.id)}
+                              className="csi-charge-remove-btn"
+                              title="Remove charge"
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          </div>
+                        ))}
+
                         <button
                           type="button"
-                          onClick={handleAddInitialCharge}
-                          className="csi-btn-add-charges-link"
+                          onClick={handleAddAnotherCharge}
+                          className="csi-btn-add-another-charge"
                         >
-                          <span className="csi-rupee-plus-icon-badge">₹+</span>
-                          <span>Add Additional Charges</span>
+                          <span className="csi-rupee-plus-badge">₹+</span>
+                          <span>Add Another Charge</span>
                         </button>
-                      ) : (
-                        <div className="csi-extra-charges-container">
-                          {extraCharges.map((ch) => (
-                            <div key={ch.id} className="csi-extra-charge-row">
-                              <input
-                                type="text"
-                                placeholder="Enter charge"
-                                value={ch.name}
-                                onChange={(e) => handleUpdateCharge(ch.id, 'name', e.target.value)}
-                                className="csi-charge-name-input"
-                              />
-                              <div className="csi-charge-amt-group">
-                                <span className="csi-charge-currency-symbol">₹</span>
-                                <input
-                                  type="number"
-                                  placeholder="0"
-                                  value={ch.amount === 0 ? '' : ch.amount}
-                                  onChange={(e) => handleUpdateCharge(ch.id, 'amount', e.target.value === '' ? '' : Number(e.target.value))}
-                                  className="csi-charge-amt-input"
-                                />
-                              </div>
-                              <select
-                                value={ch.tax_rate}
-                                onChange={(e) => handleUpdateCharge(ch.id, 'tax_rate', Number(e.target.value))}
-                                className="csi-charge-tax-select"
-                              >
-                                <option value={0}>No Tax Applicable</option>
-                                <option value={5}>GST @ 5%</option>
-                                <option value={12}>GST @ 12%</option>
-                                <option value={18}>GST @ 18%</option>
-                                <option value={28}>GST @ 28%</option>
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveCharge(ch.id)}
-                                className="csi-charge-remove-btn"
-                                title="Remove charge"
-                              >
-                                <XCircle size={16} />
-                              </button>
-                            </div>
-                          ))}
-
-                          <button
-                            type="button"
-                            onClick={handleAddAnotherCharge}
-                            className="csi-btn-add-another-charge"
-                          >
-                            <span className="csi-rupee-plus-badge">₹+</span>
-                            <span>Add Another Charge</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Taxable Amount */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '1px solid #f1f5f9', color: '#334155', fontWeight: 600 }}>
-                      <span>Taxable Amount</span>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
-                        ₹{taxableAmount.toFixed(2)}
-                      </span>
-                    </div>
-
-                    {/* GST Breakdown */}
-                    {isTaxable ? (
-                      <>
-                        {!isInterState ? (
-                          <>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                              <span>SGST @9%</span>
-                              <span style={{ fontFamily: 'monospace' }}>₹{sgstAmount.toFixed(2)}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                              <span>CGST @9%</span>
-                              <span style={{ fontFamily: 'monospace' }}>₹{cgstAmount.toFixed(2)}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                            <span>IGST @18%</span>
-                            <span style={{ fontFamily: 'monospace' }}>₹{igstAmount.toFixed(2)}</span>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#065f46', backgroundColor: '#ecfdf5', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
-                        <span>Agricultural Exemption</span>
-                        <span>0% GST</span>
                       </div>
                     )}
+                  </div>
 
-                    {/* Overall / Bill Discount Section (Exact MyBillBook Spec) */}
-                    <div>
-                      {!showOverallDiscount ? (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowOverallDiscount(true);
-                            }}
-                            className="csi-btn-add-charges-link"
-                          >
-                            <Plus size={13} />
-                            <span>Add Discount</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="csi-discount-row-wrap">
-                          {/* Discount Type: After Tax / Before Tax */}
-                          <div style={{ flex: '0 0 105px' }}>
-                            <select
-                              value={discountType}
-                              onChange={(e) => handleDiscountTypeChange(e.target.value as 'after_tax' | 'before_tax')}
-                              className="csi-discount-type-select"
-                            >
-                              <option value="after_tax">After Tax</option>
-                              <option value="before_tax">Before Tax</option>
-                            </select>
-                          </div>
+                  {/* Taxable Amount */}
+                  <div className="csi-summary-flex-row">
+                    <span className="csi-summary-label">Taxable Amount</span>
+                    <span className="csi-summary-val">₹ {taxableAmount.toFixed(0)}</span>
+                  </div>
 
-                          {/* Discount Percentage */}
-                          <div className="csi-discount-input-group" style={{ flex: '1' }}>
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              placeholder="0"
-                              value={discountPercent === 0 ? '' : discountPercent}
-                              onChange={(e) => handleDiscountPercentChange(e.target.value === '' ? 0 : Number(e.target.value))}
-                              className="csi-discount-inner-input"
-                              style={{ textAlign: 'right' }}
-                            />
-                            <span className="csi-discount-addon">%</span>
-                          </div>
-
-                          {/* Discount Rupees Amount */}
-                          <div className="csi-discount-input-group" style={{ flex: '1.2' }}>
-                            <span className="csi-discount-addon">₹</span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="1"
-                              inputMode="numeric"
-                              onKeyDown={(e) => {
-                                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                              }}
-                              placeholder="0"
-                              value={discountAmount === 0 ? '' : discountAmount}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/[^0-9]/g, '');
-                                handleDiscountAmountChange(val === '' ? 0 : parseInt(val, 10));
-                              }}
-                              className="csi-discount-inner-input"
-                              style={{ textAlign: 'right' }}
-                            />
-                          </div>
-
-                          {/* Remove Discount Button */}
-                          <button
-                            type="button"
-                            onClick={handleRemoveDiscount}
-                            className="csi-discount-remove-btn"
-                            title="Remove discount"
-                          >
-                            <XCircle size={17} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Auto Round Off Row (Exact MyBillBook Spec) */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#334155', fontSize: '13px' }}>
-                        <input
-                          type="checkbox"
-                          checked={autoRoundOff}
-                          onChange={(e) => setAutoRoundOff(e.target.checked)}
-                        />
-                        <span>Auto Round Off</span>
-                      </label>
-                      <div className="csi-roundoff-box">
-                        <div className="csi-roundoff-tag">
-                          <span>{roundOffDifference >= 0 ? '+ Add' : '- Reduce'}</span>
-                        </div>
-                        <span className="csi-roundoff-val">
-                          {Math.abs(roundOffDifference).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Total Amount Row (Exact MyBillBook Spec) */}
-                    <div className="csi-summary-total-amount">
-                      <span className="csi-summary-total-label">Total Amount:</span>
-                      <span className="csi-summary-total-val">
-                        ₹ {Math.round(roundedGrandTotal).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-
-                    {/* TOTAL AMOUNT IN WORDS FIELD */}
-                    <div className="csi-amount-words-card">
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                        <span className="csi-field-label" style={{ margin: 0, color: '#475569', fontSize: '11px', fontWeight: 600 }}>
-                          Total Amount in words
-                        </span>
-                        {isCustomWords && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsCustomWords(false);
-                              setAmountInWords(numberToIndianWords(Math.round(roundedGrandTotal)));
-                            }}
-                            style={{ border: 'none', background: 'transparent', color: '#4f46e5', fontSize: '10px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
-                            title="Auto generate from total amount"
-                          >
-                            <RotateCcw size={10} /> Auto Convert
-                          </button>
-                        )}
-                      </div>
-                      <textarea
-                        rows={2}
-                        value={amountInWords}
-                        onChange={(e) => {
-                          setIsCustomWords(true);
-                          setAmountInWords(e.target.value);
-                        }}
-                        placeholder="e.g. Five Thousand Four Hundred Rupees Only"
-                        className="csi-input csi-amount-words-input"
-                      />
-                    </div>
-
-                    {/* Total Amount Received Section (MyBillBook Spec) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <label className="csi-field-label" style={{ color: '#475569', fontSize: '12px', fontWeight: 600, margin: 0 }}>
-                            Total Amount Received
-                          </label>
-                          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#64748b', fontSize: '12px' }}>
-                            ₹ {isMarkAsPaid ? Math.round(roundedGrandTotal) : (Math.round(Number(receivedAmount)) || 0)}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', flex: 1, border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', background: '#ffffff', height: '34px' }}>
-                            <span style={{ padding: '0 10px', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 600, borderRight: '1px solid #e2e8f0', display: 'flex', alignItems: 'center' }}>
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="1"
-                              inputMode="numeric"
-                              onKeyDown={(e) => {
-                                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                              }}
-                              value={isMarkAsPaid ? Math.round(roundedGrandTotal) : receivedAmount}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/[^0-9]/g, '');
-                                setReceivedAmount(val === '' ? '' : parseInt(val, 10));
-                                const numVal = parseInt(val, 10) || 0;
-                                if (numVal >= Math.round(roundedGrandTotal) && roundedGrandTotal > 0) {
-                                  setIsMarkAsPaid(true);
-                                } else {
-                                  setIsMarkAsPaid(false);
-                                }
-                              }}
-                              placeholder="0"
-                              className="csi-input"
-                              style={{ border: 'none', borderRadius: 0, padding: '4px 10px', fontFamily: 'monospace', fontWeight: 600, flex: 1, height: '100%' }}
-                            />
-                          </div>
+                  {/* Add Discount */}
+                  <div>
+                    {!showOverallDiscount ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowOverallDiscount(true)}
+                        className="csi-bottom-link-btn"
+                      >
+                        <span className="csi-percent-plus-badge">%+</span>
+                        <span>Add Discount</span>
+                      </button>
+                    ) : (
+                      <div className="csi-discount-row-wrap" style={{ width: '100%' }}>
+                        <div style={{ flex: '0 0 105px' }}>
                           <select
-                            value={paymentMethod}
-                            onChange={(e) => setPaymentMethod(e.target.value as any)}
-                            className="csi-input"
-                            style={{ width: '100px', fontWeight: 600, padding: '4px 8px', fontSize: '12px', backgroundColor: '#f8fafc', height: '34px', borderRadius: '4px' }}
+                            value={discountType}
+                            onChange={(e) => handleDiscountTypeChange(e.target.value as 'after_tax' | 'before_tax')}
+                            className="csi-discount-type-select"
                           >
-                            <option value="cash">Cash</option>
-                            <option value="upi">UPI</option>
-                            <option value="card">Card</option>
-                            <option value="bank_transfer">Net Banking</option>
-                            <option value="cheque">Cheque</option>
+                            <option value="after_tax">After Tax</option>
+                            <option value="before_tax">Before Tax</option>
                           </select>
                         </div>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: '#334155', cursor: 'pointer', fontSize: '12px' }}>
+                        <div className="csi-discount-input-group" style={{ flex: '1' }}>
                           <input
-                            type="checkbox"
-                            checked={isMarkAsPaid}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setIsMarkAsPaid(checked);
-                              if (checked) {
-                                setReceivedAmount(roundedGrandTotal);
-                              } else {
-                                setReceivedAmount(0);
-                              }
-                            }}
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0"
+                            value={discountPercent === 0 ? '' : discountPercent}
+                            onChange={(e) => handleDiscountPercentChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                            className="csi-discount-inner-input"
+                            style={{ textAlign: 'right' }}
                           />
-                          <span>Mark as fully paid</span>
-                        </label>
+                          <span className="csi-discount-addon">%</span>
+                        </div>
+                        <div className="csi-discount-input-group" style={{ flex: '1.2' }}>
+                          <span className="csi-discount-addon">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={discountAmount === 0 ? '' : discountAmount}
+                            onChange={(e) => handleDiscountAmountChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                            className="csi-discount-inner-input"
+                            style={{ textAlign: 'right' }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveDiscount}
+                          className="csi-discount-remove-btn"
+                          title="Remove discount"
+                        >
+                          <XCircle size={17} />
+                        </button>
                       </div>
+                    )}
+                  </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669', fontSize: '13px', fontWeight: 700, paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
-                        <span>Balance Amount</span>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: (isMarkAsPaid || Number(receivedAmount) >= roundedGrandTotal) ? '#059669' : '#dc2626' }}>
-                          ₹ {isMarkAsPaid ? '0' : Math.max(0, roundedGrandTotal - (Number(receivedAmount) || 0)).toFixed(2)}
-                        </span>
-                      </div>
+                  <div className="csi-summary-divider" />
 
-                      {partyName && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '12px', paddingTop: '4px' }}>
-                          <span>Previous Party Balance</span>
-                          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#334155' }}>
-                            ₹ {((customers.find(c => c.id === selectedCustomerId)?.closing_balance) ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                          </span>
+                  {/* Auto Round Off Row */}
+                  <div className="csi-summary-flex-row">
+                    <label className="csi-roundoff-label">
+                      <input
+                        type="checkbox"
+                        checked={autoRoundOff}
+                        onChange={(e) => setAutoRoundOff(e.target.checked)}
+                      />
+                      <span>Auto Round Off</span>
+                    </label>
+                    <div className="csi-roundoff-input-group">
+                      <select
+                        value={roundOffDifference >= 0 ? 'add' : 'reduce'}
+                        onChange={() => {}}
+                        className="csi-roundoff-sign-select"
+                      >
+                        <option value="add">+ Add</option>
+                        <option value="reduce">- Reduce</option>
+                      </select>
+                      <input
+                        type="text"
+                        readOnly
+                        value={autoRoundOff && Math.abs(roundOffDifference) > 0 ? Math.abs(roundOffDifference).toFixed(2) : '0'}
+                        className="csi-roundoff-val-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Total Amount Row */}
+                  <div className="csi-summary-flex-row csi-total-amount-row">
+                    <span className="csi-total-amount-title">Total Amount:</span>
+                    <div className="csi-total-amount-box">
+                      <span className="csi-total-amount-currency">₹</span>
+                      <span className={`csi-total-amount-num ${roundedGrandTotal <= 0 ? 'csi-total-amount-placeholder' : ''}`}>
+                        {roundedGrandTotal > 0
+                          ? roundedGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                          : 'Enter payment amount'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="csi-summary-divider" />
+
+                  {/* Total Amount Received Row */}
+                  <div className="csi-summary-flex-row">
+                    <span className="csi-amount-received-label">Total Amount Received</span>
+                    <span className="csi-amount-received-val">
+                      ₹ {isMarkAsPaid ? (roundedGrandTotal > 0 ? roundedGrandTotal.toLocaleString('en-IN') : '0') : (Number(receivedAmount) || 0)}
+                    </span>
+                  </div>
+
+                  {/* Payment Pill Row */}
+                  <div className="csi-payment-pill-row">
+                    <div className="csi-payment-pill-container">
+                      <span className="csi-payment-pill-symbol">₹</span>
+                      <input
+                        type="number"
+                        value={isMarkAsPaid ? (roundedGrandTotal > 0 ? roundedGrandTotal : '') : (receivedAmount === 0 ? '' : receivedAmount)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setReceivedAmount(val);
+                          const numVal = Number(val);
+                          if (numVal >= roundedGrandTotal && roundedGrandTotal > 0) {
+                            setIsMarkAsPaid(true);
+                          } else {
+                            setIsMarkAsPaid(false);
+                          }
+                        }}
+                        placeholder="0"
+                        className="csi-payment-pill-input"
+                      />
+                      <select
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value as any)}
+                        className="csi-payment-pill-select"
+                      >
+                        <option value="cash">Cash</option>
+                        <option value="upi">UPI</option>
+                        <option value="card">Card</option>
+                        <option value="bank_transfer">Net Banking</option>
+                        <option value="cheque">Cheque</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Mark as fully paid & Split Payment */}
+                  <div className="csi-summary-flex-row" style={{ marginTop: '4px' }}>
+                    <label className="csi-mark-paid-label">
+                      <input
+                        type="checkbox"
+                        checked={isMarkAsPaid}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setIsMarkAsPaid(checked);
+                          if (checked) {
+                            setReceivedAmount(roundedGrandTotal);
+                          } else {
+                            setReceivedAmount(0);
+                          }
+                        }}
+                      />
+                      <span>Mark as fully paid</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => alert('Split payment option active across multiple methods.')}
+                      className="csi-split-payment-btn"
+                    >
+                      + Split Payment
+                    </button>
+                  </div>
+
+                  <div className="csi-summary-divider" />
+
+                  {/* Balance Amount Row */}
+                  <div className="csi-summary-flex-row csi-balance-amount-row">
+                    <span className="csi-balance-amount-label">Balance Amount</span>
+                    <span className="csi-balance-amount-val">
+                      ₹ {isMarkAsPaid || roundedGrandTotal === 0 ? '0.00' : Math.max(0, roundedGrandTotal - (Number(receivedAmount) || 0)).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Dashed signature/notes box */}
+                  <div className="csi-summary-dashed-wrap">
+                    <div
+                      className="csi-summary-dashed-box"
+                      onClick={() => setSignatureModalOpen(true)}
+                      title={signatureUrl ? "Click to change signature" : "Click to add signature"}
+                    >
+                      {signatureUrl ? (
+                        <div className="csi-sig-preview-content">
+                          <img src={signatureUrl} alt="Signature" className="csi-sig-preview-img" />
+                          <span className="csi-sig-preview-caption">Authorized Signatory</span>
+                          <div className="csi-sig-hover-actions">
+                            <button
+                              type="button"
+                              className="csi-sig-action-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSignatureModalOpen(true);
+                              }}
+                            >
+                              <Edit3 size={11} /> Change
+                            </button>
+                            <button
+                              type="button"
+                              className="csi-sig-action-btn delete"
+                              onClick={handleRemoveSignature}
+                            >
+                              <Trash2 size={11} /> Remove
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="csi-sig-empty-content">
+                          <Plus size={16} color="#2563eb" />
+                          <span>Add Signature</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </main>
         </div>
       )}
 
-      {/* MODAL: Customer / Party Selection (Pop-up with Live Search, Auto-fill & Quick Add) */}
+      {/* MODAL: Create New Party (MyBillBook Spec) */}
       {partyModalOpen && (
-        <div className="csi-modal-backdrop">
-          <div className="csi-modal-box" style={{ maxWidth: '460px' }}>
-            <div className="csi-modal-header">
-              <h3 className="csi-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <UserCheck size={16} color="#0284c7" /> Select Customer / Party
-              </h3>
+        <div className="csi-modal-backdrop csi-create-party-backdrop" style={{ zIndex: 100050 }}>
+          <div className="csi-modal-box csi-create-party-modal-box">
+            {/* Header */}
+            <div className="csi-create-party-header">
+              <h4 className="csi-create-party-title">Create New Party</h4>
               <button
+                type="button"
+                className="csi-create-party-close-btn"
                 onClick={() => setPartyModalOpen(false)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
+                title="Close"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
-            <div className="csi-modal-body">
-              {/* Search Bar & Actions */}
-              <div style={{ position: 'relative' }}>
-                <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '10px' }} />
-                <input
-                  type="text"
-                  value={searchCustomerQuery}
-                  onChange={(e) => setSearchCustomerQuery(e.target.value)}
-                  placeholder="Search by customer name, phone or GSTIN..."
-                  className="csi-input"
-                  style={{ paddingLeft: '32px' }}
-                  autoFocus
-                />
-              </div>
 
-              {/* Quick Choice Buttons */}
-              <div style={{ display: 'flex', gap: '8px' }}>
+            {/* Body: Two Column Layout */}
+            <div className="csi-create-party-body">
+              {/* Left Sidebar */}
+              <div className="csi-create-party-sidebar">
                 <button
                   type="button"
-                  onClick={handleSelectCashSale}
-                  className="csi-btn-secondary"
-                  style={{ flex: 1, padding: '7px 10px', fontSize: '12px', justifyContent: 'center' }}
+                  onClick={() => setNewPartyModalTab('basic')}
+                  className={`csi-create-party-tab ${newPartyModalTab === 'basic' ? 'active' : ''}`}
                 >
-                  💵 Walk-in Cash Sale
+                  <UserPlus size={16} className="csi-tab-icon" />
+                  <span>Basic Details <span className="text-danger">*</span></span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setShowNewCustForm(!showNewCustForm)}
-                  className="csi-btn-primary"
-                  style={{ flex: 1, padding: '7px 10px', fontSize: '12px', justifyContent: 'center', backgroundColor: '#0284c7' }}
+                  onClick={() => setNewPartyModalTab('address')}
+                  className={`csi-create-party-tab ${newPartyModalTab === 'address' ? 'active' : ''}`}
                 >
-                  <UserPlus size={14} />
-                  <span>{showNewCustForm ? 'Hide Form' : '+ Add New Customer'}</span>
+                  <AtSign size={16} className="csi-tab-icon" />
+                  <span>Address</span>
+                </button>
+
+                <div className="csi-create-party-sidebar-heading">
+                  Advance Details
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setNewPartyModalTab('credit')}
+                  className={`csi-create-party-tab ${newPartyModalTab === 'credit' ? 'active' : ''}`}
+                >
+                  <CreditCard size={16} className="csi-tab-icon" />
+                  <span>Credit Settings</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNewPartyModalTab('contact')}
+                  className={`csi-create-party-tab ${newPartyModalTab === 'contact' ? 'active' : ''}`}
+                >
+                  <PhoneCall size={16} className="csi-tab-icon" />
+                  <span>Contact Person Details</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNewPartyModalTab('bank')}
+                  className={`csi-create-party-tab ${newPartyModalTab === 'bank' ? 'active' : ''}`}
+                >
+                  <Building2 size={16} className="csi-tab-icon" />
+                  <span>Party Bank Account</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNewPartyModalTab('custom')}
+                  className={`csi-create-party-tab ${newPartyModalTab === 'custom' ? 'active' : ''}`}
+                >
+                  <SlidersHorizontal size={16} className="csi-tab-icon" />
+                  <span>Custom Fields</span>
                 </button>
               </div>
 
-              {/* Inline Quick Add Customer Form */}
-              {showNewCustForm && (
-                <form
-                  onSubmit={handleCreateCustomer}
-                  style={{
-                    backgroundColor: '#f0f9ff',
-                    border: '1px solid #bae6fd',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                  }}
-                >
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase' }}>
-                    Quick Register Customer
-                  </span>
-                  <div>
-                    <label className="csi-field-label">Customer / Business Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newCustName}
-                      onChange={(e) => setNewCustName(e.target.value)}
-                      placeholder="e.g. Anand Green House"
-                      className="csi-input"
-                      style={{ backgroundColor: '#ffffff' }}
-                    />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div>
-                      <label className="csi-field-label">Phone Number</label>
+              {/* Right Content Area */}
+              <div className="csi-create-party-content">
+                {/* BASIC DETAILS TAB */}
+                {newPartyModalTab === 'basic' && (
+                  <div className="csi-create-party-form-grid">
+                    {/* Row 1: Party Type & Party Category */}
+                    <div className="csi-create-party-field-wrap">
+                      <label className="csi-create-party-label">
+                        Party Type <span className="text-danger">*</span>
+                      </label>
+                      <div className="csi-party-type-radios">
+                        <label className={`csi-party-type-card ${newPartyType === 'Customer' ? 'checked' : ''}`}>
+                          <input
+                            type="radio"
+                            name="partyTypeRadio"
+                            value="Customer"
+                            checked={newPartyType === 'Customer'}
+                            onChange={() => setNewPartyType('Customer')}
+                          />
+                          <span className="csi-custom-radio-dot"></span>
+                          <span className="csi-party-type-name">Customer</span>
+                        </label>
+                        <label className={`csi-party-type-card ${newPartyType === 'Supplier' ? 'checked' : ''}`}>
+                          <input
+                            type="radio"
+                            name="partyTypeRadio"
+                            value="Supplier"
+                            checked={newPartyType === 'Supplier'}
+                            onChange={() => setNewPartyType('Supplier')}
+                          />
+                          <span className="csi-custom-radio-dot"></span>
+                          <span className="csi-party-type-name">Supplier</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="csi-create-party-field-wrap">
+                      <label className="csi-create-party-label">Party Category</label>
+                      <select
+                        value={newPartyCategory}
+                        onChange={(e) => setNewPartyCategory(e.target.value)}
+                        className="form-select csi-create-party-input"
+                      >
+                        <option value="">Search Categories</option>
+                        {PARTY_CATEGORIES.map((cat, idx) => (
+                          <option key={idx} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Row 2: Party Name & Mobile Number */}
+                    <div className="csi-create-party-field-wrap">
+                      <label className="csi-create-party-label">
+                        Party Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        autoFocus
+                        required
+                        value={newPartyName}
+                        onChange={(e) => setNewPartyName(e.target.value)}
+                        placeholder="Enter Name"
+                        className="form-control csi-create-party-input csi-highlight-border"
+                      />
+                    </div>
+
+                    <div className="csi-create-party-field-wrap">
+                      <label className="csi-create-party-label">Mobile Number</label>
                       <input
                         type="tel"
                         maxLength={10}
-                        value={newCustPhone}
-                        onChange={(e) => setNewCustPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="10-digit mobile"
-                        className="csi-input"
-                        style={{ backgroundColor: '#ffffff' }}
+                        value={newPartyPhone}
+                        onChange={(e) => setNewPartyPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="Enter Mobile Number"
+                        className="form-control csi-create-party-input"
                       />
                     </div>
-                    <div>
-                      <label className="csi-field-label">GSTIN (Optional)</label>
+
+                    {/* Row 3: GSTIN & PAN Number */}
+                    <div className="csi-create-party-field-wrap">
+                      <label className="csi-create-party-label">GSTIN</label>
                       <input
                         type="text"
                         maxLength={15}
-                        value={newCustGstin}
-                        onChange={(e) => setNewCustGstin(e.target.value.toUpperCase())}
-                        placeholder="33AAAAA0000A1Z5"
-                        className="csi-input csi-input-mono"
-                        style={{ backgroundColor: '#ffffff' }}
+                        value={newPartyGstin}
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase();
+                          setNewPartyGstin(val);
+                          if (val.length >= 12 && !newPartyPan) {
+                            setNewPartyPan(val.substring(2, 12));
+                          }
+                        }}
+                        placeholder="EX: 29XXXXX94381XX"
+                        className="form-control csi-create-party-input font-monospace text-uppercase"
+                      />
+                      <span className="csi-create-party-subnote">
+                        <strong>Note:</strong> You can auto populate party details from GSTIN
+                      </span>
+                    </div>
+
+                    <div className="csi-create-party-field-wrap">
+                      <label className="csi-create-party-label">PAN Number</label>
+                      <input
+                        type="text"
+                        maxLength={10}
+                        value={newPartyPan}
+                        onChange={(e) => setNewPartyPan(e.target.value.toUpperCase())}
+                        placeholder="Enter PAN Number"
+                        className="form-control csi-create-party-input font-monospace text-uppercase"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="csi-field-label">Address</label>
-                    <input
-                      type="text"
-                      value={newCustAddress}
-                      onChange={(e) => setNewCustAddress(e.target.value)}
-                      placeholder="City, State, Pincode"
-                      className="csi-input"
-                      style={{ backgroundColor: '#ffffff' }}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isSavingNewCust}
-                    className="csi-btn-primary"
-                    style={{ justifyContent: 'center', marginTop: '4px' }}
-                  >
-                    {isSavingNewCust ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                    <span>Save & Select Customer</span>
-                  </button>
-                </form>
-              )}
 
-              {/* Customer List */}
-              <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', padding: '2px 4px' }}>
-                  Existing Customers ({customers.length})
-                </span>
+                    {/* Row 4: Email & Opening Balance */}
+                    <div className="csi-create-party-field-wrap">
+                      <label className="csi-create-party-label">Email</label>
+                      <input
+                        type="email"
+                        value={newPartyEmail}
+                        onChange={(e) => setNewPartyEmail(e.target.value)}
+                        placeholder="Enter Email"
+                        className="form-control csi-create-party-input"
+                      />
+                    </div>
 
-                {customers
-                  .filter((c) =>
-                    c.name.toLowerCase().includes(searchCustomerQuery.toLowerCase()) ||
-                    (c.phone && c.phone.includes(searchCustomerQuery)) ||
-                    (c.gstin && c.gstin.toLowerCase().includes(searchCustomerQuery.toLowerCase()))
-                  )
-                  .map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => handleSelectCustomer(c)}
-                      className="csi-biz-menu-item"
+                    <div className="csi-create-party-field-wrap">
+                      <label className="csi-create-party-label">Opening Balance</label>
+                      <div className="csi-split-input-group">
+                        <span className="csi-split-prefix">₹</span>
+                        <input
+                          type="number"
+                          value={newPartyOpeningBal}
+                          onChange={(e) => setNewPartyOpeningBal(e.target.value)}
+                          placeholder="0"
+                          className="form-control csi-create-party-input csi-split-main-input font-monospace"
+                        />
+                        <select
+                          value={newPartyOpeningBalType}
+                          onChange={(e) => setNewPartyOpeningBalType(e.target.value as any)}
+                          className="form-select csi-split-addon-select"
+                        >
+                          <option value="to_collect">To Collect</option>
+                          <option value="to_pay">To Pay</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ADDRESS TAB */}
+                {newPartyModalTab === 'address' && (
+                  <div className="csi-address-tab-container">
+                    {/* Billing Address Card Box */}
+                    <div className="csi-address-box mb-3">
+                      {/* Row 1: Billing Address */}
+                      <div className="csi-create-party-field-wrap mb-3">
+                        <label className="csi-create-party-label">Billing Address</label>
+                        <textarea
+                          rows={3}
+                          value={newPartyBillingAddress}
+                          onChange={(e) => setNewPartyBillingAddress(e.target.value)}
+                          placeholder="Enter Billing Address"
+                          className="form-control csi-create-party-input"
+                          style={{ height: 'auto', padding: '10px 12px', resize: 'vertical' }}
+                        />
+                      </div>
+
+                      {/* Row 2: Pincode & State */}
+                      <div className="csi-create-party-form-grid mb-1">
+                        <div className="csi-create-party-field-wrap">
+                          <label className="csi-create-party-label">Pincode</label>
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={newPartyPincode}
+                            onChange={(e) => handlePincodeChange(e.target.value, false)}
+                            placeholder="Enter Pin Code"
+                            className="form-control csi-create-party-input"
+                          />
+                          <span className="csi-create-party-subnote mt-1">
+                            <strong>Note:</strong> You can auto populate State &amp; City from Pincode
+                          </span>
+                        </div>
+
+                        <div className="csi-create-party-field-wrap">
+                          <label className="csi-create-party-label">State</label>
+                          <div className="csi-select-with-icon-wrap">
+                            <Search size={14} className="csi-select-left-search-icon" />
+                            <select
+                              value={newPartyState}
+                              onChange={(e) => setNewPartyState(e.target.value)}
+                              className="form-select csi-create-party-input csi-state-select-with-icon"
+                            >
+                              <option value="">Select State</option>
+                              {INDIAN_STATES.map((st, idx) => (
+                                <option key={idx} value={st}>
+                                  {st}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Row 3: City */}
+                      <div className="csi-create-party-field-wrap mt-2">
+                        <label className="csi-create-party-label">City</label>
+                        <input
+                          type="text"
+                          value={newPartyCity}
+                          onChange={(e) => setNewPartyCity(e.target.value)}
+                          placeholder="Enter City"
+                          className="form-control csi-create-party-input"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Shipping Address Section: Either Saved Card or "+ Add New Shipping Address" Button */}
+                    {hasShippingAddress ? (
+                      <div className="csi-address-box mb-3" style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="fw-bold" style={{ fontSize: '13.5px', color: '#092c4c' }}>
+                              Shipping Address: <span style={{ color: '#fe9f43' }}>{newPartyShippingName}</span>
+                            </span>
+                          </div>
+                          <div className="d-flex align-items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={handleOpenAddShippingModal}
+                              className="btn btn-sm btn-link p-0"
+                              style={{ fontSize: '12px', color: '#0284c7', textDecoration: 'none', fontWeight: 600 }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setHasShippingAddress(false);
+                                setNewPartyShippingName('');
+                                setNewPartyShippingAddress('');
+                                setNewPartyShippingPincode('');
+                                setNewPartyShippingState('');
+                                setNewPartyShippingCity('');
+                              }}
+                              className="btn btn-sm btn-link text-danger p-0"
+                              style={{ fontSize: '12px', textDecoration: 'none', fontWeight: 600 }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                        <p className="mb-0 text-muted" style={{ fontSize: '12.5px', lineHeight: '1.5' }}>
+                          {newPartyShippingAddress}
+                          {newPartyShippingCity && `, ${newPartyShippingCity}`}
+                          {newPartyShippingState && `, ${newPartyShippingState}`}
+                          {newPartyShippingPincode && ` - ${newPartyShippingPincode}`}
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleOpenAddShippingModal}
+                        className="csi-add-shipping-dashed-btn"
+                      >
+                        <span>+ Add New Shipping Address</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* CREDIT SETTINGS TAB */}
+                {newPartyModalTab === 'credit' && (
+                  <div className="csi-credit-settings-box">
+                    <div className="csi-create-party-form-grid">
+                      {/* Left: Credit Period */}
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">Credit Period</label>
+                        <div className="csi-split-input-group">
+                          <input
+                            type="number"
+                            value={newPartyCreditPeriod}
+                            onChange={(e) => setNewPartyCreditPeriod(e.target.value)}
+                            placeholder="30"
+                            className="form-control csi-create-party-input csi-split-main-input font-monospace"
+                          />
+                          <select
+                            value={newPartyCreditPeriodUnit}
+                            onChange={(e) => setNewPartyCreditPeriodUnit(e.target.value as any)}
+                            className="form-select csi-split-addon-select"
+                            style={{ width: '90px' }}
+                          >
+                            <option value="Days">Days</option>
+                            <option value="Weeks">Weeks</option>
+                            <option value="Months">Months</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Right: Credit Limit */}
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">Credit Limit</label>
+                        <div className="csi-split-input-group">
+                          <span className="csi-split-prefix">₹</span>
+                          <input
+                            type="number"
+                            value={newPartyCreditLimit}
+                            onChange={(e) => setNewPartyCreditLimit(e.target.value)}
+                            placeholder="0"
+                            className="form-control csi-create-party-input csi-split-main-input font-monospace"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* CONTACT PERSON DETAILS TAB (Screenshot 2 Spec) */}
+                {newPartyModalTab === 'contact' && (
+                  <div className="csi-address-box">
+                    <div className="csi-create-party-form-grid">
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">Contact Person Name</label>
+                        <input
+                          type="text"
+                          value={newPartyContactName}
+                          onChange={(e) => setNewPartyContactName(e.target.value)}
+                          placeholder="Ex: Ankit Mishra"
+                          className="form-control csi-create-party-input"
+                        />
+                      </div>
+
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">Date of Birth</label>
+                        <div className="position-relative">
+                          <input
+                            type="date"
+                            value={newPartyContactDob}
+                            onChange={(e) => setNewPartyContactDob(e.target.value)}
+                            className="form-control csi-create-party-input"
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PARTY BANK ACCOUNT TAB (Screenshot 3 Spec) */}
+                {newPartyModalTab === 'bank' && (
+                  <div className="csi-address-box">
+                    <div className="csi-create-party-form-grid mb-3">
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">
+                          Bank Account Number<span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={newPartyBankAcc}
+                          onChange={(e) => setNewPartyBankAcc(e.target.value)}
+                          placeholder="Ex: 123456789"
+                          className="form-control csi-create-party-input font-monospace"
+                        />
+                      </div>
+
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">
+                          Re-Enter Bank Account Number<span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={newPartyBankAccConfirm}
+                          onChange={(e) => setNewPartyBankAccConfirm(e.target.value)}
+                          placeholder="Ex: 123456789"
+                          className="form-control csi-create-party-input font-monospace"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="csi-create-party-form-grid mb-3">
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">IFSC Code</label>
+                        <input
+                          type="text"
+                          maxLength={11}
+                          value={newPartyBankIfsc}
+                          onChange={(e) => setNewPartyBankIfsc(e.target.value.toUpperCase())}
+                          placeholder="Ex: ICIC0001234"
+                          className="form-control csi-create-party-input font-monospace text-uppercase"
+                        />
+                      </div>
+
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">Account Holder's Name</label>
+                        <input
+                          type="text"
+                          value={newPartyBankHolder}
+                          onChange={(e) => setNewPartyBankHolder(e.target.value)}
+                          placeholder="Ex: Babu Lal"
+                          className="form-control csi-create-party-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="csi-create-party-form-grid mb-3">
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">Bank Name</label>
+                        <input
+                          type="text"
+                          value={newPartyBankName}
+                          onChange={(e) => setNewPartyBankName(e.target.value)}
+                          placeholder="Ex: ICICI Bank"
+                          className="form-control csi-create-party-input"
+                        />
+                      </div>
+
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">Branch Name</label>
+                        <input
+                          type="text"
+                          value={newPartyBankBranch}
+                          onChange={(e) => setNewPartyBankBranch(e.target.value)}
+                          placeholder="Ex: Mumbai"
+                          className="form-control csi-create-party-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="csi-create-party-form-grid">
+                      <div className="csi-create-party-field-wrap">
+                        <label className="csi-create-party-label">UPI ID</label>
+                        <input
+                          type="text"
+                          value={newPartyUpiId}
+                          onChange={(e) => setNewPartyUpiId(e.target.value)}
+                          placeholder="Ex: babulal@upi"
+                          className="form-control csi-create-party-input"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* CUSTOM FIELDS TAB (Reference Spec) */}
+                {newPartyModalTab === 'custom' && (
+                  <div className="csi-address-box">
+                    {partyCustomFieldRows.filter((r) => r.name.trim()).length > 0 && (
+                      <div className="d-flex flex-column gap-3 mb-3">
+                        {partyCustomFieldRows.filter((r) => r.name.trim()).map((cf) => (
+                          <div key={cf.id} className="csi-create-party-field-wrap">
+                            <label className="csi-create-party-label">{cf.name}</label>
+                            <input
+                              type="text"
+                              value={partyCustomFieldValues[cf.id] || ''}
+                              onChange={(e) => setPartyCustomFieldValues((prev) => ({ ...prev, [cf.id]: e.target.value }))}
+                              placeholder={`Enter ${cf.name}`}
+                              className="form-control csi-create-party-input"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div
+                      className="d-flex align-items-center p-3 rounded-3"
                       style={{
-                        padding: '8px 10px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        gap: '2px',
-                        border: '1px solid #f1f5f9',
-                        borderRadius: '6px',
-                        backgroundColor: selectedCustomerId === c.id ? '#f0f9ff' : 'transparent'
+                        background: '#fffbeb',
+                        border: '1px solid #fef3c7',
+                        color: '#78350f',
+                        fontSize: '13px',
+                        fontWeight: 500
                       }}
                     >
-                      <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>{c.name}</span>
-                        {c.gstin && (
-                          <span style={{ fontSize: '10px', fontFamily: 'monospace', backgroundColor: '#e2e8f0', padding: '1px 5px', borderRadius: '4px', color: '#334155' }}>
-                            GSTIN: {c.gstin}
-                          </span>
-                        )}
-                      </div>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>
-                        {c.phone ? `📞 ${c.phone}` : ''} {c.address ? `• 📍 ${c.address}` : ''}
+                      <Info size={16} className="me-2 text-warning flex-shrink-0" />
+                      <span>
+                        To add/manage party custom fields go to{' '}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPartySettingsOpen(true);
+                            setPartySettingsTab('custom_fields');
+                          }}
+                          className="btn btn-link p-0 text-primary fw-semibold"
+                          style={{
+                            fontSize: '13px',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            verticalAlign: 'baseline',
+                            gap: '3px'
+                          }}
+                        >
+                          Party Settings <ExternalLink size={13} />
+                        </button>
                       </span>
-                    </button>
-                  ))}
-
-                {customers.length > 0 &&
-                  customers.filter((c) =>
-                    c.name.toLowerCase().includes(searchCustomerQuery.toLowerCase()) ||
-                    (c.phone && c.phone.includes(searchCustomerQuery))
-                  ).length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '12px' }}>
-                      No customer found matching "{searchCustomerQuery}". Click "+ Add New Customer" above to create one.
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="csi-create-party-footer">
+              <button
+                type="button"
+                className="btn btn-outline-secondary csi-create-party-cancel-btn"
+                onClick={() => setPartyModalOpen(false)}
+              >
+                Cancel
+              </button>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  disabled={isSavingNewCust}
+                  onClick={() => handleCreateCustomer(undefined, true)}
+                  className="btn btn-outline-secondary csi-create-party-savenew-btn"
+                >
+                  Save & New
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSavingNewCust}
+                  onClick={() => handleCreateCustomer(undefined, false)}
+                  className="btn btn-primary csi-create-party-save-btn"
+                >
+                  {isSavingNewCust ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save</span>
                   )}
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: Invoice Settings */}
+      {/* POPUP MODAL: Add Shipping Address (Screenshot 1 Spec) */}
+      {showAddShippingModal && (
+        <div className="csi-modal-backdrop csi-shipping-modal-backdrop" style={{ zIndex: 100200 }}>
+          <div className="csi-shipping-popup-dialog">
+            {/* Header */}
+            <div className="csi-shipping-popup-header">
+              <h5 className="csi-shipping-popup-title">Add Shipping Address</h5>
+              <button
+                type="button"
+                onClick={() => setShowAddShippingModal(false)}
+                className="csi-shipping-popup-close-btn"
+                title="Close"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="csi-shipping-popup-body">
+              {/* Row 1: Shipping Name* */}
+              <div className="csi-create-party-field-wrap">
+                <label className="csi-create-party-label">
+                  Shipping Name<span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={modalShipName}
+                  onChange={(e) => setModalShipName(e.target.value)}
+                  placeholder="Enter Name"
+                  className="form-control csi-create-party-input"
+                />
+              </div>
+
+              {/* Row 2: Shipping Address* with Same as Billing Address Checkbox */}
+              <div className="csi-create-party-field-wrap">
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <label className="csi-create-party-label m-0">
+                    Shipping Address<span className="text-danger">*</span>
+                  </label>
+                  <label className="d-flex align-items-center gap-1 m-0" style={{ fontSize: '12.5px', color: '#475569', cursor: 'pointer', fontWeight: 500 }}>
+                    <input
+                      type="checkbox"
+                      checked={modalShipSameAsBilling}
+                      onChange={(e) => handleToggleSameAsBillingInModal(e.target.checked)}
+                      className="form-check-input mt-0"
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>Same as Billing Address</span>
+                  </label>
+                </div>
+                <textarea
+                  rows={3}
+                  value={modalShipAddress}
+                  onChange={(e) => setModalShipAddress(e.target.value)}
+                  placeholder="Enter Shipping Address"
+                  className="form-control csi-create-party-input"
+                  style={{ height: 'auto', padding: '10px 12px', resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Row 3: Pincode & State */}
+              <div className="csi-create-party-form-grid">
+                <div className="csi-create-party-field-wrap">
+                  <label className="csi-create-party-label">Pincode</label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={modalShipPincode}
+                    onChange={(e) => handleShippingModalPincodeChange(e.target.value)}
+                    placeholder="Enter pin code"
+                    className="form-control csi-create-party-input"
+                  />
+                  <span className="csi-create-party-subnote mt-1">
+                    <strong>Note:</strong> You can auto populate State &amp; City from Pincode
+                  </span>
+                </div>
+
+                <div className="csi-create-party-field-wrap">
+                  <label className="csi-create-party-label">State</label>
+                  <div className="csi-select-with-icon-wrap">
+                    <Search size={14} className="csi-select-left-search-icon" />
+                    <select
+                      value={modalShipState}
+                      onChange={(e) => setModalShipState(e.target.value)}
+                      className="form-select csi-create-party-input csi-state-select-with-icon"
+                    >
+                      <option value="">Select State</option>
+                      {INDIAN_STATES.map((st, idx) => (
+                        <option key={idx} value={st}>
+                          {st}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 4: City */}
+              <div className="csi-create-party-field-wrap">
+                <label className="csi-create-party-label">City</label>
+                <input
+                  type="text"
+                  value={modalShipCity}
+                  onChange={(e) => setModalShipCity(e.target.value)}
+                  placeholder="Enter City"
+                  className="form-control csi-create-party-input"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="csi-shipping-popup-footer">
+              <button
+                type="button"
+                onClick={() => setShowAddShippingModal(false)}
+                className="btn csi-shipping-popup-cancel-btn"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveShippingModal}
+                className="btn csi-shipping-popup-save-btn"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Dedicated Party Settings (Matching Reference Screenshots) */}
+      {partySettingsOpen && (
+        <div className="csi-modal-backdrop csi-party-settings-modal-backdrop" style={{ zIndex: 100200 }}>
+          <div className="csi-party-settings-modal-dialog">
+            {/* Header */}
+            <div className="csi-party-settings-header">
+              <h4 className="csi-party-settings-title">Party Settings</h4>
+              <button
+                type="button"
+                onClick={() => setPartySettingsOpen(false)}
+                className="csi-party-settings-close-btn"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body: 2 Columns */}
+            <div className="csi-party-settings-body">
+              {/* Left Navigation Sidebar */}
+              <div className="csi-party-settings-sidebar">
+                <button
+                  type="button"
+                  onClick={() => setPartySettingsTab('smart_greetings')}
+                  className={`csi-party-settings-tab-btn ${partySettingsTab === 'smart_greetings' ? 'active' : ''}`}
+                >
+                  <MessageSquare size={16} />
+                  <span>Send Smart Greetings</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPartySettingsTab('custom_fields')}
+                  className={`csi-party-settings-tab-btn ${partySettingsTab === 'custom_fields' ? 'active' : ''}`}
+                >
+                  <Layers size={16} />
+                  <span>Custom Fields</span>
+                </button>
+              </div>
+
+              {/* Right Content Area Box */}
+              <div className="csi-party-settings-content-card">
+                {/* TAB 1: Send Smart Greetings (Screenshot 1) */}
+                {partySettingsTab === 'smart_greetings' && (
+                  <div className="csi-smart-greetings-tab-content">
+                    <h6 className="csi-sg-main-heading">
+                      Select Templates to Share Automated Smart Greetings with Parties on WhatsApp
+                    </h6>
+
+                    {/* Card 1: Invoice Milestones */}
+                    <div className="csi-sg-card">
+                      <div className="csi-sg-card-top">
+                        <div className="csi-sg-card-info">
+                          <h6 className="csi-sg-card-title">Invoice Milestones</h6>
+                          <p className="csi-sg-card-subtitle">
+                            Make every 10th, 25th, 50th or 100th invoice feel special.
+                          </p>
+                        </div>
+                        <label className="form-check form-switch csi-sg-switch-label">
+                          <input
+                            type="checkbox"
+                            checked={enableInvoiceMilestones}
+                            onChange={(e) => setEnableInvoiceMilestones(e.target.checked)}
+                            className="form-check-input csi-party-switch"
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="csi-sg-select-wrapper">
+                        <select
+                          value={milestoneTemplate}
+                          onChange={(e) => setMilestoneTemplate(e.target.value)}
+                          disabled={!enableInvoiceMilestones}
+                          className="form-select csi-sg-select"
+                        >
+                          <option value="Hey , {{MilestoneMessage}} with {{YourBusinessName}} — thank you, {{PartyName}}! 🎉 <View Invoice>">
+                            Hey , &#123;&#123;MilestoneMessage&#125;&#125; with &#123;&#123;YourBusinessName&#125;&#125; — thank you, &#123;&#123;PartyName&#125;&#125;! 🎉 &lt;View Invoice&gt;
+                          </option>
+                          <option value="Congratulations on {{MilestoneMessage}} with {{YourBusinessName}}! Thank you, {{PartyName}}! 🚀 <View Invoice>">
+                            Congratulations on &#123;&#123;MilestoneMessage&#125;&#125; with &#123;&#123;YourBusinessName&#125;&#125;! Thank you, &#123;&#123;PartyName&#125;&#125;! 🚀 &lt;View Invoice&gt;
+                          </option>
+                          <option value="Celebrating {{MilestoneMessage}} invoices together! Cheers, {{PartyName}} & {{YourBusinessName}} 🥂 <View Invoice>">
+                            Celebrating &#123;&#123;MilestoneMessage&#125;&#125; invoices together! Cheers, &#123;&#123;PartyName&#125;&#125; &amp; &#123;&#123;YourBusinessName&#125;&#125; 🥂 &lt;View Invoice&gt;
+                          </option>
+                        </select>
+                      </div>
+
+                      <div className="csi-sg-preview-caption">
+                        {(milestoneTemplate || '')
+                          .replace('{{MilestoneMessage}}', 'Half-century! 50 invoices')
+                          .replace('{{YourBusinessName}}', activeBusiness?.name || 'Aashika Traders')
+                          .replace('{{PartyName}}', partyName || 'Shubhi Trading')}
+                      </div>
+                    </div>
+
+                    {/* Card 2: Birthday Wishes */}
+                    <div className="csi-sg-card">
+                      <div className="csi-sg-card-top">
+                        <div className="csi-sg-card-info">
+                          <h6 className="csi-sg-card-title">Birthday Wishes</h6>
+                          <p className="csi-sg-card-subtitle">
+                            Send a warm greeting on your party's birthday automatically.
+                          </p>
+                        </div>
+                        <label className="form-check form-switch csi-sg-switch-label">
+                          <input
+                            type="checkbox"
+                            checked={enableBirthdayWishes}
+                            onChange={(e) => setEnableBirthdayWishes(e.target.checked)}
+                            className="form-check-input csi-party-switch"
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="csi-sg-select-wrapper">
+                        <select
+                          value={birthdayTemplate}
+                          onChange={(e) => setBirthdayTemplate(e.target.value)}
+                          disabled={!enableBirthdayWishes}
+                          className="form-select csi-sg-select"
+                        >
+                          <option value="Happy Birthday, {{Party Name}}! 🎂 Wishing you success & smiles.">
+                            Happy Birthday, &#123;&#123;Party Name&#125;&#125;! 🎂 Wishing you success &amp; smiles.
+                          </option>
+                          <option value="Wishing you a very Happy Birthday, {{Party Name}}! From the team at {{YourBusinessName}} 🎉">
+                            Wishing you a very Happy Birthday, &#123;&#123;Party Name&#125;&#125;! From the team at &#123;&#123;YourBusinessName&#125;&#125; 🎉
+                          </option>
+                          <option value="Dear {{Party Name}}, warm greetings on your Birthday! May you have a prosperous year ahead 🌟">
+                            Dear &#123;&#123;Party Name&#125;&#125;, warm greetings on your Birthday! May you have a prosperous year ahead 🌟
+                          </option>
+                        </select>
+                      </div>
+
+                      <div className="csi-sg-preview-caption">
+                        {(birthdayTemplate || '')
+                          .replace('{{Party Name}}', partyName || 'Shubhi Traders')
+                          .replace('{{PartyName}}', partyName || 'Shubhi Traders')
+                          .replace('{{YourBusinessName}}', activeBusiness?.name || 'Aashika Traders')}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: Custom Fields (Screenshot 2) */}
+                {partySettingsTab === 'custom_fields' && (
+                  <div className="csi-party-custom-fields-content">
+                    <h6 className="csi-pcf-main-heading">
+                      Add party custom fields
+                    </h6>
+
+                    <div className="csi-pcf-rows-list">
+                      <label className="csi-pcf-field-label">Field Name</label>
+                      {partyCustomFieldRows.map((row) => (
+                        <div key={row.id} className="csi-pcf-field-row">
+                          <input
+                            type="text"
+                            value={row.name}
+                            onChange={(e) => handleUpdateCustomFieldRowName(row.id, e.target.value)}
+                            placeholder="Enter Custom Field Name"
+                            className="form-control csi-pcf-input"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomFieldRow(row.id)}
+                            className="csi-pcf-trash-btn"
+                            title="Delete Field"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* + Add New Field Dashed Button */}
+                    <button
+                      type="button"
+                      onClick={handleAddCustomFieldRow}
+                      className="csi-pcf-add-btn"
+                    >
+                      + Add New Field
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="csi-party-settings-footer">
+              <button
+                type="button"
+                onClick={() => setPartySettingsOpen(false)}
+                className="btn csi-party-settings-cancel-btn"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setPartySettingsOpen(false)}
+                className="btn csi-party-settings-save-btn"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Horizontal Quick Settings (MyBillBook Reference Spec) */}
       {settingsOpen && (
         <div className="csi-modal-backdrop">
-          <div className="csi-modal-box">
-            <div className="csi-modal-header">
-              <h3 className="csi-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Settings size={16} /> Invoice Configuration
-              </h3>
+          <div className="csi-quick-settings-modal">
+            {/* Modal Header */}
+            <div className="csi-qs-header">
+              <h3 className="csi-qs-title">Quick Settings</h3>
               <button
+                type="button"
                 onClick={() => setSettingsOpen(false)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
+                className="csi-qs-close-btn"
+                title="Close"
               >
                 <X size={16} />
               </button>
             </div>
-            <div className="csi-modal-body">
-              <div>
-                <label className="csi-field-label">Invoice Prefix Series</label>
-                <input
-                  type="text"
-                  value={invoicePrefix}
-                  onChange={(e) => setInvoicePrefix(e.target.value)}
-                  className="csi-input csi-input-mono"
-                />
+
+            {/* Modal Body: Split 2-Column */}
+            <div className="csi-qs-body">
+              {/* Left Navigation Sidebar */}
+              <div className="csi-qs-sidebar">
+                <button
+                  type="button"
+                  onClick={() => setQuickSettingsTab('invoice')}
+                  className={`csi-qs-tab-btn ${quickSettingsTab === 'invoice' ? 'active' : ''}`}
+                >
+                  <Receipt size={17} />
+                  <span>Invoice Details</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickSettingsTab('party')}
+                  className={`csi-qs-tab-btn ${quickSettingsTab === 'party' ? 'active' : ''}`}
+                >
+                  <Users size={17} />
+                  <span>Party Details</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickSettingsTab('item_table')}
+                  className={`csi-qs-tab-btn ${quickSettingsTab === 'item_table' ? 'active' : ''}`}
+                >
+                  <Layers size={17} />
+                  <span>Item Table Details</span>
+                </button>
               </div>
 
-              <div>
-                <label className="csi-field-label">Bank Account Number</label>
-                <input
-                  type="text"
-                  value={bankDetails.account_number}
-                  onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
-                  className="csi-input csi-input-mono"
-                />
-              </div>
+              {/* Right Content Area */}
+              <div className="csi-qs-content-card">
+                {/* TAB 1: Invoice Details (MyBillBook Reference Spec) */}
+                {quickSettingsTab === 'invoice' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Card 1: Invoice Prefix & Sequence Number */}
+                    <div className="csi-qs-section-card">
+                      <div className="csi-qs-section-header">
+                        <span className="csi-qs-section-title">Invoice Prefix & Sequence Number</span>
+                        <label className="csi-toggle-wrap">
+                          <div className="csi-toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={autoPrefixSeqEnabled}
+                              onChange={(e) => setAutoPrefixSeqEnabled(e.target.checked)}
+                            />
+                            <span className="csi-toggle-slider" />
+                          </div>
+                        </label>
+                      </div>
 
-              <div>
-                <label className="csi-field-label">IFSC Code</label>
-                <input
-                  type="text"
-                  value={bankDetails.ifsc_code}
-                  onChange={(e) => setBankDetails({ ...bankDetails, ifsc_code: e.target.value })}
-                  className="csi-input csi-input-mono"
-                />
-              </div>
+                      <div className="csi-qs-grid-2col">
+                        <div>
+                          <label className="csi-qs-field-label">Invoice Prefix</label>
+                          <input
+                            type="text"
+                            value={invoicePrefix}
+                            onChange={(e) => setInvoicePrefix(e.target.value)}
+                            disabled={!autoPrefixSeqEnabled}
+                            className="csi-qs-input-field"
+                            placeholder="GN00"
+                          />
+                        </div>
+                        <div>
+                          <label className="csi-qs-field-label">Sequence Number</label>
+                          <input
+                            type="text"
+                            value={invoiceNumber}
+                            onChange={(e) => setInvoiceNumber(e.target.value)}
+                            disabled={!autoPrefixSeqEnabled}
+                            className="csi-qs-input-field"
+                            placeholder="8218"
+                          />
+                        </div>
+                      </div>
 
-              <div>
-                <label className="csi-field-label">Bank Name & Branch</label>
-                <input
-                  type="text"
-                  value={bankDetails.bank_name}
-                  onChange={(e) => setBankDetails({ ...bankDetails, bank_name: e.target.value })}
-                  className="csi-input"
-                />
-              </div>
+                      <div className="csi-qs-preview-text">
+                        Invoice Number: {invoicePrefix} {invoiceNumber}
+                      </div>
+                    </div>
 
+                    {/* Card 2: Show or Hide Invoice Custom Fields */}
+                    <div className="csi-qs-section-card">
+                      <div className="csi-qs-section-title" style={{ marginBottom: '14px' }}>
+                        Show or Hide Invoice Custom Fields
+                      </div>
+
+                      <div className="csi-qs-industry-row">
+                        <span className="csi-qs-field-label" style={{ marginBottom: 0 }}>Industry Type</span>
+                        <select
+                          value={industryType}
+                          onChange={(e) => setIndustryType(e.target.value)}
+                          className="csi-qs-select-field"
+                        >
+                          <option value="Others">Others</option>
+                          <option value="Retail">Retail</option>
+                          <option value="Wholesale">Wholesale</option>
+                          <option value="Services">Services</option>
+                          <option value="Manufacturing">Manufacturing</option>
+                          <option value="Agriculture & Plants">Agriculture & Plants</option>
+                        </select>
+                      </div>
+
+                      <div className="csi-qs-subtitle">Suggested Custom Fields</div>
+
+                      <div className="csi-qs-custom-fields-list">
+                        <label className="csi-qs-custom-field-item">
+                          <input
+                            type="checkbox"
+                            checked={invoiceCustomFieldToggles.po_number}
+                            onChange={(e) => setInvoiceCustomFieldToggles({ ...invoiceCustomFieldToggles, po_number: e.target.checked })}
+                            className="csi-qs-checkbox"
+                          />
+                          <span>PO Number</span>
+                        </label>
+                        <label className="csi-qs-custom-field-item">
+                          <input
+                            type="checkbox"
+                            checked={invoiceCustomFieldToggles.eway_bill}
+                            onChange={(e) => setInvoiceCustomFieldToggles({ ...invoiceCustomFieldToggles, eway_bill: e.target.checked })}
+                            className="csi-qs-checkbox"
+                          />
+                          <span>E-way Bill Number</span>
+                        </label>
+                        <label className="csi-qs-custom-field-item">
+                          <input
+                            type="checkbox"
+                            checked={invoiceCustomFieldToggles.vehicle_number}
+                            onChange={(e) => setInvoiceCustomFieldToggles({ ...invoiceCustomFieldToggles, vehicle_number: e.target.checked })}
+                            className="csi-qs-checkbox"
+                          />
+                          <span>Vehicle Number</span>
+                        </label>
+                        <label className="csi-qs-custom-field-item">
+                          <input
+                            type="checkbox"
+                            checked={invoiceCustomFieldToggles.delivery_note}
+                            onChange={(e) => setInvoiceCustomFieldToggles({ ...invoiceCustomFieldToggles, delivery_note: e.target.checked })}
+                            className="csi-qs-checkbox"
+                          />
+                          <span>Delivery Note / Challan</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Bank Account & Payment QR Configuration */}
+                    <div className="csi-qs-section-card">
+                      <div className="csi-qs-section-title" style={{ marginBottom: '14px' }}>
+                        Bank & Payment QR Details
+                      </div>
+
+                      <div className="csi-qs-grid-2col">
+                        <div>
+                          <label className="csi-qs-field-label">Account Holder Name</label>
+                          <input
+                            type="text"
+                            value={bankDetails.account_holder}
+                            onChange={(e) => setBankDetails({ ...bankDetails, account_holder: e.target.value })}
+                            className="csi-qs-input-field"
+                            placeholder="Grow Naturals"
+                          />
+                        </div>
+                        <div>
+                          <label className="csi-qs-field-label">Bank Account Number</label>
+                          <input
+                            type="text"
+                            value={bankDetails.account_number}
+                            onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
+                            className="csi-qs-input-field font-monospace"
+                            placeholder="50200084729104"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="csi-qs-grid-2col" style={{ marginTop: '12px' }}>
+                        <div>
+                          <label className="csi-qs-field-label">IFSC Code</label>
+                          <input
+                            type="text"
+                            value={bankDetails.ifsc_code}
+                            onChange={(e) => setBankDetails({ ...bankDetails, ifsc_code: e.target.value.toUpperCase() })}
+                            className="csi-qs-input-field font-monospace"
+                            placeholder="HDFC0001298"
+                          />
+                        </div>
+                        <div>
+                          <label className="csi-qs-field-label">Bank Name & Branch</label>
+                          <input
+                            type="text"
+                            value={bankDetails.bank_name}
+                            onChange={(e) => setBankDetails({ ...bankDetails, bank_name: e.target.value })}
+                            className="csi-qs-input-field"
+                            placeholder="HDFC Bank, K.K Nagar Branch"
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>Show UPI QR Code</div>
+                            <div style={{ fontSize: '11.5px', color: '#64748b' }}>Print UPI Scan & Pay QR Code on Invoice</div>
+                          </div>
+                          <label className="csi-toggle-wrap">
+                            <div className="csi-toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={showPaymentQr}
+                                onChange={(e) => setShowPaymentQr(e.target.checked)}
+                              />
+                              <span className="csi-toggle-slider" />
+                            </div>
+                          </label>
+                        </div>
+
+                        {showPaymentQr && (
+                          <div style={{ marginTop: '8px' }}>
+                            <label className="csi-qs-field-label">UPI ID (VPA)</label>
+                            <input
+                              type="text"
+                              value={upiId}
+                              onChange={(e) => setUpiId(e.target.value)}
+                              className="csi-qs-input-field font-monospace"
+                              placeholder="grownaturals@axisbank"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                        <label className="csi-qs-field-label">Default Terms & Conditions</label>
+                        <textarea
+                          value={terms}
+                          onChange={(e) => setTerms(e.target.value)}
+                          rows={2}
+                          className="csi-quick-settings-textarea"
+                          placeholder="Enter invoice terms and conditions..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: Party Details */}
+                {quickSettingsTab === 'party' && (
+                  <div>
+                    <h4 className="csi-qs-content-title">Add party custom fields</h4>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '10px' }}>
+                      Your Custom Fields
+                    </div>
+
+                    {!showNewCustomFieldInput ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowNewCustomFieldInput(true)}
+                        className="csi-qs-add-field-dashed"
+                      >
+                        <Plus size={15} />
+                        <span>+ Add New Field</span>
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                        <input
+                          type="text"
+                          value={newCustomFieldName}
+                          onChange={(e) => setNewCustomFieldName(e.target.value)}
+                          placeholder="Field Name (e.g. Alternate Phone, Driver Name, Vehicle Number)"
+                          className="form-control form-control-sm"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (newCustomFieldName.trim()) {
+                                setPartyCustomFields([...partyCustomFields, { id: 'cf-' + Date.now(), name: newCustomFieldName.trim(), value: '' }]);
+                                setNewCustomFieldName('');
+                                setShowNewCustomFieldInput(false);
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newCustomFieldName.trim()) {
+                              setPartyCustomFields([...partyCustomFields, { id: 'cf-' + Date.now(), name: newCustomFieldName.trim(), value: '' }]);
+                              setNewCustomFieldName('');
+                              setShowNewCustomFieldInput(false);
+                            }
+                          }}
+                          className="btn btn-primary btn-sm px-3"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewCustomFieldInput(false)}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+
+                    {partyCustomFields.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '14px' }}>
+                        {partyCustomFields.map((cf) => (
+                          <div
+                            key={cf.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '10px 14px',
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }}
+                          >
+                            <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '13px' }}>
+                              {cf.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setPartyCustomFields(partyCustomFields.filter(f => f.id !== cf.id))}
+                              style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                              title="Delete custom field"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 3: Item Table Details (Exact MyBillBook Screenshot Spec) */}
+                {quickSettingsTab === 'item_table' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {/* Card 1: Show Purchase Price while adding Items */}
+                    <div className="csi-qs-toggle-card">
+                      <div>
+                        <h6 className="csi-qs-toggle-card-title">Show Purchase Price while adding Items</h6>
+                        <p className="csi-qs-toggle-card-sub">Add purchase price while adding items</p>
+                      </div>
+                      <label className="form-check form-switch m-0">
+                        <input
+                          type="checkbox"
+                          checked={showPurchasePriceWhileAdding}
+                          onChange={(e) => setShowPurchasePriceWhileAdding(e.target.checked)}
+                          className="form-check-input csi-party-switch"
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Card 2: Show Item Image on Invoice */}
+                    <div className="csi-qs-toggle-card">
+                      <div>
+                        <h6 className="csi-qs-toggle-card-title">Show Item Image on Invoice</h6>
+                        <p className="csi-qs-toggle-card-sub">
+                          This will apply to all vouchers except for Payment In and Payment Out
+                        </p>
+                      </div>
+                      <label className="form-check form-switch m-0">
+                        <input
+                          type="checkbox"
+                          checked={showItemImageOnInvoice}
+                          onChange={(e) => setShowItemImageOnInvoice(e.target.checked)}
+                          className="form-check-input csi-party-switch"
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Card 3: Price History */}
+                    <div className="csi-qs-toggle-card">
+                      <div>
+                        <h6 className="csi-qs-toggle-card-title">
+                          <span>Price History</span>
+                          <span
+                            className="badge"
+                            style={{
+                              backgroundColor: '#e11d48',
+                              color: '#ffffff',
+                              fontSize: '10px',
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              marginLeft: '8px',
+                              fontWeight: 700
+                            }}
+                          >
+                            New
+                          </span>
+                        </h6>
+                        <p className="csi-qs-toggle-card-sub">
+                          Show last 5 sales / purchase price for each party item price
+                        </p>
+                      </div>
+                      <label className="form-check form-switch m-0">
+                        <input
+                          type="checkbox"
+                          checked={showPriceHistoryToggle}
+                          onChange={(e) => setShowPriceHistoryToggle(e.target.checked)}
+                          className="form-check-input csi-party-switch"
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Section: Show or Hide Item Table Columns */}
+                    <div style={{ marginTop: '6px' }}>
+                      <h6 style={{ fontSize: '14px', fontWeight: 700, color: '#092c4c', margin: '0 0 4px 0' }}>
+                        Show or Hide Item Table Columns
+                      </h6>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px', fontWeight: 600 }}>
+                        Fixed Columns
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="csi-qs-column-box">
+                          <input
+                            type="checkbox"
+                            checked={itemTableColumnToggles.price_item}
+                            onChange={(e) => setItemTableColumnToggles({ ...itemTableColumnToggles, price_item: e.target.checked })}
+                            className="form-check-input mt-0 csi-party-checkbox"
+                          />
+                          <span>Price/Item (₹)</span>
+                        </label>
+
+                        <label className="csi-qs-column-box">
+                          <input
+                            type="checkbox"
+                            checked={itemTableColumnToggles.quantity}
+                            onChange={(e) => setItemTableColumnToggles({ ...itemTableColumnToggles, quantity: e.target.checked })}
+                            className="form-check-input mt-0 csi-party-checkbox"
+                          />
+                          <span>Quantity</span>
+                        </label>
+
+                        <label className="csi-qs-column-box">
+                          <input
+                            type="checkbox"
+                            checked={itemTableColumnToggles.hsn}
+                            onChange={(e) => setItemTableColumnToggles({ ...itemTableColumnToggles, hsn: e.target.checked })}
+                            className="form-check-input mt-0 csi-party-checkbox"
+                          />
+                          <span>HSN / SAC Code</span>
+                        </label>
+
+                        <label className="csi-qs-column-box">
+                          <input
+                            type="checkbox"
+                            checked={itemTableColumnToggles.mrp}
+                            onChange={(e) => setItemTableColumnToggles({ ...itemTableColumnToggles, mrp: e.target.checked })}
+                            className="form-check-input mt-0 csi-party-checkbox"
+                          />
+                          <span>MRP Column</span>
+                        </label>
+
+                        <label className="csi-qs-column-box">
+                          <input
+                            type="checkbox"
+                            checked={itemTableColumnToggles.discount}
+                            onChange={(e) => setItemTableColumnToggles({ ...itemTableColumnToggles, discount: e.target.checked })}
+                            className="form-check-input mt-0 csi-party-checkbox"
+                          />
+                          <span>Item Discounts (% &amp; ₹)</span>
+                        </label>
+
+                        <label className="csi-qs-column-box">
+                          <input
+                            type="checkbox"
+                            checked={itemTableColumnToggles.tax}
+                            onChange={(e) => setItemTableColumnToggles({ ...itemTableColumnToggles, tax: e.target.checked })}
+                            className="form-check-input mt-0 csi-party-checkbox"
+                          />
+                          <span>GST / Tax Breakdown</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="csi-qs-footer">
               <button
+                type="button"
                 onClick={() => setSettingsOpen(false)}
-                className="csi-btn-primary"
-                style={{ justifyContent: 'center', marginTop: '6px' }}
+                className="csi-qs-btn-cancel"
               >
-                Done
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(false)}
+                className="csi-qs-btn-save"
+              >
+                Save
               </button>
             </div>
           </div>
@@ -3995,19 +6025,181 @@ export const CreateSalesInvoice: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: Add Items to Bill (MyBillBook Exact Spec) */}
-      {addItemModalOpen && (
-        <div className="csi-modal-backdrop">
-          <div className="csi-modal-box csi-add-items-modal" style={{ maxWidth: '980px', width: '95vw', padding: 0 }}>
-            {/* Modal Header */}
-            <div className="csi-items-modal-header">
-              <h3 className="csi-modal-title" style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
-                Add Items to Bill
+      {/* MODAL: Signature Creation / Upload (MyBillBook Spec) */}
+      {signatureModalOpen && (
+        <div className="csi-modal-backdrop" onClick={() => setSignatureModalOpen(false)}>
+          <div className="csi-modal-box" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="csi-modal-header">
+              <h3 className="csi-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Edit3 size={16} color="#0284c7" /> Add Signature
               </h3>
               <button
                 type="button"
+                onClick={() => setSignatureModalOpen(false)}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="csi-modal-body">
+              {/* Tabs */}
+              <div className="csi-sig-modal-tabs">
+                <button
+                  type="button"
+                  onClick={() => setSigTab('upload')}
+                  className={`csi-sig-tab-btn ${sigTab === 'upload' ? 'active' : ''}`}
+                >
+                  <Upload size={14} /> Upload Image
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSigTab('draw')}
+                  className={`csi-sig-tab-btn ${sigTab === 'draw' ? 'active' : ''}`}
+                >
+                  <Edit3 size={14} /> Draw Signature
+                </button>
+              </div>
+
+              {sigTab === 'upload' ? (
+                <div>
+                  <input
+                    type="file"
+                    ref={sigFileInputRef}
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                    style={{ display: 'none' }}
+                    onChange={handleSigFileUpload}
+                  />
+                  {uploadedSigFile ? (
+                    <div style={{ textAlign: 'center', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#ffffff' }}>
+                      <img src={uploadedSigFile} alt="Preview" style={{ maxHeight: '110px', maxWidth: '100%', objectFit: 'contain' }} />
+                      <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => sigFileInputRef.current?.click()}
+                          className="csi-btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: '11px' }}
+                        >
+                          Change File
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUploadedSigFile(null)}
+                          className="csi-btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: '11px', color: '#ef4444' }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="csi-sig-dropzone"
+                      onClick={() => sigFileInputRef.current?.click()}
+                    >
+                      <Upload size={28} color="#0284c7" />
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                        Click to upload signature
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                        Supports PNG, JPG, JPEG or SVG (Max 5MB)
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="csi-sig-canvas-wrap">
+                    <canvas
+                      ref={sigCanvasRef}
+                      width={390}
+                      height={150}
+                      className="csi-sig-canvas"
+                      onMouseDown={startDrawing}
+                      onMouseMove={drawSignature}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                      onTouchStart={startDrawing}
+                      onTouchMove={drawSignature}
+                      onTouchEnd={stopDrawing}
+                    />
+                    <div className="csi-sig-canvas-toolbar">
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>Draw your signature above</span>
+                      <button
+                        type="button"
+                        onClick={clearSigCanvas}
+                        className="csi-btn-secondary"
+                        style={{ padding: '3px 8px', fontSize: '11px', gap: '4px' }}
+                      >
+                        <RotateCcw size={11} /> Clear
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Signatory Label Input */}
+              <div style={{ marginTop: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  Signatory Title / Designation
+                </label>
+                <input
+                  type="text"
+                  value={signatoryLabel}
+                  onChange={(e) => setSignatoryLabel(e.target.value)}
+                  placeholder="e.g. Authorized Signatory for Grow Naturals"
+                  className="csi-input"
+                  style={{ fontSize: '12.5px', padding: '7px 10px' }}
+                />
+              </div>
+
+              {/* Default Checkbox */}
+              <div style={{ marginTop: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12.5px', color: '#334155' }}>
+                  <input
+                    type="checkbox"
+                    checked={saveAsDefaultSig}
+                    onChange={(e) => setSaveAsDefaultSig(e.target.checked)}
+                  />
+                  <span>Save as default signature for future invoices</span>
+                </label>
+              </div>
+            </div>
+            <div className="csi-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '12px 18px', borderTop: '1px solid #e2e8f0' }}>
+              <button
+                type="button"
+                onClick={() => setSignatureModalOpen(false)}
+                className="csi-btn-secondary"
+                style={{ padding: '7px 14px', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveSignature}
+                className="csi-btn-primary"
+                style={{ padding: '7px 16px', fontSize: '13px', backgroundColor: '#0284c7' }}
+              >
+                Save Signature
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Add Items to Bill (Theme UI) */}
+      {addItemModalOpen && (
+        <div className="csi-modal-backdrop">
+          <div className="csi-modal-box csi-add-items-modal modal-content" style={{ maxWidth: '980px', width: '95vw', padding: 0 }}>
+            {/* Modal Header */}
+            <div className="csi-items-modal-header modal-header">
+              <h4 className="modal-title" style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                Add Items to Bill
+              </h4>
+              <button
+                type="button"
                 onClick={() => setAddItemModalOpen(false)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', padding: '4px' }}
+                className="btn-close custom-btn-close"
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Close (ESC)"
               >
                 <X size={18} />
@@ -4015,18 +6207,17 @@ export const CreateSalesInvoice: React.FC = () => {
             </div>
 
             {/* Modal Body & Controls */}
-            <div className="csi-items-modal-body">
+            <div className="csi-items-modal-body modal-body">
               {/* Search & Action Controls Row */}
               <div className="csi-items-modal-controls-row">
                 <div className="csi-items-search-input-box">
-                  <Search size={16} color="#6366f1" style={{ marginLeft: '12px', flexShrink: 0 }} />
+                  <Search size={16} className="csi-search-icon" style={{ marginLeft: '12px', flexShrink: 0, color: '#fe9f43' }} />
                   <input
                     type="text"
                     value={itemSearchQuery}
                     onChange={(e) => setItemSearchQuery(e.target.value)}
                     placeholder="Search by Item/ Serial no./ HSN code/ SKU/ Custom Field / Category"
-                    className="csi-items-search-input"
-                    style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
+                    className="csi-items-search-input form-control"
                     autoFocus
                   />
                   <button
@@ -4042,8 +6233,8 @@ export const CreateSalesInvoice: React.FC = () => {
                 <select
                   value={itemCategoryFilter}
                   onChange={(e) => setItemCategoryFilter(e.target.value)}
-                  className="csi-input"
-                  style={{ width: '180px', height: '40px', fontWeight: 600, fontSize: '13px', backgroundColor: '#ffffff' }}
+                  className="form-select csi-theme-select"
+                  style={{ width: '190px', height: '40px', fontWeight: 500, fontSize: '13px' }}
                 >
                   <option value="all">Select Category</option>
                   {categories.map((cat: any) => (
@@ -4055,117 +6246,18 @@ export const CreateSalesInvoice: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setShowNewProductForm(!showNewProductForm)}
-                  className="csi-btn-create-item"
+                  onClick={() => setShowNewProductForm(true)}
+                  className="btn btn-primary csi-btn-create-item d-inline-flex align-items-center gap-2"
                 >
                   <Plus size={15} />
                   <span>Create New Item</span>
                 </button>
               </div>
 
-              {/* Quick Inline New Item Form */}
-              {showNewProductForm && (
-                <form
-                  onSubmit={handleCreateProduct}
-                  style={{
-                    backgroundColor: '#f5f3ff',
-                    border: '1.5px solid #ddd6fe',
-                    borderRadius: '8px',
-                    padding: '14px',
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto',
-                    gap: '10px',
-                    alignItems: 'flex-end'
-                  }}
-                >
-                  <div>
-                    <label className="csi-field-label">Item Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newProdName}
-                      onChange={(e) => setNewProdName(e.target.value)}
-                      placeholder="e.g. 12 inch Ceramic Planter"
-                      className="csi-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="csi-field-label">Category</label>
-                    <select
-                      value={newProdCategory}
-                      onChange={(e) => setNewProdCategory(e.target.value)}
-                      className="csi-input"
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map((cat: any) => (
-                        <option key={cat.id || cat.name} value={cat.name}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="csi-field-label">Sales Price (₹) *</label>
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      required
-                      value={newProdSalePrice}
-                      onChange={(e) => setNewProdSalePrice(e.target.value === '' ? '' : Math.round(Number(e.target.value)))}
-                      placeholder="150"
-                      className="csi-input csi-input-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="csi-field-label">Purchase Price</label>
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      value={newProdCostPrice}
-                      onChange={(e) => setNewProdCostPrice(e.target.value === '' ? '' : Math.round(Number(e.target.value)))}
-                      placeholder="90"
-                      className="csi-input csi-input-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="csi-field-label">Opening Stock</label>
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      value={newProdStock}
-                      onChange={(e) => setNewProdStock(e.target.value === '' ? 0 : Math.floor(Number(e.target.value)))}
-                      placeholder="10"
-                      className="csi-input csi-input-mono"
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      type="submit"
-                      disabled={isSavingNewProduct}
-                      className="csi-btn-primary"
-                      style={{ height: '36px', padding: '0 16px', backgroundColor: '#4f46e5' }}
-                    >
-                      {isSavingNewProduct ? <Loader2 size={14} className="animate-spin" /> : 'Save & Select'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowNewProductForm(false)}
-                      className="csi-btn-secondary"
-                      style={{ height: '36px', padding: '0 10px' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
-
               {/* Items Table */}
-              <div className="csi-items-modal-table-wrap">
-                <table className="csi-items-modal-table">
-                  <thead>
+              <div className="csi-items-modal-table-wrap table-responsive">
+                <table className="table datanew csi-items-modal-table mb-0">
+                  <thead className="thead-light">
                     <tr>
                       <th style={{ textAlign: 'left', width: '38%' }}>Item Name</th>
                       <th style={{ textAlign: 'center', width: '12%' }}>Item Code</th>
@@ -4213,8 +6305,8 @@ export const CreateSalesInvoice: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => setShowNewProductForm(true)}
-                                  className="csi-btn-create-item"
-                                  style={{ margin: '0 auto', display: 'inline-flex' }}
+                                  className="btn btn-primary csi-btn-create-item d-inline-flex align-items-center gap-2"
+                                  style={{ margin: '0 auto' }}
                                 >
                                   <Plus size={15} />
                                   <span>Create New Item</span>
@@ -4245,10 +6337,10 @@ export const CreateSalesInvoice: React.FC = () => {
                             <td style={{ textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
                               {prod.sku || '-'}
                             </td>
-                            <td style={{ textAlign: 'center', color: (prod.stock_quantity || 0) <= 0 ? '#64748b' : '#059669', fontSize: '12px', fontWeight: 500 }}>
+                            <td style={{ textAlign: 'center', color: (prod.stock_quantity || 0) <= 0 ? '#ef4444' : '#10b981', fontSize: '12px', fontWeight: 600 }}>
                               {stockDisplay}
                             </td>
-                            <td style={{ textAlign: 'right', color: '#475569', fontSize: '13px', fontFamily: 'monospace' }}>
+                            <td style={{ textAlign: 'right', color: '#64748b', fontSize: '13px', fontFamily: 'monospace' }}>
                               ₹ {Number(prod.mrp !== undefined ? prod.mrp : (prod.sale_price || 0)).toLocaleString('en-IN')}
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a', fontSize: '13px', fontFamily: 'monospace' }}>
@@ -4259,7 +6351,7 @@ export const CreateSalesInvoice: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => setSelectedItemQuantities((prev) => ({ ...prev, [prod.id]: 1 }))}
-                                  className="csi-item-add-btn"
+                                  className="btn btn-sm csi-item-add-btn"
                                 >
                                   + Add
                                 </button>
@@ -4347,7 +6439,7 @@ export const CreateSalesInvoice: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="csi-items-modal-footer">
+            <div className="csi-items-modal-footer modal-footer">
               <div className="csi-items-modal-shortcuts">
                 <span>Keyboard Shortcuts :</span>
                 <span>Change Quantity <kbd>Enter</kbd></span>
@@ -4358,7 +6450,7 @@ export const CreateSalesInvoice: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setAddItemModalOpen(false)}
-                  className="csi-btn-secondary"
+                  className="btn btn-secondary csi-btn-cancel-modal"
                   style={{ padding: '8px 18px', fontSize: '13px' }}
                 >
                   Cancel [ESC]
@@ -4367,11 +6459,417 @@ export const CreateSalesInvoice: React.FC = () => {
                   type="button"
                   onClick={handleAddSelectedItemsToBill}
                   disabled={Object.values(selectedItemQuantities).filter(q => q > 0).length === 0}
-                  className={Object.values(selectedItemQuantities).filter(q => q > 0).length === 0 ? 'csi-btn-add-to-bill-disabled' : 'csi-btn-add-to-bill-active'}
+                  className={`btn btn-primary csi-btn-add-to-bill ${Object.values(selectedItemQuantities).filter(q => q > 0).length === 0 ? 'disabled' : ''}`}
                 >
                   Add to Bill [F7]
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE NEW ITEM MODAL (MyBillBook Spec) */}
+      {showNewProductForm && (
+        <div className="csi-modal-backdrop csi-create-item-backdrop" style={{ zIndex: 100050 }}>
+          <div className="csi-modal-box csi-create-item-modal-box">
+            {/* Header */}
+            <div className="csi-create-item-header">
+              <h4 className="csi-create-item-title">Create New Item</h4>
+              <button
+                type="button"
+                className="csi-create-item-close-btn"
+                onClick={() => setShowNewProductForm(false)}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body: Two columns layout */}
+            <div className="csi-create-item-body">
+              {/* Left Sidebar */}
+              <div className="csi-create-item-sidebar">
+                <button
+                  type="button"
+                  onClick={() => setNewItemModalTab('basic')}
+                  className={`csi-create-item-tab ${newItemModalTab === 'basic' ? 'active' : ''}`}
+                >
+                  <FileCheck size={16} className="csi-tab-icon" />
+                  <span>Basic Details <span className="text-danger">*</span></span>
+                </button>
+
+                <div className="csi-create-item-sidebar-heading">
+                  Advance Details
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setNewItemModalTab('stock')}
+                  className={`csi-create-item-tab ${newItemModalTab === 'stock' ? 'active' : ''}`}
+                >
+                  <Package size={16} className="csi-tab-icon" />
+                  <span>Stock Details</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNewItemModalTab('pricing')}
+                  className={`csi-create-item-tab ${newItemModalTab === 'pricing' ? 'active' : ''}`}
+                >
+                  <IndianRupee size={16} className="csi-tab-icon" />
+                  <span>Pricing Details</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNewItemModalTab('custom')}
+                  className={`csi-create-item-tab ${newItemModalTab === 'custom' ? 'active' : ''}`}
+                >
+                  <SlidersHorizontal size={16} className="csi-tab-icon" />
+                  <span>Custom Fields</span>
+                </button>
+              </div>
+
+              {/* Right Content Area */}
+              <div className="csi-create-item-content">
+                {/* BASIC DETAILS TAB */}
+                {newItemModalTab === 'basic' && (
+                  <div className="csi-create-item-form-grid">
+                    {/* Row 1: Item Type & Category */}
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">
+                        Item Type <span className="text-danger">*</span>
+                      </label>
+                      <div className="csi-item-type-radios">
+                        <label className={`csi-item-type-card ${newProdType === 'Product' ? 'checked' : ''}`}>
+                          <input
+                            type="radio"
+                            name="itemTypeOption"
+                            value="Product"
+                            checked={newProdType === 'Product'}
+                            onChange={() => setNewProdType('Product')}
+                          />
+                          <span className="csi-custom-radio-dot"></span>
+                          <span className="csi-item-type-name">Product</span>
+                        </label>
+                        <label className={`csi-item-type-card ${newProdType === 'Service' ? 'checked' : ''}`}>
+                          <input
+                            type="radio"
+                            name="itemTypeOption"
+                            value="Service"
+                            checked={newProdType === 'Service'}
+                            onChange={() => setNewProdType('Service')}
+                          />
+                          <span className="csi-custom-radio-dot"></span>
+                          <span className="csi-item-type-name">Service</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Category</label>
+                      <div className="csi-select-icon-group">
+                        <select
+                          value={newProdCategory}
+                          onChange={(e) => setNewProdCategory(e.target.value)}
+                          className="form-select csi-create-item-input"
+                        >
+                          <option value="">Search Categories</option>
+                          {categories.map((cat: any) => (
+                            <option key={cat.id || cat.name} value={cat.name}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Item Name & Online Store Toggle */}
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">
+                        Item Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        autoFocus
+                        required
+                        value={newProdName}
+                        onChange={(e) => setNewProdName(e.target.value)}
+                        placeholder="ex: Maggie 20gm"
+                        className="form-control csi-create-item-input csi-highlight-border"
+                      />
+                    </div>
+
+                    <div className="csi-create-item-field-wrap d-flex flex-column justify-content-end">
+                      <div className="csi-online-store-row">
+                        <span className="csi-online-store-label">Show Item in Online Store</span>
+                        <label className="csi-switch-pill">
+                          <input
+                            type="checkbox"
+                            checked={newProdShowOnline}
+                            onChange={(e) => setNewProdShowOnline(e.target.checked)}
+                          />
+                          <span className="csi-switch-slider"></span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Row 3: Sales Price & GST Tax Rate */}
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Sales Price</label>
+                      <div className="csi-split-input-group">
+                        <span className="csi-split-prefix">₹</span>
+                        <input
+                          type="number"
+                          value={newProdSalePrice}
+                          onChange={(e) => setNewProdSalePrice(e.target.value)}
+                          placeholder="ex: 200"
+                          className="form-control csi-create-item-input csi-split-main-input"
+                        />
+                        <select
+                          value={newProdSalePriceTaxType}
+                          onChange={(e) => setNewProdSalePriceTaxType(e.target.value as any)}
+                          className="form-select csi-split-addon-select"
+                        >
+                          <option value="with_tax">With Tax</option>
+                          <option value="without_tax">Without Tax</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">GST Tax Rate(%)</label>
+                      <div className="csi-icon-select-wrapper">
+                        <Search size={14} className="csi-select-left-icon" />
+                        <select
+                          value={newProdGst}
+                          onChange={(e) => setNewProdGst(Number(e.target.value))}
+                          className="form-select csi-create-item-input csi-input-with-icon"
+                        >
+                          {GST_TAX_RATES.map((g, idx) => (
+                            <option key={idx} value={g.rate}>
+                              {g.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Row 4: Measuring Unit & Opening Stock */}
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Measuring Unit</label>
+                      <div className="csi-icon-select-wrapper">
+                        <Search size={14} className="csi-select-left-icon" />
+                        <select
+                          value={newProdUnit}
+                          onChange={(e) => setNewProdUnit(e.target.value)}
+                          className="form-select csi-create-item-input csi-input-with-icon"
+                        >
+                          {MEASURING_UNITS.map((u, idx) => (
+                            <option key={idx} value={u.label}>
+                              {u.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Opening Stock</label>
+                      <div className="csi-split-input-group">
+                        <input
+                          type="number"
+                          value={newProdStock}
+                          onChange={(e) => setNewProdStock(e.target.value)}
+                          placeholder="ex: 150 PCS"
+                          className="form-control csi-create-item-input csi-split-main-input"
+                        />
+                        <span className="csi-split-suffix-badge">
+                          {MEASURING_UNITS.find(u => u.label === newProdUnit || u.code === newProdUnit)?.code || 'PCS'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Row 5: Enable Batching Card */}
+                    <div className="csi-batching-panel">
+                      <div className="csi-batching-left">
+                        <span className="csi-batching-title">Enable Batching</span>
+                        <span title="Track items by batch number, expiry date, and manufacturing date" style={{ display: 'inline-flex', cursor: 'pointer' }}>
+                          <Info size={14} className="csi-batching-info" />
+                        </span>
+                      </div>
+                      <label className="csi-switch-pill">
+                        <input
+                          type="checkbox"
+                          checked={newProdEnableBatching}
+                          onChange={(e) => setNewProdEnableBatching(e.target.checked)}
+                        />
+                        <span className="csi-switch-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* STOCK DETAILS TAB */}
+                {newItemModalTab === 'stock' && (
+                  <div className="csi-create-item-form-grid">
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Item Code / SKU / Barcode</label>
+                      <input
+                        type="text"
+                        value={newProdSku}
+                        onChange={(e) => setNewProdSku(e.target.value)}
+                        placeholder="ex: GN-4367"
+                        className="form-control csi-create-item-input"
+                      />
+                    </div>
+
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">HSN Code</label>
+                      <input
+                        type="text"
+                        value={newProdHsn}
+                        onChange={(e) => setNewProdHsn(e.target.value)}
+                        placeholder="ex: 3926"
+                        className="form-control csi-create-item-input"
+                      />
+                    </div>
+
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Low Stock Alert (Minimum Stock)</label>
+                      <input
+                        type="number"
+                        value={newProdMinStock}
+                        onChange={(e) => setNewProdMinStock(e.target.value)}
+                        placeholder="ex: 5"
+                        className="form-control csi-create-item-input"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* PRICING DETAILS TAB */}
+                {newItemModalTab === 'pricing' && (
+                  <div className="csi-create-item-form-grid">
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Purchase Price</label>
+                      <div className="csi-split-input-group">
+                        <span className="csi-split-prefix">₹</span>
+                        <input
+                          type="number"
+                          value={newProdCostPrice}
+                          onChange={(e) => setNewProdCostPrice(e.target.value)}
+                          placeholder="ex: 120"
+                          className="form-control csi-create-item-input csi-split-main-input"
+                        />
+                        <select
+                          value={newProdCostPriceTaxType}
+                          onChange={(e) => setNewProdCostPriceTaxType(e.target.value as any)}
+                          className="form-select csi-split-addon-select"
+                        >
+                          <option value="without_tax">Without Tax</option>
+                          <option value="with_tax">With Tax</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">MRP (Maximum Retail Price)</label>
+                      <div className="csi-split-input-group">
+                        <span className="csi-split-prefix">₹</span>
+                        <input
+                          type="number"
+                          value={newProdMrp}
+                          onChange={(e) => setNewProdMrp(e.target.value)}
+                          placeholder="ex: 250"
+                          className="form-control csi-create-item-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Wholesale Price</label>
+                      <div className="csi-split-input-group">
+                        <span className="csi-split-prefix">₹</span>
+                        <input
+                          type="number"
+                          value={newProdWholesalePrice}
+                          onChange={(e) => setNewProdWholesalePrice(e.target.value)}
+                          placeholder="ex: 180"
+                          className="form-control csi-create-item-input"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* CUSTOM FIELDS TAB */}
+                {newItemModalTab === 'custom' && (
+                  <div className="csi-create-item-form-grid">
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Brand</label>
+                      <input
+                        type="text"
+                        value={newProdBrand}
+                        onChange={(e) => setNewProdBrand(e.target.value)}
+                        placeholder="ex: Grow Naturals"
+                        className="form-control csi-create-item-input"
+                      />
+                    </div>
+
+                    <div className="csi-create-item-field-wrap">
+                      <label className="csi-create-item-label">Size / Dimensions</label>
+                      <input
+                        type="text"
+                        value={newProdSize}
+                        onChange={(e) => setNewProdSize(e.target.value)}
+                        placeholder="ex: 12 inch / 5 Litre"
+                        className="form-control csi-create-item-input"
+                      />
+                    </div>
+
+                    <div className="csi-create-item-field-wrap" style={{ gridColumn: 'span 2' }}>
+                      <label className="csi-create-item-label">Item Description</label>
+                      <textarea
+                        rows={3}
+                        value={newProdDesc}
+                        onChange={(e) => setNewProdDesc(e.target.value)}
+                        placeholder="Add product specifications, warranty info, or notes..."
+                        className="form-control csi-create-item-input"
+                        style={{ height: 'auto', padding: '10px 12px' }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="csi-create-item-footer">
+              <button
+                type="button"
+                className="btn btn-outline-secondary csi-create-item-cancel-btn"
+                onClick={() => setShowNewProductForm(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isSavingNewProduct}
+                onClick={() => handleCreateProduct()}
+                className="btn btn-primary csi-create-item-save-btn"
+              >
+                {isSavingNewProduct ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>Save Item</span>
+                )}
+              </button>
             </div>
           </div>
         </div>

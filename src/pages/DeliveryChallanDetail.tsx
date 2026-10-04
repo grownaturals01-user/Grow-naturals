@@ -1486,12 +1486,12 @@ export const DeliveryChallanDetail: React.FC = () => {
                     <span className="input-addon-prefix">₹</span>
                     <input
                       type="number"
-                      step="1"
-                      min="0"
+                      step="0.01"
+                      min="0.01"
                       max={due}
                       className="form-input tabular"
                       value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : String(Math.round(Number(e.target.value))))}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
                       required
                       autoFocus
                     />

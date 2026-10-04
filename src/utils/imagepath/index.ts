@@ -1,10 +1,10 @@
-export { default as logo } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
-export { default as logoSvg } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
-export { default as logoWhite } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
-export { default as logoSmall } from "../../assets/img/logo.png";
-export { default as logoSmallWhite } from "../../assets/img/logo.png";
-export { default as logoWhitePng } from "../../assets/WhatsApp Image 2026-09-30 at 6.01.59 PM.jpeg";
-export { default as logoSmallPng } from "../../assets/img/logo.png";
+export { default as logo } from "../../assets/img/logo.svg";
+export { default as logoSvg } from "../../assets/img/logo.svg";
+export { default as logoWhite } from "../../assets/img/logo-white.svg";
+export { default as logoSmall } from "../../assets/img/logo-small.svg";
+export { default as logoSmallWhite } from "../../assets/img/logo-small-white.png";
+export { default as logoWhitePng } from "../../assets/img/logo-white.png";
+export { default as logoSmallPng } from "../../assets/img/logo-small.png";
 export { default as facebookLogo } from "../../assets/img/icons/facebook-logo.svg";
 export { default as googleLogo } from "../../assets/img/icons/google-logo.svg";
 export { default as appleLogo } from "../../assets/img/icons/apple-logo.svg";

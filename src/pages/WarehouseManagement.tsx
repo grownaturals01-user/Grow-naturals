@@ -1365,18 +1365,11 @@ export const WarehouseManagement: React.FC = () => {
                       </label>
                       <input
                         type="number"
-                        step="1"
+                        step="0.01"
                         min="0"
-                        inputMode="numeric"
-                        onKeyDown={(e) => {
-                          if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                        }}
                         className="form-input"
                         value={unitPrice}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, '');
-                          setUnitPrice(val === '' ? 0 : parseInt(val, 10));
-                        }}
+                        onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
                         required
                         style={{ fontSize: '0.82rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                       />

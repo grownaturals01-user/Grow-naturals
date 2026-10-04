@@ -2087,18 +2087,11 @@ export const POS: React.FC = () => {
                   <input
                     type="number"
                     min="0"
-                    step="1"
-                    inputMode="numeric"
-                    onKeyDown={(e) => {
-                      if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                    }}
+                    step="any"
                     className="pos-discount-input-field"
                     value={discountAmount || ''}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setDiscountAmount(val === '' ? 0 : parseInt(val, 10));
-                    }}
-                    placeholder="0"
+                    onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
+                    placeholder="0.00"
                   />
                 </div>
               </div>
@@ -2107,13 +2100,13 @@ export const POS: React.FC = () => {
             {isTaxable && (
               <div className="summary-row">
                 <span>GST Tax (Included/Applied)</span>
-                <span className="tabular" style={{ fontWeight: 600, color: '#0f172a' }}>₹{Math.round(taxAmount)}</span>
+                <span className="tabular" style={{ fontWeight: 600, color: '#0f172a' }}>₹{taxAmount.toFixed(2)}</span>
               </div>
             )}
 
             <div className="summary-row total-row">
               <span>Grand Total</span>
-              <span className="total-value tabular">₹{Math.round(grandTotal)}</span>
+              <span className="total-value tabular">₹{grandTotal.toFixed(2)}</span>
             </div>
           </div>
 
@@ -2201,19 +2194,12 @@ export const POS: React.FC = () => {
                       <span className="pos-split-curr">₹</span>
                       <input
                         type="number"
-                        step="1"
+                        step="any"
                         min="0"
-                        inputMode="numeric"
-                        onKeyDown={(e) => {
-                          if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                        }}
                         className="pos-split-input"
-                        placeholder="0"
+                        placeholder="0.00"
                         value={splitCash}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, '');
-                          setSplitCash(val);
-                        }}
+                        onChange={(e) => setSplitCash(e.target.value)}
                         onFocus={(e) => e.target.select()}
                       />
                     </div>
@@ -2227,19 +2213,12 @@ export const POS: React.FC = () => {
                       <span className="pos-split-curr">₹</span>
                       <input
                         type="number"
-                        step="1"
+                        step="any"
                         min="0"
-                        inputMode="numeric"
-                        onKeyDown={(e) => {
-                          if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                        }}
                         className="pos-split-input"
-                        placeholder="0"
+                        placeholder="0.00"
                         value={splitUpi}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, '');
-                          setSplitUpi(val);
-                        }}
+                        onChange={(e) => setSplitUpi(e.target.value)}
                         onFocus={(e) => e.target.select()}
                       />
                     </div>
@@ -2253,11 +2232,11 @@ export const POS: React.FC = () => {
                     }`}
                   >
                     {isSplitBalanced ? (
-                      <span>✓ Exact Match: ₹{Math.round(splitCashNum)} Cash + ₹{Math.round(splitUpiNum)} UPI = ₹{Math.round(grandTotal)}</span>
+                      <span>✓ Exact Match: ₹{splitCashNum.toFixed(2)} Cash + ₹{splitUpiNum.toFixed(2)} UPI = ₹{grandTotal.toFixed(2)}</span>
                     ) : isSplitShort ? (
-                      <span>⚠️ ₹{Math.round(splitDiff)} remaining to allocate (Total allocated: ₹{Math.round(splitTotalAllocated)} / ₹{Math.round(grandTotal)})</span>
+                      <span>⚠️ ₹{splitDiff.toFixed(2)} remaining to allocate (Total allocated: ₹{splitTotalAllocated.toFixed(2)} / ₹{grandTotal.toFixed(2)})</span>
                     ) : (
-                      <span>❌ Allocated ₹{Math.round(splitTotalAllocated)} exceeds Grand Total by ₹{Math.round(Math.abs(splitDiff))}</span>
+                      <span>❌ Allocated ₹{splitTotalAllocated.toFixed(2)} exceeds Grand Total by ₹{Math.abs(splitDiff).toFixed(2)}</span>
                     )}
                   </div>
                 )}

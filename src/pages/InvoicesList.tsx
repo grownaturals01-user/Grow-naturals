@@ -1507,12 +1507,11 @@ export const InvoicesList: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    step="1"
-                    min="0"
+                    step="0.01"
                     required
                     className="form-input form-input-sm"
                     value={creditNoteAmount}
-                    onChange={(e) => setCreditNoteAmount(e.target.value === '' ? '' : String(Math.round(Number(e.target.value))))}
+                    onChange={(e) => setCreditNoteAmount(e.target.value)}
                     style={{ width: '100%' }}
                   />
                 </div>

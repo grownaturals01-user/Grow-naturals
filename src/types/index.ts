@@ -254,6 +254,8 @@ export interface Invoice {
   business_email?: string;
   business_footer?: string;
   item_count?: number;
+  signature_url?: string;
+  signature_title?: string;
   created_at: string;
   items?: InvoiceItem[];
 }

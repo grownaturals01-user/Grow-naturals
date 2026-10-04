@@ -218,41 +218,25 @@ export const PurchaseOrderNew: React.FC = () => {
                 <input
                   type="number"
                   min="1"
-                  step="1"
-                  inputMode="numeric"
-                  onKeyDown={(e) => {
-                    if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                  }}
                   className="form-input tabular"
                   placeholder="Qty"
                   value={item.quantity}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, '');
-                    handleUpdateItem(idx, 'quantity', Math.max(1, parseInt(val, 10) || 1));
-                  }}
+                  onChange={(e) => handleUpdateItem(idx, 'quantity', Number(e.target.value))}
                   required
                 />
 
                 <input
                   type="number"
-                  step="1"
-                  min="0"
-                  inputMode="numeric"
-                  onKeyDown={(e) => {
-                    if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                  }}
+                  step="0.01"
                   className="form-input tabular"
                   placeholder="Cost Rate (₹)"
                   value={item.unit_price}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, '');
-                    handleUpdateItem(idx, 'unit_price', val === '' ? 0 : parseInt(val, 10));
-                  }}
+                  onChange={(e) => handleUpdateItem(idx, 'unit_price', Number(e.target.value))}
                   required
                 />
 
                 <div className="tabular" style={{ fontWeight: 700, textAlign: 'right' }}>
-                  ₹{Math.round((item.quantity || 0) * (item.unit_price || 0))}
+                  ₹{((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}
                 </div>
 
                 <button
@@ -309,26 +293,18 @@ export const PurchaseOrderNew: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', backgroundColor: 'var(--color-bg-surface-subtle)', borderRadius: 'var(--radius-lg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-sm)' }}>
                 <span>Subtotal:</span>
-                <span className="tabular">₹{Math.round(subtotal)}</span>
+                <span className="tabular">₹{subtotal.toFixed(2)}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--font-sm)' }}>
                 <span>Vendor Tax (₹):</span>
                 <input
                   type="number"
-                  step="1"
-                  min="0"
-                  inputMode="numeric"
-                  onKeyDown={(e) => {
-                    if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                  }}
+                  step="0.01"
                   className="form-input tabular"
                   style={{ width: '90px', padding: '2px 6px', textAlign: 'right' }}
                   value={taxAmount}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, '');
-                    setTaxAmount(val);
-                  }}
+                  onChange={(e) => setTaxAmount(e.target.value)}
                 />
               </div>
 
@@ -336,30 +312,22 @@ export const PurchaseOrderNew: React.FC = () => {
                 <span>Amount Paid Now (₹):</span>
                 <input
                   type="number"
-                  step="1"
-                  min="0"
-                  inputMode="numeric"
-                  onKeyDown={(e) => {
-                    if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                  }}
+                  step="0.01"
                   className="form-input tabular"
                   style={{ width: '90px', padding: '2px 6px', textAlign: 'right' }}
                   value={paidAmount}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, '');
-                    setPaidAmount(val);
-                  }}
+                  onChange={(e) => setPaidAmount(e.target.value)}
                 />
               </div>
 
               <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-md)', fontWeight: 700 }}>
                 <span>Total Bill:</span>
-                <span className="tabular">₹{Math.round(grandTotal)}</span>
+                <span className="tabular">₹{grandTotal.toFixed(2)}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-md)', fontWeight: 800, color: due > 0 ? '#dc2626' : '#16a34a' }}>
                 <span>Outstanding Due:</span>
-                <span className="tabular">₹{Math.round(due)}</span>
+                <span className="tabular">₹{due.toFixed(2)}</span>
               </div>
             </div>
           </div>
