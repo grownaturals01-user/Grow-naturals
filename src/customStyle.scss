@@ -3134,6 +3134,60 @@ body.layout-mode-rtl .card-body h6 > .badge,
   margin-right: 8px;
 }
 
+/* ==========================================================================
+   SIDEBAR TOGGLE & HOVER CONTROLS
+   ========================================================================== */
+#toggle_btn,
+.sidebar-toggle-btn {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 1050 !important;
+}
+
+body.mini-sidebar .header-left #toggle_btn,
+body.mini-sidebar .sidebar .sidebar-logo #toggle_btn,
+.mini-sidebar .header-left #toggle_btn,
+.mini-sidebar .sidebar .sidebar-logo #toggle_btn,
+[data-layout="mini"] .header-left #toggle_btn,
+[data-layout="mini"] .sidebar-logo #toggle_btn {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 1050 !important;
+}
+
+body.mini-sidebar:not(.layout-hovered) #toggle_btn i,
+body.mini-sidebar:not(.layout-hovered) #toggle_btn svg,
+[data-layout="mini"]:not(.layout-hovered) #toggle_btn i,
+[data-layout="mini"]:not(.layout-hovered) #toggle_btn svg,
+.sidebar.collapsed #toggle_btn i,
+.sidebar.collapsed #toggle_btn svg {
+  transform: rotate(180deg) !important;
+}
+
+/* Prevent mini-sidebar from expanding on hover unless layout-hovered is explicitly active */
+body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
+  .sidebar {
+    width: 76px !important;
+    transition: width 0.2s ease;
+
+    &:hover {
+      width: 76px !important;
+    }
+  }
+
+  &.expand-menu {
+    .sidebar {
+      width: 76px !important;
+    }
+  }
+}
+
+
 
 
 

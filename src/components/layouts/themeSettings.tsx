@@ -22,6 +22,15 @@ import {
   setTopBarColor,
 } from "../../core/redux/themeSettingSlice";
 import { all_routes } from "../../routes/all_routes";
+import {
+  defaultIcon,
+  mini,
+  twoColumn,
+  horizontal,
+  detached,
+  withoutHeader,
+  rtl,
+} from "../../utils/imagepath";
 import ImageWithBasePath from "../image-with-base-path";
 
 
@@ -247,7 +256,7 @@ const ThemeSettings = () => {
                           />
                           <label htmlFor="defaultLayout">
                             <span className="d-block mb-2 layout-img">
-                              <ImageWithBasePath src="assets/img/theme/default.svg" alt="img" />
+                              <img src={defaultIcon} alt="Default" />
                             </span>
                             <span className="layout-type">Default</span>
                           </label>
@@ -265,7 +274,7 @@ const ThemeSettings = () => {
                           />
                           <label htmlFor="miniLayout">
                             <span className="d-block mb-2 layout-img">
-                              <ImageWithBasePath src="assets/img/theme/mini.svg" alt="img" />
+                              <img src={mini} alt="Mini" />
                             </span>
                             <span className="layout-type">Mini</span>
                           </label>
@@ -283,7 +292,7 @@ const ThemeSettings = () => {
                           />
                           <label htmlFor="twocolumnLayout">
                             <span className="d-block mb-2 layout-img">
-                              <ImageWithBasePath src="assets/img/theme/two-column.svg" alt="img" />
+                              <img src={twoColumn} alt="Two Column" />
                             </span>
                             <span className="layout-type">Two Column</span>
                           </label>
@@ -301,7 +310,7 @@ const ThemeSettings = () => {
                           />
                           <label htmlFor="horizontalLayout">
                             <span className="d-block mb-2 layout-img">
-                              <ImageWithBasePath src="assets/img/theme/horizontal.svg" alt="img" />
+                              <img src={horizontal} alt="Horizontal" />
                             </span>
                             <span className="layout-type">Horizontal</span>
                           </label>
@@ -319,7 +328,7 @@ const ThemeSettings = () => {
                           />
                           <label htmlFor="detachedLayout">
                             <span className="d-block mb-2 layout-img">
-                              <ImageWithBasePath src="assets/img/theme/detached.svg" alt="img" />
+                              <img src={detached} alt="Detached" />
                             </span>
                             <span className="layout-type">Detached</span>
                           </label>
@@ -337,37 +346,16 @@ const ThemeSettings = () => {
                           />
                           <label htmlFor="without-headerLayout">
                             <span className="d-block mb-2 layout-img">
-                              <ImageWithBasePath
-                                src="assets/img/theme/without-header.svg"
-                                alt="img"
-                              />
+                              <img src={withoutHeader} alt="Without Header" />
                             </span>
                             <span className="layout-type">Without Header</span>
                           </label>
                         </div>
                       </div>
-                      {/* <div className="col-4">
-                  <div className="theme-layout mb-3">
-                    <input
-                      type="radio"
-                      name="LayoutTheme"
-                      id="horizontal-overlayLayout"
-                      defaultValue="horizontal-overlay"
-                      checked={dataLayout === "horizontal-overlay" ? true : false}
-                        onChange={() => handleLayoutChange("horizontal-overlay")}
-                    />
-                    <label htmlFor="horizontal-overlayLayout">
-                      <span className="d-block mb-2 layout-img">
-                        <ImageWithBasePath src="assets/img/theme/overlay.svg" alt="img" />
-                      </span>
-                      <span className="layout-type">Overlay</span>
-                    </label>
-                  </div>
-                </div> */}
                       <div className="col-4" >
                         <Link to={all_routes.RTL} onClick={() => dispatch(setRtl('layout-mode-rtl'))} className="theme-layout mb-3" >
                           <span className="d-block mb-2 layout-img">
-                            <ImageWithBasePath src="assets/img/theme/rtl.svg" alt="img" />
+                            <img src={rtl} alt="RTL" />
                           </span>
                           <span className="layout-type d-block">RTL</span>
                         </Link>

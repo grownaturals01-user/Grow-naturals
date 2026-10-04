@@ -101,18 +101,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </NavLink>
 
-        {/* Desktop Sidebar Toggle Button (visible when expanded) */}
-        {!collapsed && (
-          <button
-            type="button"
-            className="sidebar-toggle-btn"
-            onClick={onToggleCollapse}
-            title="Collapse Sidebar"
-            aria-label="Collapse Sidebar"
-          >
-            <PanelLeftClose size={18} />
-          </button>
-        )}
+        {/* Desktop Sidebar Toggle Button */}
+        <button
+          type="button"
+          className="sidebar-toggle-btn"
+          onClick={onToggleCollapse}
+          title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          aria-label={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+        </button>
 
         {/* Mobile Close Button (visible on mobile only) */}
         <button

@@ -22,13 +22,15 @@ import {
 } from 'lucide-react';
 
 // Layout SVGs
-import defaultSvg from '../../assets/theme/default.svg';
-import miniSvg from '../../assets/theme/mini.svg';
-import twoColumnSvg from '../../assets/theme/two-column.svg';
-import horizontalSvg from '../../assets/theme/horizontal.svg';
-import detachedSvg from '../../assets/theme/detached.svg';
-import withoutHeaderSvg from '../../assets/theme/without-header.svg';
-import rtlSvg from '../../assets/theme/rtl.svg';
+import {
+  defaultIcon as defaultSvg,
+  mini as miniSvg,
+  twoColumn as twoColumnSvg,
+  horizontal as horizontalSvg,
+  detached as detachedSvg,
+  withoutHeader as withoutHeaderSvg,
+  rtl as rtlSvg,
+} from '../../utils/imagepath';
 
 export const ThemeCustomizerDrawer: React.FC = () => {
   const {

@@ -547,7 +547,11 @@
   [data-layout="mini"] .sidebar-toggle-btn,
   body.mini-sidebar .sidebar-toggle-btn,
   .sidebar.collapsed .sidebar-toggle-btn {
-    display: none !important;
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    margin: 4px auto 0 auto !important;
   }
 
   [data-layout="mini"] .sidebar-profile-card,

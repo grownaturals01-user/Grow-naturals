@@ -102,14 +102,18 @@ const Sidebar = () => {
   const dataLayout = useSelector((state: any) => state.themeSetting.dataLayout);
 
   const expandMenu = () => {
-    document.body.classList.remove("expand-menu");
-    if (document.body.classList.contains("mini-sidebar")) {
-      setSubopen("");
-      setSubsidebar("");
+    if (dataLayout === "layout-hovered" || document.body.classList.contains("layout-hovered")) {
+      document.body.classList.remove("expand-menu");
+      if (document.body.classList.contains("mini-sidebar")) {
+        setSubopen("");
+        setSubsidebar("");
+      }
     }
   };
   const expandMenuOpen = () => {
-    document.body.classList.add("expand-menu");
+    if (dataLayout === "layout-hovered" || document.body.classList.contains("layout-hovered")) {
+      document.body.classList.add("expand-menu");
+    }
   };
 
   return (

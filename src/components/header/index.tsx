@@ -196,10 +196,12 @@ const Header = () => {
   );
 
   const expandMenu = () => {
-    document.body.classList.remove("expand-menu");
+    if (dataLayout === "layout-hovered" || document.body.classList.contains("layout-hovered")) {
+      document.body.classList.remove("expand-menu");
+    }
   };
   const expandMenuOpen = () => {
-    if (document.body.classList.contains("layout-hovered")) {
+    if (dataLayout === "layout-hovered" || document.body.classList.contains("layout-hovered")) {
       document.body.classList.add("expand-menu");
     }
   };
