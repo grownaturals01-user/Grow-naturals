@@ -234,6 +234,9 @@ const Header = () => {
             <Link to="/dashboard" className="logo logo-normal">
               <img src={logoSvg} alt="Grow Naturals" />
             </Link>
+            <Link to="/dashboard" className="logo-small">
+              <img src={logoSmallPng} alt="Grow Naturals" />
+            </Link>
             <Link
               id="toggle_btn"
               to="#"

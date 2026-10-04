@@ -3137,7 +3137,7 @@ body.layout-mode-rtl .card-body h6 > .badge,
 /* ==========================================================================
    SIDEBAR TOGGLE & HOVER CONTROLS
    ========================================================================== */
-#toggle_btn,
+.sidebar .sidebar-logo #toggle_btn,
 .sidebar-toggle-btn {
   display: flex !important;
   opacity: 1 !important;
@@ -3147,52 +3147,49 @@ body.layout-mode-rtl .card-body h6 > .badge,
   z-index: 1050 !important;
 }
 
-body.mini-sidebar .header-left #toggle_btn,
-body.mini-sidebar .sidebar .sidebar-logo #toggle_btn,
-.mini-sidebar .header-left #toggle_btn,
-.mini-sidebar .sidebar .sidebar-logo #toggle_btn,
-[data-layout="mini"] .header-left #toggle_btn,
-[data-layout="mini"] .sidebar-logo #toggle_btn {
-  display: flex !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-  z-index: 1050 !important;
+/* On desktop with vertical sidebar, NEVER show duplicate header-left or its toggle_btn */
+@media (min-width: 992px) {
+  body:not(.menu-horizontal):not([data-layout="horizontal"]) {
+    .header .header-left,
+    .header .header-left #toggle_btn {
+      display: none !important;
+    }
+  }
 }
 
-body.mini-sidebar:not(.layout-hovered) #toggle_btn i,
-body.mini-sidebar:not(.layout-hovered) #toggle_btn svg,
-[data-layout="mini"]:not(.layout-hovered) #toggle_btn i,
-[data-layout="mini"]:not(.layout-hovered) #toggle_btn svg,
+/* Rotate toggle button chevron in mini-sidebar */
+body.mini-sidebar:not(.layout-hovered) .sidebar .sidebar-logo #toggle_btn i,
+body.mini-sidebar:not(.layout-hovered) .sidebar .sidebar-logo #toggle_btn svg,
+[data-layout="mini"]:not(.layout-hovered) .sidebar .sidebar-logo #toggle_btn i,
+[data-layout="mini"]:not(.layout-hovered) .sidebar .sidebar-logo #toggle_btn svg,
 .sidebar.collapsed #toggle_btn i,
 .sidebar.collapsed #toggle_btn svg {
   transform: rotate(180deg) !important;
 }
 
-/* Prevent mini-sidebar from expanding on hover unless layout-hovered is explicitly active */
+/* Mini Sidebar Width & Alignment (86px matching theme header/page-wrapper) */
 body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
   .sidebar {
-    width: 76px !important;
+    width: 86px !important;
     transition: width 0.2s ease;
 
     &:hover {
-      width: 76px !important;
+      width: 86px !important;
     }
   }
 
   &.expand-menu {
     .sidebar {
-      width: 76px !important;
+      width: 86px !important;
     }
   }
 }
 
 /* ==========================================================================
-   LOGO DISPLAY CONTROLS (Fix Double Logo in Mobile & Across Themes)
+   LOGO DISPLAY CONTROLS
    ========================================================================== */
-.sidebar .sidebar-logo,
-.header .header-left {
-  /* Default light theme: show only logo-normal */
+.sidebar .sidebar-logo {
+  /* Default expanded: show logo-normal */
   .logo.logo-normal {
     display: inline-block !important;
   }
@@ -3214,7 +3211,17 @@ body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
 [data-sidebarbg="sidebarbg6"],
 .dark-theme,
 .theme-dark {
-  .sidebar .sidebar-logo,
+  .sidebar .sidebar-logo {
+    .logo.logo-normal,
+    .logo-small,
+    .logo-small-white {
+      display: none !important;
+    }
+    .logo.logo-white,
+    .logo-white {
+      display: inline-block !important;
+    }
+  }
   .header .header-left {
     .logo.logo-normal,
     .logo-small,
@@ -3231,17 +3238,52 @@ body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
 /* Mini Sidebar (Desktop only) */
 @media (min-width: 992px) {
   body.mini-sidebar:not(.expand-menu),
-  [data-layout="mini"]:not(.expand-menu) {
-    .sidebar .sidebar-logo {
-      .logo.logo-normal,
-      .logo.logo-white,
-      .logo-white,
-      .logo-small-white {
+  [data-layout="mini"]:not(.expand-menu),
+  .sidebar.collapsed {
+    .sidebar {
+      width: 86px !important;
+
+      .sidebar-logo {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 10px !important;
+
+        .logo.logo-normal,
+        .logo-normal,
+        .logo.logo-white,
+        .logo-white,
+        .logo-small-white {
+          display: none !important;
+        }
+        .logo-small {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          max-width: 44px !important;
+          margin: 0 auto !important;
+
+          img {
+            max-height: 38px !important;
+            max-width: 38px !important;
+            width: auto !important;
+            object-fit: contain !important;
+          }
+        }
+      }
+    }
+
+    .header {
+      left: 86px !important;
+      width: calc(100% - 86px) !important;
+
+      .header-left {
         display: none !important;
       }
-      .logo-small {
-        display: inline-block !important;
-      }
+    }
+
+    .page-wrapper {
+      margin-left: 86px !important;
     }
   }
 
@@ -3249,13 +3291,24 @@ body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
   [data-theme="dark"][data-layout="mini"]:not(.expand-menu) {
     .sidebar .sidebar-logo {
       .logo.logo-normal,
+      .logo-normal,
       .logo.logo-white,
-      .logo-white,
-      .logo-small {
+      .logo-white {
         display: none !important;
       }
-      .logo-small-white {
-        display: inline-block !important;
+      .logo-small {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        max-width: 44px !important;
+        margin: 0 auto !important;
+
+        img {
+          max-height: 38px !important;
+          max-width: 38px !important;
+          width: auto !important;
+          object-fit: contain !important;
+        }
       }
     }
   }
