@@ -232,13 +232,7 @@ const Header = () => {
             onMouseOver={expandMenuOpen}
           >
             <Link to="/dashboard" className="logo logo-normal">
-              <img src={logoSvg} alt="img" />
-            </Link>
-            <Link to="/dashboard" className="logo logo-white">
-              <img src={logoWhitePng} alt="img" />
-            </Link>
-            <Link to="/dashboard" className="logo-small">
-              <img src={logoSmallPng} alt="img" />
+              <img src={logoSvg} alt="Grow Naturals" />
             </Link>
             <Link
               id="toggle_btn"

@@ -156,16 +156,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Logo */}
           <div className="sidebar-logo active">
             <Link to={route.newdashboard} className="logo logo-normal">
-              <img src={logo} alt="Img" />
-            </Link>
-            <Link to={route.newdashboard} className="logo logo-white">
-              <img src={logoWhite} alt="Img" />
-            </Link>
-            <Link to={route.newdashboard} className="logo-small">
-              <img src={logoSmall} alt="Img" />
-            </Link>
-            <Link to={route.newdashboard} className="logo-small-white">
-              <img src={logoSmallWhite} alt="Img" />
+              <img src={logo} alt="Grow Naturals" />
             </Link>
             <Link id="toggle_btn" to="#" onClick={handlesidebar}>
               <i className="feather icon-chevrons-left feather-16" />
