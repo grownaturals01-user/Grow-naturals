@@ -758,7 +758,7 @@ const Pos4: React.FC = () => {
           color: #ffffff;
         }
 
-        /* Customers Drawer (#add_order) matching DreamsPOS offcanvas */
+        /* Customers Drawer (#add_order) matching DreamsPOS offcanvas with Smooth Slide Animation */
         .offcanvas#add_order,
         div#add_order.offcanvas,
         .customer-sidebar-offcanvas {
@@ -772,10 +772,47 @@ const Pos4: React.FC = () => {
           min-width: 340px !important;
           height: 100vh !important;
           background-color: #ffffff !important;
-          box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15) !important;
+          box-shadow: -8px 0 30px rgba(0, 0, 0, 0.18) !important;
           border-left: 1px solid #e2e8f0 !important;
           z-index: 1065 !important;
           margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s ease !important;
+        }
+        .offcanvas#add_order:not(.show),
+        .customer-sidebar-offcanvas:not(.show) {
+          transform: translateX(100%) !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+        .offcanvas#add_order.show,
+        .customer-sidebar-offcanvas.show {
+          transform: translateX(0%) !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+        }
+
+        /* Backdrop overlay with fade animation */
+        .customer-drawer-backdrop {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          background-color: rgba(0, 0, 0, 0.45) !important;
+          z-index: 1060 !important;
+          transition: opacity 0.3s ease, visibility 0.3s ease !important;
+        }
+        .customer-drawer-backdrop:not(.show) {
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+        .customer-drawer-backdrop.show {
+          opacity: 1 !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
         }
         .offcanvas#add_order .offcanvas-header {
           display: flex !important;
@@ -2188,23 +2225,6 @@ const Pos4: React.FC = () => {
         className={`offcanvas offcanvas-end customer-sidebar-offcanvas ${customerDrawerOpen ? "show" : ""}`}
         tabIndex={-1}
         id="add_order"
-        style={{
-          visibility: customerDrawerOpen ? "visible" : "hidden",
-          position: "fixed",
-          top: 0,
-          right: 0,
-          left: "auto",
-          bottom: 0,
-          width: "380px",
-          maxWidth: "92vw",
-          height: "100vh",
-          backgroundColor: "#ffffff",
-          zIndex: 1065,
-          display: customerDrawerOpen ? "flex" : "none",
-          flexDirection: "column",
-          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.15)",
-          borderLeft: "1px solid #e2e8f0",
-        }}
       >
         <div
           className="offcanvas-header d-flex align-items-center justify-content-between px-3 py-3 border-bottom bg-white"
@@ -2616,22 +2636,11 @@ const Pos4: React.FC = () => {
         </div>
       </div>
 
-      {/* Backdrop overlay */}
-      {customerDrawerOpen && (
-        <div
-          className="offcanvas-backdrop fade show"
-          onClick={() => setCustomerDrawerOpen(false)}
-          style={{
-            zIndex: 1060,
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.4)",
-          }}
-        />
-      )}
+      {/* Backdrop overlay with fade animation */}
+      <div
+        className={`customer-drawer-backdrop ${customerDrawerOpen ? "show" : ""}`}
+        onClick={() => setCustomerDrawerOpen(false)}
+      />
 
       {/* Background static theme modals for secondary triggers */}
       <PosModals />
