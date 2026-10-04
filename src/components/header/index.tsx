@@ -78,9 +78,9 @@ const Header = () => {
     const handleFullscreenChange = () => {
       setIsFullscreen(
         document.fullscreenElement ||
-          (document as any).mozFullScreenElement ||
-          (document as any).webkitFullscreenElement ||
-          (document as any).msFullscreenElement
+        (document as any).mozFullScreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).msFullscreenElement
       );
     };
 
@@ -217,11 +217,10 @@ const Header = () => {
           <div
             className={`header-left
              ${toggle ? "" : "active"}
-             ${
-               expandMenus || dataLayout === "layout-hovered"
-                 ? "expand-menu"
-                 : ""
-             }
+             ${expandMenus || dataLayout === "layout-hovered"
+                ? "expand-menu"
+                : ""
+              }
              `}
             onMouseLeave={expandMenu}
             onMouseOver={expandMenuOpen}
@@ -243,8 +242,8 @@ const Header = () => {
                   pathname.includes("tasks") || pathname.includes("pos")
                     ? "none"
                     : pathname.includes("compose")
-                    ? "none"
-                    : "",
+                      ? "none"
+                      : "",
               }}
               onClick={handlesidebar}
             >

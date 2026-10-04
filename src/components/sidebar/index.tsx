@@ -105,9 +105,8 @@ const Sidebar = () => {
   return (
     <div>
       <div
-        className={`sidebar ${toggle ? "" : "active"} ${
-          expandMenus || dataLayout === "layout-hovered" ? "expand-menu" : ""
-        }`}
+        className={`sidebar ${toggle ? "" : "active"} ${expandMenus || dataLayout === "layout-hovered" ? "expand-menu" : ""
+          }`}
         id="sidebar"
         onMouseLeave={expandMenu}
         onMouseOver={expandMenuOpen}
@@ -255,11 +254,10 @@ const Sidebar = () => {
                         return (
                           <React.Fragment key={i}>
                             <li
-                              className={`submenu ${
-                                isDirectActive
+                              className={`submenu ${isDirectActive
                                   ? "custom-active-hassubroute-false"
                                   : ""
-                              }`}
+                                }`}
                             >
                               <Link
                                 to={title?.link || "#"}
@@ -269,9 +267,8 @@ const Sidebar = () => {
                                   }
                                   toggleSidebar(title?.label);
                                 }}
-                                className={`${
-                                  isTitleOpen || isTitleActive ? "subdrop" : ""
-                                } ${isTitleActive ? "active" : ""}`}
+                                className={`${isTitleOpen || isTitleActive ? "subdrop" : ""
+                                  } ${isTitleActive ? "active" : ""}`}
                               >
                                 <i className={`ti ti-${title.icon} me-2`}></i>
                                 <span className="custom-active-span">
@@ -317,22 +314,18 @@ const Sidebar = () => {
                                             href={item?.link}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className={`${
-                                              isItemActive ? "active" : ""
-                                            } ${
-                                              shouldShowSubdrop ? "subdrop" : ""
-                                            }`}
+                                            className={`${isItemActive ? "active" : ""
+                                              } ${shouldShowSubdrop ? "subdrop" : ""
+                                              }`}
                                           >
                                             {item?.label}
                                           </a>
                                         ) : (
                                           <Link
                                             to={item?.link}
-                                            className={`${
-                                              isItemActive ? "active" : ""
-                                            } ${
-                                              shouldShowSubdrop ? "subdrop" : ""
-                                            }`}
+                                            className={`${isItemActive ? "active" : ""
+                                              } ${shouldShowSubdrop ? "subdrop" : ""
+                                              }`}
                                             onClick={(e) => {
                                               if (isItemActive) {
                                                 e.preventDefault();

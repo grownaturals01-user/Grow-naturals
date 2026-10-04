@@ -81,9 +81,15 @@ const NewDashboard = () => {
     today_sales: 0,
     today_bills: 0,
     period_sales: 0,
+    total_sales: 0,
     total_sales_return: 0,
     total_purchase: 0,
     total_purchase_return: 0,
+    total_pre_orders: 0,
+    pre_orders_count: 0,
+    total_due_pending: 0,
+    total_cash_in_bank: 0,
+    total_cash_in_hand: 0,
     profit: 0,
     invoice_due: 0,
     total_expenses: 0,
@@ -431,6 +437,7 @@ const NewDashboard = () => {
 
           {/* Top 4 Hero Cards */}
           <div className="row">
+            {/* 1st: Total Sales */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
               <div className="card bg-primary sale-widget flex-fill">
                 <div className="card-body d-flex align-items-center">
@@ -441,7 +448,7 @@ const NewDashboard = () => {
                     <p className="text-white mb-1">Total Sales</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
                       <h4 className="text-white">
-                        {metrics.period_sales || metrics.today_sales ? formatINR(metrics.period_sales || metrics.today_sales) : "$48,988,078"}
+                        {formatINR(metrics.period_sales || metrics.today_sales || metrics.total_sales || 0)}
                       </h4>
                       <span className="badge badge-soft-primary">
                         <i className="ti ti-arrow-up me-1" />
@@ -452,27 +459,31 @@ const NewDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* 2nd: Total Purchase */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
               <div className="card bg-secondary sale-widget flex-fill">
                 <div className="card-body d-flex align-items-center">
                   <span className="sale-icon bg-white text-secondary">
-                    <i className="ti ti-repeat fs-24" />
+                    <i className="ti ti-shopping-bag fs-24" />
                   </span>
                   <div className="ms-2">
-                    <p className="text-white mb-1">Total Sales Return</p>
+                    <p className="text-white mb-1">Total Purchase</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
                       <h4 className="text-white">
-                        {metrics.total_sales_return ? formatINR(metrics.total_sales_return) : "$16,478,145"}
+                        {formatINR(metrics.total_purchase || 0)}
                       </h4>
-                      <span className="badge badge-soft-danger">
-                        <i className="ti ti-arrow-down me-1" />
-                        -22%
+                      <span className="badge badge-soft-secondary">
+                        <i className="ti ti-arrow-up me-1" />
+                        +22%
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* 3rd: Total Pre Orders */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
               <div className="card bg-teal sale-widget flex-fill">
                 <div className="card-body d-flex align-items-center">
@@ -480,10 +491,10 @@ const NewDashboard = () => {
                     <i className="ti ti-gift fs-24" />
                   </span>
                   <div className="ms-2">
-                    <p className="text-white mb-1">Total Purchase</p>
+                    <p className="text-white mb-1">Total Pre Orders</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
                       <h4 className="text-white">
-                        {metrics.total_purchase ? formatINR(metrics.total_purchase) : "$24,145,789"}
+                        {formatINR(metrics.total_pre_orders || 0)}
                       </h4>
                       <span className="badge badge-soft-success">
                         <i className="ti ti-arrow-up me-1" />
@@ -494,6 +505,8 @@ const NewDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* 4th: Total Due Pending */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
               <div className="card bg-info sale-widget flex-fill">
                 <div className="card-body d-flex align-items-center">
@@ -501,14 +514,14 @@ const NewDashboard = () => {
                     <i className="ti ti-brand-pocket fs-24" />
                   </span>
                   <div className="ms-2">
-                    <p className="text-white mb-1">Total Purchase Return</p>
+                    <p className="text-white mb-1">Total Due Pending</p>
                     <div className="d-inline-flex align-items-center flex-wrap gap-2">
                       <h4 className="text-white">
-                        {metrics.total_purchase_return ? formatINR(metrics.total_purchase_return) : "$18,458,747"}
+                        {formatINR(metrics.total_due_pending || metrics.invoice_due || 0)}
                       </h4>
-                      <span className="badge badge-soft-success">
-                        <i className="ti ti-arrow-up me-1" />
-                        +22%
+                      <span className="badge badge-soft-info">
+                        <i className="ti ti-alert-circle me-1" />
+                        Pending
                       </span>
                     </div>
                   </div>
@@ -594,24 +607,24 @@ const NewDashboard = () => {
               </div>
             </div>
 
-            {/* Total Payment Returns */}
+            {/* Total Cash in Bank */}
             <div className="col-xl-3 col-sm-6 col-12 d-flex">
               <div className="card revenue-widget flex-fill">
                 <div className="card-body">
                   <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
                     <div>
                       <h4 className="mb-1">
-                        {metrics.total_payment_returns || metrics.supplier_dues ? formatINR(metrics.total_payment_returns || metrics.supplier_dues) : "$78,458,798"}
+                        {formatINR(metrics.total_cash_in_bank || 0)}
                       </h4>
-                      <p>Total Payment Returns</p>
+                      <p>Total Cash in Bank</p>
                     </div>
                     <span className="revenue-icon bg-indigo-transparent text-indigo">
-                      <i className="ti ti-hash fs-16" />
+                      <i className="ti ti-building-bank fs-16" />
                     </span>
                   </div>
                   <div className="d-flex align-items-center justify-content-between">
                     <p className="mb-0">
-                      <span className="fs-13 fw-bold text-danger">-20%</span> vs Last Month
+                      <span className="fs-13 fw-bold text-success">+25%</span> vs Last Month
                     </p>
                     <Link to={route.salesreport} className="text-decoration-underline fs-13 fw-medium">
                       View All

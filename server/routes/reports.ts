@@ -189,13 +189,20 @@ router.get('/dashboard', async (req: Request, res: Response) => {
          FROM purchase_orders`
       );
 
+      // 3b. Pre-Orders / Quotations
+      const preOrdersRes = await db.query(
+        `SELECT COALESCE(SUM(total_amount), 0.00) as total_pre_orders,
+                COUNT(id) as pre_orders_count
+         FROM quotations`
+      );
+
       // 4. Returns
       const refundRes = await db.query(
         `SELECT COALESCE(SUM(total_refund_amount), 0.00) as total_returns
          FROM refunds`
       );
 
-      // 5. Invoices Due
+      // 5. Invoices Due / Due Pending
       const invoiceDueRes = await db.query(
         `SELECT COALESCE(SUM(total_amount), 0.00) as invoice_due
          FROM invoices
@@ -260,6 +267,27 @@ router.get('/dashboard', async (req: Request, res: Response) => {
          WHERE ${getInvoiceFilter()}
          GROUP BY payment_method
          ORDER BY total DESC`
+      );
+
+      // 7b. Bank vs Cash in Hand
+      const bankCashRes = await db.query(
+        `SELECT 
+           COALESCE(SUM(
+             CASE 
+               WHEN payment_method IN ('upi', 'card', 'bank', 'bank_transfer', 'cheque', 'online') THEN total_amount
+               WHEN payment_method = 'split' THEN COALESCE(split_upi_amount, 0.00)
+               ELSE 0.00
+             END
+           ), 0.00) as total_cash_in_bank,
+           COALESCE(SUM(
+             CASE 
+               WHEN payment_method = 'cash' THEN total_amount
+               WHEN payment_method = 'split' THEN COALESCE(split_cash_amount, 0.00)
+               ELSE 0.00
+             END
+           ), 0.00) as total_cash_in_hand
+         FROM invoices
+         WHERE ${getInvoiceFilter()}`
       );
 
       // 7b. Top Expense Categories
@@ -402,6 +430,11 @@ router.get('/dashboard', async (req: Request, res: Response) => {
           total_sales_return: Number(refundRes.rows[0]?.total_returns || 0),
           total_purchase: totalPurchVal,
           total_purchase_return: Number(refundRes.rows[0]?.total_returns || 0) * 0.4,
+          total_pre_orders: Number(preOrdersRes.rows[0]?.total_pre_orders || 0),
+          pre_orders_count: Number(preOrdersRes.rows[0]?.pre_orders_count || 0),
+          total_due_pending: Number(invoiceDueRes.rows[0]?.invoice_due || 0),
+          total_cash_in_bank: Number(bankCashRes.rows[0]?.total_cash_in_bank || 0),
+          total_cash_in_hand: Number(bankCashRes.rows[0]?.total_cash_in_hand || 0),
           profit: netProfit,
           invoice_due: Number(invoiceDueRes.rows[0]?.invoice_due || 0),
           total_expenses: totalExpVal,
@@ -477,6 +510,14 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       [businessId]
     );
 
+    const preOrdersRes = await db.query(
+      `SELECT COALESCE(SUM(total_amount), 0.00) as total_pre_orders,
+              COUNT(id) as pre_orders_count
+       FROM quotations
+       WHERE business_id = $1`,
+      [businessId]
+    );
+
     const refundRes = await db.query(
       `SELECT COALESCE(SUM(total_refund_amount), 0.00) as total_returns
        FROM refunds
@@ -546,6 +587,27 @@ router.get('/dashboard', async (req: Request, res: Response) => {
        FROM invoices
        WHERE business_id = $1 AND ${getInvoiceFilter()}
        GROUP BY payment_method`,
+      [businessId]
+    );
+
+    const bankCashRes = await db.query(
+      `SELECT 
+         COALESCE(SUM(
+           CASE 
+             WHEN payment_method IN ('upi', 'card', 'bank', 'bank_transfer', 'cheque', 'online') THEN total_amount
+             WHEN payment_method = 'split' THEN COALESCE(split_upi_amount, 0.00)
+             ELSE 0.00
+           END
+         ), 0.00) as total_cash_in_bank,
+         COALESCE(SUM(
+           CASE 
+             WHEN payment_method = 'cash' THEN total_amount
+             WHEN payment_method = 'split' THEN COALESCE(split_cash_amount, 0.00)
+             ELSE 0.00
+           END
+         ), 0.00) as total_cash_in_hand
+       FROM invoices
+       WHERE business_id = $1 AND ${getInvoiceFilter()}`,
       [businessId]
     );
 
@@ -699,6 +761,11 @@ router.get('/dashboard', async (req: Request, res: Response) => {
         total_sales_return: Number(refundRes.rows[0]?.total_returns || 0),
         total_purchase: totalPurchVal,
         total_purchase_return: Number(refundRes.rows[0]?.total_returns || 0) * 0.4,
+        total_pre_orders: Number(preOrdersRes.rows[0]?.total_pre_orders || 0),
+        pre_orders_count: Number(preOrdersRes.rows[0]?.pre_orders_count || 0),
+        total_due_pending: Number(invoiceDueRes.rows[0]?.invoice_due || 0),
+        total_cash_in_bank: Number(bankCashRes.rows[0]?.total_cash_in_bank || 0),
+        total_cash_in_hand: Number(bankCashRes.rows[0]?.total_cash_in_hand || 0),
         profit: netProfit,
         invoice_due: Number(invoiceDueRes.rows[0]?.invoice_due || 0),
         total_expenses: totalExpVal,

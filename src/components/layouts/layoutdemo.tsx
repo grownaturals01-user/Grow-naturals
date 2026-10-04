@@ -1127,10 +1127,10 @@ const LayoutDemo = () => {
                 <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
                   <div>
                     <h4 className="mb-1">$78,458,798</h4>
-                    <p>Total Payment Returns</p>
+                    <p>Total Cash in Bank</p>
                   </div>
                   <span className="revenue-icon bg-indigo-transparent text-indigo">
-                    <i className="ti ti-hash fs-16" />
+                    <i className="ti ti-building-bank fs-16" />
                   </span>
                 </div>
                 <div className="d-flex align-items-center justify-content-between">
