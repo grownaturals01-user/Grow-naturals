@@ -12,6 +12,7 @@ import CommonDatePicker from "../../components/date-picker/common-date-picker";
 import CommonSelect from "../../components/select/common-select";
 import { Editor } from "primereact/editor";
 import { api, getActiveBusinessId } from "../../services/api";
+import { ProductImageUploader } from "../../components/common/ProductImageUploader";
 
 const AddProduct = () => {
   const route = all_routes;
@@ -35,6 +36,7 @@ const AddProduct = () => {
 
   // Product field states
   const [productName, setProductName] = useState("");
+  const [imageUrl, setImageUrl] = useState<string>("");
   const [slug, setSlug] = useState("");
   const [sku, setSku] = useState("");
   const [itemCode, setItemCode] = useState("");
@@ -129,17 +131,25 @@ const AddProduct = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const parsedPrice = parseFloat(price) || 0;
+      const parsedQty = parseInt(quantity, 10) || 0;
+      const parsedAlert = parseInt(qtyAlert, 10) || 5;
+
       await api.post("/products", {
         name: productName || "New Product",
         sku: sku || `GN-${Date.now().toString().slice(-4)}`,
         business_id: selectedStore && selectedStore !== "choose" ? selectedStore : getActiveBusinessId(),
         category_id: selectedCategory && selectedCategory !== "choose" ? selectedCategory : undefined,
-        selling_price: Number(price) || 0,
-        cost_price: Number(price) ? Number(price) * 0.7 : 0,
-        stock_quantity: Number(quantity) || 0,
-        low_stock_threshold: Number(qtyAlert) || 5,
+        sale_price: parsedPrice,
+        selling_price: parsedPrice,
+        price: parsedPrice,
+        cost_price: parsedPrice ? parsedPrice * 0.7 : 0,
+        stock_quantity: parsedQty,
+        quantity: parsedQty,
+        low_stock_threshold: parsedAlert,
         unit: selectedUnit && selectedUnit !== "choose" ? selectedUnit : "Pc",
         barcode: itemCode || sku || undefined,
+        image_url: imageUrl || "",
         description: text || "",
       });
       navigate(route.productlist);
@@ -961,44 +971,13 @@ const AddProduct = () => {
                     className="accordion-collapse collapse show"
                     aria-labelledby="headingSpacingThree"
                   >
-                    <div className="accordion-body border-top">
-                      <div className="text-editor add-list add">
-                        <div className="col-lg-12">
-                          <div className="add-choosen">
-                            <div className="mb-3">
-                              <div className="image-upload">
-                                <input type="file" />
-                                <div className="image-uploads">
-                                  <i className="feather icon-plus-circle plus-down-add me-0" />
-                                  <h4>Add Images</h4>
-                                </div>
-                              </div>
-                            </div>
-                            {isImageVisible1 && (
-                              <div className="phone-img">
-                                <img src={phoneAdd2} alt="image" />
-                                <Link to="#">
-                                  <i
-                                    className="feather icon-x x-square-add remove-product"
-                                    onClick={handleRemoveProduct1}
-                                  />
-                                </Link>
-                              </div>
-                            )}
-                            {isImageVisible && (
-                              <div className="phone-img">
-                                <img src={phoneAdd1} alt="image" />
-                                <Link to="#">
-                                  <i
-                                    className="feather icon-x x-square-add remove-product"
-                                    onClick={handleRemoveProduct}
-                                  />
-                                </Link>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                    <div className="accordion-body border-top p-4">
+                      <ProductImageUploader
+                        value={imageUrl}
+                        onChange={setImageUrl}
+                        label="Product Photo / Media"
+                        productType={selectedCategory || "plants"}
+                      />
                     </div>
                   </div>
                 </div>

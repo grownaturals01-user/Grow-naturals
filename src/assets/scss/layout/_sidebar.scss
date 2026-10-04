@@ -798,16 +798,57 @@ body.mini-sidebar{
         }
     }
 }
-.mini-sidebar{
-    .active.subdrop ~ ul{
-        display: none !important;
+// Mini sidebar collapsed state (when closed / not hovered)
+.mini-sidebar:not(.expand-menu),
+body.mini-sidebar:not(.expand-menu) {
+    .sidebar {
+        .sidebar-menu {
+            // Level 2 (the main menu items list) must be displayed so icons are visible
+            > ul > li.submenu-open > ul {
+                display: block !important;
+            }
+            // Level 3 (the submenus with child items) must be completely hidden
+            .submenu-open .submenu > ul,
+            li.submenu > ul,
+            .subdrop ~ ul,
+            .active.subdrop ~ ul {
+                display: none !important;
+            }
+            .menu-arrow {
+                display: none !important;
+            }
+        }
     }
 }
-.mini-sidebar.expand-menu{
-    .active.subdrop ~ ul{
-        display: block !important;
+
+// Mini sidebar hover state (expanded temporarily on mouseover)
+.mini-sidebar.expand-menu,
+body.mini-sidebar.expand-menu {
+    .sidebar {
+        .sidebar-menu {
+            .subdrop ~ ul,
+            .active.subdrop ~ ul {
+                display: block !important;
+            }
+            .menu-arrow {
+                display: inline-block !important;
+            }
+        }
     }
 }
+
+// Normal sidebar open state
+body:not(.mini-sidebar) {
+    .sidebar {
+        .sidebar-menu {
+            .subdrop ~ ul,
+            .active.subdrop ~ ul {
+                display: block !important;
+            }
+        }
+    }
+}
+
 .active.subdrop ~ ul{
     display: block !important;
 }

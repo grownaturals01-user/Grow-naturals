@@ -56,20 +56,14 @@ const Sidebar = () => {
     });
   };
 
-  useEffect(() => {
-    // Reset subdrop toggle state when route changes
-    setActiveLinksSubdropToggled(new Map());
-
+  const restoreActiveSubmenu = () => {
     SidebarData.forEach((mainLabel: any) => {
       mainLabel.submenuItems.forEach((title: any) => {
         const hasActiveChild = title.submenuItems?.some((item: any) => {
-          // Check if the item's link matches the current path
           if (item.link === Location.pathname) {
             return true;
           }
-          // Check for nested children
           if (hasActiveNestedChild(item, Location.pathname)) {
-            // If item has submenu and active child, open the subsidebar
             if (item.submenu && item.submenuItems) {
               setSubsidebar(item.label);
             }
@@ -82,12 +76,24 @@ const Sidebar = () => {
         }
       });
     });
+  };
+
+  useEffect(() => {
+    // Reset subdrop toggle state when route changes
+    setActiveLinksSubdropToggled(new Map());
+    restoreActiveSubmenu();
   }, [Location.pathname]);
 
   const [toggle, SetToggle] = useState(false);
   const handlesidebar = () => {
-    document.body.classList.toggle("mini-sidebar");
+    const isNowMini = document.body.classList.toggle("mini-sidebar");
     SetToggle((current) => !current);
+    if (isNowMini) {
+      setSubopen("");
+      setSubsidebar("");
+    } else {
+      restoreActiveSubmenu();
+    }
   };
 
   const { expandMenus } = useSelector(
@@ -97,6 +103,10 @@ const Sidebar = () => {
 
   const expandMenu = () => {
     document.body.classList.remove("expand-menu");
+    if (document.body.classList.contains("mini-sidebar")) {
+      setSubopen("");
+      setSubsidebar("");
+    }
   };
   const expandMenuOpen = () => {
     document.body.classList.add("expand-menu");

@@ -8,6 +8,31 @@ function getBusinessId(req: Request): string {
   return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
+// Helper to normalize product row for frontend consumption
+function mapProductRow(row: any) {
+  const salePrice = Number(row.sale_price) || 0;
+  const costPrice = Number(row.cost_price) || 0;
+  const stockQty = Number(row.stock_quantity) || 0;
+  const lowStock = Number(row.low_stock_threshold) || 5;
+  const gstRate = Number(row.gst_rate) || 0;
+
+  return {
+    ...row,
+    sale_price: salePrice,
+    selling_price: salePrice,
+    price: salePrice,
+    amount: salePrice,
+    cost_price: costPrice,
+    purchase_price: costPrice,
+    stock_quantity: stockQty,
+    stock: stockQty,
+    quantity: stockQty,
+    low_stock_threshold: lowStock,
+    gst_rate: gstRate,
+    tax_rate: gstRate,
+  };
+}
+
 // GET /api/products
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -66,7 +91,7 @@ router.get('/', async (req: Request, res: Response) => {
     query += ` ORDER BY p.name ASC`;
 
     const result = await db.query(query, params);
-    res.json(result.rows);
+    res.json(result.rows.map(mapProductRow));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -102,12 +127,12 @@ router.get('/:id', async (req: Request, res: Response) => {
        LEFT JOIN users u ON sm.user_id = u.id
        WHERE sm.product_id = $1
        ORDER BY sm.created_at DESC
-       LIMIT 30`,
+       LIMIT 50`,
       [req.params.id]
     );
 
     res.json({
-      ...result.rows[0],
+      ...mapProductRow(result.rows[0]),
       movements: movements.rows
     });
   } catch (error: any) {
@@ -119,10 +144,61 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const {
-      name, sku, barcode, category_id, type, cost_price, sale_price,
-      gst_rate, hsn_code, stock_quantity, low_stock_threshold,
-      supplier_id, image_url, attributes, discount_pieces, discount_percent
+      name, sku, barcode, category_id, type,
+      hsn_code, supplier_id, image_url, attributes, discount_pieces, discount_percent
     } = req.body;
+
+    // Resolve Sale Price / Selling Price / Price / Amount robustly
+    const rawSalePrice =
+      req.body.sale_price !== undefined
+        ? req.body.sale_price
+        : req.body.selling_price !== undefined
+        ? req.body.selling_price
+        : req.body.price !== undefined
+        ? req.body.price
+        : req.body.amount !== undefined
+        ? req.body.amount
+        : 0.00;
+
+    // Resolve Cost Price / Purchase Price
+    const rawCostPrice =
+      req.body.cost_price !== undefined
+        ? req.body.cost_price
+        : req.body.purchase_price !== undefined
+        ? req.body.purchase_price
+        : Number(rawSalePrice)
+        ? Number(rawSalePrice) * 0.7
+        : 0.00;
+
+    // Resolve Stock Quantity / Quantity / Stock
+    const rawStockQuantity =
+      req.body.stock_quantity !== undefined
+        ? req.body.stock_quantity
+        : req.body.quantity !== undefined
+        ? req.body.quantity
+        : req.body.stock !== undefined
+        ? req.body.stock
+        : 0;
+
+    // Resolve Low Stock Alert Threshold
+    const rawLowStock =
+      req.body.low_stock_threshold !== undefined
+        ? req.body.low_stock_threshold
+        : req.body.qtyAlert !== undefined
+        ? req.body.qtyAlert
+        : req.body.alert_quantity !== undefined
+        ? req.body.alert_quantity
+        : 5;
+
+    // Resolve GST Rate / Tax Rate
+    const rawGstRate =
+      req.body.gst_rate !== undefined
+        ? req.body.gst_rate
+        : req.body.tax_rate !== undefined
+        ? req.body.tax_rate
+        : req.body.tax !== undefined
+        ? req.body.tax
+        : 0.00;
 
     if (!name || !sku) {
       return res.status(400).json({ error: 'Product name and SKU are required' });
@@ -145,7 +221,7 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     // Tax rate for Nikhlesh Nursery is always 0
-    const finalGstRate = businessId === 'nikhlesh-nursery' ? 0.00 : (Number(gst_rate) || 0.00);
+    const finalGstRate = businessId === 'nikhlesh-nursery' ? 0.00 : (Number(rawGstRate) || 0.00);
 
     const result = await db.query(
       `INSERT INTO products (
@@ -162,12 +238,12 @@ router.post('/', async (req: Request, res: Response) => {
         name,
         sku,
         barcode || sku,
-        Number(cost_price) || 0.00,
-        Number(sale_price) || 0.00,
+        Number(rawCostPrice) || 0.00,
+        Number(rawSalePrice) || 0.00,
         finalGstRate,
         hsn_code || '',
-        Number(stock_quantity) || 0,
-        Number(low_stock_threshold) || 5,
+        Number(rawStockQuantity) || 0,
+        Number(rawLowStock) || 5,
         supplier_id || null,
         image_url || '',
         typeof attributes === 'object' ? JSON.stringify(attributes) : (attributes || '{}'),
@@ -177,7 +253,7 @@ router.post('/', async (req: Request, res: Response) => {
     );
 
     // Initial stock movement if quantity > 0
-    const initialQty = Number(stock_quantity) || 0;
+    const initialQty = Number(rawStockQuantity) || 0;
     if (initialQty > 0) {
       await db.query(
         `INSERT INTO stock_movements (
@@ -187,7 +263,7 @@ router.post('/', async (req: Request, res: Response) => {
       );
     }
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(mapProductRow(result.rows[0]));
   } catch (error: any) {
     console.error('Create product error:', error);
     res.status(500).json({ error: error.message });
@@ -199,11 +275,68 @@ router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const {
-      name, sku, barcode, category_id, type, cost_price, sale_price,
-      gst_rate, hsn_code, stock_quantity, low_stock_threshold,
-      supplier_id, image_url, attributes, user_id,
+      name, sku, barcode, category_id, type,
+      hsn_code, supplier_id, image_url, attributes, user_id,
       discount_pieces, discount_percent
     } = req.body;
+
+    const hasSalePrice =
+      req.body.sale_price !== undefined ||
+      req.body.selling_price !== undefined ||
+      req.body.price !== undefined ||
+      req.body.amount !== undefined;
+
+    const rawSalePrice = hasSalePrice
+      ? Number(
+          req.body.sale_price ??
+          req.body.selling_price ??
+          req.body.price ??
+          req.body.amount
+        )
+      : undefined;
+
+    const hasCostPrice =
+      req.body.cost_price !== undefined ||
+      req.body.purchase_price !== undefined;
+
+    const rawCostPrice = hasCostPrice
+      ? Number(req.body.cost_price ?? req.body.purchase_price)
+      : undefined;
+
+    const hasStockQuantity =
+      req.body.stock_quantity !== undefined ||
+      req.body.quantity !== undefined ||
+      req.body.stock !== undefined;
+
+    const rawStockQuantity = hasStockQuantity
+      ? Number(
+          req.body.stock_quantity ??
+          req.body.quantity ??
+          req.body.stock
+        )
+      : undefined;
+
+    const hasLowStock =
+      req.body.low_stock_threshold !== undefined ||
+      req.body.qtyAlert !== undefined ||
+      req.body.alert_quantity !== undefined;
+
+    const rawLowStock = hasLowStock
+      ? Number(
+          req.body.low_stock_threshold ??
+          req.body.qtyAlert ??
+          req.body.alert_quantity
+        )
+      : undefined;
+
+    const hasGstRate =
+      req.body.gst_rate !== undefined ||
+      req.body.tax_rate !== undefined ||
+      req.body.tax !== undefined;
+
+    const rawGstRate = hasGstRate
+      ? Number(req.body.gst_rate ?? req.body.tax_rate ?? req.body.tax)
+      : undefined;
 
     const db = await getDb();
 
@@ -214,7 +347,12 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
     const oldProduct = existing.rows[0];
 
-    const finalGstRate = oldProduct.business_id === 'nikhlesh-nursery' ? 0.00 : (gst_rate !== undefined ? Number(gst_rate) : oldProduct.gst_rate);
+    const finalGstRate =
+      oldProduct.business_id === 'nikhlesh-nursery'
+        ? 0.00
+        : rawGstRate !== undefined
+        ? Number(rawGstRate)
+        : oldProduct.gst_rate;
 
     const result = await db.query(
       `UPDATE products SET
@@ -243,12 +381,12 @@ router.put('/:id', async (req: Request, res: Response) => {
         barcode,
         category_id !== undefined ? category_id : oldProduct.category_id,
         type,
-        cost_price !== undefined ? Number(cost_price) : undefined,
-        sale_price !== undefined ? Number(sale_price) : undefined,
+        rawCostPrice !== undefined ? Number(rawCostPrice) : undefined,
+        rawSalePrice !== undefined ? Number(rawSalePrice) : undefined,
         finalGstRate,
         hsn_code,
-        stock_quantity !== undefined ? Number(stock_quantity) : undefined,
-        low_stock_threshold !== undefined ? Number(low_stock_threshold) : undefined,
+        rawStockQuantity !== undefined ? Number(rawStockQuantity) : undefined,
+        rawLowStock !== undefined ? Number(rawLowStock) : undefined,
         supplier_id !== undefined ? supplier_id : oldProduct.supplier_id,
         image_url !== undefined ? image_url : undefined,
         attributes !== undefined ? (typeof attributes === 'object' ? JSON.stringify(attributes) : attributes) : undefined,
@@ -259,8 +397,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     );
 
     // If stock quantity changed, log stock movement
-    if (stock_quantity !== undefined && Number(stock_quantity) !== oldProduct.stock_quantity) {
-      const diff = Number(stock_quantity) - oldProduct.stock_quantity;
+    if (rawStockQuantity !== undefined && Number(rawStockQuantity) !== oldProduct.stock_quantity) {
+      const diff = Number(rawStockQuantity) - oldProduct.stock_quantity;
       await db.query(
         `INSERT INTO stock_movements (
           id, business_id, product_id, type, quantity_change, previous_quantity, new_quantity, reference_type, notes, user_id
@@ -271,13 +409,13 @@ router.put('/:id', async (req: Request, res: Response) => {
           id,
           diff,
           oldProduct.stock_quantity,
-          Number(stock_quantity),
+          Number(rawStockQuantity),
           user_id || null
         ]
       );
     }
 
-    res.json(result.rows[0]);
+    res.json(mapProductRow(result.rows[0]));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
