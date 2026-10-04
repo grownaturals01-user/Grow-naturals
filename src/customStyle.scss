@@ -3262,18 +3262,49 @@ body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
 }
 
 /* Mobile Screens (Under 992px) */
+.sidebar-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #334155;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+}
+
 @media (max-width: 991.98px) {
   .sidebar .sidebar-logo {
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    padding: 14px 20px !important;
+    justify-content: space-between !important;
+    padding: 12px 16px !important;
     height: 60px !important;
     width: 100% !important;
 
+    #toggle_btn {
+      display: none !important;
+    }
+
+    .sidebar-close-btn {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
     .logo.logo-normal {
       display: inline-block !important;
-      max-width: 160px !important;
+      max-width: 150px !important;
       img {
         max-height: 38px !important;
         width: auto !important;
@@ -3289,6 +3320,17 @@ body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
   }
 
   [data-theme="dark"] .sidebar .sidebar-logo {
+    .sidebar-close-btn {
+      background: #1e293b;
+      border-color: #334155;
+      color: #cbd5e1;
+
+      &:hover {
+        background: #334155;
+        color: #ffffff;
+      }
+    }
+
     .logo.logo-normal,
     .logo-small,
     .logo-small-white {
@@ -3297,7 +3339,7 @@ body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
     .logo.logo-white,
     .logo-white {
       display: inline-block !important;
-      max-width: 160px !important;
+      max-width: 150px !important;
       img {
         max-height: 38px !important;
         width: auto !important;
@@ -3306,6 +3348,7 @@ body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
     }
   }
 }
+
 
 
 

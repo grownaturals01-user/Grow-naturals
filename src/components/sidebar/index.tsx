@@ -143,6 +143,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
+  const closeMobileSidebar = () => {
+    document?.querySelectorAll(".main-wrapper")?.forEach((el) => el.classList.remove("slide-nav"));
+    document?.body?.classList?.remove("slide-nav");
+    document?.body?.classList?.remove("menu-opened");
+    document?.querySelectorAll(".sidebar-overlay")?.forEach((el) => el.classList.remove("opened"));
+    document?.documentElement?.classList?.remove("menu-opened");
+  };
+
   return (
     <div>
       <div
@@ -161,6 +169,16 @@ const Sidebar: React.FC<SidebarProps> = ({
             <Link id="toggle_btn" to="#" onClick={handlesidebar}>
               <i className="feather icon-chevrons-left feather-16" />
             </Link>
+            <button
+              type="button"
+              id="sidebar-close"
+              className="sidebar-close-btn"
+              onClick={closeMobileSidebar}
+              title="Close Sidebar"
+              aria-label="Close Sidebar"
+            >
+              <i className="feather icon-x feather-16" />
+            </button>
           </div>
           {/* /Logo */}
         </>
