@@ -173,12 +173,20 @@ const Pos4: React.FC = () => {
   const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
 
-  // Add Customer Modal
-  const [customerModalOpen, setCustomerModalOpen] = useState<boolean>(false);
+  // Customer Drawer (#add_order) & Add New Customer States
+  const [customerDrawerOpen, setCustomerDrawerOpen] = useState<boolean>(false);
+  const [activeCustomerTab, setActiveCustomerTab] = useState<"existing" | "add_new">("existing");
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("");
+  const [newCustPhoto, setNewCustPhoto] = useState<string>("");
   const [newCustName, setNewCustName] = useState<string>("");
   const [newCustPhone, setNewCustPhone] = useState<string>("");
   const [newCustEmail, setNewCustEmail] = useState<string>("");
   const [newCustAddress, setNewCustAddress] = useState<string>("");
+  const [newCustAddress2, setNewCustAddress2] = useState<string>("");
+  const [newCustCountry, setNewCustCountry] = useState<string>("India");
+  const [newCustState, setNewCustState] = useState<string>("Maharashtra");
+  const [newCustCity, setNewCustCity] = useState<string>("Pune");
+  const [newCustPostal, setNewCustPostal] = useState<string>("");
   const [newCustGstin, setNewCustGstin] = useState<string>("");
 
   // Load Held Bills from LocalStorage
@@ -225,13 +233,25 @@ const Pos4: React.FC = () => {
 
       if (custRes.status === "fulfilled" && Array.isArray(custRes.value)) {
         const custOpts = [
-          { value: "walkin", label: "Walk in Customer", phone: "", address: "", gstin: "" },
+          {
+            value: "walkin",
+            label: "Walk in Customer",
+            name: "Walk in Customer",
+            phone: "+91 00000 00000",
+            address: "",
+            gstin: "",
+            status: "Available",
+          },
           ...custRes.value.map((c) => ({
             value: c.id,
             label: `${c.name} ${c.phone ? `(${c.phone})` : ""}`,
+            name: c.name,
             phone: c.phone || "",
+            email: c.email || "",
             address: c.address || "",
             gstin: c.gstin || "",
+            image_url: c.image_url || "",
+            status: c.status || "Available",
           })),
         ];
         setCustomers(custOpts);
@@ -519,32 +539,56 @@ const Pos4: React.FC = () => {
         name: newCustName.trim(),
         phone: newCustPhone.trim(),
         email: newCustEmail.trim(),
-        address: newCustAddress.trim(),
-        gstin: newCustGstin.trim(),
+        address: [newCustAddress.trim(), newCustAddress2.trim(), newCustCity.trim(), newCustState.trim(), newCustPostal.trim()].filter(Boolean).join(", "),
+        city: newCustCity.trim(),
+        state: newCustState.trim(),
+        country: newCustCountry.trim(),
+        postal_code: newCustPostal.trim(),
+        image_url: newCustPhoto || undefined,
         business_id: biz,
       });
 
       const newOption = {
         value: res.id,
         label: `${res.name} ${res.phone ? `(${res.phone})` : ""}`,
+        name: res.name,
         phone: res.phone || "",
+        email: res.email || "",
         address: res.address || "",
         gstin: res.gstin || "",
+        image_url: res.image_url || newCustPhoto || "",
+        status: "Available",
       };
 
       setCustomers((prev) => [newOption, ...prev]);
       setSelectedCustomer(newOption);
-      setCustomerModalOpen(false);
+      setCustomerDrawerOpen(false);
+      setActiveCustomerTab("existing");
       setNewCustName("");
       setNewCustPhone("");
       setNewCustEmail("");
       setNewCustAddress("");
-      setNewCustGstin("");
-      alert("Customer added successfully!");
+      setNewCustAddress2("");
+      setNewCustPostal("");
+      setNewCustPhoto("");
+      alert("Customer created and selected successfully!");
     } catch (err: any) {
       alert("Error adding customer: " + (err.message || "Could not save customer"));
     }
   };
+
+  // Filtered Customer List for #add_order Drawer
+  const filteredCustomerList = useMemo(() => {
+    if (!customerSearchQuery.trim()) return customers;
+    const q = customerSearchQuery.toLowerCase();
+    return customers.filter(
+      (c) =>
+        (c.label && c.label.toLowerCase().includes(q)) ||
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q))
+    );
+  }, [customers, customerSearchQuery]);
 
   return (
     <div className="main-wrapper pos-three pos-four-enhanced">
@@ -604,125 +648,194 @@ const Pos4: React.FC = () => {
         .pos4-search-clear:hover {
           color: #475569;
         }
-        .pos4-categories-bar {
+
+        /* Category Listing Design matching Screenshot 2 */
+        .pos-categories-container-new {
+          background: transparent;
+          margin-bottom: 18px;
+        }
+        .pos-categories-header-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 14px;
+          padding: 0 2px;
+        }
+        .pos-categories-main-title {
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #111827;
+          letter-spacing: -0.015em;
+          margin: 0;
+        }
+        .pos-category-nav-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .pos-cat-round-arrow-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          border: 1.5px solid #e5e7eb;
           background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          padding: 8px 12px;
-          position: relative;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-        }
-        .pos4-cat-track-container {
+          color: #111827;
           display: flex;
           align-items: center;
-          gap: 8px;
-          width: 100%;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
-        .pos4-cat-track {
+        .pos-cat-round-arrow-btn:hover {
+          background: #f9fafb;
+          border-color: #cbd5e1;
+          color: #059669;
+        }
+        .pos-cat-round-arrow-btn:active {
+          transform: scale(0.95);
+        }
+        .pos-cat-scroll-track-new {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 12px;
           overflow-x: auto;
           scroll-behavior: smooth;
           scrollbar-width: none;
           -ms-overflow-style: none;
-          padding: 4px 2px;
-          flex: 1;
+          padding: 2px 2px 8px 2px;
         }
-        .pos4-cat-track::-webkit-scrollbar {
+        .pos-cat-scroll-track-new::-webkit-scrollbar {
           display: none;
         }
-        .pos4-cat-pill {
+        .pos-category-badge-pill {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 7px 14px;
-          background: #f8fafc;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
+          justify-content: space-between;
+          gap: 14px;
+          padding: 8px 18px;
+          border-radius: 9999px;
+          background: #ffffff;
+          border: 1.5px solid #e5e7eb;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
           white-space: nowrap;
           flex-shrink: 0;
-          font-family: inherit;
+          min-width: 110px;
           user-select: none;
+          font-family: inherit;
         }
-        .pos4-cat-pill:hover {
-          background: #f1f5f9;
+        .pos-category-badge-pill:hover {
           border-color: #cbd5e1;
+          background: #f9fafb;
           transform: translateY(-1px);
         }
-        .pos4-cat-pill.active {
-          background: #f0fdf4;
-          border-color: #059669;
-          box-shadow: 0 2px 6px rgba(5, 150, 105, 0.15);
-        }
-        .pos4-cat-icon {
-          width: 24px;
-          height: 24px;
-          border-radius: 6px;
-          background: rgba(5, 150, 105, 0.12);
-          color: #059669;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          flex-shrink: 0;
-        }
-        .pos4-cat-pill.active .pos4-cat-icon {
-          background: #059669;
-          color: #ffffff;
-        }
-        .pos4-cat-icon img {
-          width: 16px;
-          height: 16px;
-          object-fit: contain;
-        }
-        .pos4-cat-title {
-          font-size: 13px;
-          font-weight: 600;
-          color: #334155;
-          max-width: 135px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .pos4-cat-pill.active .pos4-cat-title {
-          color: #065f46;
-          font-weight: 700;
-        }
-        .pos4-cat-count {
-          font-size: 10px;
-          font-weight: 700;
-          background: #e2e8f0;
-          color: #475569;
-          padding: 1px 7px;
-          border-radius: 10px;
-        }
-        .pos4-cat-pill.active .pos4-cat-count {
-          background: #059669;
-          color: #ffffff;
-        }
-        .pos4-cat-arrow-btn {
-          width: 30px;
-          height: 30px;
-          border-radius: 50%;
+        .pos-category-badge-pill.active {
+          border-color: #111827;
           background: #ffffff;
-          border: 1px solid #cbd5e1;
-          color: #475569;
-          display: flex;
+          box-shadow: 0 0 0 1px #111827;
+        }
+        .pos-category-pill-label {
+          font-size: 14px;
+          font-weight: 600;
+          color: #111827;
+        }
+        .pos-category-badge-pill.active .pos-category-pill-label {
+          font-weight: 700;
+        }
+        .pos-category-pill-count {
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          cursor: pointer;
-          flex-shrink: 0;
-          transition: all 0.15s ease;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+          min-width: 28px;
+          height: 22px;
+          padding: 0 8px;
+          border-radius: 9999px;
+          background: #f3f4f6;
+          color: #4b5563;
+          font-size: 12px;
+          font-weight: 600;
+          margin-left: auto;
         }
-        .pos4-cat-arrow-btn:hover {
-          background: #059669;
+        .pos-category-badge-pill.active .pos-category-pill-count {
+          background: #111827;
           color: #ffffff;
-          border-color: #059669;
         }
+
+        /* Customers Drawer (#add_order) matching posModals & Screenshot 1 */
+        .offcanvas#add_order {
+          width: 440px;
+          max-width: 95vw;
+          box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+          border-left: 1px solid #e2e8f0;
+          z-index: 1065;
+        }
+        .orders-tab {
+          background: #ffffff;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .orders-tab .nav-pills {
+          background: #f8fafc;
+          padding: 4px;
+          border-radius: 50px;
+          border: 1px solid #e2e8f0;
+        }
+        .orders-tab .nav-pills .nav-link {
+          border-radius: 50px !important;
+          padding: 8px 16px !important;
+          font-size: 13.5px !important;
+          font-weight: 600 !important;
+          color: #334155 !important;
+          background: transparent !important;
+          border: none !important;
+          transition: all 0.2s ease !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        .orders-tab .nav-pills .nav-link.active {
+          background: #0f172a !important;
+          color: #ffffff !important;
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15) !important;
+        }
+        .order-select-card {
+          transition: all 0.15s ease;
+          border-radius: 10px;
+          cursor: pointer;
+        }
+        .order-select-card:hover {
+          background-color: #f8fafc !important;
+        }
+        .order-select-card.selected-customer-card {
+          border-color: #0284c7 !important;
+          background-color: #f0f9ff !important;
+        }
+        .customer-radio-input input[type="radio"] {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+        }
+        .customer-radio-input input[type="radio"]:checked {
+          background-color: #0284c7;
+          border-color: #0284c7;
+        }
+        .badge-soft-success {
+          background-color: #ecfdf5 !important;
+          color: #059669 !important;
+          border-radius: 50px !important;
+          padding: 4px 12px !important;
+          font-size: 12px !important;
+          font-weight: 600 !important;
+        }
+        .badge-soft-danger {
+          background-color: #fef2f2 !important;
+          color: #ef4444 !important;
+          border-radius: 50px !important;
+          padding: 4px 12px !important;
+          font-size: 12px !important;
+          font-weight: 600 !important;
+        }
+
         .pos4-product-card {
           background: #ffffff;
           border: 1.5px solid #e2e8f0;
@@ -954,87 +1067,73 @@ const Pos4: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Categories Navigation Bar with Arrows */}
-                <div className="pos4-categories-bar mb-3">
-                  <div className="pos4-cat-track-container">
-                    <button
-                      type="button"
-                      className="pos4-cat-arrow-btn"
-                      onClick={() => {
-                        const el = document.getElementById("pos4-cat-scroll-track");
-                        if (el) el.scrollBy({ left: -220, behavior: "smooth" });
-                      }}
-                      title="Scroll categories left"
-                    >
-                      <i className="ti ti-chevron-left fs-14" />
-                    </button>
-
-                    <div className="pos4-cat-track" id="pos4-cat-scroll-track">
-                      {/* All Items Pill */}
+                {/* Categories Navigation Bar with Circular Arrows matching Screenshot 2 */}
+                <div className="pos-categories-container-new mb-3">
+                  <div className="pos-categories-header-row">
+                    <h4 className="pos-categories-main-title">Categories</h4>
+                    <div className="pos-category-nav-controls">
                       <button
                         type="button"
-                        className={`pos4-cat-pill ${activeTab === "all" ? "active" : ""}`}
-                        onClick={() => setActiveTab("all")}
+                        className="pos-cat-round-arrow-btn"
+                        onClick={() => {
+                          const el = document.getElementById("pos4-cat-scroll-track");
+                          if (el) el.scrollBy({ left: -240, behavior: "smooth" });
+                        }}
+                        title="Scroll categories left"
                       >
-                        <span className="pos4-cat-icon">
-                          <i className="ti ti-layout-grid" />
-                        </span>
-                        <span className="pos4-cat-title" title="All Items">
-                          All Items
-                        </span>
-                        <span className="pos4-cat-count">{products.length}</span>
+                        <i className="ti ti-arrow-left fs-15" />
                       </button>
-
-                      {/* Dynamic Backend Categories */}
-                      {categories.map((cat, idx) => {
-                        const isCatActive =
-                          activeTab === cat.id ||
-                          activeTab.toLowerCase() === cat.name.toLowerCase();
-                        const catProdCount = products.filter(
-                          (p) =>
-                            p.category_id === cat.id ||
-                            (p.category &&
-                              p.category.toLowerCase() === cat.name.toLowerCase()) ||
-                            (p.category_name &&
-                              p.category_name.toLowerCase() === cat.name.toLowerCase())
-                        ).length;
-
-                        return (
-                          <button
-                            key={cat.id || idx}
-                            type="button"
-                            className={`pos4-cat-pill ${isCatActive ? "active" : ""}`}
-                            onClick={() => setActiveTab(cat.id || cat.name)}
-                          >
-                            <span className="pos4-cat-icon">
-                              {cat.image_url ? (
-                                <img src={cat.image_url} alt="" />
-                              ) : (
-                                <i className="ti ti-plant" />
-                              )}
-                            </span>
-                            <span className="pos4-cat-title" title={cat.name}>
-                              {cat.name}
-                            </span>
-                            {catProdCount > 0 && (
-                              <span className="pos4-cat-count">{catProdCount}</span>
-                            )}
-                          </button>
-                        );
-                      })}
+                      <button
+                        type="button"
+                        className="pos-cat-round-arrow-btn"
+                        onClick={() => {
+                          const el = document.getElementById("pos4-cat-scroll-track");
+                          if (el) el.scrollBy({ left: 240, behavior: "smooth" });
+                        }}
+                        title="Scroll categories right"
+                      >
+                        <i className="ti ti-arrow-right fs-15" />
+                      </button>
                     </div>
+                  </div>
 
+                  <div className="pos-cat-scroll-track-new" id="pos4-cat-scroll-track">
+                    {/* All Items Pill */}
                     <button
                       type="button"
-                      className="pos4-cat-arrow-btn"
-                      onClick={() => {
-                        const el = document.getElementById("pos4-cat-scroll-track");
-                        if (el) el.scrollBy({ left: 220, behavior: "smooth" });
-                      }}
-                      title="Scroll categories right"
+                      className={`pos-category-badge-pill ${activeTab === "all" ? "active" : ""}`}
+                      onClick={() => setActiveTab("all")}
                     >
-                      <i className="ti ti-chevron-right fs-14" />
+                      <span className="pos-category-pill-label">All Items</span>
+                      <span className="pos-category-pill-count">{products.length}</span>
                     </button>
+
+                    {/* Dynamic Backend Categories */}
+                    {categories.map((cat, idx) => {
+                      const isCatActive =
+                        activeTab === cat.id ||
+                        activeTab.toLowerCase() === cat.name.toLowerCase();
+                      const catProdCount = products.filter(
+                        (p) =>
+                          p.category_id === cat.id ||
+                          (p.category &&
+                            p.category.toLowerCase() === cat.name.toLowerCase()) ||
+                          (p.category_name &&
+                            p.category_name.toLowerCase() === cat.name.toLowerCase())
+                      ).length;
+
+                      return (
+                        <button
+                          key={cat.id || idx}
+                          type="button"
+                          className={`pos-category-badge-pill ${isCatActive ? "active" : ""}`}
+                          onClick={() => setActiveTab(cat.id || cat.name)}
+                        >
+                          <span className="pos-category-pill-label">{cat.name}</span>
+                          <span className="pos-category-pill-count">{catProdCount}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1197,20 +1296,49 @@ const Pos4: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-primary shadow-primary"
-                      onClick={() => setCustomerModalOpen(true)}
+                      className="btn btn-sm btn-outline-primary shadow-primary d-flex align-items-center"
+                      onClick={() => {
+                        setActiveCustomerTab("add_new");
+                        setCustomerDrawerOpen(true);
+                      }}
                     >
-                      + Add Customer
+                      <i className="ti ti-plus me-1" /> Add Customer
                     </button>
                   </div>
-                  <CommonSelect
-                    options={customers}
-                    className="select w-100"
-                    value={selectedCustomer}
-                    onChange={(e: any) => setSelectedCustomer(e)}
-                    placeholder="Choose Customer"
-                    filter={false}
-                  />
+
+                  <div
+                    className="d-flex align-items-center justify-content-between p-2 border rounded bg-light cursor-pointer"
+                    onClick={() => {
+                      setActiveCustomerTab("existing");
+                      setCustomerDrawerOpen(true);
+                    }}
+                    style={{ cursor: "pointer" }}
+                    title="Click to select or change customer"
+                  >
+                    <div className="d-flex align-items-center">
+                      <div
+                        className="avatar avatar-sm rounded-circle bg-dark text-white me-2 d-flex align-items-center justify-content-center fw-bold fs-13"
+                        style={{ width: "34px", height: "34px" }}
+                      >
+                        {selectedCustomer?.name
+                          ? selectedCustomer.name.charAt(0).toUpperCase()
+                          : selectedCustomer?.label
+                          ? selectedCustomer.label.charAt(0).toUpperCase()
+                          : "W"}
+                      </div>
+                      <div>
+                        <div className="fw-bold fs-13 text-dark text-truncate" style={{ maxWidth: "180px" }}>
+                          {selectedCustomer?.name || selectedCustomer?.label || "Walk in Customer"}
+                        </div>
+                        {selectedCustomer?.phone && (
+                          <div className="fs-11 text-muted">{selectedCustomer.phone}</div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="btn btn-sm btn-link text-primary p-0 fs-12 fw-semibold">
+                      Change
+                    </span>
+                  </div>
                 </div>
 
                 {/* Cart Product List Section */}
@@ -2032,95 +2160,441 @@ const Pos4: React.FC = () => {
         </div>
       )}
 
-      {/* 7. Add Customer Modal */}
-      {customerModalOpen && (
-        <div
-          className="modal fade show d-block"
-          tabIndex={-1}
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title fw-bold">Add New Customer</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setCustomerModalOpen(false)}
-                />
-              </div>
-              <form onSubmit={handleCreateCustomer}>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold">
-                      Customer Name <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. Ramesh Agro"
-                      value={newCustName}
-                      onChange={(e) => setNewCustName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold">Phone Number</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="10-digit mobile number"
-                      value={newCustPhone}
-                      onChange={(e) => setNewCustPhone(e.target.value)}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold">Email</label>
-                    <input
-                      type="email"
-                      className="form-control"
-                      placeholder="email@example.com"
-                      value={newCustEmail}
-                      onChange={(e) => setNewCustEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold">Address</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Billing / Delivery address"
-                      value={newCustAddress}
-                      onChange={(e) => setNewCustAddress(e.target.value)}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold">GSTIN (Optional)</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="GSTIN Number"
-                      value={newCustGstin}
-                      onChange={(e) => setNewCustGstin(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
+      {/* 7. Customers Drawer (#add_order) matching posModals & Screenshot 1 */}
+      <div
+        className={`offcanvas offcanvas-end ${customerDrawerOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="add_order"
+        style={{
+          visibility: customerDrawerOpen ? "visible" : "hidden",
+          position: "fixed",
+          top: 0,
+          right: 0,
+          width: "440px",
+          maxWidth: "95vw",
+          height: "100vh",
+          backgroundColor: "#ffffff",
+          zIndex: 1060,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div className="offcanvas-header d-flex align-items-center justify-content-between p-3 border-bottom">
+          <h4 className="offcanvas-title mb-0 fw-bold fs-18">Customers</h4>
+          <button
+            type="button"
+            className="btn-close btn-close-modal"
+            onClick={() => setCustomerDrawerOpen(false)}
+            aria-label="Close"
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        <div className="d-flex flex-column overflow-y-auto h-100">
+          <div className="offcanvas-body pb-0 p-0 d-flex flex-column h-100">
+            <div className="orders-tab d-flex align-items-start p-3">
+              <ul className="nav nav-pills w-100 d-flex gap-2 align-items-center flex-sm-nowrap flex-wrap">
+                <li className="flex-fill">
                   <button
                     type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setCustomerModalOpen(false)}
+                    className={`nav-link w-100 d-flex align-items-center justify-content-center ${
+                      activeCustomerTab === "existing" ? "active" : ""
+                    }`}
+                    onClick={() => setActiveCustomerTab("existing")}
                   >
-                    Cancel
+                    <i className="ti ti-users me-2 fs-15" />
+                    Existing Customer
                   </button>
-                  <button type="submit" className="btn btn-primary fw-bold">
-                    Save Customer
+                </li>
+                <li className="flex-fill">
+                  <button
+                    type="button"
+                    className={`nav-link w-100 d-flex align-items-center justify-content-center ${
+                      activeCustomerTab === "add_new" ? "active" : ""
+                    }`}
+                    onClick={() => setActiveCustomerTab("add_new")}
+                  >
+                    <i className="ti ti-plus me-2 fs-15" />
+                    Add New Customer
                   </button>
+                </li>
+              </ul>
+            </div>
+
+            <div className="tab-content flex-grow-1 d-flex flex-column">
+              {/* Tab 1: Existing Customer */}
+              {activeCustomerTab === "existing" && (
+                <div
+                  className="tab-pane fade show active d-flex flex-column flex-grow-1"
+                  id="driversTab"
+                >
+                  <div className="gx-3 p-3 mb-2 pt-0">
+                    <div className="col-lg-12 col-md-12">
+                      <label className="form-label fw-bold fs-14 mb-2 text-dark">All Drivers</label>
+                      <div className="mb-0">
+                        <div className="page-search position-relative">
+                          <i
+                            className="ti ti-search fs-15 position-absolute text-muted"
+                            style={{ left: 14, top: "50%", transform: "translateY(-50%)" }}
+                          />
+                          <input
+                            type="search"
+                            className="form-control form-control-sm ps-5"
+                            placeholder="Search by name/Phone Number"
+                            value={customerSearchQuery}
+                            onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                            style={{ height: "40px", borderRadius: "8px", fontSize: "13.5px" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Customer Cards List */}
+                  <div
+                    className="customer-list-scroll px-3 flex-grow-1"
+                    style={{ maxHeight: "calc(100vh - 280px)", overflowY: "auto" }}
+                  >
+                    {filteredCustomerList.map((c, idx) => {
+                      const isSelected = selectedCustomer?.value === c.value;
+                      const isAvailable =
+                        c.value === "walkin" ||
+                        (c.status !== "inactive" && c.status !== "unavailable");
+
+                      return (
+                        <div
+                          key={c.value || idx}
+                          className={`d-flex justify-content-between align-items-center p-3 mb-2 border rounded order-select-card ${
+                            isSelected ? "selected-customer-card" : ""
+                          }`}
+                          style={{
+                            cursor: "pointer",
+                            background: isSelected ? "#f0f9ff" : "#ffffff",
+                            borderColor: isSelected ? "#0284c7" : "#e2e8f0",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => {
+                            setSelectedCustomer(c);
+                          }}
+                        >
+                          <div className="d-flex align-items-center customer-radio-input">
+                            <input
+                              type="radio"
+                              name="customer_radio"
+                              checked={isSelected}
+                              onChange={() => setSelectedCustomer(c)}
+                              className="form-check-input rounded-circle me-3 mt-0"
+                              style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                            />
+                            <div className="d-flex align-items-center">
+                              <div
+                                className="avatar avatar-rounded flex-shrink-0 me-3 bg-light text-muted d-flex align-items-center justify-content-center fw-bold border"
+                                style={{
+                                  width: "42px",
+                                  height: "42px",
+                                  borderRadius: "50%",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {c.image_url ? (
+                                  <img
+                                    src={c.image_url}
+                                    alt=""
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                ) : (
+                                  <span className="fs-14 text-dark">
+                                    {c.name
+                                      ? c.name.charAt(0).toUpperCase()
+                                      : c.label
+                                      ? c.label.charAt(0).toUpperCase()
+                                      : "C"}
+                                  </span>
+                                )}
+                              </div>
+                              <div>
+                                <h6 className="fs-14 fw-bold mb-1 text-dark">
+                                  {c.name || c.label}
+                                </h6>
+                                <p className="fs-13 text-muted mb-0">
+                                  {c.phone || "No phone number"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="d-flex align-items-center">
+                            <span
+                              className={`badge ${
+                                isAvailable ? "badge-soft-success" : "badge-soft-danger"
+                              }`}
+                            >
+                              {isAvailable ? "Available" : "Unavailable"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top mt-auto bg-white">
+                    <button
+                      type="button"
+                      className="btn btn-dark d-flex align-items-center justify-content-center w-100"
+                      onClick={() => setCustomerDrawerOpen(false)}
+                    >
+                      <i className="ti ti-x me-1" />
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary d-flex align-items-center justify-content-center w-100"
+                      onClick={() => setCustomerDrawerOpen(false)}
+                    >
+                      <i className="ti ti-circle-check me-1" />
+                      Submit
+                    </button>
+                  </div>
                 </div>
-              </form>
+              )}
+
+              {/* Tab 2: Add New Customer */}
+              {activeCustomerTab === "add_new" && (
+                <div
+                  className="tab-pane fade show active d-flex flex-column flex-grow-1"
+                  id="add-new-driverTab"
+                >
+                  <form onSubmit={handleCreateCustomer} className="d-flex flex-column flex-grow-1">
+                    <div
+                      className="px-2 flex-grow-1"
+                      style={{ maxHeight: "calc(100vh - 220px)", overflowY: "auto" }}
+                    >
+                      <div className="row gx-3 p-3 pt-0">
+                        <div className="col-md-12">
+                          <div className="mb-3 d-flex align-items-center flex-wrap gap-3">
+                            <div
+                              className="avatar avatar-3xl border bg-light d-flex align-items-center justify-content-center"
+                              style={{ width: "64px", height: "64px", borderRadius: "10px" }}
+                            >
+                              {newCustPhoto ? (
+                                <img
+                                  src={newCustPhoto}
+                                  alt="profile"
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    borderRadius: "10px",
+                                  }}
+                                />
+                              ) : (
+                                <i className="ti ti-photo fs-28 text-muted" />
+                              )}
+                            </div>
+                            <div>
+                              <label className="form-label fw-bold fs-13 mb-1">
+                                Profile Photo <span className="text-danger">*</span>
+                              </label>
+                              <p className="fs-12 text-muted mb-2">Image should be within 5 MB</p>
+                              <div className="d-flex align-items-center">
+                                <label className="btn btn-icon btn-sm btn-white border rounded-circle position-relative me-2 mb-0 cursor-pointer shadow-sm">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="d-none"
+                                    onChange={(e) => {
+                                      if (e.target.files && e.target.files[0]) {
+                                        const reader = new FileReader();
+                                        reader.onload = (ev) =>
+                                          setNewCustPhoto(ev.target?.result as string);
+                                        reader.readAsDataURL(e.target.files[0]);
+                                      }
+                                    }}
+                                  />
+                                  <i className="ti ti-pencil" />
+                                </label>
+                                {newCustPhoto && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-icon btn-sm btn-white border rounded-circle text-danger shadow-sm"
+                                    onClick={() => setNewCustPhoto("")}
+                                  >
+                                    <i className="ti ti-trash" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">
+                              Customer Name <span className="text-danger">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Customer Name"
+                              value={newCustName}
+                              onChange={(e) => setNewCustName(e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="col-lg-6 col-md-12">
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">Phone</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Phone Number"
+                              value={newCustPhone}
+                              onChange={(e) => setNewCustPhone(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="col-lg-6 col-md-12">
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">Email</label>
+                            <input
+                              type="email"
+                              className="form-control"
+                              placeholder="Email Address"
+                              value={newCustEmail}
+                              onChange={(e) => setNewCustEmail(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="col-lg-12 col-md-12">
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">
+                              Address Line 1 <span className="text-danger">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Street Address Line 1"
+                              value={newCustAddress}
+                              onChange={(e) => setNewCustAddress(e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="col-lg-12 col-md-12">
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">Address Line 2</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Apartment, suite, unit, etc."
+                              value={newCustAddress2}
+                              onChange={(e) => setNewCustAddress2(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="col-lg-6 col-md-12">
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">Country</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Country"
+                              value={newCustCountry}
+                              onChange={(e) => setNewCustCountry(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="col-lg-6 col-md-12">
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">State</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="State"
+                              value={newCustState}
+                              onChange={(e) => setNewCustState(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="col-lg-6 col-md-12">
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">City</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="City"
+                              value={newCustCity}
+                              onChange={(e) => setNewCustCity(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="col-lg-6 col-md-12">
+                          <div className="mb-3">
+                            <label className="form-label fw-bold fs-13 mb-1">
+                              Postal Code <span className="text-danger">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Postal Code"
+                              value={newCustPostal}
+                              onChange={(e) => setNewCustPostal(e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top mt-auto bg-white">
+                      <button
+                        type="button"
+                        className="btn btn-dark d-flex align-items-center justify-content-center w-100"
+                        onClick={() => {
+                          setActiveCustomerTab("existing");
+                        }}
+                      >
+                        <i className="ti ti-x me-1" />
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary d-flex align-items-center justify-content-center w-100"
+                      >
+                        <i className="ti ti-circle-check me-1" />
+                        Submit
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Backdrop overlay */}
+      {customerDrawerOpen && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={() => setCustomerDrawerOpen(false)}
+          style={{
+            zIndex: 1055,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+          }}
+        />
       )}
 
       {/* Background static theme modals for secondary triggers */}
