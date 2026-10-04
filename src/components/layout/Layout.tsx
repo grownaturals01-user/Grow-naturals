@@ -16,6 +16,8 @@ export const isHideSidebarRoute = (pathname: string): boolean => {
   );
 };
 
+export const isFullscreenPageRoute = isHideSidebarRoute;
+
 export const Layout: React.FC = () => {
   const location = useLocation();
   const isHideSidebar = isHideSidebarRoute(location.pathname);

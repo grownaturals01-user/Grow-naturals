@@ -254,6 +254,12 @@ export interface Invoice {
   business_email?: string;
   business_footer?: string;
   item_count?: number;
+  due_date?: string;
+  round_off?: number;
+  po_no?: string;
+  e_way_bill_no?: string;
+  dispatch_doc_no?: string;
+  vehicle_no?: string;
   signature_url?: string;
   signature_title?: string;
   created_at: string;
