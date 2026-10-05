@@ -1637,11 +1637,14 @@ body.dark-mode .pos-view-info-btn {
     }
 
     &.btn-light {
-      background-color: #f8f9fa !important;
+      background-color: transparent !important;
       color: #333843 !important;
+      box-shadow: none !important;
       &:hover {
-        background-color: #e9ecef !important;
+        background-color: transparent !important;
         color: #111827 !important;
+        transform: none !important;
+        box-shadow: none !important;
       }
     }
 
@@ -1696,11 +1699,12 @@ body.dark-mode .pos-view-info-btn {
 .dark .action,
 body.dark-mode .action {
   .btn-icon.btn-light {
-    background-color: #334155 !important;
+    background-color: transparent !important;
     color: #cbd5e1 !important;
     &:hover {
-      background-color: #475569 !important;
+      background-color: transparent !important;
       color: #ffffff !important;
+      transform: none !important;
     }
   }
   .btn-icon.btn-danger {

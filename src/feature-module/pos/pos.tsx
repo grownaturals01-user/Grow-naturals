@@ -1418,17 +1418,26 @@ const Pos: React.FC = () => {
           justify-content: center !important;
         }
         .qty-item .dec,
-        .qty-item .inc,
-        .action .btn-icon.btn-light {
+        .qty-item .inc {
           background-color: #f8f9fa !important;
           color: #333843 !important;
         }
         .qty-item .dec:hover,
-        .qty-item .inc:hover,
-        .action .btn-icon.btn-light:hover {
+        .qty-item .inc:hover {
           background-color: #e9ecef !important;
           color: #111827 !important;
           transform: scale(1.06) !important;
+        }
+        .action .btn-icon.btn-light {
+          background-color: transparent !important;
+          color: #333843 !important;
+          box-shadow: none !important;
+        }
+        .action .btn-icon.btn-light:hover {
+          background-color: transparent !important;
+          color: #111827 !important;
+          transform: none !important;
+          box-shadow: none !important;
         }
         .action .btn-icon.btn-danger {
           background-color: #ff3b30 !important;
