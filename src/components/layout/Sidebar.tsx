@@ -2,7 +2,8 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useInventoryModules } from '../../context/InventoryModulesContext';
-import gnLogo from '../../assets/img/logo.png';
+import gnFullLogo from '../../assets/grownaturals-full-logo.jpeg';
+import gnLogo from '../../assets/grownaturalslogo.jpeg';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -97,7 +98,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title={collapsed ? 'Click to expand sidebar' : 'GrowNaturals'}
         >
           <div className="brand-icon" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
-            <img src={gnLogo} alt="Grow Naturals Logo" className="brand-logo-img" style={{ maxHeight: '42px', width: 'auto', maxWidth: collapsed ? '36px' : '170px', objectFit: 'contain', boxShadow: 'none', border: 'none' }} />
+            <img 
+              src={collapsed ? gnLogo : gnFullLogo} 
+              alt="Grow Naturals Logo" 
+              className="brand-logo-img" 
+              style={{ maxHeight: '42px', width: 'auto', maxWidth: collapsed ? '36px' : '170px', objectFit: 'contain', boxShadow: 'none', border: 'none', borderRadius: '4px' }} 
+            />
           </div>
         </NavLink>
 
