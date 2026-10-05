@@ -2624,9 +2624,6 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
 }
 
 @media (max-width: 991.98px) {
-  .expand-menu.mini-sidebar .sidebar {
-    width: 252px;
-  }
   .chat-page .chat-wrapper .chat.chat-messages .chat-footer {
     bottom: -40px !important;
   }
@@ -2987,6 +2984,12 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
       display: none !important;
     }
 
+    .slimScrollDiv,
+    [data-simplebar] {
+      height: 100% !important;
+      max-height: calc(100vh - 60px) !important;
+    }
+
     // Sidebar menu items and labels visibility matching @theme
     .sidebar-menu {
       display: block !important;
@@ -3220,20 +3223,22 @@ body.mini-sidebar:not(.layout-hovered) .sidebar .sidebar-logo #toggle_btn svg,
   transform: rotate(180deg) !important;
 }
 
-/* Mini Sidebar Width & Alignment (86px matching theme header/page-wrapper) */
-body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
-  .sidebar {
-    width: 86px !important;
-    transition: width 0.2s ease;
-
-    &:hover {
-      width: 86px !important;
-    }
-  }
-
-  &.expand-menu {
+/* Mini Sidebar Width & Alignment (86px matching theme header/page-wrapper, Desktop only) */
+@media (min-width: 992px) {
+  body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
     .sidebar {
       width: 86px !important;
+      transition: width 0.2s ease;
+
+      &:hover {
+        width: 86px !important;
+      }
+    }
+
+    &.expand-menu {
+      .sidebar {
+        width: 86px !important;
+      }
     }
   }
 }
