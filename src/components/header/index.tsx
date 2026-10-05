@@ -313,7 +313,7 @@ const Header = () => {
                           <Link to="/sales-list">Sales</Link>
                         </li>
                         <li>
-                          <Link to={route.pos4 || "/pos-4"}>POS</Link>
+                          <Link to={route.pos || "/pos"}>POS</Link>
                         </li>
                       </ul>
                     </div>
@@ -454,7 +454,7 @@ const Header = () => {
                     </Link>
                   </div>
                   <div className="col-md-2">
-                    <Link to={route.pos4 || "/pos-4"} className="link-item">
+                    <Link to={route.pos || "/pos"} className="link-item">
                       <span className="link-icon">
                         <i className="ti ti-shopping-cart" />
                       </span>
@@ -530,7 +530,7 @@ const Header = () => {
             </li>
             <li className="nav-item pos-nav">
               <Link
-                to={route.pos4 || "/pos-4"}
+                to={route.pos || "/pos"}
                 className="btn btn-dark btn-md d-inline-flex align-items-center"
               >
                 <i className="ti ti-device-laptop me-1" />

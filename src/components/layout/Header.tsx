@@ -302,7 +302,7 @@ export const Header: React.FC<HeaderProps> = ({
                           <Link to="/invoices/create" onClick={() => setShowSearchDropdown(false)}>+ New Invoice</Link>
                         </li>
                         <li>
-                          <Link to="/pos-4" onClick={() => setShowSearchDropdown(false)}>POS Counter</Link>
+                          <Link to="/pos" onClick={() => setShowSearchDropdown(false)}>POS Counter</Link>
                         </li>
                         <li>
                           <Link to="/inventory" onClick={() => setShowSearchDropdown(false)}>Inventory</Link>
@@ -433,7 +433,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Direct POS Link Button */}
             {!isPos && (
               <li className="pos-nav">
-                <Link to="/pos-4" className="btn-pos" title="Open POS Billing Counter">
+                <Link to="/pos" className="btn-pos" title="Open POS Billing Counter">
                   <Monitor size={15} />
                   <span>POS</span>
                 </Link>

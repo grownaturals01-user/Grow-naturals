@@ -180,7 +180,7 @@ const FeatureModule = () => {
                 <div
                   className={`main-wrapper ${data ? "header-collapse" : ""}`}
                 >
-                  <Header />
+                  {!isInvoiceCreatePage && <Header />}
                   {!isInvoiceCreatePage && (
                     <>
                       <Sidebar />

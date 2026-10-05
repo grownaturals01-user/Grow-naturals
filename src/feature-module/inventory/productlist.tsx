@@ -31,6 +31,7 @@ import TooltipIcons from "../../components/tooltip-content/tooltipIcons";
 import RefreshIcon from "../../components/tooltip-content/refresh";
 import CollapesIcon from "../../components/tooltip-content/collapes";
 import { api, getActiveBusinessId } from "../../services/api";
+import { useBusiness } from "../../context/BusinessContext";
 
 const productImages = [
   stockImg1,
@@ -210,6 +211,7 @@ interface ProductItem {
 }
 
 const ProductList: React.FC = () => {
+  const { businessId } = useBusiness();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [brands, setBrands] = useState<string[]>([]);
@@ -223,8 +225,8 @@ const ProductList: React.FC = () => {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const businessId = getActiveBusinessId();
-      const res = await api.get<any[]>("/products", { business_id: businessId });
+      const currentBiz = businessId || getActiveBusinessId();
+      const res = await api.get<any[]>("/products", { business_id: currentBiz });
       if (Array.isArray(res) && res.length > 0) {
         const mapped: ProductItem[] = res.map((p: any, idx: number) => ({
           id: p.id,
@@ -257,12 +259,12 @@ const ProductList: React.FC = () => {
       setProducts(fallbackProductListData);
       setBrands(["Lenovo", "Bolt", "Nike", "Apple", "Amazon", "Woodmart", "Versace", "Bently"]);
     }
-  }, []);
+  }, [businessId]);
 
   const fetchCategories = useCallback(async () => {
     try {
-      const businessId = getActiveBusinessId();
-      const res = await api.get<any[]>("/categories", { business_id: businessId });
+      const currentBiz = businessId || getActiveBusinessId();
+      const res = await api.get<any[]>("/categories", { business_id: currentBiz });
       if (Array.isArray(res) && res.length > 0) {
         setCategories(res);
       } else {
@@ -283,7 +285,7 @@ const ProductList: React.FC = () => {
         { id: "5", name: "Furnitures" },
       ]);
     }
-  }, []);
+  }, [businessId]);
 
   useEffect(() => {
     fetchProducts();

@@ -132,266 +132,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Nav List */}
       <nav className="sidebar-nav">
-        {/* Section: SELL (Amber accent) */}
-        {(canAccess('dashboard') || canAccess('pos') || canAccess('invoices') || canAccess('quotations') || canAccess('delivery_challans')) && (
-          <div className="nav-section section-sell">
-            {!collapsed && (
-              <div className="nav-section-title">
-                <span className="nav-section-dot" />
-                <span>Sell</span>
-              </div>
-            )}
-            {canAccess('dashboard') && (
-              <NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Dashboard">
-                <LayoutDashboard className="nav-icon" />
-                <span className="nav-label">Dashboard</span>
-              </NavLink>
-            )}
-            {canAccess('pos') && (
-              <NavLink to="/pos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="POS Counter">
-                <ShoppingCart className="nav-icon" />
-                <span className="nav-label">POS Counter</span>
-              </NavLink>
-            )}
-            {canAccess('invoices') && (
-              <NavLink
-                to="/invoices/create"
-                className={() => {
-                  const isCreateActive = location.pathname.startsWith('/invoices/create') || location.pathname.startsWith('/invoices/new');
-                  return `nav-link ${isCreateActive ? 'active' : ''}`;
-                }}
-                onClick={handleLinkClick}
-                title="Create Sales Invoice"
-              >
-                <FilePlus2 className="nav-icon" />
-                <span className="nav-label">Create Sales Invoice</span>
-              </NavLink>
-            )}
-            {canAccess('invoices') && (
-              <NavLink
-                to="/invoices"
-                end
-                className={() => {
-                  const isCreateActive = location.pathname.startsWith('/invoices/create') || location.pathname.startsWith('/invoices/new');
-                  const isPastActive = (location.pathname === '/invoices' || location.pathname.startsWith('/invoices/')) && !isCreateActive;
-                  return `nav-link ${isPastActive ? 'active' : ''}`;
-                }}
-                onClick={handleLinkClick}
-                title="Past Invoices"
-              >
-                <ReceiptText className="nav-icon" />
-                <span className="nav-label">Past Invoices</span>
-              </NavLink>
-            )}
-            <NavLink to="/customers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Customers">
-              <Users2 className="nav-icon" />
-              <span className="nav-label">Customers</span>
-            </NavLink>
-            {canAccess('quotations') && (
-              <NavLink to="/quotations" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Quotations">
-                <FileSpreadsheet className="nav-icon" />
-                <span className="nav-label">Quotations</span>
-              </NavLink>
-            )}
-            {canAccess('delivery_challans') && (
-              <NavLink to="/delivery-challans" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Delivery Challans">
-                <Truck className="nav-icon" />
-                <span className="nav-label">Delivery Challans</span>
-              </NavLink>
-            )}
-            {canAccess('dashboard') && (
-              <NavLink to="/reports" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Analytics & Reports">
-                <ReceiptText className="nav-icon" />
-                <span className="nav-label">Reports & Analytics</span>
-              </NavLink>
-            )}
-          </div>
-        )}
+        {/* Section: MAIN */}
+        <div className="nav-section section-sell">
+          {!collapsed && (
+            <div className="nav-section-title">
+              <span className="nav-section-dot" />
+              <span>Main</span>
+            </div>
+          )}
+          <NavLink to="/admin-dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Dashboard">
+            <LayoutDashboard className="nav-icon" />
+            <span className="nav-label">Dashboard</span>
+          </NavLink>
+          <NavLink to="/pos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="POS">
+            <ShoppingCart className="nav-icon" />
+            <span className="nav-label">POS</span>
+          </NavLink>
+        </div>
 
-        {/* Section: INVENTORY (Emerald accent) */}
-        {canAccess('inventory') && (
-          <div className="nav-section section-inv">
-            {!collapsed && (
-              <div className="nav-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="nav-section-dot" />
-                  <span>Inventory</span>
-                </div>
-                <NavLink
-                  to="/inventory/new"
-                  onClick={handleLinkClick}
-                  title="Add New Inventory Module"
-                  style={{
-                    fontSize: '0.7rem',
-                    color: '#34d399',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    fontWeight: 700,
-                    textTransform: 'none',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    background: 'rgba(52, 211, 153, 0.15)',
-                    border: '1px solid rgba(52, 211, 153, 0.3)',
-                  }}
-                >
-                  <Plus size={11} /> Add
-                </NavLink>
-              </div>
-            )}
-            <NavLink to="/products" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="All Products">
-              <Package className="nav-icon" />
-              <span className="nav-label">All Products</span>
-            </NavLink>
-            <NavLink to="/categories" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Categories">
-              <FolderTree className="nav-icon" />
-              <span className="nav-label">Categories</span>
-            </NavLink>
-            {/* Dynamic Inventory Categories for Active Business */}
-            {(modules || []).map((m) => {
-              const route = ['plants', 'cactus', 'pots', 'fertilizers', 'flowers'].includes(m.slug)
-                ? `/inventory/${m.slug}`
-                : `/inventory/custom/${m.slug}`;
+        {/* Section: SALES */}
+        <div className="nav-section section-sell">
+          {!collapsed && (
+            <div className="nav-section-title">
+              <span className="nav-section-dot" />
+              <span>Sales</span>
+            </div>
+          )}
+          <NavLink
+            to="/create-sales-invoice"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            onClick={handleLinkClick}
+            title="Create Sales Invoice"
+          >
+            <FilePlus2 className="nav-icon" />
+            <span className="nav-label">Create Sales Invoice</span>
+          </NavLink>
+        </div>
 
-              return (
-                <NavLink
-                  key={m.id}
-                  to={route}
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                  onClick={handleLinkClick}
-                  title={`${m.name} Inventory`}
-                >
-                  <span className="nav-icon">
-                    {renderModuleIcon(m.icon || m.slug, 18)}
-                  </span>
-                  <span className="nav-label">{m.name}</span>
-                </NavLink>
-              );
-            })}
-
-            <NavLink to="/inventory/losses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Loss & Damage Tracking">
-              <TrendingDown className="nav-icon" />
-              <span className="nav-label">Loss Tracking</span>
-            </NavLink>
-            <NavLink to="/warehouse" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Warehouse & Stock Management">
-              <Warehouse className="nav-icon" />
-              <span className="nav-label">Warehouse Stock</span>
-            </NavLink>
-            <NavLink to="/transfers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Stock Transfers (Warehouse ➔ Shop)">
-              <ArrowLeftRight className="nav-icon" />
-              <span className="nav-label">Stock Transfers</span>
-            </NavLink>
-
-            {/* Add New Inventory Module Button */}
-            <NavLink
-              to="/inventory/new"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleLinkClick}
-              title="Add New Inventory Module"
-              style={{
-                color: '#34d399',
-                fontWeight: 700,
-                marginTop: '4px',
-                background: 'rgba(52, 211, 153, 0.12)',
-                border: '1px dashed rgba(52, 211, 153, 0.4)',
-                borderRadius: '8px',
-              }}
-            >
-              <PlusCircle className="nav-icon" style={{ color: '#34d399' }} />
-              <span className="nav-label">+ Add Inventory</span>
-            </NavLink>
-          </div>
-        )}
-
-        {/* Section: PROJECTS (Purple accent) */}
-        {canAccess('projects') && (
-          <div className="nav-section section-proj">
-            {!collapsed && (
-              <div className="nav-section-title">
-                <span className="nav-section-dot" />
-                <span>Projects</span>
-              </div>
-            )}
-            <NavLink to="/projects" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Project List">
-              <FolderKanban className="nav-icon" />
-              <span className="nav-label">Project List</span>
-            </NavLink>
-            <NavLink to="/supervisors" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Site Supervisors">
-              <Users2 className="nav-icon" />
-              <span className="nav-label">Supervisors Directory</span>
-            </NavLink>
-          </div>
-        )}
-
-        {/* Section: PURCHASES (Teal accent) */}
-        {(canAccess('purchases') || canAccess('expenses')) && (
-          <div className="nav-section section-purch">
-            {!collapsed && (
-              <div className="nav-section-title">
-                <span className="nav-section-dot" />
-                <span>Purchases</span>
-              </div>
-            )}
-            {canAccess('purchases') && (
-              <NavLink to="/suppliers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Suppliers Directory">
-                <Building2 className="nav-icon" />
-                <span className="nav-label">Suppliers</span>
-              </NavLink>
-            )}
-            {canAccess('purchases') && (
-              <NavLink to="/purchases" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Purchase Orders">
-                <ShoppingBag className="nav-icon" />
-                <span className="nav-label">Purchase Orders</span>
-              </NavLink>
-            )}
-            {canAccess('expenses') && (
-              <NavLink to="/expenses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Expenses">
-                <Receipt className="nav-icon" />
-                <span className="nav-label">Expenses</span>
-              </NavLink>
-            )}
-          </div>
-        )}
-
-        {/* Section: SALES OPS (Rose accent) */}
-        {canAccess('refunds') && (
-          <div className="nav-section section-ops">
-            {!collapsed && (
-              <div className="nav-section-title">
-                <span className="nav-section-dot" />
-                <span>Sales Ops</span>
-              </div>
-            )}
-            <NavLink to="/refunds" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Refunds">
-              <RotateCcw className="nav-icon" />
-              <span className="nav-label">Refunds</span>
-            </NavLink>
-          </div>
-        )}
-
-        {/* Section: ADMIN (Slate accent) */}
-        {(canAccess('staff') || canAccess('settings')) && (
-          <div className="nav-section section-admin">
-            {!collapsed && (
-              <div className="nav-section-title">
-                <span className="nav-section-dot" />
-                <span>Admin</span>
-              </div>
-            )}
-            {canAccess('staff') && (
-              <NavLink to="/staff" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Staff & Roles">
-                <UserCog className="nav-icon" />
-                <span className="nav-label">Staff & Roles</span>
-              </NavLink>
-            )}
-            {canAccess('settings') && (
-              <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Shop Settings">
-                <Settings className="nav-icon" />
-                <span className="nav-label">Shop Preferences</span>
-              </NavLink>
-            )}
-          </div>
-        )}
+        {/* Section: INVENTORY */}
+        <div className="nav-section section-inv">
+          {!collapsed && (
+            <div className="nav-section-title">
+              <span className="nav-section-dot" />
+              <span>Inventory</span>
+            </div>
+          )}
+          <NavLink to="/product-list" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Product List">
+            <Package className="nav-icon" />
+            <span className="nav-label">Product List</span>
+          </NavLink>
+          <NavLink to="/add-product" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Add Product">
+            <PlusCircle className="nav-icon" />
+            <span className="nav-label">Add Product</span>
+          </NavLink>
+        </div>
       </nav>
     </aside>
   );

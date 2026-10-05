@@ -13,10 +13,12 @@ import CommonSelect from "../../components/select/common-select";
 import { Editor } from "primereact/editor";
 import { api, getActiveBusinessId } from "../../services/api";
 import { ProductImageUploader } from "../../components/common/ProductImageUploader";
+import { useBusiness } from "../../context/BusinessContext";
 
 const AddProduct = () => {
   const route = all_routes;
   const navigate = useNavigate();
+  const { businessId } = useBusiness();
 
   const [date1, setDate1] = useState<Date | null>(new Date());
   const [date2, setDate2] = useState<Date | null>(new Date());
@@ -72,7 +74,7 @@ const AddProduct = () => {
   ]);
 
   useEffect(() => {
-    const businessId = getActiveBusinessId();
+    const currentBiz = businessId || getActiveBusinessId();
 
     // Fetch live businesses
     api.get<any[]>("/businesses").then((res) => {
@@ -81,12 +83,12 @@ const AddProduct = () => {
           { value: "choose", label: "Choose" },
           ...res.map((b) => ({ value: b.id, label: b.name })),
         ]);
-        if (!selectedStore) setSelectedStore(businessId !== "all" ? businessId : res[0].id);
+        if (!selectedStore) setSelectedStore(currentBiz !== "all" ? currentBiz : res[0].id);
       }
     }).catch(() => {});
 
     // Fetch live warehouses
-    api.get<any[]>("/warehouses", { business_id: businessId }).then((res) => {
+    api.get<any[]>("/warehouses", { business_id: currentBiz }).then((res) => {
       if (Array.isArray(res) && res.length > 0) {
         setWarehouseOptions([
           { value: "choose", label: "Choose" },
@@ -96,7 +98,7 @@ const AddProduct = () => {
     }).catch(() => {});
 
     // Fetch live categories
-    api.get<any[]>("/categories", { business_id: businessId }).then((res) => {
+    api.get<any[]>("/categories", { business_id: currentBiz }).then((res) => {
       if (Array.isArray(res) && res.length > 0) {
         setCategoryOptions([
           { value: "choose", label: "Choose" },
@@ -106,7 +108,7 @@ const AddProduct = () => {
     }).catch(() => {});
 
     // Fetch live subcategories
-    api.get<any[]>("/subcategories", { business_id: businessId }).then((res) => {
+    api.get<any[]>("/subcategories", { business_id: currentBiz }).then((res) => {
       if (Array.isArray(res) && res.length > 0) {
         setSubCategoryOptions([
           { value: "choose", label: "Choose" },
@@ -114,7 +116,7 @@ const AddProduct = () => {
         ]);
       }
     }).catch(() => {});
-  }, []);
+  }, [businessId]);
 
   const generateSku = (e: React.MouseEvent) => {
     e.preventDefault();
