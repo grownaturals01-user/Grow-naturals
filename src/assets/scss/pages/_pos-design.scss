@@ -225,7 +225,7 @@
         @include mixins.transition(all 0.5s ease);
         .pro-img {
             background-color: variables.$light;
-            @include mixins.rounded(10px);
+            @include mixins.rounded(0px);
             display: -webkit-box;
             display: -ms-flexbox;
             display: flex;
@@ -239,6 +239,7 @@
             position: relative;
             padding: 10px;
             img {
+                @include mixins.rounded(0px);
                 @include mixins.transition(all 0.5s ease);
             }
             span {
@@ -271,9 +272,12 @@
                 font-weight: variables.$font-weight-normal;
                 a {
                     color: variables.$gray-600;
-                    &:hover {
-                        color: variables.$primary;
-                    }
+                    cursor: default;
+                }
+            }
+            &.product-name {
+                a {
+                    color: variables.$secondary;
                 }
             }
         }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Select from "react-select";
 import PosModals from "../../core/modals/pos-modal/posModalstjsx";
@@ -11,24 +11,6 @@ import {
   category5,
   category6,
   category7,
-  posProduct01,
-  posProduct02,
-  posProduct03,
-  posProduct05,
-  posProduct06,
-  posProduct07,
-  posProduct08,
-  posProduct09,
-  posProduct10,
-  posProduct11,
-  posProduct12,
-  posProduct13,
-  posProduct14,
-  posProduct15,
-  posProduct16,
-  posProduct17,
-  posProduct18,
-  posProduct19,
   cashIcon,
   card,
   points,
@@ -41,6 +23,7 @@ import {
   splitbill,
   discountImg,
 } from "../../utils/imagepath";
+import placeholderPos from "../../assets/img/placeholderpos.jpg";
 import { api, getActiveBusinessId } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useBusiness } from "../../context/BusinessContext";
@@ -55,10 +38,13 @@ interface Product {
   category?: string;
   category_name?: string;
   selling_price?: number;
+  sale_price?: number;
   price?: number;
+  wholesale_price?: number;
   cost_price?: number;
   stock_quantity?: number;
   shop_stock?: number;
+  warehouse_stock?: number;
   stock?: number;
   low_stock_threshold?: number;
   tax_rate?: number;
@@ -66,6 +52,7 @@ interface Product {
   unit?: string;
   is_featured?: boolean;
   type?: string;
+  attributes?: Record<string, any>;
 }
 
 interface CartItem {
@@ -76,6 +63,9 @@ interface CartItem {
   tax_rate: number;
   tax_amount: number;
   total_amount: number;
+  notes?: string;
+  selectedSize?: { id: string; name: string; price: number };
+  selectedAddons?: Array<{ id: string; name: string; price: number }>;
 }
 
 interface HeldBill {
@@ -90,24 +80,16 @@ interface HeldBill {
 }
 
 const fallbackProductImages = [
-  posProduct01,
-  posProduct02,
-  posProduct03,
-  posProduct05,
-  posProduct06,
-  posProduct07,
-  posProduct08,
-  posProduct09,
-  posProduct10,
-  posProduct11,
-  posProduct12,
-  posProduct13,
-  posProduct14,
-  posProduct15,
-  posProduct16,
-  posProduct17,
-  posProduct18,
-  posProduct19,
+  placeholderPos,
+];
+
+// Available Add-ons & Upgrades for Grow Naturals Products
+const POS_ADDONS = [
+  { id: "addon-soil", name: "Organic Potting Mix (1kg)", price: 60, icon: "ti ti-leaf" },
+  { id: "addon-tray", name: "Ceramic Drip Tray", price: 90, icon: "ti ti-circle-half" },
+  { id: "addon-spray", name: "Bio Plant Food Spray (100ml)", price: 75, icon: "ti ti-droplet" },
+  { id: "addon-wrap", name: "Eco Gift Packaging & Bow", price: 40, icon: "ti ti-gift" },
+  { id: "addon-stand", name: "Wooden Planter Stand", price: 180, icon: "ti ti-box" },
 ];
 
 const fallbackCategoryIcons = [
@@ -181,12 +163,64 @@ const Pos: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [isFeaturedOnly, setIsFeaturedOnly] = useState<boolean>(false);
+  const [salesChannel, setSalesChannel] = useState<"shop" | "inventory">("shop");
+  const [salesType, setSalesType] = useState<"retail" | "wholesale">("retail");
+  const [channelDropdownOpen, setChannelDropdownOpen] = useState<boolean>(false);
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState<boolean>(false);
+  const channelDropdownRef = useRef<HTMLDivElement>(null);
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
   const [showAlert, setShowAlert] = useState<boolean>(true);
   const [isRoundoff, setIsRoundoff] = useState<boolean>(true);
+  const [orderMode, setOrderMode] = useState<"counter_bills" | "tokens" | "project">("counter_bills");
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (channelDropdownRef.current && !channelDropdownRef.current.contains(e.target as Node)) {
+        setChannelDropdownOpen(false);
+      }
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target as Node)) {
+        setTypeDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  // Dynamic Price & Stock helpers based on Sales Channel and Sales Type
+  const getProductPrice = useCallback(
+    (prod: Product, sType: "retail" | "wholesale" = salesType) => {
+      if (sType === "wholesale") {
+        if (prod.wholesale_price !== undefined && Number(prod.wholesale_price) > 0) {
+          return Number(prod.wholesale_price);
+        }
+        if (prod.attributes?.wholesale_price) {
+          return Number(prod.attributes.wholesale_price);
+        }
+        if (prod.cost_price && Number(prod.cost_price) > 0) {
+          return Math.round(Number(prod.cost_price) * 1.25);
+        }
+        const retailPrice = Number(prod.selling_price ?? prod.price ?? prod.sale_price ?? 0);
+        return Math.round(retailPrice * 0.75);
+      }
+      return Number(prod.selling_price ?? prod.price ?? prod.sale_price ?? 0);
+    },
+    [salesType]
+  );
+
+  const getProductStock = useCallback(
+    (prod: Product, sChannel: "shop" | "inventory" = salesChannel) => {
+      if (sChannel === "shop") {
+        return Number(prod.shop_stock ?? prod.stock_quantity ?? prod.stock ?? 0);
+      }
+      return Number(prod.warehouse_stock ?? prod.stock_quantity ?? prod.stock ?? 0);
+    },
+    [salesChannel]
+  );
 
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [orderTaxPercent, setOrderTaxPercent] = useState<number>(0);
   const [shippingCost, setShippingCost] = useState<number>(0);
@@ -243,6 +277,38 @@ const Pos: React.FC = () => {
   const [barcodeModalOpen, setBarcodeModalOpen] = useState<boolean>(false);
   const [barcodeInput, setBarcodeInput] = useState<string>("");
 
+  // Item Note Modal
+  const [noteModalOpen, setNoteModalOpen] = useState<boolean>(false);
+  const [editingNoteItem, setEditingNoteItem] = useState<{ id: string; name: string; notes: string } | null>(null);
+
+  // Edit Product Slide-over Drawer (#edit-product)
+  const [editProductDrawerOpen, setEditProductDrawerOpen] = useState<boolean>(false);
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
+  const [editProductName, setEditProductName] = useState<string>("");
+  const [editProductPrice, setEditProductPrice] = useState<string>("");
+  const [editTaxType, setEditTaxType] = useState<{ value: string; label: string }>({
+    value: "Exclusive",
+    label: "Exclusive",
+  });
+  const [editTaxRate, setEditTaxRate] = useState<string>("0");
+  const [editDiscountType, setEditDiscountType] = useState<{ value: string; label: string }>({
+    value: "Percentage",
+    label: "Percentage (%)",
+  });
+  const [editDiscountValue, setEditDiscountValue] = useState<string>("0");
+  const [editSaleUnit, setEditSaleUnit] = useState<{ value: string; label: string }>({
+    value: "Piece",
+    label: "Piece (pc)",
+  });
+  const [editItemNotes, setEditItemNotes] = useState<string>("");
+
+  // Item Details / Size & Add-ons Modal (#items_details)
+  const [itemDetailsModalOpen, setItemDetailsModalOpen] = useState<boolean>(false);
+  const [detailsCartItem, setDetailsCartItem] = useState<CartItem | null>(null);
+  const [detailsSelectedSize, setDetailsSelectedSize] = useState<{ id: string; name: string; price: number } | null>(null);
+  const [detailsSelectedAddons, setDetailsSelectedAddons] = useState<Array<{ id: string; name: string; price: number }>>([]);
+  const [detailsQuantity, setDetailsQuantity] = useState<number>(1);
+
   // Load Held Bills from LocalStorage
   useEffect(() => {
     try {
@@ -264,252 +330,319 @@ const Pos: React.FC = () => {
     }
   };
 
-const DEFAULT_POS_PRODUCTS: Product[] = [
-  {
-    id: "prod-gn-1",
-    name: "Monstera Deliciosa (Swiss Cheese Plant)",
-    sku: "GN-MON-01",
-    barcode: "8901001001",
-    category_id: "cat-gn-1",
-    category_name: "Indoor Plants",
-    category: "Indoor Plants",
-    selling_price: 650,
-    price: 650,
-    cost_price: 350,
-    stock_quantity: 45,
-    shop_stock: 45,
-    tax_rate: 18,
-    unit: "PCS",
-    is_featured: true,
-  },
-  {
-    id: "prod-gn-2",
-    name: "Fiddle Leaf Fig (Ficus Lyrata)",
-    sku: "GN-FID-02",
-    barcode: "8901001002",
-    category_id: "cat-gn-1",
-    category_name: "Indoor Plants",
-    category: "Indoor Plants",
-    selling_price: 890,
-    price: 890,
-    cost_price: 480,
-    stock_quantity: 28,
-    shop_stock: 28,
-    tax_rate: 18,
-    unit: "PCS",
-    is_featured: true,
-  },
-  {
-    id: "prod-gn-3",
-    name: "Snake Plant Golden (Sansevieria Trifasciata)",
-    sku: "GN-SNK-03",
-    barcode: "8901001003",
-    category_id: "cat-gn-1",
-    category_name: "Indoor Plants",
-    category: "Indoor Plants",
-    selling_price: 390,
-    price: 390,
-    cost_price: 180,
-    stock_quantity: 80,
-    shop_stock: 80,
-    tax_rate: 18,
-    unit: "PCS",
-  },
-  {
-    id: "prod-gn-4",
-    name: "Areca Palm (Indoor Air Purifier)",
-    sku: "GN-ARC-04",
-    barcode: "8901001004",
-    category_id: "cat-gn-1",
-    category_name: "Indoor Plants",
-    category: "Indoor Plants",
-    selling_price: 520,
-    price: 520,
-    cost_price: 250,
-    stock_quantity: 60,
-    shop_stock: 60,
-    tax_rate: 18,
-    unit: "PCS",
-    is_featured: true,
-  },
-  {
-    id: "prod-gn-5",
-    name: "Peace Lily (Spathiphyllum)",
-    sku: "GN-PCE-05",
-    barcode: "8901001005",
-    category_id: "cat-gn-1",
-    category_name: "Indoor Plants",
-    category: "Indoor Plants",
-    selling_price: 450,
-    price: 450,
-    cost_price: 200,
-    stock_quantity: 35,
-    shop_stock: 35,
-    tax_rate: 18,
-    unit: "PCS",
-  },
-  {
-    id: "prod-gn-6",
-    name: "ZZ Plant (Zamioculcas Zamiifolia)",
-    sku: "GN-ZZP-06",
-    barcode: "8901001006",
-    category_id: "cat-gn-1",
-    category_name: "Indoor Plants",
-    category: "Indoor Plants",
-    selling_price: 580,
-    price: 580,
-    cost_price: 320,
-    stock_quantity: 40,
-    shop_stock: 40,
-    tax_rate: 18,
-    unit: "PCS",
-  },
-  {
-    id: "prod-gn-7",
-    name: "Matte White Ceramic Planter (8 Inch)",
-    sku: "GN-POT-07",
-    barcode: "8901001007",
-    category_id: "cat-gn-3",
-    category_name: "Ceramic Pots",
-    category: "Ceramic Pots",
-    selling_price: 450,
-    price: 450,
-    cost_price: 220,
-    stock_quantity: 120,
-    shop_stock: 120,
-    tax_rate: 18,
-    unit: "PCS",
-  },
-  {
-    id: "prod-gn-8",
-    name: "Terracotta Handcrafted Ribbed Pot (10 Inch)",
-    sku: "GN-POT-08",
-    barcode: "8901001008",
-    category_id: "cat-gn-3",
-    category_name: "Ceramic Pots",
-    category: "Ceramic Pots",
-    selling_price: 320,
-    price: 320,
-    cost_price: 150,
-    stock_quantity: 95,
-    shop_stock: 95,
-    tax_rate: 18,
-    unit: "PCS",
-  },
-  {
-    id: "prod-gn-9",
-    name: "Organic Vermicompost Enricher (5 Kg Bag)",
-    sku: "GN-FER-09",
-    barcode: "8901001009",
-    category_id: "cat-gn-5",
-    category_name: "Organic Fertilizers",
-    category: "Organic Fertilizers",
-    selling_price: 240,
-    price: 240,
-    cost_price: 110,
-    stock_quantity: 150,
-    shop_stock: 150,
-    tax_rate: 5,
-    unit: "BAG",
-  },
-  {
-    id: "prod-gn-10",
-    name: "Bio-Neem Organic Spray (500ml)",
-    sku: "GN-FER-10",
-    barcode: "8901001010",
-    category_id: "cat-gn-5",
-    category_name: "Organic Fertilizers",
-    category: "Organic Fertilizers",
-    selling_price: 199,
-    price: 199,
-    cost_price: 95,
-    stock_quantity: 75,
-    shop_stock: 75,
-    tax_rate: 18,
-    unit: "BTL",
-  },
-  {
-    id: "prod-gn-11",
-    name: "Phalaenopsis Orchid (Potted Flowering)",
-    sku: "GN-FLW-11",
-    barcode: "8901001011",
-    category_id: "cat-gn-6",
-    category_name: "Exotic Flowers",
-    category: "Exotic Flowers",
-    selling_price: 1250,
-    price: 1250,
-    cost_price: 650,
-    stock_quantity: 18,
-    shop_stock: 18,
-    tax_rate: 18,
-    unit: "PCS",
-    is_featured: true,
-  },
-  {
-    id: "prod-gn-12",
-    name: "Anthurium Red Bloom (Air Purifier)",
-    sku: "GN-FLW-12",
-    barcode: "8901001012",
-    category_id: "cat-gn-6",
-    category_name: "Exotic Flowers",
-    category: "Exotic Flowers",
-    selling_price: 720,
-    price: 720,
-    cost_price: 380,
-    stock_quantity: 25,
-    shop_stock: 25,
-    tax_rate: 18,
-    unit: "PCS",
-  },
-  {
-    id: "prod-nn-1",
-    name: "Alphonso Mango Grafted Sapling",
-    sku: "NN-MNG-01",
-    barcode: "8902002001",
-    category_id: "cat-nn-1",
-    category_name: "Fruit Saplings",
-    category: "Fruit Saplings",
-    selling_price: 250,
-    price: 250,
-    cost_price: 120,
-    stock_quantity: 180,
-    shop_stock: 180,
-    tax_rate: 0,
-    unit: "PCS",
-  },
-  {
-    id: "prod-nn-2",
-    name: "Taiwan Pink Guava Sapling",
-    sku: "NN-GVA-02",
-    barcode: "8902002002",
-    category_id: "cat-nn-1",
-    category_name: "Fruit Saplings",
-    category: "Fruit Saplings",
-    selling_price: 180,
-    price: 180,
-    cost_price: 80,
-    stock_quantity: 200,
-    shop_stock: 200,
-    tax_rate: 0,
-    unit: "PCS",
-  }
-];
+  const DEFAULT_POS_PRODUCTS: Product[] = [
+    {
+      id: "prod-gn-1",
+      name: "Monstera Deliciosa (Swiss Cheese Plant)",
+      sku: "GN-MON-01",
+      barcode: "8901001001",
+      category_id: "cat-gn-1",
+      category_name: "Indoor Plants",
+      category: "Indoor Plants",
+      selling_price: 650,
+      price: 650,
+      cost_price: 350,
+      stock_quantity: 45,
+      shop_stock: 45,
+      tax_rate: 18,
+      unit: "PCS",
+      is_featured: true,
+    },
+    {
+      id: "prod-gn-2",
+      name: "Fiddle Leaf Fig (Ficus Lyrata)",
+      sku: "GN-FID-02",
+      barcode: "8901001002",
+      category_id: "cat-gn-1",
+      category_name: "Indoor Plants",
+      category: "Indoor Plants",
+      selling_price: 890,
+      price: 890,
+      cost_price: 480,
+      stock_quantity: 28,
+      shop_stock: 28,
+      tax_rate: 18,
+      unit: "PCS",
+      is_featured: true,
+    },
+    {
+      id: "prod-gn-3",
+      name: "Snake Plant Golden (Sansevieria Trifasciata)",
+      sku: "GN-SNK-03",
+      barcode: "8901001003",
+      category_id: "cat-gn-1",
+      category_name: "Indoor Plants",
+      category: "Indoor Plants",
+      selling_price: 390,
+      price: 390,
+      cost_price: 180,
+      stock_quantity: 80,
+      shop_stock: 80,
+      tax_rate: 18,
+      unit: "PCS",
+    },
+    {
+      id: "prod-gn-4",
+      name: "Areca Palm (Indoor Air Purifier)",
+      sku: "GN-ARC-04",
+      barcode: "8901001004",
+      category_id: "cat-gn-1",
+      category_name: "Indoor Plants",
+      category: "Indoor Plants",
+      selling_price: 520,
+      price: 520,
+      cost_price: 250,
+      stock_quantity: 60,
+      shop_stock: 60,
+      tax_rate: 18,
+      unit: "PCS",
+      is_featured: true,
+    },
+    {
+      id: "prod-gn-5",
+      name: "Peace Lily (Spathiphyllum)",
+      sku: "GN-PCE-05",
+      barcode: "8901001005",
+      category_id: "cat-gn-1",
+      category_name: "Indoor Plants",
+      category: "Indoor Plants",
+      selling_price: 450,
+      price: 450,
+      cost_price: 200,
+      stock_quantity: 35,
+      shop_stock: 35,
+      tax_rate: 18,
+      unit: "PCS",
+    },
+    {
+      id: "prod-gn-6",
+      name: "ZZ Plant (Zamioculcas Zamiifolia)",
+      sku: "GN-ZZP-06",
+      barcode: "8901001006",
+      category_id: "cat-gn-1",
+      category_name: "Indoor Plants",
+      category: "Indoor Plants",
+      selling_price: 580,
+      price: 580,
+      cost_price: 320,
+      stock_quantity: 40,
+      shop_stock: 40,
+      tax_rate: 18,
+      unit: "PCS",
+    },
+    {
+      id: "prod-gn-7",
+      name: "Matte White Ceramic Planter (8 Inch)",
+      sku: "GN-POT-07",
+      barcode: "8901001007",
+      category_id: "cat-gn-3",
+      category_name: "Ceramic Pots",
+      category: "Ceramic Pots",
+      selling_price: 450,
+      price: 450,
+      cost_price: 220,
+      stock_quantity: 120,
+      shop_stock: 120,
+      tax_rate: 18,
+      unit: "PCS",
+    },
+    {
+      id: "prod-gn-8",
+      name: "Terracotta Handcrafted Ribbed Pot (10 Inch)",
+      sku: "GN-POT-08",
+      barcode: "8901001008",
+      category_id: "cat-gn-3",
+      category_name: "Ceramic Pots",
+      category: "Ceramic Pots",
+      selling_price: 320,
+      price: 320,
+      cost_price: 150,
+      stock_quantity: 95,
+      shop_stock: 95,
+      tax_rate: 18,
+      unit: "PCS",
+    },
+    {
+      id: "prod-gn-9",
+      name: "Organic Vermicompost Enricher (5 Kg Bag)",
+      sku: "GN-FER-09",
+      barcode: "8901001009",
+      category_id: "cat-gn-5",
+      category_name: "Organic Fertilizers",
+      category: "Organic Fertilizers",
+      selling_price: 240,
+      price: 240,
+      cost_price: 110,
+      stock_quantity: 150,
+      shop_stock: 150,
+      tax_rate: 5,
+      unit: "BAG",
+    },
+    {
+      id: "prod-gn-10",
+      name: "Bio-Neem Organic Spray (500ml)",
+      sku: "GN-FER-10",
+      barcode: "8901001010",
+      category_id: "cat-gn-5",
+      category_name: "Organic Fertilizers",
+      category: "Organic Fertilizers",
+      selling_price: 199,
+      price: 199,
+      cost_price: 95,
+      stock_quantity: 75,
+      shop_stock: 75,
+      tax_rate: 18,
+      unit: "BTL",
+    },
+    {
+      id: "prod-gn-11",
+      name: "Phalaenopsis Orchid (Potted Flowering)",
+      sku: "GN-FLW-11",
+      barcode: "8901001011",
+      category_id: "cat-gn-6",
+      category_name: "Exotic Flowers",
+      category: "Exotic Flowers",
+      selling_price: 1250,
+      price: 1250,
+      cost_price: 650,
+      stock_quantity: 18,
+      shop_stock: 18,
+      tax_rate: 18,
+      unit: "PCS",
+      is_featured: true,
+    },
+    {
+      id: "prod-gn-12",
+      name: "Anthurium Red Bloom (Air Purifier)",
+      sku: "GN-FLW-12",
+      barcode: "8901001012",
+      category_id: "cat-gn-6",
+      category_name: "Exotic Flowers",
+      category: "Exotic Flowers",
+      selling_price: 720,
+      price: 720,
+      cost_price: 380,
+      stock_quantity: 25,
+      shop_stock: 25,
+      tax_rate: 18,
+      unit: "PCS",
+    },
+    {
+      id: "prod-nn-1",
+      name: "Alphonso Mango Grafted Sapling",
+      sku: "NN-MNG-01",
+      barcode: "8902002001",
+      category_id: "cat-nn-1",
+      category_name: "Fruit Saplings",
+      category: "Fruit Saplings",
+      selling_price: 250,
+      price: 250,
+      cost_price: 120,
+      stock_quantity: 180,
+      shop_stock: 180,
+      tax_rate: 0,
+      unit: "PCS",
+    },
+    {
+      id: "prod-nn-2",
+      name: "Taiwan Pink Guava Sapling",
+      sku: "NN-GVA-02",
+      barcode: "8902002002",
+      category_id: "cat-nn-1",
+      category_name: "Fruit Saplings",
+      category: "Fruit Saplings",
+      selling_price: 180,
+      price: 180,
+      cost_price: 80,
+      stock_quantity: 200,
+      shop_stock: 200,
+      tax_rate: 0,
+      unit: "PCS",
+    }
+  ];
 
-const DEFAULT_POS_CATEGORIES = [
-  { id: "cat-gn-1", name: "Indoor Plants" },
-  { id: "cat-gn-3", name: "Ceramic Pots" },
-  { id: "cat-gn-5", name: "Organic Fertilizers" },
-  { id: "cat-gn-6", name: "Exotic Flowers" },
-  { id: "cat-nn-1", name: "Fruit Saplings" },
-];
+  const DEFAULT_POS_CATEGORIES = [
+    { id: "cat-gn-1", name: "Indoor Plants" },
+    { id: "cat-gn-3", name: "Ceramic Pots" },
+    { id: "cat-gn-5", name: "Organic Fertilizers" },
+    { id: "cat-gn-6", name: "Exotic Flowers" },
+    { id: "cat-nn-1", name: "Fruit Saplings" },
+  ];
 
-  // Fetch Products, Categories, Customers
+  const DEFAULT_POS_CUSTOMERS = [
+    {
+      value: "walkin",
+      label: "Walk in Customer",
+      name: "Walk in Customer",
+      phone: "+91 98765 43210",
+      points: 148,
+      loyalty_balance: 20,
+      status: "Available",
+    },
+    {
+      value: "cust-1",
+      label: "Rajesh Kumar Sharma (+91 98234 56789)",
+      name: "Rajesh Kumar Sharma",
+      phone: "+91 98234 56789",
+      email: "rajesh.sharma@example.com",
+      points: 320,
+      loyalty_balance: 45,
+      status: "Available",
+    },
+    {
+      value: "cust-2",
+      label: "Priya Patel (+91 97123 45678)",
+      name: "Priya Patel",
+      phone: "+91 97123 45678",
+      email: "priya.p@example.com",
+      points: 180,
+      loyalty_balance: 15,
+      status: "Available",
+    },
+    {
+      value: "cust-3",
+      label: "Amit Verma (+91 99887 76655)",
+      name: "Amit Verma",
+      phone: "+91 99887 76655",
+      email: "amit.verma@example.com",
+      points: 210,
+      loyalty_balance: 25,
+      status: "Available",
+    },
+    {
+      value: "cust-4",
+      label: "Ananya Deshmukh (+91 94220 11223)",
+      name: "Ananya Deshmukh",
+      phone: "+91 94220 11223",
+      email: "ananya.d@example.com",
+      points: 450,
+      loyalty_balance: 60,
+      status: "Available",
+    },
+    {
+      value: "cust-5",
+      label: "Vikram Malhotra (+91 98111 22334)",
+      name: "Vikram Malhotra",
+      phone: "+91 98111 22334",
+      email: "vikram.m@example.com",
+      points: 90,
+      loyalty_balance: 0,
+      status: "Unavailable",
+    },
+  ];
+
+  // Fetch Products, Categories, Customers dynamically
   const loadPOSData = useCallback(async () => {
     const biz = businessId || getActiveBusinessId();
 
     try {
       const [prodRes, catRes, custRes] = await Promise.allSettled([
-        api.get<Product[]>("/products", { business_id: biz }),
+        api.get<Product[]>("/products", {
+          business_id: biz,
+          sales_channel: salesChannel,
+          sales_type: salesType,
+          stock_source: salesChannel,
+        }),
         api.get<any[]>("/categories", { business_id: biz }),
         api.get<any[]>("/customers", { business_id: biz }),
       ]);
@@ -552,13 +685,16 @@ const DEFAULT_POS_CATEGORIES = [
           })),
         ];
         setCustomers(custOpts);
+      } else {
+        setCustomers(DEFAULT_POS_CUSTOMERS);
       }
     } catch (err) {
       console.error("Error loading POS master data:", err);
       setProducts(DEFAULT_POS_PRODUCTS);
       setCategories(DEFAULT_POS_CATEGORIES);
+      setCustomers(DEFAULT_POS_CUSTOMERS);
     }
-  }, [businessId]);
+  }, [businessId, salesChannel, salesType]);
 
   useEffect(() => {
     loadPOSData();
@@ -589,11 +725,9 @@ const DEFAULT_POS_CATEGORIES = [
         (p.sku && p.sku.toLowerCase().includes(query)) ||
         (p.barcode && p.barcode.toLowerCase().includes(query));
 
-      const matchesFeatured = !isFeaturedOnly || Boolean(p.is_featured);
-
-      return matchesCat && matchesSearch && matchesFeatured;
+      return matchesCat && matchesSearch;
     });
-  }, [products, activeTab, searchQuery, isFeaturedOnly]);
+  }, [products, activeTab, searchQuery]);
 
   // Filtered Customer List for #add_order Drawer
   const filteredCustomerList = useMemo(() => {
@@ -632,9 +766,25 @@ const DEFAULT_POS_CATEGORIES = [
     };
   }, [cart, discountPercent, orderTaxPercent, shippingCost, isRoundoff]);
 
+  // Group cart items dynamically by Category Name
+  const cartByCategory = useMemo(() => {
+    const groups: { [catName: string]: { items: CartItem[]; subtotal: number; totalQty: number } } = {};
+    cart.forEach((item) => {
+      const catName = item.product.category_name || item.product.category || "General";
+      if (!groups[catName]) {
+        groups[catName] = { items: [], subtotal: 0, totalQty: 0 };
+      }
+      const itemSubtotal = item.unit_price * item.quantity;
+      groups[catName].items.push(item);
+      groups[catName].subtotal += itemSubtotal;
+      groups[catName].totalQty += item.quantity;
+    });
+    return groups;
+  }, [cart]);
+
   // Cart Operations
   const addToCart = (product: Product) => {
-    const totalStock = Number(product.stock_quantity ?? product.stock ?? product.shop_stock ?? 0);
+    const totalStock = getProductStock(product, salesChannel);
     const existing = cart.find((i) => i.product.id === product.id);
     const currentQty = existing ? existing.quantity : 0;
 
@@ -643,15 +793,18 @@ const DEFAULT_POS_CATEGORIES = [
       return;
     }
 
-    const price = Number(product.selling_price || product.price) || 0;
+    const price = getProductPrice(product, salesType);
     const taxRate = Number(product.tax_rate) || 5;
+    const defaultSize = { id: "size-sm", name: "Small (6-inch)", price: Math.max(10, Math.round(price * 0.75)) };
+    const unitPrice = defaultSize.price;
 
     setCart((prev) => {
       const existingIdx = prev.findIndex((i) => i.product.id === product.id);
       if (existingIdx >= 0) {
         const copy = [...prev];
         const newQty = copy[existingIdx].quantity + 1;
-        const lineSubtotal = price * newQty;
+        const currentUnitPrice = copy[existingIdx].unit_price || unitPrice;
+        const lineSubtotal = currentUnitPrice * newQty;
         const lineTax = (lineSubtotal * taxRate) / 100;
         copy[existingIdx] = {
           ...copy[existingIdx],
@@ -661,22 +814,142 @@ const DEFAULT_POS_CATEGORIES = [
         };
         return copy;
       } else {
-        const lineSubtotal = price * 1;
+        const lineSubtotal = unitPrice * 1;
         const lineTax = (lineSubtotal * taxRate) / 100;
         return [
           ...prev,
           {
             product,
             quantity: 1,
-            unit_price: price,
+            unit_price: unitPrice,
             discount: 0,
             tax_rate: taxRate,
             tax_amount: lineTax,
             total_amount: lineSubtotal + lineTax,
+            selectedSize: defaultSize,
+            selectedAddons: [],
           },
         ];
       }
     });
+  };
+
+  const addonScrollRef = useRef<HTMLDivElement>(null);
+  const scrollAddons = (direction: "left" | "right") => {
+    if (addonScrollRef.current) {
+      const scrollAmt = direction === "left" ? -180 : 180;
+      addonScrollRef.current.scrollBy({ left: scrollAmt, behavior: "smooth" });
+    }
+  };
+
+  const openProductDetailsModal = useCallback(
+    (product: Product) => {
+      const existingCartItem = cart.find((c) => c.product.id === product.id);
+      const baseP = getProductPrice(product, salesType);
+      const sizes = [
+        { id: "size-sm", name: "Small (6-inch)", price: Math.max(10, Math.round(baseP * 0.75)) },
+        { id: "size-md", name: "Medium (8-inch)", price: baseP },
+        { id: "size-lg", name: "Large (12-inch)", price: Math.round(baseP * 1.35) },
+        { id: "size-xl", name: "Exotic Jumbo", price: Math.round(baseP * 1.75) },
+      ];
+
+      if (existingCartItem) {
+        setDetailsCartItem(existingCartItem);
+        setDetailsSelectedSize(existingCartItem.selectedSize || sizes[0]);
+        setDetailsSelectedAddons(existingCartItem.selectedAddons || []);
+        setDetailsQuantity(existingCartItem.quantity);
+      } else {
+        const defaultSize = sizes[0];
+        const unitPrice = defaultSize.price;
+        const taxRate = Number(product.tax_rate) || 5;
+        const lineTax = (unitPrice * 1 * taxRate) / 100;
+        const tempItem: CartItem = {
+          product,
+          quantity: 1,
+          unit_price: unitPrice,
+          discount: 0,
+          tax_rate: taxRate,
+          tax_amount: lineTax,
+          total_amount: unitPrice + lineTax,
+          selectedSize: defaultSize,
+          selectedAddons: [],
+        };
+        setDetailsCartItem(tempItem);
+        setDetailsSelectedSize(defaultSize);
+        setDetailsSelectedAddons([]);
+        setDetailsQuantity(1);
+      }
+      setItemDetailsModalOpen(true);
+    },
+    [cart, getProductPrice, salesType]
+  );
+
+  const openEditProductDrawer = (item: CartItem) => {
+    setEditingCartItem(item);
+    setEditProductName(item.product.name);
+    setEditProductPrice(item.unit_price.toString());
+    setEditTaxType(
+      item.product.attributes?.tax_type === "Inclusive"
+        ? { value: "Inclusive", label: "Inclusive" }
+        : { value: "Exclusive", label: "Exclusive" }
+    );
+    setEditTaxRate((item.tax_rate ?? item.product.tax_rate ?? 0).toString());
+    setEditDiscountType(
+      item.discount > 0 && item.discount <= 100
+        ? { value: "Percentage", label: "Percentage (%)" }
+        : { value: "Fixed", label: "Fixed Amount (₹)" }
+    );
+    setEditDiscountValue((item.discount || 0).toString());
+    const unitVal = item.product.unit || "Piece";
+    setEditSaleUnit({ value: unitVal, label: unitVal });
+    setEditItemNotes(item.notes || "");
+    setEditProductDrawerOpen(true);
+  };
+
+  const handleSaveEditProduct = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editingCartItem) return;
+
+    const newPrice = Math.max(0, Number(editProductPrice) || 0);
+    const newTaxRate = Math.max(0, Number(editTaxRate) || 0);
+    const newDiscountVal = Math.max(0, Number(editDiscountValue) || 0);
+    const qty = editingCartItem.quantity || 1;
+
+    let itemDiscountAmount = 0;
+    if (editDiscountType.value === "Percentage") {
+      itemDiscountAmount = (newPrice * newDiscountVal) / 100;
+    } else {
+      itemDiscountAmount = newDiscountVal / qty;
+    }
+
+    const priceAfterDiscount = Math.max(0, newPrice - itemDiscountAmount);
+    const lineTax = (priceAfterDiscount * qty * newTaxRate) / 100;
+    const totalAmount = priceAfterDiscount * qty + lineTax;
+
+    setCart((prevCart) =>
+      prevCart.map((item) => {
+        if (item.product.id === editingCartItem.product.id) {
+          return {
+            ...item,
+            product: {
+              ...item.product,
+              name: editProductName.trim() || item.product.name,
+              unit: editSaleUnit.value,
+            },
+            unit_price: newPrice,
+            tax_rate: newTaxRate,
+            tax_amount: lineTax,
+            discount: newDiscountVal,
+            total_amount: Math.round(totalAmount),
+            notes: editItemNotes.trim(),
+          };
+        }
+        return item;
+      })
+    );
+
+    setEditProductDrawerOpen(false);
+    setEditingCartItem(null);
   };
 
   const updateQuantity = (productId: string, qty: number) => {
@@ -952,7 +1225,7 @@ const DEFAULT_POS_CATEGORIES = [
           margin-bottom: 14px;
         }
 
-        /* Product Card: Restored uniform padding on all sides */
+        /* Product Card: Light Mode Base */
         .pos-five .pos-products .product-info.card {
           padding: 14px !important;
           border: 1px solid #e2e8f0 !important;
@@ -964,12 +1237,12 @@ const DEFAULT_POS_CATEGORIES = [
           background: #ffffff !important;
         }
         .pos-five .pos-products .product-info.card:hover {
-          border-color: #fe9f43 !important;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+          border-color: #22c55e !important;
+          box-shadow: none !important;
         }
         .pos-five .pos-products .product-info.card.active {
-          // border-color: #fe9f43 !important;
-          background: #ffffffff !important;
+          border-color: #22c55e !important;
+          background: #ffffff !important;
         }
 
         /* Image Container: Square 1:1 design matching the original theme layout (187 x 187 px rendered size) */
@@ -979,7 +1252,7 @@ const DEFAULT_POS_CATEGORIES = [
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          margin-bottom: 12px !important;
+          margin-bottom: 10px !important;
           position: relative !important;
           width: 100% !important;
           aspect-ratio: 1 / 1 !important;
@@ -988,6 +1261,7 @@ const DEFAULT_POS_CATEGORIES = [
           max-height: none !important;
           overflow: hidden !important;
           padding: 12px !important;
+          border: 1px solid #f1f5f9 !important;
         }
         .pos-five .pos-products .product-info .pro-img img {
           max-width: 100% !important;
@@ -1001,23 +1275,39 @@ const DEFAULT_POS_CATEGORIES = [
           transition: transform 0.3s ease !important;
         }
         .pos-five .pos-products .product-info:hover .pro-img img {
-          transform: scale(1.1) !important;
+          transform: scale(1.08) !important;
         }
-        .pos-five .pos-products .product-info .pro-img span {
-          position: absolute;
-          top: 6px;
-          right: 6px;
-          color: #22c55e;
-          font-size: 18px;
-          line-height: 1;
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 50%;
-          padding: 2px;
-          display: none;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+        .pos-five .pos-products .product-info .pro-img span,
+        [data-theme="dark"] .pos-five .pos-products .product-info .pro-img span,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .pro-img span,
+        .dark .pos-five .pos-products .product-info .pro-img span,
+        body.dark-mode .pos-five .pos-products .product-info .pro-img span {
+          position: absolute !important;
+          top: 8px !important;
+          right: 8px !important;
+          left: auto !important;
+          bottom: auto !important;
+          width: 22px !important;
+          height: 22px !important;
+          border-radius: 50% !important;
+          display: none !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          z-index: 10 !important;
+          line-height: 1 !important;
         }
         .pos-five .pos-products .product-info.card.active .pro-img span {
           display: flex !important;
+        }
+        .pos-five .pos-products .product-info .pro-img span i {
+          font-size: 20px !important;
+          line-height: 1 !important;
+          color: #22c55e !important;
+          display: block !important;
         }
 
         /* Card body content inside */
@@ -1028,24 +1318,271 @@ const DEFAULT_POS_CATEGORIES = [
           flex-grow: 1 !important;
           justify-content: space-between !important;
         }
+        .pos-five .pos-products .product-info .cat-name {
+          font-size: 13px;
+          font-weight: 500;
+          color: #64748b;
+          margin-bottom: 2px;
+          text-transform: capitalize;
+        }
+        .pos-five .pos-products .product-info .cat-name a {
+          color: inherit;
+          text-decoration: none;
+        }
         .pos-five .pos-products .product-info .product-name {
-          font-size: 13.5px;
+          font-size: 14px;
           font-weight: 600;
           color: #1e293b;
-          margin-bottom: 4px;
+          margin-bottom: 0px;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
           line-height: 1.35;
           min-height: 36px;
+          transition: color 0.15s ease;
         }
         .pos-five .pos-products .product-info .product-name a {
-          color: inherit;
+          color: inherit !important;
           text-decoration: none;
+          transition: color 0.15s ease;
         }
-        .pos-five .pos-products .product-info .product-name a:hover {
-          color: #fe9f43;
+        .pos-five .pos-products .product-info .product-name:hover,
+        .pos-five .pos-products .product-info .product-name a:hover,
+        .pos-five .pos-products .product-info:hover .product-name,
+        .pos-five .pos-products .product-info:hover .product-name a,
+        .pos-five .pos-products .product-info.active .product-name,
+        .pos-five .pos-products .product-info.active .product-name a {
+          color: var(--theme-primary, #fe9f43) !important;
+        }
+        .pos-five .pos-products .product-info .price {
+          border-top: 1px dashed #e2e8f0 !important;
+          margin-top: 10px !important;
+          padding-top: 10px !important;
+        }
+        .pos-five .pos-products .product-info .price-val {
+          color: #1e293b;
+          font-weight: 700;
+          font-size: 15px;
+        }
+
+        /* Quantity Counter: Clean (-) 4 (+) with no outer border or background */
+        .qty-item {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 6px !important;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          position: relative !important;
+          height: auto !important;
+        }
+        .qty-item .dec,
+        .qty-item .inc,
+        .action .btn-icon {
+          position: static !important;
+          top: auto !important;
+          left: auto !important;
+          right: auto !important;
+          bottom: auto !important;
+          transform: none !important;
+          width: 28px !important;
+          height: 28px !important;
+          min-width: 28px !important;
+          max-width: 28px !important;
+          border-radius: 50% !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          font-size: 13px !important;
+          border: none !important;
+          box-shadow: none !important;
+          text-decoration: none !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+        }
+        .qty-item .dec i,
+        .qty-item .inc i,
+        .action .btn-icon i,
+        .action .btn-icon [class^="icon-"],
+        .action .btn-icon [class*=" icon-"] {
+          font-size: 14px !important;
+          line-height: 1 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        .qty-item .dec,
+        .qty-item .inc,
+        .action .btn-icon.btn-light {
+          background-color: #f8f9fa !important;
+          color: #333843 !important;
+        }
+        .qty-item .dec:hover,
+        .qty-item .inc:hover,
+        .action .btn-icon.btn-light:hover {
+          background-color: #e9ecef !important;
+          color: #111827 !important;
+          transform: scale(1.06) !important;
+        }
+        .action .btn-icon.btn-danger {
+          background-color: #ff3b30 !important;
+          color: #ffffff !important;
+        }
+        .action .btn-icon.btn-danger:hover {
+          background-color: #e02d23 !important;
+          color: #ffffff !important;
+          transform: scale(1.06) !important;
+        }
+        .qty-item input {
+          position: static !important;
+          top: auto !important;
+          left: auto !important;
+          right: auto !important;
+          bottom: auto !important;
+          transform: none !important;
+          width: 20px !important;
+          min-width: 20px !important;
+          max-width: 28px !important;
+          height: 24px !important;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          outline: none !important;
+          color: #1e293b !important;
+          font-size: 14px !important;
+          font-weight: 600 !important;
+          text-align: center !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+
+        /* ==========================================================================
+           DARK THEME STYLES (Matching Original DreamsPOS Dark Design)
+           ========================================================================== */
+        [data-theme="dark"] .pos-five .pos-products .product-info.card,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info.card,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info.card,
+        .dark .pos-five .pos-products .product-info.card,
+        body.dark-mode .pos-five .pos-products .product-info.card {
+          background: #111417 !important;
+          border: 1px solid #1f2328 !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info.card:hover,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info.card:hover,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info.card:hover,
+        .dark .pos-five .pos-products .product-info.card:hover,
+        body.dark-mode .pos-five .pos-products .product-info.card:hover {
+          border-color: #22c55e !important;
+          box-shadow: none !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info.card.active,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info.card.active,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info.card.active,
+        .dark .pos-five .pos-products .product-info.card.active,
+        body.dark-mode .pos-five .pos-products .product-info.card.active {
+          border-color: #22c55e !important;
+          background: #111417 !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .pro-img,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .pro-img,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info .pro-img,
+        .dark .pos-five .pos-products .product-info .pro-img,
+        body.dark-mode .pos-five .pos-products .product-info .pro-img {
+          background-color: #0b0d0e !important;
+          border: 1px solid #1a1e23 !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .cat-name,
+        [data-theme="dark"] .pos-five .pos-products .product-info .cat-name a,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .cat-name,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .cat-name a,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info .cat-name,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info .cat-name a,
+        .dark .pos-five .pos-products .product-info .cat-name,
+        .dark .pos-five .pos-products .product-info .cat-name a,
+        body.dark-mode .pos-five .pos-products .product-info .cat-name,
+        body.dark-mode .pos-five .pos-products .product-info .cat-name a {
+          color: #878a99 !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .product-name,
+        [data-theme="dark"] .pos-five .pos-products .product-info .product-name a,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .product-name,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .product-name a,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info .product-name,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info .product-name a,
+        .dark .pos-five .pos-products .product-info .product-name,
+        .dark .pos-five .pos-products .product-info .product-name a,
+        body.dark-mode .pos-five .pos-products .product-info .product-name,
+        body.dark-mode .pos-five .pos-products .product-info .product-name a {
+          color: #ffffff !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .product-name a:hover,
+        [data-theme="dark"] .pos-five .pos-products .product-info:hover .product-name a,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .product-name a:hover,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info:hover .product-name a,
+        .dark .pos-five .pos-products .product-info .product-name a:hover,
+        .dark .pos-five .pos-products .product-info:hover .product-name a,
+        body.dark-mode .pos-five .pos-products .product-info .product-name a:hover,
+        body.dark-mode .pos-five .pos-products .product-info:hover .product-name a {
+          color: var(--theme-primary, #fe9f43) !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .price,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .price,
+        .dark .pos-five .pos-products .product-info .price,
+        body.dark-mode .pos-five .pos-products .product-info .price {
+          border-top: 1px dashed #2d333b !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .price-val,
+        [data-theme="dark"] .pos-five .pos-products .product-info .price p,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .price-val,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .price p,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info .price-val,
+        [data-layout-mode="dark"] .pos-five .pos-products .product-info .price p,
+        .dark .pos-five .pos-products .product-info .price-val,
+        .dark .pos-five .pos-products .product-info .price p,
+        body.dark-mode .pos-five .pos-products .product-info .price-val,
+        body.dark-mode .pos-five .pos-products .product-info .price p {
+          color: #ffffff !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .qty-item,
+        [data-bs-theme="dark"] .pos-five .pos-products .qty-item,
+        .dark .pos-five .pos-products .qty-item,
+        body.dark-mode .pos-five .pos-products .qty-item {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .qty-item .dec,
+        [data-theme="dark"] .pos-five .pos-products .qty-item .inc,
+        [data-bs-theme="dark"] .pos-five .pos-products .qty-item .dec,
+        [data-bs-theme="dark"] .pos-five .pos-products .qty-item .inc,
+        .dark .pos-five .pos-products .qty-item .dec,
+        .dark .pos-five .pos-products .qty-item .inc,
+        body.dark-mode .pos-five .pos-products .qty-item .dec,
+        body.dark-mode .pos-five .pos-products .qty-item .inc {
+          background: #ffffff !important;
+          color: #111417 !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .qty-item .dec:hover,
+        [data-theme="dark"] .pos-five .pos-products .qty-item .inc:hover,
+        [data-bs-theme="dark"] .pos-five .pos-products .qty-item .dec:hover,
+        [data-bs-theme="dark"] .pos-five .pos-products .qty-item .inc:hover {
+          background: #e2e8f0 !important;
+          color: #000000 !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .qty-item input,
+        [data-bs-theme="dark"] .pos-five .pos-products .qty-item input,
+        .dark .pos-five .pos-products .qty-item input,
+        body.dark-mode .pos-five .pos-products .qty-item input {
+          color: #ffffff !important;
+          background: transparent !important;
         }
 
         /* Payment items */
@@ -1090,16 +1627,323 @@ const DEFAULT_POS_CATEGORIES = [
           max-width: 760px;
         }
 
-        /* Customer Offcanvas Drawer */
-        .offcanvas#add_order {
-          background: #ffffff;
+        /* Customer & Edit Product Offcanvas Drawers */
+        .offcanvas#add_order,
+        .offcanvas#edit_product_drawer,
+        .offcanvas.pos-edit-product-drawer {
+          width: 480px !important;
+          max-width: 480px !important;
+          min-width: unset !important;
+          background: #ffffff !important;
+          position: fixed !important;
+          right: 0 !important;
+          left: auto !important;
+          top: 0 !important;
+          bottom: 0 !important;
+          height: 100vh !important;
+          border-radius: 0 !important;
+          border: none !important;
+          border-left: 1px solid #f1f5f9 !important;
+          box-shadow: -8px 0 30px rgba(0, 0, 0, 0.08) !important;
         }
-        .offcanvas#add_order .order-select-card {
+        .offcanvas#add_order .customer-row-item {
+          transition: background-color 0.15s ease;
+        }
+        .offcanvas#add_order .customer-row-item:hover {
+          background-color: #f8fafc !important;
+        }
+
+        /* POS Action Dropdowns */
+        .pos-action-dropdown {
+          position: relative;
+          display: inline-block;
+        }
+        .pos-action-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 6px;
+          height: 34px;
+          min-width: 135px;
+          padding: 0 10px;
+          border-radius: 6px;
+          font-size: 12.5px;
+          font-weight: 600;
+          border: 1px solid transparent;
+          cursor: pointer;
           transition: all 0.2s ease;
+          user-select: none;
+          outline: none;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+          box-sizing: border-box;
         }
-        .offcanvas#add_order .order-select-card:hover {
-          border-color: #fe9f43 !important;
-          background-color: #fffaf5;
+        .pos-action-btn .btn-content {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .pos-action-btn.channel-btn {
+          background-color: #1e293b;
+          color: #ffffff;
+          border-color: #334155;
+        }
+        .pos-action-btn.channel-btn:hover {
+          background-color: #0f172a;
+          box-shadow: 0 3px 8px rgba(15, 23, 42, 0.15);
+        }
+        .pos-action-btn.type-btn {
+          background-color: var(--theme-primary, #fe9f43);
+          color: #ffffff;
+          border-color: transparent;
+        }
+        .pos-action-btn.type-btn:hover {
+          filter: brightness(0.92);
+          box-shadow: 0 3px 10px rgba(254, 159, 67, 0.25);
+        }
+        .pos-action-btn .dropdown-arrow {
+          font-size: 11px;
+          display: inline-flex;
+          align-items: center;
+          margin-left: 2px;
+        }
+        .pos-action-menu {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0;
+          width: 100%;
+          min-width: 135px;
+          background: #ffffff !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          padding: 4px !important;
+          box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.05) !important;
+          z-index: 1060;
+          margin: 0;
+          list-style: none;
+          box-sizing: border-box;
+        }
+        .pos-action-dropdown.align-right .pos-action-menu {
+          left: auto;
+          right: 0;
+        }
+        .pos-action-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          width: 100%;
+          padding: 6px 8px;
+          border-radius: 5px;
+          border: none;
+          background: transparent;
+          color: #334155;
+          font-size: 12px;
+          font-weight: 500;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          outline: none;
+          box-sizing: border-box;
+        }
+        .pos-action-item .item-icon {
+          font-size: 14px;
+          color: #64748b;
+          display: inline-flex;
+          align-items: center;
+          flex-shrink: 0;
+        }
+        .pos-action-item .item-label {
+          flex: 1;
+          white-space: nowrap;
+        }
+        .pos-action-item .item-check {
+          font-size: 13px;
+          color: #22c55e;
+          display: inline-flex;
+          align-items: center;
+          flex-shrink: 0;
+          margin-left: 2px;
+        }
+        .pos-action-item:hover {
+          background-color: #f1f5f9;
+          color: #0f172a;
+        }
+        .pos-action-item:hover .item-icon {
+          color: #0f172a;
+        }
+        .pos-action-item.active.channel-active {
+          background-color: #f1f5f9;
+          color: #0f172a;
+          font-weight: 600;
+        }
+        .pos-action-item.active.channel-active .item-icon {
+          color: #0f172a;
+        }
+        .pos-action-item.active.type-active {
+          background-color: #fff8f1;
+          color: #d97706;
+          font-weight: 600;
+        }
+        .pos-action-item.active.type-active .item-icon,
+        .pos-action-item.active.type-active .item-check {
+          color: #fe9f43;
+        }
+
+        /* Lock outer POS page to eliminate duplicate outer scrollbar */
+        .pos-pg-wrapper {
+          height: 100vh !important;
+          max-height: 100vh !important;
+          overflow: hidden !important;
+        }
+        .pos-design,
+        .pos-wrapper,
+        .pos-categories.tabs_wrapper {
+          height: 100% !important;
+          max-height: 100% !important;
+          overflow: hidden !important;
+        }
+        .theiaStickySidebar {
+          height: calc(100vh - 85px) !important;
+          max-height: calc(100vh - 85px) !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background: #ffffff !important;
+          border-left: 1px solid #e2e8f0 !important;
+          scrollbar-width: thin !important;
+          scrollbar-color: var(--theme-primary, #fe9f43) transparent !important;
+        }
+        .theiaStickySidebar::-webkit-scrollbar {
+          width: 4px !important;
+        }
+        .theiaStickySidebar::-webkit-scrollbar-thumb {
+          background: var(--theme-primary, #fe9f43) !important;
+          border-radius: 4px !important;
+        }
+
+        aside.product-order-list {
+          padding: 0 !important;
+          margin: 0 !important;
+          background: #ffffff !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        aside.product-order-list .card {
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          margin: 0 !important;
+          background: transparent !important;
+        }
+        aside.product-order-list .card .card-body {
+          padding: 18px 20px !important;
+        }
+
+        /* Category & Product Independent Scrolling */
+        .pos-categories .content-wrap {
+          display: flex !important;
+          height: calc(100vh - 85px) !important;
+          max-height: calc(100vh - 85px) !important;
+          overflow: hidden !important;
+          align-items: flex-start !important;
+        }
+        .pos-categories .tab-wrap {
+          position: sticky !important;
+          top: 0 !important;
+          height: 100% !important;
+          max-height: calc(100vh - 85px) !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          flex-shrink: 0 !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .pos-categories .tab-wrap::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
+        .pos-categories .tab-wrap ul.pos-category5 {
+          height: auto !important;
+          max-height: none !important;
+          overflow: visible !important;
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 8px !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        .pos-categories .tab-wrap ul.pos-category5 li {
+          width: 100% !important;
+          min-height: 84px !important;
+          height: auto !important;
+          padding: 10px 6px !important;
+          margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          flex-wrap: nowrap !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+        }
+        .pos-categories .tab-wrap ul.pos-category5 li > a {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 100% !important;
+          margin: 0 auto 6px auto !important;
+        }
+        .pos-categories .tab-wrap ul.pos-category5 li a img {
+          display: block !important;
+          width: 26px !important;
+          height: 26px !important;
+          object-fit: contain !important;
+          margin: 0 auto !important;
+        }
+        .pos-categories .tab-wrap ul.pos-category5 li h6 {
+          display: block !important;
+          margin: 0 !important;
+          width: 100% !important;
+          font-size: 12px !important;
+          font-weight: 700 !important;
+          line-height: 1.25 !important;
+          white-space: normal !important;
+          text-align: center !important;
+          word-break: break-word !important;
+        }
+        .pos-categories .tab-wrap ul.pos-category5 li h6 a {
+          display: block !important;
+          width: 100% !important;
+          font-size: 12px !important;
+          font-weight: 700 !important;
+          line-height: 1.25 !important;
+          white-space: normal !important;
+          text-align: center !important;
+          word-break: break-word !important;
+        }
+        .pos-categories .tab-content-wrap {
+          flex: 1 !important;
+          height: 100% !important;
+          max-height: calc(100vh - 85px) !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          padding: 16px 20px !important;
+          scrollbar-width: thin !important;
+          scrollbar-color: var(--theme-primary, #fe9f43) transparent !important;
+        }
+        .pos-categories .tab-content-wrap::-webkit-scrollbar {
+          display: block !important;
+          width: 5px !important;
+        }
+        .pos-categories .tab-content-wrap::-webkit-scrollbar-track {
+          background: transparent !important;
+        }
+        .pos-categories .tab-content-wrap::-webkit-scrollbar-thumb {
+          background: var(--theme-primary, #fe9f43) !important;
+          border-radius: 6px !important;
+        }
+        .pos-categories .tab-content-wrap::-webkit-scrollbar-thumb:hover {
+          filter: brightness(0.85);
         }
 
         @media print {
@@ -1166,51 +2010,166 @@ const DEFAULT_POS_CATEGORIES = [
 
                   {/* Tab Content & Product Grid */}
                   <div className="tab-content-wrap">
-                    {/* Welcome & Search Bar */}
-                    <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
-                      <div className="mb-3">
-                        <h5 className="mb-1">
-                          Welcome, {user?.name || user?.username || activeBusiness?.name || "Admin"}
-                        </h5>
-                        <p>{formattedDate}</p>
+                    {/* Search Bar & Controls Header */}
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                      <div className="input-icon-start search-pos position-relative flex-grow-1" style={{ maxWidth: "240px" }}>
+                        <span className="input-icon-addon">
+                          <i className="ti ti-search" />
+                        </span>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Search Product"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                       </div>
-                      <div className="d-flex align-items-center flex-wrap mb-2">
-                        <div className="input-icon-start search-pos position-relative mb-2 me-3">
-                          <span className="input-icon-addon">
-                            <i className="ti ti-search" />
-                          </span>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search Product"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                          />
+                      <div className="d-flex align-items-center flex-wrap gap-2">
+                        {/* Dropdown 1: Showroom vs Warehouse */}
+                        <div className="pos-action-dropdown" ref={channelDropdownRef}>
+                          <button
+                            type="button"
+                            className="pos-action-btn channel-btn"
+                            onClick={() => {
+                              setChannelDropdownOpen((prev) => !prev);
+                              setTypeDropdownOpen(false);
+                            }}
+                          >
+                            <span className="btn-content">
+                              <i className={salesChannel === "shop" ? "ti ti-building-store fs-15" : "ti ti-packages fs-15"} />
+                              <span>{salesChannel === "shop" ? "Showroom" : "Warehouse"}</span>
+                            </span>
+                            <span className="dropdown-arrow">
+                              <i className={`ti ti-chevron-${channelDropdownOpen ? "up" : "down"}`} />
+                            </span>
+                          </button>
+
+                          {channelDropdownOpen && (
+                            <div className="pos-action-menu">
+                              <button
+                                type="button"
+                                className={`pos-action-item ${
+                                  salesChannel === "shop" ? "active channel-active" : ""
+                                }`}
+                                onClick={() => {
+                                  setSalesChannel("shop");
+                                  setChannelDropdownOpen(false);
+                                }}
+                              >
+                                <span className="item-icon">
+                                  <i className="ti ti-building-store" />
+                                </span>
+                                <span className="item-label">Showroom</span>
+                                {salesChannel === "shop" && (
+                                  <span className="item-check">
+                                    <i className="ti ti-check" />
+                                  </span>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                className={`pos-action-item ${
+                                  salesChannel === "inventory" ? "active channel-active" : ""
+                                }`}
+                                onClick={() => {
+                                  setSalesChannel("inventory");
+                                  setChannelDropdownOpen(false);
+                                }}
+                              >
+                                <span className="item-icon">
+                                  <i className="ti ti-packages" />
+                                </span>
+                                <span className="item-label">Warehouse</span>
+                                {salesChannel === "inventory" && (
+                                  <span className="item-check">
+                                    <i className="ti ti-check" />
+                                  </span>
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <Link
-                          to="#"
-                          className="btn btn-sm btn-dark mb-2 me-2"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setSearchQuery("");
-                            setActiveTab("all");
-                            setIsFeaturedOnly(false);
+
+                        {/* Dropdown 2: Retail vs Wholesale Sales */}
+                        <div className="pos-action-dropdown align-right" ref={typeDropdownRef}>
+                          <button
+                            type="button"
+                            className="pos-action-btn type-btn"
+                            onClick={() => {
+                              setTypeDropdownOpen((prev) => !prev);
+                              setChannelDropdownOpen(false);
+                            }}
+                          >
+                            <span className="btn-content">
+                              <i className={salesType === "retail" ? "ti ti-shopping-bag fs-15" : "ti ti-building-warehouse fs-15"} />
+                              <span>{salesType === "retail" ? "Retail" : "Wholesale"}</span>
+                            </span>
+                            <span className="dropdown-arrow">
+                              <i className={`ti ti-chevron-${typeDropdownOpen ? "up" : "down"}`} />
+                            </span>
+                          </button>
+
+                          {typeDropdownOpen && (
+                            <div className="pos-action-menu">
+                              <button
+                                type="button"
+                                className={`pos-action-item ${
+                                  salesType === "retail" ? "active type-active" : ""
+                                }`}
+                                onClick={() => {
+                                  setSalesType("retail");
+                                  setTypeDropdownOpen(false);
+                                }}
+                              >
+                                <span className="item-icon">
+                                  <i className="ti ti-shopping-bag" />
+                                </span>
+                                <span className="item-label">Retail</span>
+                                {salesType === "retail" && (
+                                  <span className="item-check">
+                                    <i className="ti ti-check" />
+                                  </span>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                className={`pos-action-item ${
+                                  salesType === "wholesale" ? "active type-active" : ""
+                                }`}
+                                onClick={() => {
+                                  setSalesType("wholesale");
+                                  setTypeDropdownOpen(false);
+                                }}
+                              >
+                                <span className="item-icon">
+                                  <i className="ti ti-building-warehouse" />
+                                </span>
+                                <span className="item-label">Wholesale</span>
+                                {salesType === "wholesale" && (
+                                  <span className="item-check">
+                                    <i className="ti ti-check" />
+                                  </span>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Reset Filter Button */}
+                        <button
+                          type="button"
+                          className="pos-filter-reset-btn"
+                          title="Reset to Showroom & Retail"
+                          aria-label="Reset dropdowns to default"
+                          onClick={() => {
+                            setSalesChannel("shop");
+                            setSalesType("retail");
+                            setChannelDropdownOpen(false);
+                            setTypeDropdownOpen(false);
                           }}
                         >
-                          <i className="ti ti-tag me-1" />
-                          View All Brands
-                        </Link>
-                        <Link
-                          to="#"
-                          className={`btn btn-sm ${isFeaturedOnly ? "btn-warning text-dark fw-bold" : "btn-primary"} mb-2`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setIsFeaturedOnly(!isFeaturedOnly);
-                          }}
-                        >
-                          <i className="ti ti-star me-1" />
-                          Featured
-                        </Link>
+                          <i className="ti ti-rotate-2 fs-16" />
+                        </button>
                       </div>
                     </div>
 
@@ -1222,9 +2181,8 @@ const DEFAULT_POS_CATEGORIES = [
                             {filteredProducts.map((product, idx) => {
                               const inCart = cart.find((i) => i.product.id === product.id);
                               const cardQty = inCart ? inCart.quantity : 0;
-                              const stock = Number(
-                                product.stock_quantity ?? product.stock ?? product.shop_stock ?? 0
-                              );
+                              const stock = getProductStock(product, salesChannel);
+                              const currentPrice = getProductPrice(product, salesType);
 
                               return (
                                 <div
@@ -1246,9 +2204,11 @@ const DEFAULT_POS_CATEGORIES = [
                                     >
                                       <img
                                         src={
-                                          product.image_url ||
-                                          fallbackProductImages[idx % fallbackProductImages.length]
+                                          product.image_url || placeholderPos
                                         }
+                                        onError={(e) => {
+                                          e.currentTarget.src = placeholderPos;
+                                        }}
                                         alt={product.name}
                                       />
                                       <span>
@@ -1257,34 +2217,59 @@ const DEFAULT_POS_CATEGORIES = [
                                     </Link>
                                     <div className="card-body-content">
                                       <div>
+                                        <h6 className="cat-name">
+                                          <Link
+                                            to="#"
+                                            title={product.category_name || product.category || "Products"}
+                                            onClick={(e) => e.preventDefault()}
+                                          >
+                                            {product.category_name || product.category || "Products"}
+                                          </Link>
+                                        </h6>
                                         <h6 className="product-name">
                                           <Link
                                             to="#"
                                             title={product.name}
-                                            onClick={(e) => e.preventDefault()}
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              openProductDetailsModal(product);
+                                            }}
                                           >
                                             {product.name}
                                           </Link>
                                         </h6>
                                         <div className="d-flex align-items-center justify-content-between mb-2">
                                           <span
-                                            className={`badge ${
-                                              stock > 10
+                                            className={`badge ${stock > 10
                                                 ? "bg-success-transparent text-success"
                                                 : stock > 0
-                                                ? "bg-warning-transparent text-warning"
-                                                : "bg-danger-transparent text-danger"
-                                            } fs-11 fw-semibold`}
+                                                  ? "bg-warning-transparent text-warning"
+                                                  : "bg-danger-transparent text-danger"
+                                              } fs-11 fw-semibold`}
                                           >
                                             <i className="ti ti-box me-1" />
-                                            {stock > 0 ? `${stock} ${product.unit || "Pcs"} In Stock` : "Out of Stock"}
+                                            {stock > 0
+                                              ? `${stock} in ${salesChannel === "shop" ? "Showroom" : "WH"}`
+                                              : "Out of Stock"}
                                           </span>
+                                          <button
+                                            type="button"
+                                            className="btn btn-icon btn-xs rounded-circle border-0 d-inline-flex align-items-center justify-content-center pos-view-eye-btn pos-view-info-btn"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              openProductDetailsModal(product);
+                                            }}
+                                            title="View Details, Sizes & Upgrades"
+                                          >
+                                            <i className="ti ti-edit fs-15" />
+                                          </button>
                                         </div>
                                       </div>
                                       <div>
                                         <div className="d-flex align-items-center justify-content-between price">
-                                          <p className="text-gray-9 fw-bold fs-15 mb-0">
-                                            {formatINR(product.selling_price ?? product.price ?? 0)}
+                                          <p className="price-val fw-bold fs-15 mb-0">
+                                            {formatINR(currentPrice)}
                                           </p>
                                           <div
                                             className="qty-item m-0"
@@ -1328,19 +2313,25 @@ const DEFAULT_POS_CATEGORIES = [
             {/* /Products Column */}
 
             {/* Order Details Column */}
-            <div className="col-md-12 col-lg-5 col-xl-4 ps-0 theiaStickySidebar d-lg-flex">
-              <aside className="product-order-list bg-secondary-transparent flex-fill">
+            <div className="col-md-12 col-lg-5 col-xl-4 p-0 theiaStickySidebar d-lg-flex">
+              <aside className="product-order-list bg-white flex-fill p-0 border-0 m-0">
                 {/* Order List Card */}
-                <div className="card">
-                  <div className="card-body">
+                <div className="card border-0 shadow-none m-0 rounded-0 bg-transparent">
+                  <div className="card-body p-3">
                     <div className="order-head d-flex align-items-center justify-content-between w-100">
                       <div>
                         <h3>Order List</h3>
                       </div>
                       <div className="d-flex align-items-center gap-2">
-                        <span className="badge badge-dark fs-10 fw-medium badge-xs">
-                          #{orderNumber}
-                        </span>
+                        <Link
+                          to="#"
+                          className="text-danger text-decoration-underline fs-13 fw-semibold"
+                          data-bs-toggle="offcanvas"
+                          data-bs-target="#filter-offcanvas-3"
+                          onClick={(e) => e.preventDefault()}
+                        >
+                          View Details
+                        </Link>
                         <Link
                           className="link-danger fs-16"
                           to="#"
@@ -1354,6 +2345,58 @@ const DEFAULT_POS_CATEGORIES = [
                         </Link>
                       </div>
                     </div>
+
+                    {/* Order Mode Tabs (Counter Bills, Tokens, Project) */}
+                    <ul
+                      className="nav nav-tabs nav-tabs-solid border-0 mb-3 align-items-center justify-content-between flex-wrap gap-1 pos-tab"
+                      role="tablist"
+                    >
+                      <li className="nav-item flex-fill">
+                        <Link
+                          to="#"
+                          className={`nav-link justify-content-center ${
+                            orderMode === "counter_bills" ? "active" : ""
+                          }`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setOrderMode("counter_bills");
+                          }}
+                        >
+                          <i className="ti ti-receipt me-1" />
+                          Counter Bills
+                        </Link>
+                      </li>
+                      <li className="nav-item flex-fill">
+                        <Link
+                          to="#"
+                          className={`nav-link justify-content-center ${
+                            orderMode === "tokens" ? "active" : ""
+                          }`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setOrderMode("tokens");
+                          }}
+                        >
+                          <i className="ti ti-ticket me-1" />
+                          Tokens
+                        </Link>
+                      </li>
+                      <li className="nav-item flex-fill">
+                        <Link
+                          to="#"
+                          className={`nav-link flex-fill justify-content-center ${
+                            orderMode === "project" ? "active" : ""
+                          }`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setOrderMode("project");
+                          }}
+                        >
+                          <i className="ti ti-folders me-1" />
+                          Project
+                        </Link>
+                      </li>
+                    </ul>
 
                     {/* Customer Information */}
                     <div className="customer-info block-section">
@@ -1440,92 +2483,212 @@ const DEFAULT_POS_CATEGORIES = [
                       )}
                     </div>
 
-                    {/* Order Details / Product Added */}
+                    {/* Ordered Menus */}
                     <div className="product-added block-section">
-                      <div className="head-text d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center">
-                          <h5 className="me-2">Order Details</h5>
-                          <div className="badge bg-light text-gray-9 fs-12 fw-semibold py-2 border rounded">
-                            Items : <span className="text-teal">{totals.totalItems}</span>
-                          </div>
+                      <div className="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+                        <h6 className="mb-0 fw-bold fs-15">Ordered Menus</h6>
+                        <div className="d-flex align-items-center gap-2">
+                          <p className="mb-0 d-flex align-items-center text-dark fs-13">
+                            Total Menus :{" "}
+                            <span
+                              className="d-flex align-items-center justify-content-center fs-12 fw-bold btn btn-icon btn-xs rounded-circle border flex-shrink-0 ms-1 text-dark"
+                              style={{ width: "24px", height: "24px" }}
+                            >
+                              {cart.length}
+                            </span>
+                          </p>
+                          {cart.length > 0 && (
+                            <Link
+                              to="#"
+                              className="d-flex align-items-center clear-icon fs-11 fw-medium text-danger ms-1"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                clearCart();
+                              }}
+                            >
+                              Clear all
+                            </Link>
+                          )}
                         </div>
-                        <Link
-                          to="#"
-                          className="d-flex align-items-center clear-icon fs-10 fw-medium"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            clearCart();
-                          }}
-                        >
-                          Clear all
-                        </Link>
                       </div>
 
                       <div className="product-wrap">
                         {cart.length === 0 ? (
-                          <div className="empty-cart" style={{ display: "flex" }}>
-                            <div className="fs-24 mb-1">
-                              <i className="ti ti-shopping-cart" />
-                            </div>
-                            <p className="fw-bold">No Products Selected</p>
+                          <div className="empty-cart text-center py-4 my-2">
+                            <i className="ti ti-shopping-cart fs-36 text-muted mb-2 d-block opacity-50" />
+                            <p className="fw-semibold text-muted mb-0">No Products Selected</p>
                           </div>
                         ) : (
-                          <div className="product-list border-0 p-0" style={{ display: "block" }}>
-                            <div className="table-responsive">
-                              <table className="table table-borderless">
-                                <thead>
-                                  <tr>
-                                    <th className="fw-bold bg-light">Item</th>
-                                    <th className="fw-bold bg-light">QTY</th>
-                                    <th className="fw-bold bg-light text-end">Cost</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {cart.map((item) => (
-                                    <tr key={item.product.id}>
-                                      <td>
-                                        <div className="d-flex align-items-center">
-                                          <Link
-                                            className="delete-icon"
-                                            to="#"
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              removeFromCart(item.product.id);
+                          <div className="ordered-menu-list">
+                            {cart.map((item) => {
+                              const isExpanded = expandedItemId === item.product.id;
+                              return (
+                                <div
+                                  key={item.product.id}
+                                  className={`menu-item p-2 rounded border shadow-sm mb-3 ${
+                                    isExpanded ? "active" : ""
+                                  }`}
+                                >
+                                  <div className="d-flex align-items-center justify-content-between flex-wrap flex-xl-nowrap gap-2">
+                                    {/* Clickable Header for Expanding/Collapsing */}
+                                    <div
+                                      className="d-flex align-items-center overflow-hidden flex-grow-1 user-select-none"
+                                      style={{ cursor: "pointer" }}
+                                      onClick={() =>
+                                        setExpandedItemId((prev) =>
+                                          prev === item.product.id ? null : item.product.id
+                                        )
+                                      }
+                                      title={isExpanded ? "Click to collapse details" : "Click to view rate & cost details"}
+                                    >
+                                      <div className="avatar avatar-md flex-shrink-0" style={{ marginRight: "6px" }}>
+                                        <img
+                                          src={item.product.image_url || placeholderPos}
+                                          alt={item.product.name}
+                                          className="img-fluid rounded"
+                                          style={{ width: "36px", height: "36px", objectFit: "cover" }}
+                                        />
+                                      </div>
+                                      <div className="overflow-hidden min-w-0 flex-grow-1" style={{ maxWidth: "165px" }}>
+                                        <h6
+                                          className="mb-1 fs-13 fw-semibold d-flex align-items-center gap-1"
+                                          title={item.product.name}
+                                          style={{ minWidth: 0 }}
+                                        >
+                                          <span
+                                            className="text-truncate d-inline-block"
+                                            style={{
+                                              maxWidth: "135px",
+                                              whiteSpace: "nowrap",
+                                              overflow: "hidden",
+                                              textOverflow: "ellipsis",
                                             }}
                                           >
-                                            <i className="ti ti-trash-x-filled" />
-                                          </Link>
-                                          <h6 className="fs-13 fw-normal">
-                                            <Link to="#" className="link-default">
-                                              {item.product.name}
-                                            </Link>
-                                          </h6>
-                                        </div>
-                                      </td>
-                                      <td>
-                                        <div className="qty-item m-0">
-                                          <PosCounter
-                                            value={item.quantity}
-                                            onIncrement={() =>
-                                              updateQuantity(item.product.id, item.quantity + 1)
-                                            }
-                                            onDecrement={() =>
-                                              updateQuantity(item.product.id, item.quantity - 1)
-                                            }
-                                            onChange={(val) =>
-                                              updateQuantity(item.product.id, val)
-                                            }
+                                            {item.product.name}
+                                          </span>
+                                          <i
+                                            className={`ti ti-chevron-${
+                                              isExpanded ? "up" : "down"
+                                            } fs-12 text-muted flex-shrink-0`}
                                           />
+                                        </h6>
+                                        <button
+                                          type="button"
+                                          className="badge badge-sm bg-light text-dark mb-0 border-0 p-1 px-2 d-inline-flex align-items-center gap-1 item-size-badge"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const baseP = getProductPrice(item.product, salesType);
+                                            const sizes = [
+                                              { id: "size-sm", name: "Small (6-inch)", price: Math.max(10, Math.round(baseP * 0.75)) },
+                                              { id: "size-md", name: "Medium (8-inch)", price: baseP },
+                                              { id: "size-lg", name: "Large (12-inch)", price: Math.round(baseP * 1.35) },
+                                              { id: "size-xl", name: "Exotic Jumbo", price: Math.round(baseP * 1.75) },
+                                            ];
+                                            setDetailsCartItem(item);
+                                            setDetailsSelectedSize(item.selectedSize || sizes[0]);
+                                            setDetailsSelectedAddons(item.selectedAddons || []);
+                                            setDetailsQuantity(item.quantity);
+                                            setItemDetailsModalOpen(true);
+                                          }}
+                                          title="Click to customize size & add-ons"
+                                        >
+                                          <span>
+                                            {item.selectedSize?.name || (item.product.unit && item.product.unit !== "PCS" ? item.product.unit : "Small (6-inch)")}
+                                          </span>
+                                          <i className="ti ti-edit fs-10 text-muted" />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Quantity Controls & Actions */}
+                                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                                      {/* Quantity Controls */}
+                                      <div className="qty-item m-0">
+                                        <PosCounter
+                                          value={item.quantity}
+                                          onIncrement={() =>
+                                            updateQuantity(item.product.id, item.quantity + 1)
+                                          }
+                                          onDecrement={() =>
+                                            updateQuantity(item.product.id, item.quantity - 1)
+                                          }
+                                          onChange={(val) =>
+                                            updateQuantity(item.product.id, val)
+                                          }
+                                        />
+                                      </div>
+                                      {/* Action Buttons: Edit & Delete */}
+                                      <div className="action">
+                                        <div className="d-flex align-items-center">
+                                          {/* Edit Button (Light Grey Circle) */}
+                                          <button
+                                            type="button"
+                                            className="btn btn-icon btn-sm btn-light rounded-circle position-relative me-2"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openEditProductDrawer(item);
+                                            }}
+                                            title="Edit"
+                                          >
+                                            <i className="icon-pencil-line" />
+                                          </button>
+                                          {/* Delete Button (Red Circle) */}
+                                          <button
+                                            type="button"
+                                            className="btn btn-icon btn-sm btn-danger rounded-circle"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              removeFromCart(item.product.id);
+                                            }}
+                                            title="Delete"
+                                          >
+                                            <i className="icon-trash-2" />
+                                          </button>
                                         </div>
-                                      </td>
-                                      <td className="fs-13 fw-semibold text-gray-9 text-end">
-                                        {formatINR(item.total_amount)}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Expandable/Collapsible Details */}
+                                  {isExpanded && (
+                                    <div className="pt-2 mt-2 border-top">
+                                      <div className="d-flex align-items-center justify-content-between">
+                                        <div className="text-center">
+                                          <span className="fs-12 mb-1 d-block fw-medium text-muted">
+                                            Item Rate
+                                          </span>
+                                          <p className="mb-0 fs-13 fw-normal">
+                                            {formatINR(item.unit_price)}
+                                          </p>
+                                        </div>
+                                        <div className="text-center">
+                                          <span className="fs-12 mb-1 d-block fw-medium text-muted">
+                                            Amount
+                                          </span>
+                                          <p className="mb-0 fs-13 fw-normal">
+                                            {formatINR(item.unit_price * item.quantity)}
+                                          </p>
+                                        </div>
+                                        <div className="text-center">
+                                          <span className="fs-12 mb-1 d-block fw-medium text-muted">
+                                            Total
+                                          </span>
+                                          <p className="mb-0 fs-13 fw-semibold text-dark">
+                                            {formatINR(item.total_amount)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      {item.notes && (
+                                        <div className="mt-2 pt-1 border-top fs-11 text-primary d-flex align-items-center gap-1">
+                                          <i className="ti ti-notes" />{" "}
+                                          <span className="text-truncate">{item.notes}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -1678,9 +2841,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "cash" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "cash" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("cash");
@@ -1693,9 +2855,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "card" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "card" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("card");
@@ -1708,9 +2869,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "points" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "points" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("points");
@@ -1723,9 +2883,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "deposit" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "deposit" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("deposit");
@@ -1738,9 +2897,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "cheque" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "cheque" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("cheque");
@@ -1753,9 +2911,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "giftcard" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "giftcard" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("giftcard");
@@ -1768,9 +2925,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "scan" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "scan" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("scan");
@@ -1783,9 +2939,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "paylater" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "paylater" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("paylater");
@@ -1798,9 +2953,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "external" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "external" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("external");
@@ -1813,9 +2967,8 @@ const DEFAULT_POS_CATEGORIES = [
                       <div className="col-sm-6 col-md-4 d-flex">
                         <Link
                           to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${
-                            selectedPaymentMode === "split" ? "active" : ""
-                          }`}
+                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "split" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenPayment("split");
@@ -1930,6 +3083,167 @@ const DEFAULT_POS_CATEGORIES = [
       {/* POS Theme Modals from Core */}
       <PosModals />
 
+      {/* Dynamic Order Details Offcanvas Drawer (#filter-offcanvas-3) */}
+      <div
+        className="offcanvas offcanvas-end"
+        tabIndex={-1}
+        id="filter-offcanvas-3"
+        aria-labelledby="filter-offcanvas-3-label"
+      >
+        <div className="offcanvas-header pb-0">
+          <div className="border-bottom d-flex align-items-center justify-content-between w-100 pb-3">
+            <div>
+              <h4 className="offcanvas-title mb-1" id="filter-offcanvas-3-label">
+                Order Details
+              </h4>
+              <div className="d-flex align-items-center gap-2 text-muted fs-12">
+                <span className="badge bg-soft-primary text-primary fw-semibold">#{orderNumber}</span>
+                <span>•</span>
+                <span>{selectedCustomer?.name || selectedCustomer?.label?.split(" (")[0] || "Walk in Customer"}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-close btn-close-modal"
+              data-bs-dismiss="offcanvas"
+              aria-label="Close"
+            >
+              <i className="ti ti-x fs-16" />
+            </button>
+          </div>
+        </div>
+        <div className="offcanvas-body d-flex flex-column pt-3">
+          {cart.length === 0 ? (
+            <div className="text-center py-5 my-auto">
+              <i className="ti ti-shopping-cart-x fs-48 text-muted mb-3 d-block opacity-50" />
+              <h5 className="fw-semibold text-muted mb-1">Your cart is empty</h5>
+              <p className="text-muted fs-13 mb-0">Add products to your cart to see live items grouped by category.</p>
+            </div>
+          ) : (
+            <div className="accordion pos-accordion" id="pos-order-accordion">
+              {/* Category-wise Accordion Items */}
+              {Object.entries(cartByCategory).map(([catName, catData], catIdx) => (
+                <div className="accordion-item" key={catName}>
+                  <h3 className="accordion-header" id={`cat-heading-${catIdx}`}>
+                    <Link
+                      to="#"
+                      className="accordion-button"
+                      data-bs-toggle="collapse"
+                      data-bs-target={`#cat-collapse-${catIdx}`}
+                      aria-expanded="true"
+                      aria-controls={`cat-collapse-${catIdx}`}
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <div className="d-flex align-items-center justify-content-between w-100 me-2">
+                        <span className="fw-bold">{catName}</span>
+                        <span className="badge bg-primary-1 text-dark">
+                          {catData.totalQty} {catData.totalQty === 1 ? "Item" : "Items"}
+                        </span>
+                      </div>
+                    </Link>
+                  </h3>
+                  <div
+                    id={`cat-collapse-${catIdx}`}
+                    className="accordion-collapse collapse show"
+                    aria-labelledby={`cat-heading-${catIdx}`}
+                  >
+                    <div className="accordion-body">
+                      <div className="accordion-content">
+                        <div>
+                          {catData.items.map((item) => (
+                            <p
+                              key={item.product.id}
+                              className="d-flex align-items-center justify-content-between mb-2 text-dark"
+                            >
+                              <span>
+                                {item.product.name}{" "}
+                                <span className="text-muted fw-normal">
+                                  × {item.quantity} {item.product.unit || "Pcs"}
+                                </span>
+                              </span>
+                              <span className="fw-semibold">
+                                {formatINR(item.unit_price * item.quantity)}
+                              </span>
+                            </p>
+                          ))}
+                          <h6 className="d-flex align-items-center justify-content-between mt-3 pt-2 border-top">
+                            <span>Subtotal</span>
+                            <span className="fw-bold text-dark">{formatINR(catData.subtotal)}</span>
+                          </h6>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Payment Summary */}
+              <div className="accordion-item border-0 mb-0">
+                <h3 className="accordion-header" id="heading-payment-summary">
+                  <Link
+                    to="#"
+                    className="accordion-button d-flex align-items-center justify-content-between"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapse-payment-summary"
+                    aria-expanded="true"
+                    aria-controls="collapse-payment-summary"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    Payment Summary
+                  </Link>
+                </h3>
+                <div
+                  id="collapse-payment-summary"
+                  className="accordion-collapse collapse show"
+                  aria-labelledby="heading-payment-summary"
+                >
+                  <div className="accordion-body">
+                    <div className="accordion-content">
+                      <div>
+                        <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                          <span>Items Subtotal ({totals.totalItems} items)</span>
+                          <span className="fw-semibold">{formatINR(totals.subtotal)}</span>
+                        </p>
+                        {discountPercent > 0 && (
+                          <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                            <span>Discount ({discountPercent}%)</span>
+                            <span className="fw-semibold text-danger">-{formatINR(totals.discount)}</span>
+                          </p>
+                        )}
+                        {orderTaxPercent > 0 && (
+                          <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                            <span>Tax ({orderTaxPercent}%)</span>
+                            <span className="fw-semibold text-dark">+{formatINR(totals.tax)}</span>
+                          </p>
+                        )}
+                        {shippingCost > 0 && (
+                          <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                            <span>Shipping</span>
+                            <span className="fw-semibold text-dark">+{formatINR(totals.shipping)}</span>
+                          </p>
+                        )}
+                        {isRoundoff && totals.roundoffDiff !== 0 && (
+                          <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                            <span>Round Off</span>
+                            <span className="fw-semibold text-muted">
+                              {totals.roundoffDiff > 0 ? `+${formatINR(totals.roundoffDiff)}` : `-${formatINR(Math.abs(totals.roundoffDiff))}`}
+                            </span>
+                          </p>
+                        )}
+                        <h5 className="d-flex align-items-center justify-content-between mt-3 pt-2 border-top mb-0">
+                          <span>Amount to be Paid</span>
+                          <span className="fw-bold text-success">{formatINR(totals.grandTotal)}</span>
+                        </h5>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ================= FUNCTIONAL INTERACTIVE MODALS ================= */}
 
       {/* 1. Payment Modal */}
@@ -1981,9 +3295,8 @@ const DEFAULT_POS_CATEGORIES = [
                   <button
                     key={m.id}
                     type="button"
-                    className={`btn btn-sm ${
-                      selectedPaymentMode === m.id ? "btn-primary" : "btn-outline-secondary"
-                    } d-inline-flex align-items-center gap-1`}
+                    className={`btn btn-sm ${selectedPaymentMode === m.id ? "btn-primary" : "btn-outline-secondary"
+                      } d-inline-flex align-items-center gap-1`}
                     onClick={() => {
                       setSelectedPaymentMode(m.id);
                       if (m.id === "cash") setReceivedAmount(totals.grandTotal.toString());
@@ -2308,53 +3621,92 @@ const DEFAULT_POS_CATEGORIES = [
 
       {/* 4. Slide Animated Customer Drawer (#add_order) */}
       <div
-        className={`offcanvas offcanvas-start ${customerDrawerOpen ? "show" : ""}`}
+        className={`offcanvas offcanvas-end ${customerDrawerOpen ? "show" : ""}`}
         tabIndex={-1}
         id="add_order"
         style={{
           visibility: customerDrawerOpen ? "visible" : "hidden",
-          transform: customerDrawerOpen ? "none" : "translateX(calc(-100% - 30px))",
+          transform: customerDrawerOpen ? "none" : "translateX(calc(100% + 40px))",
           transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
           zIndex: 1065,
-          width: "520px",
+          width: "480px",
           maxWidth: "100vw",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
         }}
       >
         {/* Fixed Header */}
-        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0">
-          <h4 className="offcanvas-title mb-0">Customers</h4>
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-2">
+          <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "20px" }}>Customers</h4>
           <button
             type="button"
-            className="btn-close btn-close-modal"
+            className="btn-close-modal"
             onClick={() => setCustomerDrawerOpen(false)}
             aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
           >
-            <i className="ti ti-x" />
+            <i className="ti ti-x fs-16" />
           </button>
         </div>
 
         {/* Fixed Tab Switcher */}
-        <div className="orders-tab d-flex align-items-start p-3 flex-shrink-0 border-bottom">
-          <ul className="nav nav-pills w-100 d-flex gap-3 align-items-center flex-sm-nowrap flex-wrap">
-            <li>
+        <div className="orders-tab d-flex align-items-center px-4 pt-2 pb-3 flex-shrink-0">
+          <ul className="nav nav-pills w-100 d-flex gap-2 align-items-center flex-nowrap mb-0 p-0">
+            <li className="flex-fill">
               <button
                 type="button"
-                className={`nav-link border-0 ${
+                className={`nav-link w-100 border-0 ${
                   activeCustomerTab === "existing" ? "active" : ""
                 } d-flex align-items-center justify-content-center`}
                 onClick={() => setActiveCustomerTab("existing")}
+                style={{
+                  borderRadius: "9999px",
+                  padding: "9px 18px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  backgroundColor: activeCustomerTab === "existing" ? "#0f172a" : "#f8fafc",
+                  color: activeCustomerTab === "existing" ? "#ffffff" : "#475569",
+                  border: activeCustomerTab === "existing" ? "none" : "1px solid #e2e8f0",
+                  transition: "all 0.2s ease",
+                }}
               >
-                <i className="ti ti-users me-2" />
+                <i className="ti ti-user me-2" />
                 Existing Customer
               </button>
             </li>
-            <li>
+            <li className="flex-fill">
               <button
                 type="button"
-                className={`nav-link border-0 ${
+                className={`nav-link w-100 border-0 ${
                   activeCustomerTab === "add_new" ? "active" : ""
                 } d-flex align-items-center justify-content-center`}
                 onClick={() => setActiveCustomerTab("add_new")}
+                style={{
+                  borderRadius: "9999px",
+                  padding: "9px 18px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  backgroundColor: activeCustomerTab === "add_new" ? "#0f172a" : "#f8fafc",
+                  color: activeCustomerTab === "add_new" ? "#ffffff" : "#475569",
+                  border: activeCustomerTab === "add_new" ? "none" : "1px solid #e2e8f0",
+                  transition: "all 0.2s ease",
+                }}
               >
                 <i className="ti ti-plus me-2" />
                 Add New Customer
@@ -2364,24 +3716,30 @@ const DEFAULT_POS_CATEGORIES = [
         </div>
 
         {/* Scrollable Body */}
-        <div className="offcanvas-body flex-grow-1 overflow-y-auto p-3">
+        <div className="offcanvas-body flex-grow-1 overflow-y-auto px-4 py-2">
           {activeCustomerTab === "existing" ? (
             <div id="driversTab">
               <div className="mb-3">
-                <label className="form-label fw-bold">All Customers</label>
                 <div className="page-search position-relative">
                   <i className="ti ti-search fs-14 position-absolute start-0 top-50 translate-middle-y ms-3 text-muted" />
                   <input
                     type="search"
-                    className="form-control form-control-sm ps-5"
-                    placeholder="Search by name or Phone Number..."
+                    className="form-control ps-5"
+                    style={{
+                      borderRadius: "9999px",
+                      borderColor: "#e2e8f0",
+                      fontSize: "13px",
+                      paddingTop: "9px",
+                      paddingBottom: "9px",
+                    }}
+                    placeholder="Search by name/Phone Number"
                     value={customerSearchQuery}
                     onChange={(e) => setCustomerSearchQuery(e.target.value)}
                   />
                   {customerSearchQuery && (
                     <button
                       type="button"
-                      className="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y p-0 pe-2"
+                      className="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y p-0 pe-3"
                       onClick={() => setCustomerSearchQuery("")}
                       style={{ textDecoration: "none" }}
                     >
@@ -2391,84 +3749,115 @@ const DEFAULT_POS_CATEGORIES = [
                 </div>
               </div>
 
-              <div className="customer-scroll-area">
+              <div className="customer-scroll-area d-flex flex-column gap-1">
                 {filteredCustomerList.map((c, idx) => {
                   const isSelected = selectedCustomer?.value === c.value;
                   const isAvailable =
                     c.value === "walkin" ||
                     (c.status !== "inactive" &&
                       c.status !== "unavailable" &&
-                      c.status !== "Inactive");
+                      c.status !== "Inactive" &&
+                      c.status !== "Unavailable");
 
                   return (
                     <div
                       key={c.value || idx}
-                      className={`d-flex justify-content-between p-3 mb-2 border rounded order-select-card ${
-                        isSelected ? "border-primary bg-light" : ""
-                      }`}
-                      style={{ cursor: "pointer" }}
+                      className="customer-row-item d-flex align-items-center justify-content-between p-2 rounded-3"
+                      style={{
+                        cursor: "pointer",
+                        backgroundColor: isSelected ? "#f8fafc" : "transparent",
+                      }}
                       onClick={() => {
                         setSelectedCustomer(c);
                         setShowAlert(true);
                       }}
                     >
-                      <div className="d-flex align-items-center customer-radio-input">
-                        <input
-                          type="radio"
-                          name="customer"
-                          checked={isSelected}
-                          onChange={() => {
-                            setSelectedCustomer(c);
-                            setShowAlert(true);
+                      <div className="d-flex align-items-center gap-3 min-w-0 flex-grow-1">
+                        {/* Radio selection indicator */}
+                        <span
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: "50%",
+                            border: isSelected ? "5px solid #00acc1" : "1.5px solid #cbd5e1",
+                            backgroundColor: "#ffffff",
+                            boxSizing: "border-box",
+                            display: "inline-block",
+                            flexShrink: 0,
+                            transition: "all 0.15s ease",
                           }}
-                          className="form-check-input rounded-circle me-3"
-                          style={{ cursor: "pointer" }}
                         />
-                        <div className="d-flex align-items-center">
-                          <div className="avatar avatar-rounded flex-shrink-0 me-2">
-                            {c.image_url ? (
-                              <img
-                                src={c.image_url}
-                                alt="customer"
-                                className="img-fluid rounded-circle"
-                                style={{
-                                  width: 40,
-                                  height: 40,
-                                  objectFit: "cover",
-                                }}
-                              />
-                            ) : (
-                              <div
-                                className="avatar avatar-rounded flex-shrink-0 bg-primary text-white d-flex align-items-center justify-content-center"
-                                style={{
-                                  width: 40,
-                                  height: 40,
-                                  borderRadius: "50%",
-                                  fontSize: 14,
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {c.name ? c.name.charAt(0).toUpperCase() : "C"}
-                              </div>
-                            )}
+
+                        {/* Customer Avatar */}
+                        {c.image_url ? (
+                          <img
+                            src={c.image_url}
+                            alt={c.name || "Customer"}
+                            className="rounded-circle"
+                            style={{
+                              width: 40,
+                              height: 40,
+                              objectFit: "cover",
+                              flexShrink: 0,
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className="rounded-circle d-flex align-items-center justify-content-center"
+                            style={{
+                              width: 40,
+                              height: 40,
+                              backgroundColor: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              color: "#94a3b8",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <i className="ti ti-user fs-18" />
                           </div>
-                          <div>
-                            <h6 className="fs-14 fw-bold mb-1">
-                              {c.name || c.label}
-                            </h6>
-                            <p className="fs-13 text-muted mb-0">
-                              {c.phone || "No phone number"}
-                            </p>
-                          </div>
+                        )}
+
+                        {/* Name and Phone */}
+                        <div className="min-w-0 flex-grow-1 text-truncate">
+                          <h6
+                            className="mb-0 text-truncate"
+                            style={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "#1e293b",
+                              lineHeight: 1.25,
+                            }}
+                          >
+                            {c.name || c.label}
+                          </h6>
+                          <p
+                            className="mb-0 text-truncate text-muted"
+                            style={{
+                              fontSize: "12px",
+                              lineHeight: 1.25,
+                              marginTop: "3px",
+                            }}
+                          >
+                            {c.phone || "No phone number"}
+                          </p>
                         </div>
                       </div>
-                      <div className="d-flex align-items-center">
+
+                      {/* Status Badge */}
+                      <div className="ms-2 flex-shrink-0">
                         <span
-                          className={`badge ${
-                            isAvailable
-                              ? "bg-success-transparent text-success"
-                              : "bg-danger-transparent text-danger"
-                          }`}
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            color: isAvailable ? "#16a34a" : "#dc2626",
+                            backgroundColor: isAvailable ? "#f0fdf4" : "#fef2f2",
+                            border: `1px solid ${isAvailable ? "#dcfce7" : "#fee2e2"}`,
+                            borderRadius: "9999px",
+                            padding: "3px 12px",
+                            whiteSpace: "nowrap",
+                            lineHeight: "18px",
+                            display: "inline-block",
+                          }}
                         >
                           {isAvailable ? "Available" : "Unavailable"}
                         </span>
@@ -2478,8 +3867,8 @@ const DEFAULT_POS_CATEGORIES = [
                 })}
 
                 {filteredCustomerList.length === 0 && (
-                  <div className="text-center py-4 text-muted">
-                    <i className="ti ti-user-x fs-28 mb-2 d-block" />
+                  <div className="text-center py-5 text-muted">
+                    <i className="ti ti-user-x fs-32 mb-2 d-block" />
                     <p className="mb-0 fs-13">No customers found</p>
                   </div>
                 )}
@@ -2749,6 +4138,263 @@ const DEFAULT_POS_CATEGORIES = [
         <div
           className="offcanvas-backdrop fade show"
           onClick={() => setCustomerDrawerOpen(false)}
+          style={{ zIndex: 1060 }}
+        />
+      )}
+
+      {/* 4.5. Slide Animated Edit Product Drawer (#edit-product) */}
+      <div
+        className={`offcanvas offcanvas-end pos-edit-product-drawer ${editProductDrawerOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="edit_product_drawer"
+        style={{
+          visibility: editProductDrawerOpen ? "visible" : "hidden",
+          transform: editProductDrawerOpen ? "none" : "translateX(calc(100% + 40px))",
+          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1065,
+          width: "480px",
+          maxWidth: "480px",
+          minWidth: "unset",
+          position: "fixed",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        {/* Header */}
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-3 border-bottom">
+          <div>
+            <h4 className="offcanvas-title mb-1 fw-bold" style={{ color: "#1e293b", fontSize: "20px" }}>
+              Edit Product
+            </h4>
+            <p className="mb-0 text-muted fs-12">
+              Modify product rate, tax, discount & sale unit for this item
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-close-modal"
+            onClick={() => setEditProductDrawerOpen(false)}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="offcanvas-body flex-grow-1 overflow-y-auto px-4 py-3">
+          <form id="edit-cart-product-form" onSubmit={handleSaveEditProduct}>
+            <div className="row gx-3 gy-2">
+              <div className="col-12">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold fs-13 mb-1">
+                    Product Name <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editProductName}
+                    onChange={(e) => setEditProductName(e.target.value)}
+                    placeholder="Enter Product Name"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="col-lg-6 col-12">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold fs-13 mb-1">
+                    Product Price <span className="text-danger">*</span>
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light text-muted border-end-0">
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      className="form-control border-start-0 ps-1"
+                      value={editProductPrice}
+                      onChange={(e) => setEditProductPrice(e.target.value)}
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-lg-6 col-12">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold fs-13 mb-1">
+                    Tax Type <span className="text-danger">*</span>
+                  </label>
+                  <Select
+                    className="select"
+                    classNamePrefix="react-select"
+                    options={[
+                      { value: "Exclusive", label: "Exclusive" },
+                      { value: "Inclusive", label: "Inclusive" },
+                    ]}
+                    value={editTaxType}
+                    onChange={(opt: any) =>
+                      setEditTaxType(opt || { value: "Exclusive", label: "Exclusive" })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="col-lg-6 col-12">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold fs-13 mb-1">
+                    Tax Rate (%) <span className="text-danger">*</span>
+                  </label>
+                  <div className="input-group">
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      max="100"
+                      className="form-control border-end-0"
+                      value={editTaxRate}
+                      onChange={(e) => setEditTaxRate(e.target.value)}
+                      placeholder="0"
+                    />
+                    <span className="input-group-text bg-light text-muted border-start-0">
+                      %
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-lg-6 col-12">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold fs-13 mb-1">
+                    Discount Type <span className="text-danger">*</span>
+                  </label>
+                  <Select
+                    className="select"
+                    classNamePrefix="react-select"
+                    options={[
+                      { value: "Percentage", label: "Percentage (%)" },
+                      { value: "Fixed", label: "Fixed Amount (₹)" },
+                    ]}
+                    value={editDiscountType}
+                    onChange={(opt: any) =>
+                      setEditDiscountType(
+                        opt || { value: "Percentage", label: "Percentage (%)" }
+                      )
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="col-lg-6 col-12">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold fs-13 mb-1">
+                    Discount Value <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    className="form-control"
+                    value={editDiscountValue}
+                    onChange={(e) => setEditDiscountValue(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="col-lg-6 col-12">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold fs-13 mb-1">
+                    Sale Unit <span className="text-danger">*</span>
+                  </label>
+                  <Select
+                    className="select"
+                    classNamePrefix="react-select"
+                    options={[
+                      { value: "Piece", label: "Piece (pc)" },
+                      { value: "Kilogram", label: "Kilogram (kg)" },
+                      { value: "Gram", label: "Gram (g)" },
+                      { value: "Liter", label: "Liter (L)" },
+                      { value: "Pack", label: "Pack" },
+                      { value: "Box", label: "Box" },
+                      { value: "Meter", label: "Meter (m)" },
+                      { value: "Unit", label: "Unit" },
+                    ]}
+                    value={editSaleUnit}
+                    onChange={(opt: any) =>
+                      setEditSaleUnit(opt || { value: "Piece", label: "Piece (pc)" })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="col-12">
+                <div className="mb-2">
+                  <label className="form-label fw-semibold fs-13 mb-1">
+                    Notes / Instructions
+                  </label>
+                  <textarea
+                    className="form-control"
+                    rows={2}
+                    value={editItemNotes}
+                    onChange={(e) => setEditItemNotes(e.target.value)}
+                    placeholder="Special instructions or notes for this item..."
+                  />
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top flex-shrink-0 bg-white">
+          <button
+            type="button"
+            className="btn btn-dark d-flex align-items-center justify-content-center w-100"
+            onClick={() => {
+              const form = document.getElementById("edit-cart-product-form") as HTMLFormElement;
+              if (form) form.requestSubmit();
+            }}
+          >
+            <i className="ti ti-check me-1" /> Update Item
+          </button>
+          <button
+            type="button"
+            className="btn btn-light d-flex align-items-center justify-content-center w-100"
+            onClick={() => setEditProductDrawerOpen(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      {editProductDrawerOpen && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={() => setEditProductDrawerOpen(false)}
           style={{ zIndex: 1060 }}
         />
       )}
@@ -3030,6 +4676,281 @@ const DEFAULT_POS_CATEGORIES = [
               >
                 Confirm Reset
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 11. Add Item Note Modal */}
+      {noteModalOpen && editingNoteItem && (
+        <div
+          className="pos-five-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setNoteModalOpen(false);
+          }}
+        >
+          <div className="pos-five-modal-card p-4">
+            <div className="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
+              <h5 className="fw-bold mb-0">Add Note - {editingNoteItem.name}</h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setNoteModalOpen(false)}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label fs-13 text-muted">Special instructions / custom note:</label>
+              <textarea
+                className="form-control"
+                rows={3}
+                placeholder="e.g. Extra wrapping, specific batch, instructions..."
+                value={editingNoteItem.notes}
+                onChange={(e) =>
+                  setEditingNoteItem({ ...editingNoteItem, notes: e.target.value })
+                }
+                autoFocus
+              />
+            </div>
+            <div className="d-flex gap-2 justify-content-end">
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setNoteModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setCart((prev) =>
+                    prev.map((item) =>
+                      item.product.id === editingNoteItem.id
+                        ? { ...item, notes: editingNoteItem.notes }
+                        : item
+                    )
+                  );
+                  setNoteModalOpen(false);
+                  setEditingNoteItem(null);
+                }}
+              >
+                Save Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 12. Dynamic Item Details / Size & Add-ons Modal (#items_details) */}
+      {itemDetailsModalOpen && detailsCartItem && detailsSelectedSize && (
+        <div
+          className="pos-five-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setItemDetailsModalOpen(false);
+          }}
+        >
+          <div className="pos-five-modal-card wide p-4 position-relative" style={{ maxWidth: "780px" }}>
+            <button
+              type="button"
+              className="btn-close position-absolute top-0 end-0 m-3 z-1"
+              onClick={() => setItemDetailsModalOpen(false)}
+            />
+            <div className="row g-4">
+              {/* Left Column: Product Image & Info */}
+              <div className="col-lg-5">
+                <div className="items-img p-3 border rounded bg-light text-center h-100 d-flex flex-column align-items-center justify-content-center position-relative">
+                  <img
+                    src={detailsCartItem.product.image_url || placeholderPos}
+                    alt={detailsCartItem.product.name}
+                    className="img-fluid rounded"
+                    style={{ maxHeight: "200px", objectFit: "contain" }}
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Title, Sizes, Add-ons & Total */}
+              <div className="col-lg-7">
+                <div className="items-content">
+                  <h4 className="fw-bold mb-1">{detailsCartItem.product.name}</h4>
+                  <p className="text-muted fs-13 mb-3">
+                    View product specifications, select size, and review pricing &amp; inventory availability.
+                  </p>
+
+                  {/* Sizes Selection */}
+                  <div className="items-info mb-3 pb-3 border-bottom">
+                    <h6 className="fw-semibold mb-2 fs-13">Available Sizes</h6>
+                    <div className="d-flex align-items-center flex-wrap gap-2 size-group">
+                      {(() => {
+                        const baseP = getProductPrice(detailsCartItem.product, salesType);
+                        const sizes = [
+                          { id: "size-sm", name: "Small (6-inch)", price: Math.max(10, Math.round(baseP * 0.75)) },
+                          { id: "size-md", name: "Medium (8-inch)", price: baseP },
+                          { id: "size-lg", name: "Large (12-inch)", price: Math.round(baseP * 1.35) },
+                          { id: "size-xl", name: "Exotic Jumbo", price: Math.round(baseP * 1.75) },
+                        ];
+                        return sizes.map((sz) => {
+                          const isSelected = detailsSelectedSize.id === sz.id;
+                          return (
+                            <div className={`size-tab ${isSelected ? "active" : ""}`} key={sz.id}>
+                              <button
+                                type="button"
+                                className="tag d-flex align-items-center justify-content-between gap-2"
+                                onClick={() => setDetailsSelectedSize(sz)}
+                              >
+                                <span>{sz.name}</span>
+                                <span className="fw-bold">{formatINR(sz.price)}</span>
+                              </button>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Pricing & Stock Details (Replaced Add-ons & Upgrades) */}
+                  <div className="mb-3 pb-3 border-bottom">
+                    <h6 className="fw-semibold mb-2 fs-13">Pricing &amp; Inventory Details</h6>
+                    <div className="row g-2">
+                      {/* Retail Price */}
+                      <div className="col-6">
+                        <div className="p-2 border rounded bg-light d-flex align-items-center gap-2 h-100">
+                          <div
+                            className="rounded-circle p-1 d-flex align-items-center justify-content-center bg-soft-primary text-primary flex-shrink-0"
+                            style={{ width: "32px", height: "32px" }}
+                          >
+                            <i className="ti ti-tag fs-16" />
+                          </div>
+                          <div>
+                            <span className="fs-11 text-muted d-block lh-1 mb-1">Retail Price</span>
+                            <span className="fs-13 fw-bold text-dark">
+                              {formatINR(detailsCartItem.product.selling_price ?? detailsCartItem.product.price ?? 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Wholesale Price */}
+                      <div className="col-6">
+                        <div className="p-2 border rounded bg-light d-flex align-items-center gap-2 h-100">
+                          <div
+                            className="rounded-circle p-1 d-flex align-items-center justify-content-center bg-soft-success text-success flex-shrink-0"
+                            style={{ width: "32px", height: "32px" }}
+                          >
+                            <i className="ti ti-building-store fs-16" />
+                          </div>
+                          <div>
+                            <span className="fs-11 text-muted d-block lh-1 mb-1">Wholesale Price</span>
+                            <span className="fs-13 fw-bold text-dark">
+                              {formatINR(
+                                detailsCartItem.product.wholesale_price ??
+                                  (detailsCartItem.product.cost_price
+                                    ? Math.round(Number(detailsCartItem.product.cost_price) * 1.25)
+                                    : Math.round(Number(detailsCartItem.product.selling_price ?? detailsCartItem.product.price ?? 0) * 0.75))
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Showroom Stock */}
+                      <div className="col-6">
+                        <div className="p-2 border rounded bg-light d-flex align-items-center gap-2 h-100">
+                          <div
+                            className="rounded-circle p-1 d-flex align-items-center justify-content-center bg-soft-info text-info flex-shrink-0"
+                            style={{ width: "32px", height: "32px" }}
+                          >
+                            <i className="ti ti-building fs-16" />
+                          </div>
+                          <div>
+                            <span className="fs-11 text-muted d-block lh-1 mb-1">Showroom Stock</span>
+                            <span className="fs-13 fw-bold text-dark">
+                              {detailsCartItem.product.shop_stock ?? detailsCartItem.product.stock_quantity ?? detailsCartItem.product.stock ?? 0}{" "}
+                              <small className="text-muted fs-11">
+                                {detailsCartItem.product.unit && detailsCartItem.product.unit !== "PCS" ? detailsCartItem.product.unit : "Units"}
+                              </small>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Warehouse Stock */}
+                      <div className="col-6">
+                        <div className="p-2 border rounded bg-light d-flex align-items-center gap-2 h-100">
+                          <div
+                            className="rounded-circle p-1 d-flex align-items-center justify-content-center bg-soft-warning text-warning flex-shrink-0"
+                            style={{ width: "32px", height: "32px" }}
+                          >
+                            <i className="ti ti-building-warehouse fs-16" />
+                          </div>
+                          <div>
+                            <span className="fs-11 text-muted d-block lh-1 mb-1">Warehouse Stock</span>
+                            <span className="fs-13 fw-bold text-dark">
+                              {detailsCartItem.product.warehouse_stock ?? detailsCartItem.product.stock_quantity ?? detailsCartItem.product.stock ?? 0}{" "}
+                              <small className="text-muted fs-11">
+                                {detailsCartItem.product.unit && detailsCartItem.product.unit !== "PCS" ? detailsCartItem.product.unit : "Units"}
+                              </small>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Total & Action Button */}
+                  <div>
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      <span className="fs-13 text-muted">Item Total</span>
+                      <h4 className="fw-bold text-success mb-0">
+                        {formatINR(detailsSelectedSize.price * detailsQuantity)}
+                      </h4>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="qty-item m-0">
+                        <PosCounter
+                          value={detailsQuantity}
+                          onIncrement={() => setDetailsQuantity((prev) => prev + 1)}
+                          onDecrement={() => setDetailsQuantity((prev) => Math.max(1, prev - 1))}
+                          onChange={(val) => setDetailsQuantity(Math.max(1, val))}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary flex-fill d-flex align-items-center justify-content-center gap-2"
+                        onClick={() => {
+                          if (!detailsCartItem || !detailsSelectedSize) return;
+                          const baseUnitPrice = detailsSelectedSize.price;
+                          const taxRate = Number(detailsCartItem.product.tax_rate) || 5;
+                          const lineSubtotal = baseUnitPrice * detailsQuantity;
+                          const lineTax = (lineSubtotal * taxRate) / 100;
+
+                          const updatedItem: CartItem = {
+                            ...detailsCartItem,
+                            quantity: detailsQuantity,
+                            unit_price: baseUnitPrice,
+                            tax_amount: lineTax,
+                            total_amount: lineSubtotal + lineTax,
+                            selectedSize: detailsSelectedSize,
+                          };
+
+                          setCart((prev) => {
+                            const exists = prev.some((c) => c.product.id === detailsCartItem.product.id);
+                            if (exists) {
+                              return prev.map((c) => (c.product.id === detailsCartItem.product.id ? updatedItem : c));
+                            } else {
+                              return [...prev, updatedItem];
+                            }
+                          });
+
+                          setItemDetailsModalOpen(false);
+                          setDetailsCartItem(null);
+                        }}
+                      >
+                        <i className="ti ti-shopping-bag" />
+                        {cart.some((c) => c.product.id === detailsCartItem.product.id) ? "Update Cart" : "Add to Cart"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

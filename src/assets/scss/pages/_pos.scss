@@ -1188,28 +1188,32 @@
   }
 }
 
-/* Theme2 Customer Offcanvas (#add_order) */
-.offcanvas#add_order {
-  width: 500px !important;
-  max-width: 500px !important;
+/* Theme2 Customer Offcanvas (#add_order) & Edit Product Drawer (#edit_product_drawer) */
+.offcanvas#add_order,
+.offcanvas#edit_product_drawer,
+.offcanvas.pos-edit-product-drawer {
+  width: 480px !important;
+  max-width: 480px !important;
   min-width: unset !important;
-  background-color: #ffffff;
+  background-color: #ffffff !important;
   color: #111827;
-  border: 1px solid #e5e7eb !important;
+  border: none !important;
+  border-left: 1px solid #f1f5f9 !important;
   position: fixed !important;
-  top: 12px !important;
-  bottom: 12px !important;
-  right: 12px !important;
-  height: calc(100vh - 24px) !important;
-  max-height: calc(100vh - 24px) !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  left: auto !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
   margin: 0 !important;
-  border-radius: 12px !important;
-  box-shadow: -4px 6px 30px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 0 !important;
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.08) !important;
   z-index: 1065 !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
 
   @media (max-width: 576px) {
     top: 0 !important;
@@ -1227,15 +1231,15 @@
   }
 
   .offcanvas-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 20px 24px 12px 24px;
+    border-bottom: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
     background: #ffffff;
     .offcanvas-title {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 700;
       color: #111827;
     }
@@ -1244,10 +1248,12 @@
   .orders-tab {
     flex-shrink: 0;
     background: #ffffff;
+    padding: 8px 24px 14px 24px;
+    border-bottom: none;
   }
 
   .offcanvas-body {
-    padding: 0;
+    padding: 0 24px;
     overflow-y: auto;
     overflow-x: hidden;
     flex: 1 1 auto;
@@ -1256,12 +1262,12 @@
   }
 
   .offcanvas-footer {
-    padding: 14px 20px;
-    border-top: 1px solid #e5e7eb;
+    padding: 16px 24px;
+    border-top: 1px solid #f1f5f9;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 12px;
     background: #ffffff;
     flex-shrink: 0;
     z-index: 5;
@@ -1274,17 +1280,18 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    font-size: 16px;
+    font-size: 14px;
     opacity: 1;
     padding: 0;
-    transition: all 0.3s ease-in-out;
-    border: 1px solid #e5e7eb;
-    background: transparent;
-    color: #4b5563;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #64748b;
+    cursor: pointer;
     &:hover {
-      background: #ef4444;
-      color: #ffffff;
-      border-color: #ef4444;
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
     }
   }
 }

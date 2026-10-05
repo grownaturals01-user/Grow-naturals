@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   useTheme,
   THEME_COLOR_PRESETS,
@@ -33,6 +34,9 @@ import {
 } from '../../utils/imagepath';
 
 export const ThemeCustomizerDrawer: React.FC = () => {
+  const location = useLocation();
+  const isPosPage = location.pathname.startsWith('/pos') || location.pathname.includes('/pos');
+
   const {
     dataLayout,
     setDataLayout,
@@ -144,6 +148,10 @@ export const ThemeCustomizerDrawer: React.FC = () => {
     { id: 'chromeyellow', label: 'Chrome Yellow', color: '#00B894' },
     { id: 'orange', label: 'Deep Orange', color: '#E04F16' },
   ];
+
+  if (isPosPage) {
+    return null;
+  }
 
   return (
     <>

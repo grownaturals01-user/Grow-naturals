@@ -137,7 +137,6 @@ const FeatureModule = () => {
     return (
       <div className={`main-wrapper ${toggleHeader ? "header-collapse" : ""}`}>
         <PosHeader />
-        <ThemeSettings />
         <Outlet />
       </div>
     );

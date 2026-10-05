@@ -4,15 +4,13 @@ import { Tooltip } from 'antd';
 import { Settings, User } from 'react-feather';
 import { all_routes } from '../../routes/all_routes';
 import {
-  logo,
-  logoWhite,
-  logoSmall,
   store_01,
   store_02,
   store_03,
   store_04,
   avator1,
 } from '../../utils/imagepath';
+import gnFullLogo from '../../assets/grownaturals-full-logo.jpeg';
 import { useBusiness } from '../../context/BusinessContext';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
@@ -90,15 +88,27 @@ const PosHeader: React.FC = () => {
       {/* Header */}
       <div className="header pos-header">
         {/* Logo */}
-        <div className="header-left active">
-          <Link to="/dashboard" className="logo logo-normal">
-            <img src={logo} alt="Logo" style={{ maxHeight: '42px' }} />
+        <div className="header-left active d-flex align-items-center">
+          <Link to="/dashboard" className="logo logo-normal d-flex align-items-center">
+            <img
+              src={gnFullLogo}
+              alt="Grow Naturals"
+              style={{ maxHeight: '42px', height: '40px', width: 'auto', objectFit: 'contain' }}
+            />
           </Link>
-          <Link to="/dashboard" className="logo logo-white">
-            <img src={logoWhite} alt="Logo" style={{ maxHeight: '42px' }} />
+          <Link to="/dashboard" className="logo logo-white d-flex align-items-center">
+            <img
+              src={gnFullLogo}
+              alt="Grow Naturals"
+              style={{ maxHeight: '42px', height: '40px', width: 'auto', objectFit: 'contain' }}
+            />
           </Link>
-          <Link to="/dashboard" className="logo-small">
-            <img src={logoSmall} alt="Logo" style={{ maxHeight: '42px' }} />
+          <Link to="/dashboard" className="logo-small d-flex align-items-center">
+            <img
+              src={gnFullLogo}
+              alt="Grow Naturals"
+              style={{ maxHeight: '36px', height: '36px', width: 'auto', objectFit: 'contain' }}
+            />
           </Link>
         </div>
         {/* /Logo */}
@@ -111,6 +121,16 @@ const PosHeader: React.FC = () => {
         </Link>
         {/* Header Menu */}
         <ul className="nav user-menu">
+          {/* Brand Logo left to the timer */}
+          <li className="nav-item pos-brand-logo me-2 d-flex align-items-center">
+            <Link to="/dashboard" className="d-flex align-items-center" style={{ textDecoration: 'none' }}>
+              <img
+                src={gnFullLogo}
+                alt="Grow Naturals"
+                style={{ height: '38px', maxHeight: '38px', width: 'auto', objectFit: 'contain', display: 'block' }}
+              />
+            </Link>
+          </li>
           {/* Time */}
           <li className="nav-item time-nav">
             <span className="bg-teal text-white d-inline-flex align-items-center">

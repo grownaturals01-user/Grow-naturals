@@ -56943,7 +56943,7 @@ th.fixed-width {
 }
 .pos-products .product-info .pro-img {
   background-color: #f9fafb;
-  border-radius: 10px;
+  border-radius: 0px;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -56958,6 +56958,7 @@ th.fixed-width {
   padding: 10px;
 }
 .pos-products .product-info .pro-img img {
+  border-radius: 0px;
   -webkit-transition: all 0.5s ease;
   -ms-transition: all 0.5s ease;
   transition: all 0.5s ease;
