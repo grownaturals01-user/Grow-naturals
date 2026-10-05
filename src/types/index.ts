@@ -18,6 +18,10 @@ export interface Business {
   currency: string;
   default_low_stock: number;
   is_taxable?: boolean;
+  bank_account_number?: string;
+  bank_ifsc?: string;
+  bank_name?: string;
+  upi_id?: string;
   created_at?: string;
 }
 

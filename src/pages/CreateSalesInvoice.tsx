@@ -957,6 +957,7 @@ export const CreateSalesInvoice: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>(SEED_CUSTOMERS);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [searchCustomerQuery, setSearchCustomerQuery] = useState('');
   const [highlightedPartyIndex, setHighlightedPartyIndex] = useState<number>(0);
 
@@ -1020,12 +1021,12 @@ export const CreateSalesInvoice: React.FC = () => {
         : '1. Plant saplings and live flora are perishable goods and non-returnable once received in good condition.\n2. Proper watering and sunlight instructions must be followed.'
     );
     setBankDetails({
-      account_number: businessId === 'grow-naturals' ? '919020090453200' : '50200084729104',
-      ifsc_code: businessId === 'grow-naturals' ? 'UTIB0003648' : 'HDFC0001298',
-      bank_name: businessId === 'grow-naturals' ? 'Axis Bank, Teppakulam Madurai' : 'HDFC Bank, K.K Nagar Branch',
+      account_number: activeBusiness?.bank_account_number || (businessId === 'grow-naturals' ? '919020090453200' : '50200084729104'),
+      ifsc_code: activeBusiness?.bank_ifsc || (businessId === 'grow-naturals' ? 'UTIB0003648' : 'HDFC0001298'),
+      bank_name: activeBusiness?.bank_name || (businessId === 'grow-naturals' ? 'Axis Bank, Teppakulam Madurai' : 'HDFC Bank, K.K Nagar Branch'),
       account_holder: activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm')
     });
-    setUpiId(businessId === 'grow-naturals' ? 'grownaturals@axisbank' : 'nikhleshnursery@hdfcbank');
+    setUpiId(activeBusiness?.upi_id || (businessId === 'grow-naturals' ? 'grownaturals@axisbank' : 'nikhleshnursery@hdfcbank'));
     setUpiPayeeName(activeBusiness?.name || (businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery & Farm'));
 
     // Fetch next sequential invoice number from server
@@ -1041,29 +1042,27 @@ export const CreateSalesInvoice: React.FC = () => {
       });
   }, [businessId, activeBusiness, isEditMode]);
 
-  // Load existing customers, products, categories and check AI engine status from database
+  // Load existing customers, products, categories, projects and check AI engine status from database in real-time
   useEffect(() => {
+    let isMounted = true;
     const loadData = async () => {
       try {
-        const [custRes, prodRes, catRes, aiRes] = await Promise.all([
-          api.get<Customer[]>('/customers'),
-          api.get<Product[]>('/products', businessId && businessId !== 'all' ? { business_id: businessId } : undefined),
-          api.get<any[]>('/categories', businessId && businessId !== 'all' ? { business_id: businessId } : undefined),
+        const [custRes, prodRes, catRes, projRes, aiRes] = await Promise.all([
+          api.get<Customer[]>('/customers').catch(() => []),
+          api.get<Product[]>('/products', businessId && businessId !== 'all' ? { business_id: businessId } : undefined).catch(() => []),
+          api.get<any[]>('/categories', businessId && businessId !== 'all' ? { business_id: businessId } : undefined).catch(() => []),
+          api.get<any[]>('/projects', businessId && businessId !== 'all' ? { business_id: businessId } : undefined).catch(() => []),
           api.get('/invoices/ai-status').catch(() => null)
         ]);
 
+        if (!isMounted) return;
+
         if (Array.isArray(custRes) && custRes.length > 0) {
-          const names = new Set(custRes.map((c) => (c.name || '').toLowerCase().trim()));
-          const extra = SEED_CUSTOMERS.filter((s) => !names.has(s.name.toLowerCase().trim()));
-          setCustomers([...custRes, ...extra]);
-        } else {
-          setCustomers(SEED_CUSTOMERS);
+          setCustomers(custRes);
         }
 
         if (Array.isArray(prodRes)) {
           setProducts(prodRes);
-        } else {
-          setProducts([]);
         }
 
         if (Array.isArray(catRes)) {
@@ -1071,8 +1070,10 @@ export const CreateSalesInvoice: React.FC = () => {
           if (catRes.length > 0) {
             setNewProdCategory((prev) => prev || catRes[0].name);
           }
-        } else {
-          setCategories([]);
+        }
+
+        if (Array.isArray(projRes)) {
+          setProjects(projRes);
         }
 
         if (aiRes) {
@@ -1087,6 +1088,9 @@ export const CreateSalesInvoice: React.FC = () => {
       }
     };
     loadData();
+    return () => {
+      isMounted = false;
+    };
   }, [businessId]);
 
   const openAiModal = () => {
@@ -2943,6 +2947,36 @@ export const CreateSalesInvoice: React.FC = () => {
                     ) : (
                       /* STATE 3: Selected Party State */
                       <>
+                        {projectId && (
+                          <div
+                            style={{
+                              marginBottom: '8px',
+                              padding: '6px 10px',
+                              background: 'rgba(34, 197, 94, 0.08)',
+                              border: '1px solid rgba(34, 197, 94, 0.3)',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              color: '#15803d'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <FolderKanban size={14} />
+                              <span>Project: {projects.find((p) => p.id === projectId)?.title || 'Linked Project'}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setProjectId('')}
+                              style={{ border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                              Unlink
+                            </button>
+                          </div>
+                        )}
+
                         {/* Action buttons row: Change Party */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                           <button
