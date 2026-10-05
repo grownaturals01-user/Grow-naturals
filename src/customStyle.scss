@@ -2816,7 +2816,7 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
    UNIVERSAL MOBILE RESPONSIVE SIDEBAR (Fixes all layout modes)
    ========================================================================== */
 @media (max-width: 991.98px) {
-  /* 1. Header & Mobile Toggle Button */
+  /* 1. Header & Mobile Toggle Button matching @theme */
   .header {
     display: block !important;
     position: fixed !important;
@@ -2825,7 +2825,7 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
     right: 0 !important;
     width: 100% !important;
     height: 60px !important;
-    z-index: 1030 !important;
+    z-index: 1042 !important;
     background: #ffffff !important;
 
     .main-header {
@@ -2845,35 +2845,92 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
 
     .mobile_btn,
     #mobile_btn {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+      display: block !important;
       position: absolute !important;
-      left: 10px !important;
+      left: 0 !important;
       top: 0 !important;
-      bottom: 0 !important;
       height: 60px !important;
-      width: 44px !important;
-      z-index: 1035 !important;
+      line-height: 60px !important;
+      width: 60px !important;
+      padding: 0 15px !important;
+      z-index: 1045 !important;
       cursor: pointer !important;
-      color: #333333 !important;
+      color: #fe9f43 !important;
 
       .bar-icon {
-        display: inline-block;
-        width: 21px;
+        display: inline-block !important;
+        width: 31px !important;
+        margin-top: 20px !important;
+
         span {
-          background-color: #333333;
-          display: block;
-          float: left;
-          height: 2px;
-          margin-bottom: 5px;
-          width: 21px;
-          border-radius: 2px;
-          transition: all 0.5s;
+          background-color: #fe9f43 !important;
+          display: block !important;
+          float: left !important;
+          height: 3px !important;
+          margin-bottom: 7px !important;
+          width: 31px !important;
+          border-radius: 2px !important;
+          transition: all 0.5s ease !important;
+
+          &:nth-child(2) {
+            width: 16px !important;
+          }
+
           &:last-child {
-            margin-bottom: 0;
+            margin-bottom: 0 !important;
           }
         }
+      }
+    }
+  }
+
+  // Closing hamburger animation when menu is opened (matches @theme)
+  html.menu-opened,
+  body.menu-opened,
+  .menu-opened {
+    .slide-nav,
+    &.slide-nav,
+    & {
+      .header .mobile_btn .bar-icon,
+      .header #mobile_btn .bar-icon,
+      .mobile_btn .bar-icon,
+      .bar-icon {
+        display: inline-block !important;
+        width: 31px !important;
+        margin-top: 20px !important;
+
+        span {
+          &:first-child {
+            position: relative !important;
+            top: 10px !important;
+            transform: rotate(45deg) !important;
+            -webkit-transform: rotate(45deg) !important;
+          }
+
+          &:nth-child(2) {
+            display: none !important;
+          }
+
+          &:last-child {
+            position: relative !important;
+            top: 0 !important;
+            transform: rotate(135deg) !important;
+            -webkit-transform: rotate(135deg) !important;
+          }
+        }
+      }
+    }
+  }
+
+  // Dark Theme Mobile Header & Hamburger
+  [data-theme="dark"] .header {
+    background: #0d0d0d !important;
+    border-bottom: 1px solid #1f2228 !important;
+
+    .mobile_btn,
+    #mobile_btn {
+      .bar-icon span {
+        background-color: #fe9f43 !important;
       }
     }
   }
@@ -2889,7 +2946,7 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
     .mobile_btn,
     #mobile_btn {
       left: auto !important;
-      right: 10px !important;
+      right: 0 !important;
     }
   }
 
@@ -2901,58 +2958,39 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
     display: none !important;
   }
 
-  /* 3. Base closed state for sidebar on mobile across ALL layout selections */
+  /* 3. Base closed state for sidebar on mobile matching @theme */
   #sidebar,
   .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol) {
     display: block !important;
     position: fixed !important;
-    top: 0 !important;
+    top: 60px !important;
     bottom: 0 !important;
     left: 0 !important;
     right: auto !important;
     margin-left: -575px !important;
     margin-right: 0 !important;
-    width: 260px !important;
-    max-width: 85vw !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
-    z-index: 1050 !important;
+    width: 252px !important;
+    height: calc(100vh - 60px) !important;
+    max-height: calc(100vh - 60px) !important;
+    z-index: 1041 !important;
     background-color: #ffffff !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     border-right: 1px solid #e8ebed !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: all 0.4s ease !important;
     transform: none !important;
 
-    // Header inside sidebar
+    // In @theme, sidebar logo is hidden on mobile because the top header contains the brand & closing hamburger
     .sidebar-logo {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: space-between !important;
-      height: 60px !important;
-      padding: 0 16px !important;
-      border-bottom: 1px solid #e8ebed !important;
-
-      .logo {
-        display: block !important;
-        img {
-          max-height: 38px;
-        }
-      }
-      .logo-small {
-        display: none !important;
-      }
-      #toggle_btn {
-        display: none !important;
-      }
+      display: none !important;
     }
 
-    // Sidebar menu items and labels visibility
+    // Sidebar menu items and labels visibility matching @theme
     .sidebar-menu {
       display: block !important;
-      padding: 12px 16px !important;
+      padding: 24px !important;
       
       .nav-label,
       .nav-section-title,
@@ -2972,7 +3010,7 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
           display: flex !important;
           align-items: center !important;
           width: 100% !important;
-          padding: 10px 14px !important;
+          padding: 10px 15px !important;
 
           span {
             display: inline-block !important;
@@ -2980,6 +3018,19 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
             visibility: visible !important;
           }
         }
+      }
+    }
+  }
+
+  // Mobile sidebar width on mobile phones <= 575.98px matching @theme
+  @media (max-width: 575.98px) {
+    #sidebar,
+    .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol) {
+      width: 100% !important;
+
+      .slimScrollDiv,
+      [data-simplebar] {
+        width: 100% !important;
       }
     }
   }
@@ -2999,7 +3050,7 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
     border-left: 1px solid #e8ebed !important;
   }
 
-  /* 4. OPEN state for mobile sidebar */
+  /* 4. OPEN state for mobile sidebar matching @theme */
   .main-wrapper.slide-nav #sidebar,
   .slide-nav #sidebar,
   .slide-nav .sidebar:not(.sidebar-horizontal):not(.sidebar-twocol),
@@ -3019,7 +3070,8 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
     right: auto !important;
     transform: none !important;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.25) !important;
-    z-index: 1050 !important;
+    z-index: 1041 !important;
+    transition: all 0.4s ease !important;
   }
 
   // RTL Open State
@@ -3035,18 +3087,19 @@ div.p-datepicker table td.p-datepicker-today > span.p-highlight {
     margin-left: 0 !important;
     right: 0 !important;
     left: auto !important;
+    transition: all 0.4s ease !important;
   }
 
-  /* 5. Sidebar Overlay on mobile */
+  /* 5. Sidebar Overlay on mobile matching @theme */
   .sidebar-overlay {
     display: none;
     position: fixed !important;
-    top: 0 !important;
+    top: 60px !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
     width: 100vw !important;
-    height: 100vh !important;
+    height: calc(100vh - 60px) !important;
     background-color: rgba(0, 0, 0, 0.6) !important;
     z-index: 1040 !important;
     backdrop-filter: blur(2px);
@@ -3326,91 +3379,14 @@ body.mini-sidebar:not(.layout-hovered):not([data-layout="hovered"]) {
   }
 }
 
-/* Mobile Screens (Under 992px) */
+/* Mobile Screens (Under 992px) - Match @theme: sidebar-logo is hidden on mobile */
 .sidebar-close-btn {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color: #334155;
-  cursor: pointer;
-  padding: 0;
-  margin-left: auto;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #e2e8f0;
-    color: #0f172a;
-  }
+  display: none !important;
 }
 
 @media (max-width: 991.98px) {
   .sidebar .sidebar-logo {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    padding: 12px 16px !important;
-    height: 60px !important;
-    width: 100% !important;
-
-    #toggle_btn {
-      display: none !important;
-    }
-
-    .sidebar-close-btn {
-      display: flex !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-    }
-
-    .logo.logo-normal {
-      display: inline-block !important;
-      max-width: 150px !important;
-      img {
-        max-height: 38px !important;
-        width: auto !important;
-        object-fit: contain !important;
-      }
-    }
-    .logo.logo-white,
-    .logo-white,
-    .logo-small,
-    .logo-small-white {
-      display: none !important;
-    }
-  }
-
-  [data-theme="dark"] .sidebar .sidebar-logo {
-    .sidebar-close-btn {
-      background: #1e293b;
-      border-color: #334155;
-      color: #cbd5e1;
-
-      &:hover {
-        background: #334155;
-        color: #ffffff;
-      }
-    }
-
-    .logo.logo-normal,
-    .logo-small,
-    .logo-small-white {
-      display: none !important;
-    }
-    .logo.logo-white,
-    .logo-white {
-      display: inline-block !important;
-      max-width: 150px !important;
-      img {
-        max-height: 38px !important;
-        width: auto !important;
-        object-fit: contain !important;
-      }
-    }
+    display: none !important;
   }
 }
 

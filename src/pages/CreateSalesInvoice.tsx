@@ -1040,7 +1040,7 @@ export const CreateSalesInvoice: React.FC = () => {
       .catch((err) => {
         console.warn('Could not fetch next invoice number:', err);
       });
-  }, [businessId, activeBusiness, isEditMode]);
+  }, [businessId, isEditMode]);
 
   // Load existing customers, products, categories, projects and check AI engine status from database in real-time
   useEffect(() => {

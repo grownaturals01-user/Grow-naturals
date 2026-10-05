@@ -166,22 +166,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             <Link to={route.newdashboard} className="logo logo-normal">
               <img src={logo} alt="Grow Naturals" />
             </Link>
+            <Link to={route.newdashboard} className="logo logo-white">
+              <img src={logoWhite} alt="Grow Naturals" />
+            </Link>
             <Link to={route.newdashboard} className="logo-small">
               <img src={logoSmall} alt="Grow Naturals" />
+            </Link>
+            <Link to={route.newdashboard} className="logo-small-white">
+              <img src={logoSmallWhite} alt="Grow Naturals" />
             </Link>
             <Link id="toggle_btn" to="#" onClick={handlesidebar}>
               <i className="feather icon-chevrons-left feather-16" />
             </Link>
-            <button
-              type="button"
-              id="sidebar-close"
-              className="sidebar-close-btn"
-              onClick={closeMobileSidebar}
-              title="Close Sidebar"
-              aria-label="Close Sidebar"
-            >
-              <i className="feather icon-x feather-16" />
-            </button>
           </div>
           {/* /Logo */}
         </>

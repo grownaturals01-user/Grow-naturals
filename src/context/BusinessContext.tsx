@@ -2,7 +2,7 @@
  * GrowNaturals Billing — Dynamic Multi-Business Context & Header Switcher
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { Business, BusinessId } from '../types';
 import { api, getActiveBusinessId, setActiveBusinessId } from '../services/api';
 
@@ -19,6 +19,22 @@ interface BusinessContextType {
   deleteBusiness: (id: string) => Promise<void>;
 }
 
+const allBusinessObj: Business = {
+  id: 'all',
+  name: 'All Businesses',
+  legal_name: 'All Combined Businesses',
+  gstin: '',
+  address: 'Central Aggregated System',
+  phone: '',
+  email: '',
+  invoice_prefix: 'ALL-',
+  invoice_footer: '',
+  logo_url: '',
+  currency: 'INR',
+  default_low_stock: 10,
+  is_taxable: true
+};
+
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -28,22 +44,6 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [business, setBusiness] = useState<Business | null>(null);
-
-  const allBusinessObj: Business = {
-    id: 'all',
-    name: 'All Businesses',
-    legal_name: 'All Combined Businesses',
-    gstin: '',
-    address: 'Central Aggregated System',
-    phone: '',
-    email: '',
-    invoice_prefix: 'ALL-',
-    invoice_footer: '',
-    logo_url: '',
-    currency: 'INR',
-    default_low_stock: 10,
-    is_taxable: true
-  };
 
   const fetchBusinesses = useCallback(async () => {
     try {
@@ -108,29 +108,28 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await fetchBusinesses();
   };
 
-  const defaultActive: Business = businessId === 'all'
-    ? allBusinessObj
-    : {
-        id: businessId,
-        name: businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery',
-        legal_name: businessId === 'grow-naturals' ? 'Grow Naturals Private Limited' : 'Nikhlesh Nursery & Farm',
-        gstin: businessId === 'grow-naturals' ? '27AAAAA0000A1Z5' : '',
-        address: 'No. 19/7, Annasalai, K K Nagar, 80 Feet Road, Madurai-625020, Tamil Nadu',
-        phone: businessId === 'grow-naturals' ? '+91 98220 12345' : '+91 98220 54321',
-        email: businessId === 'grow-naturals' ? 'billing@grownaturals.in' : 'sales@nikhleshnursery.in',
-        invoice_prefix: businessId === 'grow-naturals' ? 'GN-' : 'NN-',
-        invoice_footer: businessId === 'grow-naturals' ? 'Thank you for choosing Grow Naturals! All goods subject to warranty.' : 'Thank you for choosing Nikhlesh Nursery! 100% genuine saplings and plants.',
-        logo_url: '',
-        currency: 'INR',
-        default_low_stock: 10,
-        is_taxable: businessId === 'grow-naturals'
-      };
-
-  const activeBusiness: Business =
-    business ||
-    (businessId === 'all' ? allBusinessObj : businesses.find(b => b.id === businessId)) ||
-    businesses[0] ||
-    defaultActive;
+  const activeBusiness: Business = useMemo(() => {
+    if (business) return business;
+    if (businessId === 'all') return allBusinessObj;
+    const found = businesses.find((b) => b.id === businessId);
+    if (found) return found;
+    if (businesses.length > 0) return businesses[0];
+    return {
+      id: businessId,
+      name: businessId === 'grow-naturals' ? 'Grow Naturals' : 'Nikhlesh Nursery',
+      legal_name: businessId === 'grow-naturals' ? 'Grow Naturals Private Limited' : 'Nikhlesh Nursery & Farm',
+      gstin: businessId === 'grow-naturals' ? '27AAAAA0000A1Z5' : '',
+      address: 'No. 19/7, Annasalai, K K Nagar, 80 Feet Road, Madurai-625020, Tamil Nadu',
+      phone: businessId === 'grow-naturals' ? '+91 98220 12345' : '+91 98220 54321',
+      email: businessId === 'grow-naturals' ? 'billing@grownaturals.in' : 'sales@nikhleshnursery.in',
+      invoice_prefix: businessId === 'grow-naturals' ? 'GN00' : 'NN00',
+      invoice_footer: businessId === 'grow-naturals' ? 'Thank you for choosing Grow Naturals! All goods subject to warranty.' : 'Thank you for choosing Nikhlesh Nursery! 100% genuine saplings and plants.',
+      logo_url: '',
+      currency: 'INR',
+      default_low_stock: 10,
+      is_taxable: businessId === 'grow-naturals'
+    };
+  }, [business, businessId, businesses]);
 
   const isTaxable = activeBusiness.is_taxable !== undefined
     ? Boolean(activeBusiness.is_taxable)
