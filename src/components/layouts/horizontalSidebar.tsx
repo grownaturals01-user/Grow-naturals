@@ -21,10 +21,6 @@ const HorizontalSidebar = () => {
     location.pathname.includes("sales/create") ||
     location.pathname.includes("sales/new");
 
-  if (isInvoiceCreatePage) {
-    return null;
-  }
-
   /* ================= TOGGLES ================= */
 
   const showMenu = (title: string) => {
@@ -100,6 +96,10 @@ const HorizontalSidebar = () => {
   };
 
   /* ================= RENDER ================= */
+
+  if (isInvoiceCreatePage) {
+    return null;
+  }
 
   return (
     <div className="sidebar sidebar-horizontal" id="horizontal-menu" ref={sidebarRef}>

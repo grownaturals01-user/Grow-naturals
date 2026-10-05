@@ -60,10 +60,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     Location.pathname.includes("sales/create") ||
     Location.pathname.includes("sales/new");
 
-  if (isInvoiceCreatePage) {
-    return null;
-  }
-
   const toggleSidebar = (title: string) => {
     setSubopen((prev) => (prev === title ? "" : title));
   };
@@ -150,6 +146,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     document?.querySelectorAll(".sidebar-overlay")?.forEach((el) => el.classList.remove("opened"));
     document?.documentElement?.classList?.remove("menu-opened");
   };
+
+  if (isInvoiceCreatePage) {
+    return null;
+  }
 
   return (
     <div>

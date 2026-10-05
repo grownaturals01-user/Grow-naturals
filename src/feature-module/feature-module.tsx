@@ -116,6 +116,15 @@ const FeatureModule = () => {
     )
   );
 
+  const isInvoiceCreatePage =
+    location.pathname.includes("create-sales-invoice") ||
+    location.pathname.includes("add-sales") ||
+    location.pathname.includes("create-sales") ||
+    location.pathname.includes("invoices/create") ||
+    location.pathname.includes("invoices/new") ||
+    location.pathname.includes("sales/create") ||
+    location.pathname.includes("sales/new");
+
   if (isUnAuthRoute) {
     return (
       <div >
@@ -172,9 +181,13 @@ const FeatureModule = () => {
                   className={`main-wrapper ${data ? "header-collapse" : ""}`}
                 >
                   <Header />
-                  <Sidebar />
-                  <TwoColumnSidebar />
-                  <HorizontalSidebar />
+                  {!isInvoiceCreatePage && (
+                    <>
+                      <Sidebar />
+                      <TwoColumnSidebar />
+                      <HorizontalSidebar />
+                    </>
+                  )}
                   <Outlet />
                   {location.pathname.includes("layout") ? (
                     <></>
