@@ -43,6 +43,7 @@ interface Product {
   price?: number;
   wholesale_price?: number;
   cost_price?: number;
+  purchase_price?: number;
   stock_quantity?: number;
   shop_stock?: number;
   warehouse_stock?: number;
