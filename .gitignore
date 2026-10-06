@@ -35,5 +35,7 @@ src_backup_original/
 Frontend/
 theme/
 theme2/
+react/
+rest-pos/
 test-*.js
 test-*.ts

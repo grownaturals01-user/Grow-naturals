@@ -17,6 +17,51 @@ async function getNextInvoiceNumber(db: any, businessId: string): Promise<string
   return `${prefix}${nextNum}`;
 }
 
+// GET /api/pos/product-sales-stats?product_id=...&days=...
+router.get('/product-sales-stats', async (req: Request, res: Response) => {
+  try {
+    const { product_id, product_name, days } = req.query;
+    const numDays = Math.max(1, parseInt(String(days)) || 30);
+    const db = await getDb();
+    const bizId = await resolveBusinessId(db, (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all');
+
+    const result = await db.query(
+      `SELECT 
+         ii.product_name,
+         ii.unit_price,
+         COALESCE(SUM(ii.quantity), 0)::integer as sold_quantity,
+         COALESCE(SUM(ii.total), 0)::numeric as sold_amount
+       FROM invoice_items ii
+       JOIN invoices i ON ii.invoice_id = i.id
+       WHERE (ii.product_id = $1 OR ii.product_name ILIKE $2)
+         AND ($3 = 'all' OR $3 = 'combined' OR i.business_id = $3)
+         AND i.created_at >= CURRENT_DATE - ($4 || ' days')::INTERVAL
+       GROUP BY ii.product_name, ii.unit_price`,
+      [product_id || '', `%${product_name || ''}%`, bizId, numDays]
+    );
+
+    let totalSold = 0;
+    const items = result.rows.map((r: any) => {
+      const q = Number(r.sold_quantity) || 0;
+      totalSold += q;
+      return {
+        product_name: r.product_name,
+        unit_price: Number(r.unit_price) || 0,
+        sold_quantity: q,
+        sold_amount: Number(r.sold_amount) || 0
+      };
+    });
+
+    res.json({
+      days: numDays,
+      total_sold: totalSold,
+      items
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/pos/checkout
 router.post('/checkout', async (req: Request, res: Response) => {
   try {
