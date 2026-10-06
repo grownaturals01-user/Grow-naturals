@@ -29,6 +29,8 @@ import { api, getActiveBusinessId } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useBusiness } from "../../context/BusinessContext";
 import confetti from "canvas-confetti";
+import { TbUserPause } from "react-icons/tb";
+import { IoIosPause } from "react-icons/io";
 
 interface Product {
   id: string;
@@ -71,6 +73,21 @@ interface CartItem {
   selectedAddons?: Array<{ id: string; name: string; price: number }>;
 }
 
+interface ShippingDetails {
+  fromName: string;
+  fromPhone: string;
+  fromAddress: string;
+  fromCity: string;
+  fromPincode: string;
+  toName: string;
+  toPhone: string;
+  toAddress: string;
+  toCity: string;
+  toState: string;
+  toPincode: string;
+  notes: string;
+}
+
 interface HeldBill {
   id: string;
   orderNumber: string;
@@ -80,6 +97,18 @@ interface HeldBill {
   items: CartItem[];
   subtotal: number;
   grandTotal: number;
+  shippingCost?: number;
+  shippingDetails?: ShippingDetails;
+  enabledAddOns?: { shipping: boolean; coupon: boolean; complimentary: boolean };
+  discountPercent?: number;
+  orderDiscountType?: "percentage" | "fixed";
+  orderTaxPercent?: number;
+  couponCode?: string;
+  couponDiscount?: number;
+  couponDiscountType?: "percentage" | "fixed";
+  isComplimentaryFull?: boolean;
+  complimentaryAmount?: number;
+  complimentaryItemKeys?: string[];
 }
 
 const fallbackProductImages = [
@@ -263,12 +292,336 @@ const Pos: React.FC = () => {
   const [tempTax, setTempTax] = useState<string>("0");
   const [shippingModalOpen, setShippingModalOpen] = useState<boolean>(false);
   const [tempShipping, setTempShipping] = useState<string>("0");
+  const [shippingDetails, setShippingDetails] = useState<ShippingDetails>({
+    fromName: "",
+    fromPhone: "",
+    fromAddress: "",
+    fromCity: "",
+    fromPincode: "",
+    toName: "",
+    toPhone: "",
+    toAddress: "",
+    toCity: "",
+    toState: "",
+    toPincode: "",
+    notes: "",
+  });
+  const [tempShippingDetails, setTempShippingDetails] = useState<ShippingDetails>({
+    fromName: "",
+    fromPhone: "",
+    fromAddress: "",
+    fromCity: "",
+    fromPincode: "",
+    toName: "",
+    toPhone: "",
+    toAddress: "",
+    toCity: "",
+    toState: "",
+    toPincode: "",
+    notes: "",
+  });
+
+  const openShippingDrawer = () => {
+    setTempShipping(shippingCost.toString());
+    setTempShippingDetails({ ...shippingDetails });
+    setShippingModalOpen(true);
+  };
+
+  // Add-Ons Drawer State & Selections
+  const [addOnsDrawerOpen, setAddOnsDrawerOpen] = useState<boolean>(false);
+  const [enabledAddOns, setEnabledAddOns] = useState<{
+    shipping: boolean;
+    coupon: boolean;
+    complimentary: boolean;
+  }>({
+    shipping: false,
+    coupon: false,
+    complimentary: false,
+  });
+  const [tempAddOns, setTempAddOns] = useState<{
+    shipping: boolean;
+    coupon: boolean;
+    complimentary: boolean;
+  }>({
+    shipping: false,
+    coupon: false,
+    complimentary: false,
+  });
+
+  // Add-on specific values & edit modals
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [couponDiscount, setCouponDiscount] = useState<number>(0);
+  const [couponDiscountType, setCouponDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [couponModalOpen, setCouponModalOpen] = useState<boolean>(false);
+  const [tempCouponCode, setTempCouponCode] = useState<string>("");
+  const [tempCouponDiscount, setTempCouponDiscount] = useState<string>("0");
+  const [tempCouponType, setTempCouponType] = useState<"percentage" | "fixed">("percentage");
+
+  const [isComplimentaryFull, setIsComplimentaryFull] = useState<boolean>(false);
+  const [complimentaryAmount, setComplimentaryAmount] = useState<number>(0);
+  const [complimentaryItemKeys, setComplimentaryItemKeys] = useState<string[]>([]);
+  const [complimentaryModalOpen, setComplimentaryModalOpen] = useState<boolean>(false);
+  const [tempCompFull, setTempCompFull] = useState<boolean>(false);
+  const [tempCompAmount, setTempCompAmount] = useState<string>("0");
+  const [tempCompItemKeys, setTempCompItemKeys] = useState<string[]>([]);
+
+  const openComplimentaryDrawer = () => {
+    setCompSearchQuery("");
+    setComplimentaryModalOpen(true);
+  };
 
   // Orders & Held Bills Modal
   const [ordersModalOpen, setOrdersModalOpen] = useState<boolean>(false);
   const [activeOrdersTab, setActiveOrdersTab] = useState<"held" | "recent">("held");
   const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
+  const [expandedHeldOrderId, setExpandedHeldOrderId] = useState<string | null>(null);
+
+  // POS Toast Notification
+  const [posToast, setPosToast] = useState<{
+    show: boolean;
+    type: "warning" | "success" | "info" | "danger";
+    message: string;
+  }>({
+    show: false,
+    type: "warning",
+    message: "",
+  });
+
+  const showPosToast = (
+    message: string,
+    type: "warning" | "success" | "info" | "danger" = "warning"
+  ) => {
+    setPosToast({ show: true, type, message });
+    setTimeout(() => {
+      setPosToast((prev) => ({ ...prev, show: false }));
+    }, 3200);
+  };
+
+  // Complimentary Products Catalog & Handlers
+  const [compActiveFilter, setCompActiveFilter] = useState<"all" | "free" | "paid">("all");
+  const [compSearchQuery, setCompSearchQuery] = useState<string>("");
+  const [compItemQuantities, setCompItemQuantities] = useState<Record<string, number>>({});
+
+  const complimentaryCatalog = useMemo(
+    () => [
+      {
+        id: "comp-ceramic-pot-gift",
+        name: "Ceramic Planter Pot (Gift)",
+        type: "free" as const,
+        price: 0,
+        originalPrice: 280,
+        category: "Planters & Pots",
+        conditionNote: "Free promo gift for orders over ₹5,000",
+        unit: "Pcs",
+      },
+      {
+        id: "comp-holy-tulsi",
+        name: "Tulsi (Holy Basil) Sapling",
+        type: "free" as const,
+        price: 0,
+        originalPrice: 60,
+        category: "Live Plants",
+        conditionNote: "Complimentary green welcome gift",
+        unit: "Pcs",
+      },
+      {
+        id: "comp-organic-booster",
+        name: "Organic Bio-Nutrient Booster (50g)",
+        type: "free" as const,
+        price: 0,
+        originalPrice: 50,
+        category: "Care & Nutrition",
+        conditionNote: "Free trial sample sachet",
+        unit: "Pkt",
+      },
+      {
+        id: "comp-care-handbook",
+        name: "Houseplant Care Handbook",
+        type: "free" as const,
+        price: 0,
+        originalPrice: 40,
+        category: "Guides & Accessories",
+        conditionNote: "Complimentary gardening guide",
+        unit: "Book",
+      },
+      {
+        id: "comp-terracotta-mini",
+        name: "Terracotta Mini Succulent Pot",
+        type: "free" as const,
+        price: 0,
+        originalPrice: 90,
+        category: "Planters & Pots",
+        conditionNote: "Free promotional miniature pot",
+        unit: "Pcs",
+      },
+      {
+        id: "comp-gift-wrap-premium",
+        name: "Premium Gift Wrap & Satin Ribbon",
+        type: "paid" as const,
+        price: 50,
+        category: "Gifting & Wrapping",
+        conditionNote: "Festive wrapping with custom ribbon bow",
+        unit: "Set",
+      },
+      {
+        id: "comp-greeting-card",
+        name: "Personalized Greeting Card",
+        type: "paid" as const,
+        price: 30,
+        category: "Gifting & Wrapping",
+        conditionNote: "Handwritten card with decorative envelope",
+        unit: "Card",
+      },
+      {
+        id: "comp-ceramic-saucer",
+        name: "Heavy-Duty Ceramic Saucer Plate",
+        type: "paid" as const,
+        price: 80,
+        category: "Accessories",
+        conditionNote: "Water catchment saucer for planters",
+        unit: "Pcs",
+      },
+      {
+        id: "comp-pruning-shears",
+        name: "Bonsai & Plant Pruning Shears",
+        type: "paid" as const,
+        price: 150,
+        category: "Tools & Equipment",
+        conditionNote: "Stainless steel precision pruning shears",
+        unit: "Pcs",
+      },
+      {
+        id: "comp-white-pebbles",
+        name: "Decorative White River Pebbles (500g)",
+        type: "paid" as const,
+        price: 60,
+        category: "Soil & Media",
+        conditionNote: "Polished stones for decorative topsoil",
+        unit: "Pkt",
+      },
+      {
+        id: "comp-moisture-meter",
+        name: "Soil Moisture Indicator Probe",
+        type: "paid" as const,
+        price: 180,
+        category: "Tools & Equipment",
+        conditionNote: "Direct soil water level gauge probe",
+        unit: "Pcs",
+      },
+    ],
+    []
+  );
+
+  const cartProductIds = useMemo(() => new Set(cart.map((c) => c.product.id)), [cart]);
+
+  const availableComplimentaryItems = useMemo(() => {
+    return complimentaryCatalog
+      .filter((item) => !cartProductIds.has(item.id))
+      .filter((item) => {
+        if (compActiveFilter === "free") return item.type === "free";
+        if (compActiveFilter === "paid") return item.type === "paid";
+        return true;
+      })
+      .filter((item) => {
+        if (!compSearchQuery.trim()) return true;
+        const q = compSearchQuery.toLowerCase();
+        return (
+          item.name.toLowerCase().includes(q) ||
+          item.category.toLowerCase().includes(q) ||
+          (item.conditionNote && item.conditionNote.toLowerCase().includes(q))
+        );
+      });
+  }, [complimentaryCatalog, cartProductIds, compActiveFilter, compSearchQuery]);
+
+  const compCategoryCounts = useMemo(() => {
+    const notInCart = complimentaryCatalog.filter((item) => !cartProductIds.has(item.id));
+    return {
+      all: notInCart.length,
+      free: notInCart.filter((i) => i.type === "free").length,
+      paid: notInCart.filter((i) => i.type === "paid").length,
+    };
+  }, [complimentaryCatalog, cartProductIds]);
+
+  const complimentaryInCart = useMemo(() => {
+    return cart.filter(
+      (item) =>
+        item.notes?.includes("Complimentary") ||
+        item.selectedSize?.id === "comp-free" ||
+        item.selectedSize?.id === "comp-paid"
+    );
+  }, [cart]);
+
+  const matchedStoreProducts = useMemo(() => {
+    if (!compSearchQuery.trim()) return [];
+    const q = compSearchQuery.toLowerCase();
+    const inCartIds = new Set(cart.map((c) => c.product.id));
+    const compCatalogIds = new Set(complimentaryCatalog.map((c) => c.id));
+    return products
+      .filter((p) => !inCartIds.has(p.id) && !compCatalogIds.has(p.id))
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.category_name && p.category_name.toLowerCase().includes(q)) ||
+          (p.category && p.category.toLowerCase().includes(q))
+      )
+      .slice(0, 5);
+  }, [products, compSearchQuery, cart, complimentaryCatalog]);
+
+  const handleAddComplimentaryToCart = (
+    item: {
+      id: string;
+      name: string;
+      type: "free" | "paid";
+      price: number;
+      category?: string;
+      unit?: string;
+      image_url?: string;
+    },
+    customPrice?: number
+  ) => {
+    const qty = compItemQuantities[item.id] || 1;
+    const unitPrice =
+      item.type === "free" ? 0 : customPrice !== undefined ? customPrice : item.price;
+
+    const compCartItem: CartItem = {
+      product: {
+        id: item.id,
+        name: item.name,
+        category: item.category || "Complimentary",
+        category_name: item.category || "Complimentary",
+        unit: item.unit || "Pcs",
+        image_url: item.image_url,
+        selling_price: unitPrice,
+        sale_price: unitPrice,
+        price: unitPrice,
+        tax_rate: 0,
+        stock: 999,
+        shop_stock: 999,
+      },
+      quantity: qty,
+      unit_price: unitPrice,
+      discount: 0,
+      discount_type: "percentage",
+      tax_rate: 0,
+      tax_amount: 0,
+      total_amount: unitPrice * qty,
+      notes: item.type === "free" ? "Complimentary (Free Gift)" : "Complimentary (Paid Add-on)",
+      selectedSize: {
+        id: item.type === "free" ? "comp-free" : "comp-paid",
+        name: item.type === "free" ? "Free Gift" : `Add-on (${formatINR(unitPrice)})`,
+        price: unitPrice,
+      },
+      selectedAddons: [],
+    };
+
+    setCart((prev) => [...prev, compCartItem]);
+    setEnabledAddOns((prev) => ({ ...prev, complimentary: true }));
+    showPosToast(
+      `${item.name} added to cart as ${item.type === "free" ? "Free Gift (₹0)" : `Paid Add-on (${formatINR(unitPrice)})`}!`,
+      "success"
+    );
+  };
 
   // Void & Reset Modals
   const [voidModalOpen, setVoidModalOpen] = useState<boolean>(false);
@@ -610,6 +963,44 @@ const Pos: React.FC = () => {
       shop_stock: 200,
       tax_rate: 0,
       unit: "PCS",
+    },
+    {
+      id: "prod-gn-13",
+      name: "Bonsai Ficus Microcarpa (Exotic)",
+      sku: "GN-BON-13",
+      barcode: "8901001013",
+      category_id: "cat-gn-1",
+      category_name: "Indoor Plants",
+      category: "Indoor Plants",
+      selling_price: 1850,
+      price: 1850,
+      cost_price: 950,
+      stock_quantity: 4,
+      shop_stock: 4,
+      warehouse_stock: 2,
+      low_stock_threshold: 10,
+      tax_rate: 18,
+      unit: "PCS",
+      is_featured: true,
+    },
+    {
+      id: "prod-gn-14",
+      name: "Calathea Orbifolia (Prayer Plant)",
+      sku: "GN-CAL-14",
+      barcode: "8901001014",
+      category_id: "cat-gn-1",
+      category_name: "Indoor Plants",
+      category: "Indoor Plants",
+      selling_price: 790,
+      price: 790,
+      cost_price: 420,
+      stock_quantity: 2,
+      shop_stock: 2,
+      warehouse_stock: 1,
+      low_stock_threshold: 10,
+      tax_rate: 18,
+      unit: "PCS",
+      is_featured: false,
     }
   ];
 
@@ -878,13 +1269,42 @@ const Pos: React.FC = () => {
       }
     }
 
-    const totalDiscount = Number((itemDiscountTotal + orderDiscountAmt).toFixed(2));
+    // Coupon Add-on discount
+    let couponDiscountAmt = 0;
+    if (enabledAddOns.coupon && couponDiscount > 0) {
+      if (couponDiscountType === "percentage") {
+        couponDiscountAmt = (subtotalAfterItemDiscounts * Math.min(100, couponDiscount)) / 100;
+      } else {
+        couponDiscountAmt = Math.min(subtotalAfterItemDiscounts, Math.max(0, Number(couponDiscount) || 0));
+      }
+    }
+
+    const totalDiscount = Number((itemDiscountTotal + orderDiscountAmt + couponDiscountAmt).toFixed(2));
     const taxableAmount = Math.max(0, rawSubtotal - totalDiscount);
     const itemTaxes = cart.reduce((acc, item) => acc + (item.tax_amount || 0), 0);
     const orderTax = orderTaxPercent > 0 ? (taxableAmount * orderTaxPercent) / 100 : 0;
     const totalTax = Number((itemTaxes > 0 ? itemTaxes : orderTax).toFixed(2));
-    const shipping = Number(shippingCost) || 0;
-    const rawGrandTotal = Math.max(0, taxableAmount + totalTax + shipping);
+    const shipping = enabledAddOns.shipping ? (Number(shippingCost) || 0) : 0;
+    let rawGrandTotal = Math.max(0, taxableAmount + totalTax + shipping);
+
+    // Complimentary Add-on
+    let complimentaryDiscountAmt = 0;
+    if (enabledAddOns.complimentary) {
+      if (isComplimentaryFull) {
+        complimentaryDiscountAmt = rawGrandTotal;
+        rawGrandTotal = 0;
+      } else {
+        const compItemsSum = cart
+          .filter((it) =>
+            complimentaryItemKeys.includes(`${it.product.id}_${it.selectedSize?.id || "default"}`)
+          )
+          .reduce((sum, it) => sum + (it.total_amount ?? (it.unit_price * it.quantity)), 0);
+
+        complimentaryDiscountAmt = Math.min(rawGrandTotal, compItemsSum || complimentaryAmount || 0);
+        rawGrandTotal = Math.max(0, rawGrandTotal - complimentaryDiscountAmt);
+      }
+    }
+
     const roundedGrandTotal = isRoundoff ? Math.round(rawGrandTotal) : Number(rawGrandTotal.toFixed(2));
     const roundoffDiff = Number((roundedGrandTotal - rawGrandTotal).toFixed(2));
     const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -894,6 +1314,8 @@ const Pos: React.FC = () => {
       discount: totalDiscount,
       itemDiscountTotal: Number(itemDiscountTotal.toFixed(2)),
       orderDiscountAmt: Number(orderDiscountAmt.toFixed(2)),
+      couponDiscountAmt: Number(couponDiscountAmt.toFixed(2)),
+      complimentaryDiscountAmt: Number(complimentaryDiscountAmt.toFixed(2)),
       tax: totalTax,
       shipping,
       rawGrandTotal,
@@ -901,7 +1323,20 @@ const Pos: React.FC = () => {
       roundoffDiff,
       totalItems,
     };
-  }, [cart, discountPercent, orderDiscountType, orderTaxPercent, shippingCost, isRoundoff]);
+  }, [
+    cart,
+    discountPercent,
+    orderDiscountType,
+    orderTaxPercent,
+    shippingCost,
+    isRoundoff,
+    enabledAddOns,
+    couponDiscount,
+    couponDiscountType,
+    isComplimentaryFull,
+    complimentaryAmount,
+    complimentaryItemKeys,
+  ]);
 
   // Group cart items dynamically by Category Name
   const cartByCategory = useMemo(() => {
@@ -1368,39 +1803,85 @@ const Pos: React.FC = () => {
     setOrderDiscountType("percentage");
     setOrderTaxPercent(0);
     setShippingCost(0);
+    setShippingDetails({
+      fromName: "",
+      fromPhone: "",
+      fromAddress: "",
+      fromCity: "",
+      fromPincode: "",
+      toName: "",
+      toPhone: "",
+      toAddress: "",
+      toCity: "",
+      toState: "",
+      toPincode: "",
+      notes: "",
+    });
+    setEnabledAddOns({ shipping: false, coupon: false, complimentary: false });
+    setCouponCode("");
+    setCouponDiscount(0);
+    setCouponDiscountType("percentage");
+    setIsComplimentaryFull(true);
+    setComplimentaryAmount(0);
+    setComplimentaryItemKeys([]);
   };
 
-  // Hold Current Order
+  // Hold Current Order (Silently saves to held list without opening modal)
   const handleHoldOrder = () => {
     if (cart.length === 0) {
-      alert("Cart is empty! Add products before holding.");
+      showPosToast("Cart is empty! Add products before holding.", "warning");
       return;
     }
     const newHold: HeldBill = {
       id: `hold-${Date.now()}`,
       orderNumber,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      customerName: selectedCustomer?.label?.split(" (")[0] || "Walk in Customer",
+      customerName: selectedCustomer?.label?.split(" (")[0] || selectedCustomer?.name || "Walk in Customer",
       customer: selectedCustomer,
       items: [...cart],
       subtotal: totals.subtotal,
       grandTotal: totals.grandTotal,
+      shippingCost,
+      shippingDetails,
+      enabledAddOns,
+      discountPercent,
+      orderDiscountType,
+      orderTaxPercent,
+      couponCode,
+      couponDiscount,
+      couponDiscountType,
+      isComplimentaryFull,
+      complimentaryAmount,
+      complimentaryItemKeys,
     };
     saveHeldBills([newHold, ...heldBills]);
     clearCart();
-    setActiveOrdersTab("held");
-    setOrdersModalOpen(true);
+    showPosToast(`Order ${orderNumber} placed on hold.`, "success");
   };
 
   const handleRestoreOrder = (hold: HeldBill) => {
     setCart(hold.items);
     if (hold.customer) setSelectedCustomer(hold.customer);
+    if (hold.shippingCost !== undefined) setShippingCost(hold.shippingCost);
+    if (hold.shippingDetails) setShippingDetails(hold.shippingDetails);
+    if (hold.enabledAddOns) setEnabledAddOns(hold.enabledAddOns);
+    if (hold.discountPercent !== undefined) setDiscountPercent(hold.discountPercent);
+    if (hold.orderDiscountType) setOrderDiscountType(hold.orderDiscountType);
+    if (hold.orderTaxPercent !== undefined) setOrderTaxPercent(hold.orderTaxPercent);
+    if (hold.couponCode !== undefined) setCouponCode(hold.couponCode);
+    if (hold.couponDiscount !== undefined) setCouponDiscount(hold.couponDiscount);
+    if (hold.couponDiscountType) setCouponDiscountType(hold.couponDiscountType);
+    if (hold.isComplimentaryFull !== undefined) setIsComplimentaryFull(hold.isComplimentaryFull);
+    if (hold.complimentaryAmount !== undefined) setComplimentaryAmount(hold.complimentaryAmount);
+    if (hold.complimentaryItemKeys) setComplimentaryItemKeys(hold.complimentaryItemKeys);
     saveHeldBills(heldBills.filter((b) => b.id !== hold.id));
     setOrdersModalOpen(false);
+    showPosToast(`Order ${hold.orderNumber} restored to cart.`, "success");
   };
 
   const handleDeleteHeldOrder = (holdId: string) => {
     saveHeldBills(heldBills.filter((b) => b.id !== holdId));
+    showPosToast("Held order deleted.", "danger");
   };
 
   // Open Recent Orders / Held Bills
@@ -1466,6 +1947,7 @@ const Pos: React.FC = () => {
         discount: totals.discount,
         tax: totals.tax,
         shipping: totals.shipping,
+        shipping_details: shippingDetails,
         grandTotal: totals.grandTotal,
         payment_method: selectedPaymentMode,
         customer_name: customerName,
@@ -1622,7 +2104,10 @@ const Pos: React.FC = () => {
       `*Items Subtotal:* ₹${totals.subtotal.toFixed(2)}`,
       ...(totals.discount > 0 ? [`*Discount:* -₹${totals.discount.toFixed(2)}`] : []),
       ...(totals.tax > 0 ? [`*Tax:* +₹${totals.tax.toFixed(2)}`] : []),
-      ...(totals.shipping > 0 ? [`*Shipping:* +₹${totals.shipping.toFixed(2)}`] : []),
+      ...(totals.shipping > 0 || shippingDetails.toAddress ? [
+        `*Delivery To:* ${shippingDetails.toName || custName}${shippingDetails.toAddress ? ` (${shippingDetails.toAddress}, ${shippingDetails.toCity})` : ""}`,
+        `*Shipping Charges:* +₹${totals.shipping.toFixed(2)}`
+      ] : []),
       `*Grand Total:* *₹${totals.grandTotal.toFixed(2)}*`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `Thank you for shopping with Grow Naturals! 🌱`,
@@ -1684,11 +2169,11 @@ const Pos: React.FC = () => {
           background: #ffffff !important;
         }
         .pos-five .pos-products .product-info.card:hover {
-          border-color: #22c55e !important;
+          border-color: #28a745 !important;
           box-shadow: none !important;
         }
         .pos-five .pos-products .product-info.card.active {
-          border-color: #22c55e !important;
+          border-color: #28a745 !important;
           background: #ffffff !important;
         }
 
@@ -1753,7 +2238,7 @@ const Pos: React.FC = () => {
         .pos-five .pos-products .product-info .pro-img span i {
           font-size: 20px !important;
           line-height: 1 !important;
-          color: #22c55e !important;
+          color: #28a745 !important;
           display: block !important;
         }
 
@@ -1811,6 +2296,28 @@ const Pos: React.FC = () => {
           color: #1e293b;
           font-weight: 700;
           font-size: 15px;
+        }
+
+        /* Stock Badge: #28a745 text & icon color */
+        .pos-five .pos-products .product-info .badge.bg-success-transparent,
+        .pos-products .product-info .badge.bg-success-transparent {
+          background-color: rgba(40, 167, 69, 0.12) !important;
+          color: #28a745 !important;
+        }
+        .pos-five .pos-products .product-info .badge.bg-success-transparent i,
+        .pos-products .product-info .badge.bg-success-transparent i {
+          color: #28a745 !important;
+        }
+
+        /* Low Stock Badge */
+        .pos-five .pos-products .product-info .badge.bg-warning-transparent,
+        .pos-products .product-info .badge.bg-warning-transparent {
+          background-color: #ffeee9 !important;
+          color: #e04f16 !important;
+        }
+        .pos-five .pos-products .product-info .badge.bg-warning-transparent i,
+        .pos-products .product-info .badge.bg-warning-transparent i {
+          color: #e04f16 !important;
         }
 
         /* Quantity Counter: Clean (-) 4 (+) with no outer border or background */
@@ -2019,7 +2526,7 @@ const Pos: React.FC = () => {
         [data-layout-mode="dark"] .pos-five .pos-products .product-info.card:hover,
         .dark .pos-five .pos-products .product-info.card:hover,
         body.dark-mode .pos-five .pos-products .product-info.card:hover {
-          border-color: #22c55e !important;
+          border-color: #28a745 !important;
           box-shadow: none !important;
         }
         [data-theme="dark"] .pos-five .pos-products .product-info.card.active,
@@ -2027,7 +2534,7 @@ const Pos: React.FC = () => {
         [data-layout-mode="dark"] .pos-five .pos-products .product-info.card.active,
         .dark .pos-five .pos-products .product-info.card.active,
         body.dark-mode .pos-five .pos-products .product-info.card.active {
-          border-color: #22c55e !important;
+          border-color: #28a745 !important;
           background: #111417 !important;
         }
         [data-theme="dark"] .pos-five .pos-products .product-info .pro-img,
@@ -2093,6 +2600,32 @@ const Pos: React.FC = () => {
         body.dark-mode .pos-five .pos-products .product-info .price-val,
         body.dark-mode .pos-five .pos-products .product-info .price p {
           color: #ffffff !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .badge.bg-success-transparent,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .badge.bg-success-transparent,
+        .dark .pos-five .pos-products .product-info .badge.bg-success-transparent,
+        body.dark-mode .pos-five .pos-products .product-info .badge.bg-success-transparent {
+          background-color: rgba(40, 167, 69, 0.18) !important;
+          color: #28a745 !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .badge.bg-success-transparent i,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .badge.bg-success-transparent i,
+        .dark .pos-five .pos-products .product-info .badge.bg-success-transparent i,
+        body.dark-mode .pos-five .pos-products .product-info .badge.bg-success-transparent i {
+          color: #28a745 !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .badge.bg-warning-transparent,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .badge.bg-warning-transparent,
+        .dark .pos-five .pos-products .product-info .badge.bg-warning-transparent,
+        body.dark-mode .pos-five .pos-products .product-info .badge.bg-warning-transparent {
+          background-color: rgba(224, 79, 22, 0.22) !important;
+          color: #ff8c5a !important;
+        }
+        [data-theme="dark"] .pos-five .pos-products .product-info .badge.bg-warning-transparent i,
+        [data-bs-theme="dark"] .pos-five .pos-products .product-info .badge.bg-warning-transparent i,
+        .dark .pos-five .pos-products .product-info .badge.bg-warning-transparent i,
+        body.dark-mode .pos-five .pos-products .product-info .badge.bg-warning-transparent i {
+          color: #ff8c5a !important;
         }
         [data-theme="dark"] .pos-five .pos-products .qty-item,
         [data-bs-theme="dark"] .pos-five .pos-products .qty-item,
@@ -2172,9 +2705,10 @@ const Pos: React.FC = () => {
           max-width: 760px;
         }
 
-        /* Customer & Edit Product Offcanvas Drawers */
+        /* Customer, Orders & Edit Product Offcanvas Drawers */
         .offcanvas#add_order,
         .offcanvas#edit_product_drawer,
+        .offcanvas#orders_drawer,
         .offcanvas.pos-edit-product-drawer {
           width: 480px !important;
           max-width: 480px !important;
@@ -2508,6 +3042,86 @@ const Pos: React.FC = () => {
       `}</style>
 
       <div className="page-wrapper pos-pg-wrapper ms-0">
+        {/* Sleek POS Toast Notification */}
+        {posToast.show && (
+          <div
+            className="position-fixed d-flex align-items-center gap-2.5 px-3.5 py-2.5 rounded-3"
+            style={{
+              top: "24px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 9999,
+              backgroundColor:
+                posToast.type === "warning"
+                  ? "#fffbeb"
+                  : posToast.type === "success"
+                  ? "#f0fdf4"
+                  : posToast.type === "danger"
+                  ? "#fef2f2"
+                  : "#eff6ff",
+              border: `1px solid ${
+                posToast.type === "warning"
+                  ? "#fcd34d"
+                  : posToast.type === "success"
+                  ? "#86efac"
+                  : posToast.type === "danger"
+                  ? "#fca5a5"
+                  : "#93c5fd"
+              }`,
+              color:
+                posToast.type === "warning"
+                  ? "#92400e"
+                  : posToast.type === "success"
+                  ? "#166534"
+                  : posToast.type === "danger"
+                  ? "#991b1b"
+                  : "#1e40af",
+              minWidth: "320px",
+              maxWidth: "90vw",
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+              transition: "all 0.25s ease",
+            }}
+          >
+            <div
+              className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+              style={{
+                width: 28,
+                height: 28,
+                backgroundColor:
+                  posToast.type === "warning"
+                    ? "#fef3c7"
+                    : posToast.type === "success"
+                    ? "#dcfce7"
+                    : posToast.type === "danger"
+                    ? "#fee2e2"
+                    : "#dbeafe",
+              }}
+            >
+              <i
+                className={`ti ti-${
+                  posToast.type === "warning"
+                    ? "alert-triangle"
+                    : posToast.type === "success"
+                    ? "check"
+                    : posToast.type === "danger"
+                    ? "trash"
+                    : "info-circle"
+                } fs-16`}
+              />
+            </div>
+            <div className="flex-grow-1 fs-13 fw-semibold">
+              {posToast.message}
+            </div>
+            <button
+              type="button"
+              className="btn-close p-1 fs-11 ms-1"
+              onClick={() => setPosToast((prev) => ({ ...prev, show: false }))}
+              aria-label="Close"
+              style={{ filter: "none", opacity: 0.6 }}
+            />
+          </div>
+        )}
+
         <div className="content pos-design p-0">
           <div className="row pos-wrapper">
             {/* Products Column */}
@@ -2885,15 +3499,23 @@ const Pos: React.FC = () => {
                         <h3>Order List</h3>
                       </div>
                       <div className="d-flex align-items-center gap-2">
-                        <Link
-                          to="#"
-                          className="text-danger text-decoration-underline fs-13 fw-semibold"
-                          data-bs-toggle="offcanvas"
-                          data-bs-target="#filter-offcanvas-3"
-                          onClick={(e) => e.preventDefault()}
+                        <button
+                          type="button"
+                          className="btn btn-sm d-inline-flex align-items-center gap-1 hold-list-btn"
+                          title="View Held Orders & History"
+                          onClick={() => {
+                            setActiveOrdersTab("held");
+                            setOrdersModalOpen(true);
+                          }}
                         >
-                          View Details
-                        </Link>
+                          <TbUserPause className="me-1" />
+                          On Hold
+                          {heldBills.length > 0 && (
+                            <span className="badge rounded-pill">
+                              {heldBills.length}
+                            </span>
+                          )}
+                        </button>
                       </div>
                     </div>
 
@@ -3228,28 +3850,40 @@ const Pos: React.FC = () => {
                     {/* Ordered Menus */}
                     <div className="product-added block-section">
                       <div className="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
-                        <h6 className="mb-0 fw-bold fs-15">Ordered Items</h6>
                         <div className="d-flex align-items-center gap-2">
-                          <p className="mb-0 d-flex align-items-center text-dark fs-13">
-                            Total Items :{" "}
-                            <span
-                              className="d-flex align-items-center justify-content-center fs-12 fw-bold btn btn-icon btn-xs rounded-circle border flex-shrink-0 ms-1 text-dark"
-                              style={{ width: "24px", height: "24px" }}
-                            >
-                              {cart.length}
-                            </span>
-                          </p>
+                          <h6 className="mb-0 fw-bold fs-15">Ordered Items</h6>
+                          <span
+                            className="d-flex align-items-center justify-content-center fs-12 fw-bold rounded-circle border flex-shrink-0 text-dark bg-white"
+                            style={{ width: "24px", height: "24px" }}
+                          >
+                            {cart.length}
+                          </span>
+                        </div>
+                        <div className="d-flex align-items-center gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm d-inline-flex align-items-center gap-1 hold-btn"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleHoldOrder();
+                            }}
+                            title="Hold current order"
+                          >
+                            <IoIosPause className="me-1" />
+                            Hold
+                          </button>
                           {cart.length > 0 && (
-                            <Link
-                              to="#"
-                              className="d-flex align-items-center clear-icon fs-11 fw-medium text-danger ms-1"
+                            <button
+                              type="button"
+                              className="btn btn-sm d-inline-flex align-items-center gap-1 clear-all-btn"
                               onClick={(e) => {
                                 e.preventDefault();
                                 clearCart();
                               }}
+                              title="Clear all items in cart"
                             >
                               Clear all
-                            </Link>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -3261,7 +3895,7 @@ const Pos: React.FC = () => {
                             style={{
                               background: "#ffffff",
                               borderRadius: "10px",
-                              border: "1px solid #e2e8f0",
+                              border: "none",
                               padding: "0 16px 16px 16px",
                               marginBottom: "12px",
                             }}
@@ -3290,7 +3924,7 @@ const Pos: React.FC = () => {
                               return (
                                 <div
                                   key={itemKey}
-                                  className={`menu-item p-2 rounded border shadow-sm mb-3 ${
+                                  className={`menu-item p-2 rounded border mb-3 ${
                                     isExpanded ? "active" : ""
                                   }`}
                                 >
@@ -3337,12 +3971,12 @@ const Pos: React.FC = () => {
                                             } fs-12 text-muted flex-shrink-0`}
                                           />
                                         </h6>
-                                        <span className="badge badge-sm bg-success-transparent text-success fw-semibold p-1 px-2 flex-shrink-0 me-1 item-card-rate-badge">
+                                        <span className="badge badge-sm bg-success-transparent text-success fw-semibold flex-shrink-0 me-1 item-card-rate-badge fs-12">
                                           {formatINR(item.unit_price)}
                                         </span>
                                         <button
                                           type="button"
-                                          className="badge badge-sm bg-light text-dark mb-0 border-0 p-1 px-2 d-inline-flex align-items-center gap-1 item-size-badge flex-shrink-0"
+                                          className="badge badge-sm text-dark mb-0 d-inline-flex align-items-center gap-1 item-size-badge flex-shrink-0 fs-12"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             openProductDetailsModal(item.product);
@@ -3352,7 +3986,7 @@ const Pos: React.FC = () => {
                                           <span>
                                             {item.selectedSize?.name || (item.product.unit && item.product.unit !== "PCS" ? item.product.unit : "Small (6-inch)")}
                                           </span>
-                                          <i className="ti ti-edit fs-10 text-muted" />
+                                          <i className="ti ti-edit fs-11" />
                                         </button>
                                       </div>
                                     </div>
@@ -3495,23 +4129,27 @@ const Pos: React.FC = () => {
                       </div>
                       <table className="table table-responsive table-borderless">
                         <tbody>
-                          <tr>
-                            <td>
-                              Shipping
-                              <Link
-                                to="#"
-                                className="ms-3 link-default"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setTempShipping(shippingCost.toString());
-                                  setShippingModalOpen(true);
-                                }}
-                              >
-                                <i className="ti ti-edit" />
-                              </Link>
-                            </td>
-                            <td className="text-gray-9 text-end">{formatINR(totals.shipping)}</td>
-                          </tr>
+                          {/* Shipping (shown when enabled via Add-ons) */}
+                          {enabledAddOns.shipping && (
+                            <tr>
+                              <td>
+                                Shipping
+                                <Link
+                                  to="#"
+                                  className="ms-3 link-default"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openShippingDrawer();
+                                  }}
+                                >
+                                  <i className="ti ti-edit" />
+                                </Link>
+                              </td>
+                              <td className="text-gray-9 text-end">{formatINR(totals.shipping)}</td>
+                            </tr>
+                          )}
+
+                          {/* Tax (always present) */}
                           <tr>
                             <td>
                               Tax
@@ -3531,22 +4169,38 @@ const Pos: React.FC = () => {
                               {formatINR(totals.tax)} ({orderTaxPercent}%)
                             </td>
                           </tr>
-                          <tr>
-                            <td>
-                              Coupon
-                              <Link
-                                to="#"
-                                className="ms-3 link-default"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  openDiscountDrawer("bill");
-                                }}
-                              >
-                                <i className="ti ti-edit" />
-                              </Link>
-                            </td>
-                            <td className="text-gray-9 text-end">{formatINR(0)}</td>
-                          </tr>
+
+                          {/* Coupon (shown when enabled via Add-ons) */}
+                          {enabledAddOns.coupon && (
+                            <tr>
+                              <td>
+                                Coupon
+                                {couponCode ? (
+                                  <span className="badge bg-purple-transparent text-purple ms-2 fs-11 fw-semibold">
+                                    {couponCode}
+                                  </span>
+                                ) : null}
+                                <Link
+                                  to="#"
+                                  className="ms-3 link-default"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setTempCouponCode(couponCode);
+                                    setTempCouponDiscount(couponDiscount.toString());
+                                    setTempCouponType(couponDiscountType);
+                                    setCouponModalOpen(true);
+                                  }}
+                                >
+                                  <i className="ti ti-edit" />
+                                </Link>
+                              </td>
+                              <td className="text-danger text-end">
+                                {totals.couponDiscountAmt > 0 ? `-${formatINR(totals.couponDiscountAmt)}` : formatINR(0)}
+                              </td>
+                            </tr>
+                          )}
+
+                          {/* Discount (always present) */}
                           <tr>
                             <td>
                               <span className="text-danger">Discount</span>
@@ -3566,8 +4220,50 @@ const Pos: React.FC = () => {
                                 <i className="ti ti-edit" />
                               </Link>
                             </td>
-                            <td className="text-danger text-end">-{formatINR(totals.discount)}</td>
+                            <td className="text-danger text-end">
+                              -{formatINR(totals.discount - (totals.couponDiscountAmt || 0))}
+                            </td>
                           </tr>
+
+                          {/* Complimentary (shown when enabled via Add-ons or complimentary items present) */}
+                          {(enabledAddOns.complimentary || complimentaryInCart.length > 0) && (
+                            <tr>
+                              <td>
+                                <span className="text-success fw-semibold">Complimentary</span>
+                                <span className="badge bg-success-transparent text-success ms-2 fs-11 fw-semibold">
+                                  {complimentaryInCart.length > 0
+                                    ? (() => {
+                                        const freeCount = complimentaryInCart.filter((it) => it.unit_price === 0).length;
+                                        const paidCount = complimentaryInCart.filter((it) => it.unit_price > 0).length;
+                                        if (freeCount > 0 && paidCount > 0) return `${freeCount} Free, ${paidCount} Paid`;
+                                        if (freeCount > 0) return `${freeCount} Free Gift${freeCount > 1 ? "s" : ""}`;
+                                        return `${paidCount} Add-on${paidCount > 1 ? "s" : ""}`;
+                                      })()
+                                    : isComplimentaryFull
+                                    ? "100% Free"
+                                    : "Active"}
+                                </span>
+                                <Link
+                                  to="#"
+                                  className="ms-3 link-default"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openComplimentaryDrawer();
+                                  }}
+                                  title="Edit complimentary gifts and add-ons"
+                                >
+                                  <i className="ti ti-edit" />
+                                </Link>
+                              </td>
+                              <td className="text-success text-end">
+                                {totals.complimentaryDiscountAmt > 0
+                                  ? `-${formatINR(totals.complimentaryDiscountAmt)}`
+                                  : "Applied"}
+                              </td>
+                            </tr>
+                          )}
+
+                          {/* Roundoff */}
                           <tr>
                             <td>
                               <div className="form-check form-switch">
@@ -3590,10 +4286,30 @@ const Pos: React.FC = () => {
                                 : totals.roundoffDiff.toFixed(2)}
                             </td>
                           </tr>
-                          {/* <tr>
-                            <td>Sub Total</td>
-                            <td className="text-gray-9 text-end">{formatINR(totals.subtotal)}</td>
-                          </tr> */}
+
+                          {/* Full Width Add Ons Button (Below Roundoff) */}
+                          <tr>
+                            <td colSpan={2} className="p-0 pt-2 pb-2">
+                              <button
+                                type="button"
+                                className="btn w-100 d-flex align-items-center justify-content-center gap-1.5 add-ons-trigger-btn"
+                                onClick={() => {
+                                  setTempAddOns({ ...enabledAddOns });
+                                  setAddOnsDrawerOpen(true);
+                                }}
+                              >
+                                <i className="ti ti-plus fs-14" />
+                                Add Ons
+                                {(enabledAddOns.shipping || enabledAddOns.coupon || enabledAddOns.complimentary) && (
+                                  <span className="badge rounded-pill ms-1 add-ons-count-badge">
+                                    {[enabledAddOns.shipping, enabledAddOns.coupon, enabledAddOns.complimentary].filter(Boolean).length}
+                                  </span>
+                                )}
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* Total Payable */}
                           <tr>
                             <td className="fw-bold border-top border-dashed">Total Payable</td>
                             <td className="text-gray-9 fw-bold text-end border-top border-dashed">
@@ -3931,6 +4647,76 @@ const Pos: React.FC = () => {
                 </div>
               ))}
 
+              {/* Shipping & Delivery Details */}
+              {(enabledAddOns.shipping || shippingCost > 0 || shippingDetails.toName || shippingDetails.toAddress) && (
+                <div className="accordion-item border rounded-3 mb-3 p-3" style={{ backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" }}>
+                  <div className="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-success border-opacity-25">
+                    <div className="d-flex align-items-center gap-2">
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center bg-white text-success border border-success border-opacity-25"
+                        style={{ width: "28px", height: "28px" }}
+                      >
+                        <i className="ti ti-truck-delivery fs-15" />
+                      </div>
+                      <span className="fw-bold fs-13 text-dark">Shipping &amp; Delivery Details</span>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="badge bg-success fs-11 fw-bold">
+                        {shippingCost > 0 ? `+${formatINR(shippingCost)}` : "Free Delivery"}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-outline-success bg-white py-0.5 px-1.5 fs-11"
+                        style={{ borderRadius: "4px" }}
+                        onClick={() => openShippingDrawer()}
+                      >
+                        <i className="ti ti-edit me-0.5" /> Edit
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="d-flex flex-column gap-2 fs-12">
+                    {(shippingDetails.fromName || shippingDetails.fromAddress || shippingDetails.fromPhone || shippingDetails.fromCity) && (
+                      <div className="d-flex align-items-start gap-1.5">
+                        <span className="text-muted fw-semibold" style={{ minWidth: "50px" }}>From:</span>
+                        <div className="text-dark">
+                          {shippingDetails.fromName && <span className="fw-semibold">{shippingDetails.fromName}</span>}
+                          {([shippingDetails.fromAddress, shippingDetails.fromCity, shippingDetails.fromPincode].some(Boolean) || shippingDetails.fromPhone) && (
+                            <span className="text-muted d-block fs-11">
+                              {[shippingDetails.fromAddress, shippingDetails.fromCity, shippingDetails.fromPincode].filter(Boolean).join(", ")}
+                              {shippingDetails.fromPhone ? ` • 📞 ${shippingDetails.fromPhone}` : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {(shippingDetails.toName || shippingDetails.toAddress || shippingDetails.toPhone || shippingDetails.toCity) && (
+                      <div className="d-flex align-items-start gap-1.5">
+                        <span className="text-muted fw-semibold" style={{ minWidth: "50px" }}>To:</span>
+                        <div className="text-dark">
+                          {shippingDetails.toName && <span className="fw-semibold">{shippingDetails.toName}</span>}
+                          {([shippingDetails.toAddress, shippingDetails.toCity, shippingDetails.toState, shippingDetails.toPincode].some(Boolean) || shippingDetails.toPhone) && (
+                            <span className="text-muted d-block fs-11">
+                              {[shippingDetails.toAddress, shippingDetails.toCity, shippingDetails.toState, shippingDetails.toPincode].filter(Boolean).join(", ")}
+                              {shippingDetails.toPhone ? ` • 📞 ${shippingDetails.toPhone}` : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {shippingDetails.notes && (
+                      <div className="mt-1 p-2 rounded bg-white border border-success border-opacity-25 fs-11 text-secondary">
+                        <i className="ti ti-note me-1 text-success" />
+                        <span className="fw-medium text-dark">Notes: </span>
+                        {shippingDetails.notes}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Payment Summary */}
               <div className="accordion-item border-0 mb-0">
                 <h3 className="accordion-header" id="heading-payment-summary">
@@ -4214,6 +5000,13 @@ const Pos: React.FC = () => {
               <div className="border-bottom border-dashed pb-2 mb-2">
                 <div>Customer: {completedInvoice.customer_name}</div>
                 <div>Payment: {completedInvoice.payment_method?.toUpperCase()}</div>
+                {completedInvoice.shipping_details?.toAddress && (
+                  <div className="mt-1 pt-1 border-top border-dashed">
+                    <div><strong>Delivery To:</strong> {completedInvoice.shipping_details.toName || completedInvoice.customer_name}</div>
+                    <div>{completedInvoice.shipping_details.toAddress}, {completedInvoice.shipping_details.toCity} {completedInvoice.shipping_details.toPincode}</div>
+                    {completedInvoice.shipping_details.toPhone && <div>Ph: {completedInvoice.shipping_details.toPhone}</div>}
+                  </div>
+                )}
               </div>
               <table className="w-100 mb-2">
                 <thead>
@@ -4284,135 +5077,233 @@ const Pos: React.FC = () => {
         </div>
       )}
 
-      {/* 3. Orders & Held Bills Modal */}
+      {/* 3. Slide Animated Orders & Held Bills Drawer (#orders_drawer) */}
+      <div
+        className={`offcanvas offcanvas-end pos-edit-product-drawer ${ordersModalOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="orders_drawer"
+        style={{
+          visibility: ordersModalOpen ? "visible" : "hidden",
+          transform: ordersModalOpen ? "none" : "translateX(calc(100% + 40px))",
+          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1065,
+          width: "480px",
+          maxWidth: "480px",
+          minWidth: "unset",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        {/* Fixed Header */}
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 py-3 border-bottom">
+          <div className="d-flex align-items-center gap-2">
+            <h4
+              className="offcanvas-title mb-0 fw-bold"
+              style={{ color: "#1e293b", fontSize: "19px", lineHeight: "1", marginRight: "6px" }}
+            >
+              Hold List
+            </h4>
+            <span
+              className="badge rounded-pill d-inline-flex align-items-center justify-content-center"
+              style={{
+                backgroundColor: "#fee2e2",
+                color: "#dc2626",
+                border: "1px solid #fca5a5",
+                fontSize: "12px",
+                fontWeight: 600,
+                padding: "4px 10px",
+                lineHeight: "1",
+              }}
+            >
+              {heldBills.length} {heldBills.length === 1 ? "Order" : "Orders"}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn-close-modal"
+            onClick={() => setOrdersModalOpen(false)}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div
+          className="offcanvas-body flex-grow-1 px-4 py-3"
+          style={{ overflowY: "auto" }}
+        >
+          {heldBills.length === 0 ? (
+            <div className="text-center py-5 text-muted">
+              <div
+                className="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                style={{ width: 64, height: 64, backgroundColor: "#f8fafc", color: "#94a3b8" }}
+              >
+                <i className="ti ti-inbox fs-32" />
+              </div>
+              <h6 className="fw-semibold text-dark mb-1">No Orders on Hold</h6>
+              <p className="fs-13 text-muted mb-0">Held orders will appear here for quick retrieval.</p>
+            </div>
+          ) : (
+            <div className="d-flex flex-column gap-3 pb-3">
+              {heldBills.map((b) => {
+                const isExpanded = expandedHeldOrderId === b.id;
+                return (
+                  <div
+                    key={b.id}
+                    className="card border rounded-3 p-3 mb-0 shadow-sm"
+                    style={{ borderColor: "#e2e8f0", backgroundColor: "#ffffff" }}
+                  >
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="badge bg-light text-dark fw-bold px-2 py-1 fs-12 border">
+                          {b.orderNumber}
+                        </span>
+                        <span className="text-muted fs-12">
+                          <i className="ti ti-clock me-1 fs-11" />
+                          {b.timestamp}
+                        </span>
+                      </div>
+                      <span className="fw-bold fs-15 text-success">
+                        {formatINR(b.grandTotal)}
+                      </span>
+                    </div>
+
+                    <div className="mb-2">
+                      <div className="fw-semibold text-dark fs-13 d-flex align-items-center gap-1 mb-1">
+                        <i className="ti ti-user fs-14 text-muted" />
+                        {b.customerName}
+                      </div>
+
+                      {/* Collapsible Items Dropdown Trigger */}
+                      <div className="mt-1">
+                        <button
+                          type="button"
+                          className="btn btn-sm p-0 d-inline-flex align-items-center gap-1.5 text-decoration-none border-0 bg-transparent"
+                          style={{ cursor: "pointer", outline: "none", boxShadow: "none" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedHeldOrderId((prev) => (prev === b.id ? null : b.id));
+                          }}
+                        >
+                          <span className="badge bg-light text-dark border fs-11 fw-semibold">
+                            {b.items.length} {b.items.length === 1 ? "item" : "items"}
+                          </span>
+                          <span className="text-primary fs-12 fw-medium d-inline-flex align-items-center gap-0.5">
+                            {isExpanded ? "Hide details" : "View items"}
+                            <i className={`ti ti-chevron-${isExpanded ? "up" : "down"} fs-11`} />
+                          </span>
+                        </button>
+
+                        {/* Expanded Items Dropdown List */}
+                        {isExpanded && (
+                          <div
+                            className="mt-2 p-2.5 rounded-2 border"
+                            style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}
+                          >
+                            <ul className="list-unstyled mb-0 d-flex flex-column gap-1.5">
+                              {b.items.map((it, idx) => (
+                                <li
+                                  key={idx}
+                                  className="d-flex align-items-center justify-content-between fs-12 text-dark"
+                                >
+                                  <div className="d-flex align-items-center gap-1.5 text-truncate me-2">
+                                    <span
+                                      className="badge bg-white text-dark border px-1.5 py-0.5 fs-11 fw-bold flex-shrink-0"
+                                      style={{ minWidth: "24px", textAlign: "center" }}
+                                    >
+                                      {it.quantity}x
+                                    </span>
+                                    <span className="text-truncate" title={it.product.name}>
+                                      {it.product.name}
+                                      {it.selectedSize?.name ? (
+                                        <span className="text-muted ms-1">({it.selectedSize.name})</span>
+                                      ) : null}
+                                    </span>
+                                  </div>
+                                  <span className="fw-semibold flex-shrink-0 text-muted fs-11">
+                                    {formatINR(it.total_amount ?? (it.unit_price * it.quantity))}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Delivery Info in Held Order */}
+                      {((b.shippingCost !== undefined && b.shippingCost > 0) || b.shippingDetails?.toAddress) && (
+                        <div className="mt-2 p-2 rounded border fs-11" style={{ backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" }}>
+                          <div className="d-flex align-items-center justify-content-between mb-0.5">
+                            <span className="fw-semibold text-success d-flex align-items-center gap-1">
+                              <i className="ti ti-truck-delivery fs-12" /> Delivery to {b.shippingDetails?.toName || b.customerName}
+                            </span>
+                            <span className="fw-bold text-dark">+{formatINR(b.shippingCost || 0)}</span>
+                          </div>
+                          {b.shippingDetails?.toAddress && (
+                            <div className="text-muted text-truncate fs-11">
+                              {[b.shippingDetails.toAddress, b.shippingDetails.toCity].filter(Boolean).join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="d-flex align-items-center justify-content-end gap-2 pt-2 border-top">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 py-1 px-2.5 fs-12 shadow-none"
+                        style={{ boxShadow: "none" }}
+                        onClick={() => handleDeleteHeldOrder(b.id)}
+                      >
+                        <i className="ti ti-trash fs-13" />
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 py-1 px-3 fs-12 fw-semibold shadow-none"
+                        style={{ boxShadow: "none" }}
+                        onClick={() => handleRestoreOrder(b)}
+                      >
+                        <i className="ti ti-rotate-clockwise-2 fs-13" />
+                        Restore Order
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Backdrop for Orders Drawer */}
       {ordersModalOpen && (
         <div
-          className="pos-five-modal-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setOrdersModalOpen(false);
-          }}
-        >
-          <div className="pos-five-modal-card wide p-4">
-            <div className="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
-              <h5 className="fw-bold mb-0">Orders &amp; Held Bills</h5>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setOrdersModalOpen(false)}
-              />
-            </div>
-
-            <ul className="nav nav-tabs mb-3">
-              <li className="nav-item">
-                <button
-                  type="button"
-                  className={`nav-link ${activeOrdersTab === "held" ? "active fw-bold" : ""}`}
-                  onClick={() => setActiveOrdersTab("held")}
-                >
-                  On-Hold Orders ({heldBills.length})
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  type="button"
-                  className={`nav-link ${activeOrdersTab === "recent" ? "active fw-bold" : ""}`}
-                  onClick={() => setActiveOrdersTab("recent")}
-                >
-                  Recent Transactions ({recentInvoices.length})
-                </button>
-              </li>
-            </ul>
-
-            {activeOrdersTab === "held" ? (
-              <div className="table-responsive" style={{ maxHeight: "360px", overflowY: "auto" }}>
-                {heldBills.length === 0 ? (
-                  <div className="text-center py-5 text-muted">
-                    <i className="ti ti-inbox fs-36 mb-2 d-block" />
-                    No orders on hold
-                  </div>
-                ) : (
-                  <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Order #</th>
-                        <th>Customer</th>
-                        <th>Items</th>
-                        <th>Total</th>
-                        <th className="text-end">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {heldBills.map((b) => (
-                        <tr key={b.id}>
-                          <td className="fw-bold">{b.orderNumber}</td>
-                          <td>{b.customerName}</td>
-                          <td>{b.items.length} items</td>
-                          <td className="fw-bold text-primary">{formatINR(b.grandTotal)}</td>
-                          <td className="text-end">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-primary me-2"
-                              onClick={() => handleRestoreOrder(b)}
-                            >
-                              Restore
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => handleDeleteHeldOrder(b.id)}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            ) : (
-              <div className="table-responsive" style={{ maxHeight: "360px", overflowY: "auto" }}>
-                {recentInvoices.length === 0 ? (
-                  <div className="text-center py-5 text-muted">
-                    <i className="ti ti-history fs-36 mb-2 d-block" />
-                    No recent transactions
-                  </div>
-                ) : (
-                  <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Invoice #</th>
-                        <th>Customer</th>
-                        <th>Amount</th>
-                        <th>Mode</th>
-                        <th className="text-end">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentInvoices.map((inv) => (
-                        <tr key={inv.id}>
-                          <td className="fw-bold">{inv.invoice_number || inv.id}</td>
-                          <td>{inv.customer_name || "Walk-in"}</td>
-                          <td className="fw-bold text-success">
-                            {formatINR(inv.grand_total || inv.total_amount || 0)}
-                          </td>
-                          <td>
-                            <span className="badge bg-light text-dark text-uppercase">
-                              {inv.payment_method || "Cash"}
-                            </span>
-                          </td>
-                          <td className="text-end text-muted fs-12">
-                            {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : "-"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+          className="offcanvas-backdrop fade show"
+          onClick={() => setOrdersModalOpen(false)}
+          style={{ zIndex: 1060 }}
+        />
       )}
 
       {/* 4. Slide Animated Customer Drawer (#add_order) */}
@@ -5611,6 +6502,255 @@ const Pos: React.FC = () => {
         />
       )}
 
+      {/* 4.7. Slide Animated Add-Ons Drawer (#addons_drawer) */}
+      <div
+        className={`offcanvas offcanvas-end pos-edit-product-drawer ${addOnsDrawerOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="addons_drawer"
+        style={{
+          visibility: addOnsDrawerOpen ? "visible" : "hidden",
+          transform: addOnsDrawerOpen ? "none" : "translateX(calc(100% + 40px))",
+          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1065,
+          width: "480px",
+          maxWidth: "480px",
+          minWidth: "unset",
+          position: "fixed",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        {/* Fixed Header */}
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-3 border-bottom">
+          <div className="d-flex align-items-center gap-2">
+            <div
+              className="rounded-circle p-2 d-flex align-items-center justify-content-center bg-soft-primary text-primary"
+              style={{ width: "38px", height: "38px" }}
+            >
+              <i className="ti ti-apps fs-20" />
+            </div>
+            <div>
+              <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "19px" }}>
+                Add-ons
+              </h4>
+              <p className="mb-0 text-muted fs-12">
+                Select and configure add-on features for this order
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-close-modal"
+            onClick={() => setAddOnsDrawerOpen(false)}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="offcanvas-body flex-grow-1 overflow-y-auto px-4 py-3 d-flex flex-column gap-3">
+          {/* 1. Shipping Option Card */}
+          <div
+            className="card rounded-3 p-3 mb-0"
+            style={{
+              borderColor: tempAddOns.shipping ? "#3b82f6" : "#e2e8f0",
+              borderWidth: "1.5px",
+              borderStyle: "solid",
+              backgroundColor: tempAddOns.shipping ? "#f0f7ff" : "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onClick={() =>
+              setTempAddOns((prev) => ({ ...prev, shipping: !prev.shipping }))
+            }
+          >
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-3">
+                <div className="form-check m-0">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={tempAddOns.shipping}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setTempAddOns((prev) => ({ ...prev, shipping: e.target.checked }));
+                    }}
+                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                  />
+                </div>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    backgroundColor: tempAddOns.shipping ? "#dbeafe" : "#f1f5f9",
+                    color: tempAddOns.shipping ? "#2563eb" : "#64748b",
+                  }}
+                >
+                  <i className="ti ti-truck fs-18" />
+                </div>
+                <div>
+                  <h6 className="mb-0 fw-bold fs-14" style={{ color: "#1e293b" }}>
+                    Shipping
+                  </h6>
+                  <p className="text-muted fs-12 mb-0">Delivery and shipping charges</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Coupon Option Card */}
+          <div
+            className="card rounded-3 p-3 mb-0"
+            style={{
+              borderColor: tempAddOns.coupon ? "#8b5cf6" : "#e2e8f0",
+              borderWidth: "1.5px",
+              borderStyle: "solid",
+              backgroundColor: tempAddOns.coupon ? "#f5f3ff" : "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onClick={() =>
+              setTempAddOns((prev) => ({ ...prev, coupon: !prev.coupon }))
+            }
+          >
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-3">
+                <div className="form-check m-0">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={tempAddOns.coupon}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setTempAddOns((prev) => ({ ...prev, coupon: e.target.checked }));
+                    }}
+                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                  />
+                </div>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    backgroundColor: tempAddOns.coupon ? "#ede9fe" : "#f1f5f9",
+                    color: tempAddOns.coupon ? "#7c3aed" : "#64748b",
+                  }}
+                >
+                  <i className="ti ti-ticket fs-18" />
+                </div>
+                <div>
+                  <h6 className="mb-0 fw-bold fs-14" style={{ color: "#1e293b" }}>
+                    Coupon
+                  </h6>
+                  <p className="text-muted fs-12 mb-0">Apply promo or coupon code</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Complimentary Option Card */}
+          <div
+            className="card rounded-3 p-3 mb-0"
+            style={{
+              borderColor: tempAddOns.complimentary ? "#10b981" : "#e2e8f0",
+              borderWidth: "1.5px",
+              borderStyle: "solid",
+              backgroundColor: tempAddOns.complimentary ? "#ecfdf5" : "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onClick={() =>
+              setTempAddOns((prev) => ({ ...prev, complimentary: !prev.complimentary }))
+            }
+          >
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-3">
+                <div className="form-check m-0">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={tempAddOns.complimentary}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setTempAddOns((prev) => ({ ...prev, complimentary: e.target.checked }));
+                    }}
+                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                  />
+                </div>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    backgroundColor: tempAddOns.complimentary ? "#d1fae5" : "#f1f5f9",
+                    color: tempAddOns.complimentary ? "#059669" : "#64748b",
+                  }}
+                >
+                  <i className="ti ti-gift fs-18" />
+                </div>
+                <div>
+                  <h6 className="mb-0 fw-bold fs-14" style={{ color: "#1e293b" }}>
+                    Complimentary
+                  </h6>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pinned Bottom Footer */}
+        <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top flex-shrink-0 bg-white">
+          <button
+            type="button"
+            className="btn btn-light d-flex align-items-center justify-content-center flex-fill"
+            onClick={() => setAddOnsDrawerOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary d-flex align-items-center justify-content-center flex-fill fw-bold"
+            onClick={() => {
+              setEnabledAddOns({ ...tempAddOns });
+              setAddOnsDrawerOpen(false);
+              showPosToast("Add-ons updated in Payment Summary!", "success");
+            }}
+          >
+            <i className="ti ti-check me-1" /> Continue
+          </button>
+        </div>
+      </div>
+
+      {addOnsDrawerOpen && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={() => setAddOnsDrawerOpen(false)}
+          style={{ zIndex: 1060 }}
+        />
+      )}
+
       {/* 5. Barcode Scanner Modal */}
       {barcodeModalOpen && (
         <div
@@ -5862,57 +7002,1024 @@ const Pos: React.FC = () => {
         </div>
       )}
 
-      {/* 8. Edit Shipping Modal */}
+      {/* 8. Slide Animated Shipping Drawer (#shipping_drawer) */}
+      <div
+        className={`offcanvas offcanvas-end pos-edit-product-drawer ${shippingModalOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="shipping_drawer"
+        style={{
+          visibility: shippingModalOpen ? "visible" : "hidden",
+          transform: shippingModalOpen ? "none" : "translateX(calc(100% + 40px))",
+          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1065,
+          width: "480px",
+          maxWidth: "480px",
+          minWidth: "unset",
+          position: "fixed",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        {/* Fixed Header */}
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-3 border-bottom">
+          <div className="d-flex align-items-center gap-2">
+            <div
+              className="rounded-circle p-2 d-flex align-items-center justify-content-center bg-soft-primary text-primary"
+              style={{ width: "38px", height: "38px" }}
+            >
+              <i className="ti ti-truck-delivery fs-20" />
+            </div>
+            <div>
+              <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "19px" }}>
+                Shipping &amp; Delivery
+              </h4>
+              <p className="mb-0 text-muted fs-12">
+                Configure shipping charges, origin and destination details
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-close-modal"
+            onClick={() => setShippingModalOpen(false)}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div className="offcanvas-body flex-grow-1 overflow-y-auto px-4 py-3 d-flex flex-column gap-3">
+          {/* Shipping Charges Card */}
+          <div
+            className="rounded-3"
+            style={{
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              padding: "16px 18px",
+            }}
+          >
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <label className="form-label fs-13 fw-bold text-dark mb-0 d-flex align-items-center gap-1.5">
+                <i className="ti ti-currency-rupee text-primary fs-15" />
+                Shipping Charges (₹)
+              </label>
+              <span className="text-muted fs-11 fw-medium">Quick Select</span>
+            </div>
+
+            <div className="input-group mb-3">
+              <span
+                className="input-group-text bg-white fw-bold text-primary border-end-0 fs-16"
+                style={{ borderColor: "#cbd5e1", paddingLeft: "14px", paddingRight: "14px" }}
+              >
+                ₹
+              </span>
+              <input
+                type="number"
+                min="0"
+                className="form-control form-control-lg fw-bold border-start-0 fs-16 ps-1"
+                style={{ borderColor: "#cbd5e1" }}
+                placeholder="0"
+                value={tempShipping}
+                onChange={(e) => setTempShipping(e.target.value)}
+              />
+            </div>
+
+            <div className="d-flex flex-wrap align-items-center" style={{ gap: "8px" }}>
+              {[
+                { label: "₹0 (Free)", val: "0" },
+                { label: "₹50", val: "50" },
+                { label: "₹100", val: "100" },
+                { label: "₹150", val: "150" },
+                { label: "₹200", val: "200" },
+                { label: "₹350", val: "350" },
+                { label: "₹500", val: "500" },
+              ].map((chip) => {
+                const isSelected = String(tempShipping) === chip.val;
+                return (
+                  <button
+                    key={chip.val}
+                    type="button"
+                    className={`btn btn-sm ${
+                      isSelected
+                        ? "btn-primary text-white shadow-sm"
+                        : "bg-white text-dark border shadow-none"
+                    }`}
+                    style={{
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      padding: "6px 13px",
+                      borderColor: isSelected ? undefined : "#cbd5e1",
+                      transition: "all 0.15s ease",
+                    }}
+                    onClick={() => setTempShipping(chip.val)}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Shipping From (Sender / Store Origin) */}
+          <div
+            className="p-3 rounded-3"
+            style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+          >
+            <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center bg-soft-info text-info"
+                style={{ width: "26px", height: "26px" }}
+              >
+                <i className="ti ti-building-warehouse fs-14" />
+              </div>
+              <h6 className="mb-0 fw-bold fs-13 text-dark">
+                Shipping From (Store / Warehouse)
+              </h6>
+            </div>
+
+            <div className="row g-2">
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Store / Sender Name
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. GrowNaturals Main Store"
+                  value={tempShippingDetails.fromName}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, fromName: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Contact Phone
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. +91 98765 43210"
+                  value={tempShippingDetails.fromPhone}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, fromPhone: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Sender Address / Hub
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Plot 42, Green Agro Park"
+                  value={tempShippingDetails.fromAddress}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, fromAddress: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-7">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">City</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Mumbai"
+                  value={tempShippingDetails.fromCity}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, fromCity: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-5">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">Pincode</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="400001"
+                  value={tempShippingDetails.fromPincode}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, fromPincode: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Shipping To (Destination / Customer Details) */}
+          <div
+            className="p-3 rounded-3"
+            style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+          >
+            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+              <div className="d-flex align-items-center gap-2">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center bg-soft-success text-success"
+                  style={{ width: "26px", height: "26px" }}
+                >
+                  <i className="ti ti-map-pin fs-14" />
+                </div>
+                <h6 className="mb-0 fw-bold fs-13 text-dark">
+                  Shipping To (Delivery Destination)
+                </h6>
+              </div>
+              {selectedCustomer?.value !== "walkin" && (
+                <button
+                  type="button"
+                  className="btn btn-xs btn-link text-primary p-0 text-decoration-none fs-11 fw-semibold"
+                  onClick={() => {
+                    setTempShippingDetails((p) => ({
+                      ...p,
+                      toName: selectedCustomer?.name || selectedCustomer?.label?.split(" (")[0] || p.toName,
+                      toPhone: selectedCustomer?.phone || p.toPhone,
+                      toAddress: selectedCustomer?.address || p.toAddress,
+                    }));
+                  }}
+                >
+                  <i className="ti ti-copy me-1" /> Autofill Customer
+                </button>
+              )}
+            </div>
+
+            <div className="row g-2">
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Recipient Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Rajesh Kumar Sharma"
+                  value={tempShippingDetails.toName}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, toName: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Recipient Phone <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. +91 98234 56789"
+                  value={tempShippingDetails.toPhone}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, toPhone: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Delivery Address <span className="text-danger">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  className="form-control form-control-sm"
+                  placeholder="Street address, building, area landmark, city & pincode..."
+                  value={tempShippingDetails.toAddress}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, toAddress: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Delivery Instructions / Notes
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Handle with care (Live plants), Call upon delivery"
+                  value={tempShippingDetails.notes}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, notes: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pinned Bottom Footer */}
+        <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top flex-shrink-0 bg-white">
+          <button
+            type="button"
+            className="btn btn-light d-flex align-items-center justify-content-center flex-fill"
+            onClick={() => setShippingModalOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary d-flex align-items-center justify-content-center flex-fill fw-bold"
+            onClick={() => {
+              setShippingCost(Math.max(0, Number(tempShipping) || 0));
+              setShippingDetails({ ...tempShippingDetails });
+              setShippingModalOpen(false);
+              showPosToast("Shipping details updated successfully!", "success");
+            }}
+          >
+            <i className="ti ti-check me-1" /> Update Shipping
+          </button>
+        </div>
+      </div>
+
       {shippingModalOpen && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={() => setShippingModalOpen(false)}
+          style={{ zIndex: 1060 }}
+        />
+      )}
+
+      {/* 8.5. Edit Coupon Modal */}
+      {couponModalOpen && (
         <div
           className="pos-five-modal-backdrop"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShippingModalOpen(false);
+            if (e.target === e.currentTarget) setCouponModalOpen(false);
           }}
         >
           <div className="pos-five-modal-card p-4">
             <div className="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
-              <h5 className="fw-bold mb-0">Shipping Charges</h5>
+              <div className="d-flex align-items-center gap-2">
+                <div
+                  className="rounded-circle p-2 d-flex align-items-center justify-content-center bg-soft-purple text-purple"
+                  style={{ width: "36px", height: "36px" }}
+                >
+                  <i className="ti ti-ticket fs-18" />
+                </div>
+                <h5 className="fw-bold mb-0">Apply Coupon</h5>
+              </div>
               <button
                 type="button"
                 className="btn-close"
-                onClick={() => setShippingModalOpen(false)}
+                onClick={() => setCouponModalOpen(false)}
               />
             </div>
+
             <div className="mb-3">
-              <label className="form-label fs-13">Shipping Amount (₹)</label>
+              <label className="form-label fs-13 fw-semibold">Coupon Code</label>
+              <input
+                type="text"
+                className="form-control text-uppercase fw-semibold"
+                placeholder="e.g. WELCOME10"
+                value={tempCouponCode}
+                onChange={(e) => setTempCouponCode(e.target.value.toUpperCase())}
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label fs-13 fw-semibold">Discount Type</label>
+              <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
+                <button
+                  type="button"
+                  className={`btn btn-sm flex-fill ${
+                    tempCouponType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
+                  }`}
+                  onClick={() => setTempCouponType("percentage")}
+                >
+                  Percentage (%)
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm flex-fill ${
+                    tempCouponType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
+                  }`}
+                  onClick={() => setTempCouponType("fixed")}
+                >
+                  Fixed (₹)
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label fs-13 fw-semibold">
+                {tempCouponType === "percentage" ? "Discount Percentage (%)" : "Discount Amount (₹)"}
+              </label>
               <input
                 type="number"
                 min="0"
-                className="form-control"
-                value={tempShipping}
-                onChange={(e) => setTempShipping(e.target.value)}
+                className="form-control form-control-lg fw-bold"
+                placeholder="0"
+                value={tempCouponDiscount}
+                onChange={(e) => setTempCouponDiscount(e.target.value)}
               />
-              <div className="d-flex gap-2 mt-2">
-                {[0, 50, 100, 200].map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className="btn btn-xs btn-outline-secondary"
-                    onClick={() => setTempShipping(s.toString())}
+            </div>
+
+            <div className="d-flex gap-2">
+              <button
+                type="button"
+                className="btn btn-light flex-fill"
+                onClick={() => setCouponModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex-fill fw-bold"
+                onClick={() => {
+                  setCouponCode(tempCouponCode.trim());
+                  setCouponDiscount(Math.max(0, Number(tempCouponDiscount) || 0));
+                  setCouponDiscountType(tempCouponType);
+                  setCouponModalOpen(false);
+                }}
+              >
+                Apply Coupon
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8.6. Slide Animated Complimentary Drawer (#complimentary_drawer) */}
+      <div
+        className={`offcanvas offcanvas-end pos-edit-product-drawer ${complimentaryModalOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="complimentary_drawer"
+        style={{
+          visibility: complimentaryModalOpen ? "visible" : "hidden",
+          transform: complimentaryModalOpen ? "none" : "translateX(calc(100% + 40px))",
+          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1065,
+          width: "500px",
+          maxWidth: "95vw",
+          minWidth: "unset",
+          position: "fixed",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        {/* Fixed Header */}
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 py-3 border-bottom bg-white">
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="rounded-circle d-flex align-items-center justify-content-center bg-soft-primary text-primary flex-shrink-0"
+              style={{ width: "38px", height: "38px" }}
+            >
+              <i className="ti ti-gift fs-20" />
+            </div>
+            <div>
+              <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "17px" }}>
+                Complimentary & Add-ons
+              </h4>
+              <p className="mb-0 text-muted fs-12 mt-0.5">
+                Select free promotional gifts or paid add-ons to add to cart
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-close-modal"
+            onClick={() => setComplimentaryModalOpen(false)}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div
+          className="offcanvas-body flex-grow-1 overflow-y-auto px-4 py-3.5 d-flex flex-column gap-3"
+          style={{ overflowX: "hidden", backgroundColor: "#ffffff" }}
+        >
+          {/* 1. Filter Switcher & Search Bar */}
+          <div
+            className="rounded-3"
+            style={{
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              padding: "16px 18px",
+            }}
+          >
+            <div className="d-flex align-items-center justify-content-between mb-2.5">
+              <label className="form-label fs-13 fw-bold text-dark mb-0 d-flex align-items-center gap-1.5">
+                <i className="ti ti-filter text-primary fs-15" />
+                <span>Filter Add-ons</span>
+              </label>
+              <span className="text-muted fs-11 fw-medium">
+                {compActiveFilter === "all"
+                  ? `All Items (${compCategoryCounts.all})`
+                  : compActiveFilter === "free"
+                  ? `Free Gifts (${compCategoryCounts.free})`
+                  : `Paid Add-ons (${compCategoryCounts.paid})`}
+              </span>
+            </div>
+
+            {/* Top Segmented Filter Tabs */}
+            <div className="d-flex gap-2 mb-2.5">
+              <button
+                type="button"
+                className={`btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2 ${
+                  compActiveFilter === "all"
+                    ? "btn-primary text-white shadow-sm fw-bold"
+                    : "bg-white text-dark border shadow-none fw-medium"
+                }`}
+                style={{
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  borderColor: compActiveFilter === "all" ? undefined : "#cbd5e1",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => setCompActiveFilter("all")}
+              >
+                <i className="ti ti-layout-grid fs-14" />
+                <span>All ({compCategoryCounts.all})</span>
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2 ${
+                  compActiveFilter === "free"
+                    ? "btn-success text-white shadow-sm fw-bold"
+                    : "bg-white text-dark border shadow-none fw-medium"
+                }`}
+                style={{
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  borderColor: compActiveFilter === "free" ? undefined : "#cbd5e1",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => setCompActiveFilter("free")}
+              >
+                <i className="ti ti-gift fs-14" />
+                <span>Free ({compCategoryCounts.free})</span>
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2 ${
+                  compActiveFilter === "paid"
+                    ? "btn-warning text-white shadow-sm fw-bold"
+                    : "bg-white text-dark border shadow-none fw-medium"
+                }`}
+                style={{
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  borderColor: compActiveFilter === "paid" ? undefined : "#cbd5e1",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => setCompActiveFilter("paid")}
+              >
+                <i className="ti ti-tag fs-14" />
+                <span>Paid ({compCategoryCounts.paid})</span>
+              </button>
+            </div>
+
+            {/* Quick Search */}
+            <div className="position-relative">
+              <input
+                type="text"
+                className="form-control form-control-sm ps-4"
+                placeholder="Search complimentary gifts or add-on items..."
+                value={compSearchQuery}
+                onChange={(e) => setCompSearchQuery(e.target.value)}
+                style={{
+                  borderRadius: "8px",
+                  borderColor: "#cbd5e1",
+                  fontSize: "12px",
+                  height: "36px",
+                  backgroundColor: "#ffffff",
+                }}
+              />
+              <i
+                className="ti ti-search text-muted position-absolute"
+                style={{ left: "12px", top: "11px", fontSize: "14px" }}
+              />
+              {compSearchQuery && (
+                <button
+                  type="button"
+                  className="btn btn-link p-0 position-absolute text-muted"
+                  style={{ right: "10px", top: "9px" }}
+                  onClick={() => setCompSearchQuery("")}
+                >
+                  <i className="ti ti-x fs-14" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 2. Order Qualification Offer Banner */}
+          <div
+            className="rounded-3 d-flex align-items-center justify-content-between"
+            style={{
+              backgroundColor: totals.subtotal >= 5000 ? "#f0fdf4" : "#fffbeb",
+              border: `1px solid ${totals.subtotal >= 5000 ? "#bbf7d0" : "#fde68a"}`,
+              padding: "12px 16px",
+            }}
+          >
+            <div className="d-flex align-items-center gap-2.5">
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  backgroundColor: totals.subtotal >= 5000 ? "#dcfce7" : "#fef3c7",
+                  color: totals.subtotal >= 5000 ? "#15803d" : "#b45309",
+                }}
+              >
+                <i className={`ti ${totals.subtotal >= 5000 ? "ti-gift" : "ti-sparkles"} fs-16`} />
+              </div>
+              <div>
+                <div className="fs-12 fw-bold text-dark d-flex align-items-center gap-1.5">
+                  <span>Cart Total: {formatINR(totals.subtotal)}</span>
+                  {totals.subtotal >= 5000 && (
+                    <span className="badge bg-success text-white py-0.5 px-1.5 fs-10 fw-bold">
+                      Unlocked
+                    </span>
+                  )}
+                </div>
+                <div className="fs-11 text-muted mt-0.5">
+                  {totals.subtotal >= 5000
+                    ? "Eligible for Free Promotional Pot & special complimentary items (> ₹5,000)!"
+                    : `Add ${formatINR(Math.max(0, 5000 - totals.subtotal))} more to unlock Free Ceramic Pot promo offer!`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Available Complimentary Products List (Hidden if already in cart) */}
+          <div
+            className="rounded-3 flex-grow-1 d-flex flex-column"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e2e8f0",
+              padding: "16px 18px",
+            }}
+          >
+            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+              <div className="d-flex align-items-center gap-1.5">
+                <i className="ti ti-package text-primary fs-16" />
+                <h6 className="mb-0 fw-bold fs-13 text-dark">
+                  Available Add-ons ({availableComplimentaryItems.length})
+                </h6>
+              </div>
+              <span className="text-muted fs-11">
+                Items already in cart are hidden
+              </span>
+            </div>
+
+            {availableComplimentaryItems.length === 0 ? (
+              <div className="text-center py-5 text-muted">
+                <i className="ti ti-check-circle fs-32 text-success d-block mb-2" />
+                <h6 className="fs-13 fw-bold text-dark mb-1">
+                  {cartProductIds.size > 0 && complimentaryCatalog.every((c) => cartProductIds.has(c.id))
+                    ? "All Complimentary Items Added to Cart"
+                    : "No Complimentary Items Found"}
+                </h6>
+                <p className="fs-12 text-muted mb-0">
+                  {compSearchQuery
+                    ? "Try searching with a different keyword or view other categories."
+                    : "All mapped complimentary products have been added to this bill."}
+                </p>
+              </div>
+            ) : (
+              <div className="d-flex flex-column" style={{ gap: "16px" }}>
+                {availableComplimentaryItems.map((item) => {
+                  const qty = compItemQuantities[item.id] || 1;
+                  const isFree = item.type === "free";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="d-flex align-items-center justify-content-between gap-3"
+                      style={{
+                        backgroundColor: isFree ? "#f0fdf4" : "#ffffff",
+                        border: `1px solid ${isFree ? "#bbf7d0" : "#e2e8f0"}`,
+                        borderRadius: "12px",
+                        padding: "15px 16px",
+                        boxShadow: "0 1px 4px rgba(0, 0, 0, 0.05)",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {/* Left: Product Info */}
+                      <div
+                        className="d-flex align-items-center gap-2.5"
+                        style={{ minWidth: 0, flex: "1 1 0%" }}
+                      >
+                        <div
+                          className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                          style={{
+                            width: "38px",
+                            height: "38px",
+                            backgroundColor: isFree ? "#dcfce7" : "#fef3c7",
+                            color: isFree ? "#16a34a" : "#b45309",
+                          }}
+                        >
+                          <i className={`ti ${isFree ? "ti-gift" : "ti-tag"} fs-18`} />
+                        </div>
+                        <div style={{ minWidth: 0, flex: "1 1 0%" }}>
+                          <div
+                            className="fs-13 fw-semibold text-dark text-truncate mb-0.5"
+                            title={item.name}
+                          >
+                            {item.name}
+                          </div>
+                          {item.conditionNote && (
+                            <div
+                              className="fs-11 text-muted text-truncate mb-1"
+                              title={item.conditionNote}
+                            >
+                              <i className="ti ti-sparkles text-primary me-1 fs-11" />
+                              {item.conditionNote}
+                            </div>
+                          )}
+                          <div className="d-flex align-items-center gap-2">
+                            {isFree ? (
+                              <>
+                                <span
+                                  className="badge px-2 py-0.5 fw-bold"
+                                  style={{
+                                    backgroundColor: "#dcfce7",
+                                    color: "#15803d",
+                                    fontSize: "11px",
+                                    borderRadius: "4px",
+                                  }}
+                                >
+                                  Free Gift (₹0)
+                                </span>
+                                {item.originalPrice && (
+                                  <span className="text-muted text-decoration-line-through fs-11">
+                                    {formatINR(item.originalPrice)}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <span
+                                  className="badge px-2 py-0.5 fw-bold"
+                                  style={{
+                                    backgroundColor: "#fef3c7",
+                                    color: "#b45309",
+                                    fontSize: "11px",
+                                    borderRadius: "4px",
+                                  }}
+                                >
+                                  Paid Add-on
+                                </span>
+                                <span className="fw-bold text-dark fs-12">
+                                  {formatINR(item.price)}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Quantity Stepper & Add to Cart Button */}
+                      <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                        {/* Stepper */}
+                        <div
+                          className="d-flex align-items-center border rounded bg-white shadow-none"
+                          style={{ borderColor: "#cbd5e1", height: "32px" }}
+                        >
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-link text-dark p-0 d-flex align-items-center justify-content-center"
+                            style={{ width: "24px", height: "100%", textDecoration: "none" }}
+                            onClick={() => {
+                              if (qty > 1) {
+                                setCompItemQuantities((prev) => ({ ...prev, [item.id]: qty - 1 }));
+                              }
+                            }}
+                          >
+                            <i className="ti ti-minus fs-11" />
+                          </button>
+                          <span
+                            className="px-1.5 fs-12 fw-bold text-dark"
+                            style={{ minWidth: "20px", textAlign: "center" }}
+                          >
+                            {qty}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-link text-dark p-0 d-flex align-items-center justify-content-center"
+                            style={{ width: "24px", height: "100%", textDecoration: "none" }}
+                            onClick={() => {
+                              setCompItemQuantities((prev) => ({ ...prev, [item.id]: qty + 1 }));
+                            }}
+                          >
+                            <i className="ti ti-plus fs-11" />
+                          </button>
+                        </div>
+
+                        {/* Add to Cart Button */}
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary d-flex align-items-center gap-1.5 px-3 py-1.5 fw-bold text-white shadow-sm"
+                          style={{ borderRadius: "8px", height: "32px", fontSize: "12px" }}
+                          onClick={() => handleAddComplimentaryToCart(item)}
+                        >
+                          <i className="ti ti-plus fs-13" /> Add to Cart
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 4. Store Inventory Products Search Fallback */}
+          {matchedStoreProducts.length > 0 && (
+            <div
+              className="rounded-3"
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                padding: "16px 18px",
+              }}
+            >
+              <div className="d-flex align-items-center justify-content-between mb-2.5 pb-2 border-bottom">
+                <div className="d-flex align-items-center gap-1.5">
+                  <i className="ti ti-building-store text-primary fs-15" />
+                  <span className="fs-12 fw-bold text-dark">
+                    From Store Products ({matchedStoreProducts.length})
+                  </span>
+                </div>
+                <span className="text-muted fs-11">Sell as complimentary</span>
+              </div>
+              <div className="d-flex flex-column gap-2">
+                {matchedStoreProducts.map((p) => {
+                  const baseP = getProductPrice(p, salesType);
+                  return (
+                    <div
+                      key={p.id}
+                      className="d-flex align-items-center justify-content-between gap-2 p-2 rounded bg-light border"
+                      style={{ borderColor: "#e2e8f0" }}
+                    >
+                      <div className="min-w-0 flex-grow-1">
+                        <div className="fs-12 fw-semibold text-dark text-truncate">{p.name}</div>
+                        <div className="fs-11 text-muted">Normal: {formatINR(baseP)}</div>
+                      </div>
+                      <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-success d-flex align-items-center gap-1 px-2 py-1 fs-11 fw-bold text-white shadow-sm"
+                          style={{ borderRadius: "6px" }}
+                          onClick={() =>
+                            handleAddComplimentaryToCart({
+                              id: p.id,
+                              name: p.name,
+                              type: "free",
+                              price: 0,
+                              category: p.category_name || p.category,
+                              unit: p.unit,
+                              image_url: p.image_url,
+                            })
+                          }
+                        >
+                          <i className="ti ti-gift fs-11" /> Free Gift
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-outline-primary d-flex align-items-center gap-1 px-2 py-1 fs-11 fw-bold shadow-none"
+                          style={{ borderRadius: "6px" }}
+                          onClick={() =>
+                            handleAddComplimentaryToCart({
+                              id: p.id,
+                              name: p.name,
+                              type: "paid",
+                              price: baseP,
+                              category: p.category_name || p.category,
+                              unit: p.unit,
+                              image_url: p.image_url,
+                            })
+                          }
+                        >
+                          <i className="ti ti-tag fs-11" /> Paid Add-on
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 5. In Cart Complimentary Summary */}
+          {complimentaryInCart.length > 0 && (
+            <div
+              className="rounded-3"
+              style={{
+                backgroundColor: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                padding: "14px 16px",
+              }}
+            >
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="fs-12 fw-bold text-dark d-flex align-items-center gap-1.5">
+                  <i className="ti ti-shopping-cart-check text-success fs-15" />
+                  <span>Complimentary Items in Cart ({complimentaryInCart.length})</span>
+                </span>
+                <span className="badge bg-success-transparent text-success fs-11 fw-bold">
+                  Active in Bill
+                </span>
+              </div>
+              <div className="d-flex flex-column gap-2">
+                {complimentaryInCart.map((c) => (
+                  <div
+                    key={`${c.product.id}_${c.selectedSize?.id || "default"}`}
+                    className="d-flex align-items-center justify-content-between fs-12 py-2 px-2.5 rounded bg-white border"
+                    style={{ borderColor: "#e2e8f0" }}
                   >
-                    ₹{s}
-                  </button>
+                    <div className="d-flex align-items-center gap-2 min-w-0">
+                      <span className="text-truncate fw-semibold text-dark">{c.product.name}</span>
+                      <span className="text-muted">× {c.quantity}</span>
+                    </div>
+                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                      <span className={`fw-bold ${c.unit_price === 0 ? "text-success" : "text-dark"}`}>
+                        {c.unit_price === 0 ? "Free (₹0)" : formatINR(c.unit_price * c.quantity)}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-link text-danger p-0"
+                        title="Remove from cart"
+                        onClick={() => {
+                          setCart((prev) =>
+                            prev.filter(
+                              (i) =>
+                                `${i.product.id}_${i.selectedSize?.id || "default"}` !==
+                                `${c.product.id}_${c.selectedSize?.id || "default"}`
+                            )
+                          );
+                        }}
+                      >
+                        <i className="ti ti-trash fs-13" />
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
-            <button
-              type="button"
-              className="btn btn-primary w-100"
-              onClick={() => {
-                setShippingCost(Math.max(0, Number(tempShipping) || 0));
-                setShippingModalOpen(false);
-              }}
-            >
-              Update Shipping
-            </button>
-          </div>
+          )}
         </div>
+
+        {/* Pinned Bottom Footer */}
+        <div className="offcanvas-footer d-flex align-items-center justify-content-between gap-3 px-4 py-3 border-top flex-shrink-0 bg-white">
+          <div className="fs-12 text-muted">
+            <span className="fw-semibold text-dark">{complimentaryInCart.length}</span> item{complimentaryInCart.length === 1 ? "" : "s"} in cart
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary d-flex align-items-center justify-content-center px-4 fw-bold shadow-sm"
+            style={{ height: "40px", fontSize: "13px", borderRadius: "8px" }}
+            onClick={() => setComplimentaryModalOpen(false)}
+          >
+            <i className="ti ti-check me-1.5" /> Done / Back to POS
+          </button>
+        </div>
+      </div>
+
+      {complimentaryModalOpen && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={() => setComplimentaryModalOpen(false)}
+          style={{ zIndex: 1060 }}
+        />
       )}
 
       {/* 9. Void Confirmation Modal */}

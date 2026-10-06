@@ -553,7 +553,7 @@ button {
     &.active {
         background-color: variables.$danger !important;
         border:1px solid variables.$danger !important;
-        box-shadow: 0 3px 10px rgba(variables.$danger, 0.5);
+        box-shadow: none !important;
         color: variables.$white !important;
     }
 }

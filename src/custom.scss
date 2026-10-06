@@ -385,7 +385,7 @@
 
       i, i.ti {
         font-size: 18px;
-        color: #22c55e;
+        color: #28a745;
         display: block;
         line-height: 1;
       }
@@ -394,6 +394,8 @@
 
   &.active,
   &:hover {
+    border-color: #28a745 !important;
+
     .pro-img span,
     a.pro-img span {
       display: block !important;
@@ -402,6 +404,24 @@
     h6.product-name,
     h6.product-name a {
       color: #212b36 !important;
+    }
+  }
+
+  .badge.bg-success-transparent {
+    background-color: rgba(40, 167, 69, 0.12) !important;
+    color: #28a745 !important;
+
+    i {
+      color: #28a745 !important;
+    }
+  }
+
+  .badge.bg-warning-transparent {
+    background-color: #ffeee9 !important;
+    color: #e04f16 !important;
+
+    i {
+      color: #e04f16 !important;
     }
   }
 
@@ -1226,6 +1246,262 @@ body.dark-mode {
   }
 }
 
+/* POS Five Order Head */
+.pos-five aside .order-head {
+  padding: 0 0 10px !important;
+}
+
+/* 1. Hold Button (in Ordered Items Cart Header) */
+button.hold-btn,
+.hold-btn {
+  background: #fff8f5 !important;
+  border: 1px solid #fed7aa !important;
+  color: #ea580c !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  line-height: 1.4 !important;
+
+  span:not(.badge) {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    color: inherit !important;
+  }
+
+  i,
+  svg {
+    color: #ea580c !important;
+    font-size: 1.15em !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    flex-shrink: 0 !important;
+  }
+
+  &:hover {
+    background: #ea580c !important;
+    border-color: #ea580c !important;
+    color: #ffffff !important;
+
+    i,
+    svg {
+      color: #ffffff !important;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+  }
+}
+
+/* 2. Clear All Button (in Ordered Items Cart Header) */
+button.clear-all-btn,
+.clear-all-btn,
+.clear-icon {
+  background: #fff5f5 !important;
+  border: 1px solid #fecaca !important;
+  color: #dc2626 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  line-height: 1.4 !important;
+  text-decoration: none !important;
+
+  span {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    color: inherit !important;
+  }
+
+  i,
+  svg {
+    color: #dc2626 !important;
+    font-size: 1.15em !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    flex-shrink: 0 !important;
+  }
+
+  &:hover {
+    background: #dc2626 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+
+    i,
+    svg {
+      color: #ffffff !important;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+  }
+}
+
+/* 3. On Hold Button (in Order List Header) */
+aside.product-order-list .order-head .hold-list-btn,
+button.hold-list-btn,
+.hold-list-btn {
+  background: #fff8f5 !important;
+  border: 1px solid #fed7aa !important;
+  color: #ea580c !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  line-height: 1.4 !important;
+
+  span:not(.badge) {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    color: inherit !important;
+  }
+
+  i,
+  svg {
+    color: #ea580c !important;
+    font-size: 1.15em !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    flex-shrink: 0 !important;
+  }
+
+  .badge {
+    background-color: #ea580c !important;
+    color: #ffffff !important;
+    font-size: 0.75em !important;
+    padding: 3px 6px !important;
+    line-height: 1 !important;
+    border-radius: 10px !important;
+    margin-left: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  &:hover {
+    background: #ea580c !important;
+    border-color: #ea580c !important;
+    color: #ffffff !important;
+
+    i,
+    svg {
+      color: #ffffff !important;
+    }
+
+    .badge {
+      background-color: #ffffff !important;
+      color: #ea580c !important;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+  }
+}
+
+/* 4. Ordered Items Container Minimum Height (prevents height collapse when products are selected) */
+.product-added .product-wrap {
+  min-height: 330px !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.product-added .product-wrap .ordered-menu-list {
+  min-height: 330px !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 5. Add Ons Trigger Button (Below Roundoff in Payment Summary) */
+.add-ons-trigger-btn {
+  background-color: #f8fafc !important;
+  border: 1px dashed #cbd5e1 !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 7px 12px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+
+  &:hover {
+    background-color: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+  }
+
+  .add-ons-count-badge {
+    background-color: #ea580c !important;
+    color: #ffffff !important;
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    line-height: 1 !important;
+  }
+}
+
+/* Add-ons, Shipping & Complimentary Drawer Size Constraint */
+.offcanvas#addons_drawer,
+.offcanvas#shipping_drawer,
+.offcanvas#complimentary_drawer {
+  width: 480px !important;
+  max-width: 480px !important;
+  min-width: unset !important;
+  overflow-x: hidden !important;
+
+  .offcanvas-body {
+    overflow-x: hidden !important;
+  }
+}
+
+/* Orders Drawer Size Constraint */
+.offcanvas#orders_drawer {
+  width: 480px !important;
+  max-width: 480px !important;
+  min-width: unset !important;
+
+  .btn-outline-danger,
+  .btn-outline-danger:hover,
+  .btn-outline-danger:focus,
+  .btn-outline-danger:active {
+    box-shadow: none !important;
+  }
+}
+
+.btn-outline-danger,
+.btn-outline-danger:hover,
+.btn-outline-danger:focus,
+.btn-outline-danger:active {
+  box-shadow: none !important;
+}
+
 /* Ordered Menus / Cart Item Cards (.menu-item) */
 .menu-item {
   background: #ffffff !important;
@@ -1243,7 +1519,7 @@ body.dark-mode {
 
   &.active {
     border-color: #28a745 !important;
-    box-shadow: 0 0 0 1px #28a745, 0 4px 12px -2px rgba(40, 167, 69, 0.15) !important;
+    box-shadow: none !important;
   }
 
   .avatar {
@@ -1330,7 +1606,7 @@ body.dark-mode .menu-item {
 
   &.active {
     border-color: #28a745 !important;
-    box-shadow: 0 0 0 1px #28a745 !important;
+    box-shadow: none !important;
   }
 
   .avatar {
@@ -1428,17 +1704,60 @@ body.pos-page #theme-setting,
 
 /* Size badge in cart item */
 .item-size-badge {
-  background: #f1f5f9 !important;
+  background: transparent !important;
   color: #1e293b !important;
+  font-size: 12px !important;
+  padding: 6px 12px 8px 10px !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 6px !important;
   cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+  line-height: 1.2 !important;
   transition: all 0.15s ease !important;
 
+  i {
+    color: #64748b;
+    transition: color 0.15s ease !important;
+  }
+
   &:hover {
-    background: #e2e8f0 !important;
+    background: #f8fafc !important;
     border-color: #489566 !important;
     color: #489566 !important;
+
+    i {
+      color: #489566 !important;
+    }
+  }
+}
+
+.clear-icon {
+  color: #dc3545 !important;
+  transition: all 0.2s ease !important;
+
+  &:hover {
+    background: #dc3545 !important;
+    color: #ffffff !important;
+  }
+}
+
+[data-theme="dark"] .hold-btn,
+[data-bs-theme="dark"] .hold-btn,
+.dark .hold-btn,
+body.dark-mode .hold-btn,
+[data-theme="dark"] .hold-list-btn,
+[data-bs-theme="dark"] .hold-list-btn,
+.dark .hold-list-btn,
+body.dark-mode .hold-list-btn {
+  background: rgba(234, 88, 12, 0.15) !important;
+  border-color: rgba(234, 88, 12, 0.4) !important;
+  color: #fb923c !important;
+
+  &:hover {
+    background: #ea580c !important;
+    color: #ffffff !important;
   }
 }
 
@@ -1492,13 +1811,22 @@ body.pos-page #theme-setting,
 [data-layout-mode="dark"] .item-size-badge,
 .dark .item-size-badge,
 body.dark-mode .item-size-badge {
-  background: #1e293b !important;
+  background: transparent !important;
   border-color: #334155 !important;
   color: #cbd5e1 !important;
 
+  i {
+    color: #94a3b8;
+  }
+
   &:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
     border-color: #489566 !important;
     color: #6ee7a3 !important;
+
+    i {
+      color: #6ee7a3 !important;
+    }
   }
 }
 
@@ -1776,13 +2104,13 @@ body.dark-mode .pos-view-info-btn {
 .item-card-rate-badge {
   background-color: #479464 !important;
   color: #ffffff !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
   border-radius: 4px !important;
   display: inline-flex !important;
   align-items: center !important;
   vertical-align: middle !important;
-  padding: 4px 8px !important;
+  padding: 6px 8px 7px 8px !important;
   line-height: 1.2 !important;
   cursor: default !important;
   transition: none !important;

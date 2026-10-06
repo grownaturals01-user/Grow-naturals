@@ -1334,7 +1334,7 @@ label span {
         .order-head {
             border-bottom: 1px dashed variables.$border-color;
             @include mixins.rounded(0);
-            padding: 0 0 20px;
+            padding: 0 0 10px;
         }
         .payment-item {
             img {

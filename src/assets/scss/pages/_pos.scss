@@ -1188,9 +1188,10 @@
   }
 }
 
-/* Theme2 Customer Offcanvas (#add_order) & Edit Product Drawer (#edit_product_drawer) */
+/* Theme2 Customer Offcanvas (#add_order), Edit Product Drawer (#edit_product_drawer) & Orders Drawer (#orders_drawer) */
 .offcanvas#add_order,
 .offcanvas#edit_product_drawer,
+.offcanvas#orders_drawer,
 .offcanvas.pos-edit-product-drawer {
   width: 480px !important;
   max-width: 480px !important;
