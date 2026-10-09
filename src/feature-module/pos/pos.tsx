@@ -4507,6 +4507,7 @@ const Pos: React.FC = () => {
                                     minHeight: "36px",
                                     height: "36px",
                                     fontWeight: 400,
+                                    borderRadius: "8px",
                                   }),
                                   menu: (base) => ({ ...base, minWidth: "200px", zIndex: 9999 }),
                                 }}
@@ -4656,6 +4657,7 @@ const Pos: React.FC = () => {
                                     minHeight: "36px",
                                     height: "36px",
                                     fontWeight: 400,
+                                    borderRadius: "8px",
                                   }),
                                   menu: (base) => ({ ...base, minWidth: "240px", zIndex: 9999 }),
                                 }}
@@ -4668,7 +4670,7 @@ const Pos: React.FC = () => {
                             <Link
                               to="#"
                               className="btn btn-teal btn-icon flex-shrink-0"
-                              style={{ width: "32px", height: "36px", minWidth: "32px", padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "5px" }}
+                              style={{ width: "32px", height: "36px", minWidth: "32px", padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "8px" }}
                               onClick={(e) => {
                                 e.preventDefault();
                                 setCustomerDrawerOpen(true);
@@ -4680,7 +4682,7 @@ const Pos: React.FC = () => {
                             <Link
                               to="#"
                               className="btn btn-info btn-icon flex-shrink-0"
-                              style={{ width: "32px", height: "36px", minWidth: "32px", padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "5px" }}
+                              style={{ width: "32px", height: "36px", minWidth: "32px", padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "8px" }}
                               onClick={(e) => {
                                 e.preventDefault();
                                 setBarcodeModalOpen(true);
