@@ -22,6 +22,15 @@ import {
   external,
   splitbill,
   discountImg,
+  pdf,
+  excel,
+  user01,
+  user02,
+  user03,
+  user04,
+  user05,
+  user08,
+  user09,
 } from "../../utils/imagepath";
 import placeholderPos from "../../assets/img/placeholderpos.jpg";
 import noItemCartImg from "../../assets/img/noitemcart.jpg";
@@ -40,6 +49,11 @@ interface Product {
   category_id?: string;
   category?: string;
   category_name?: string;
+  subcategory_id?: string;
+  subcategory?: string;
+  subcategory_name?: string;
+  sub_category?: string;
+  sub_category_name?: string;
   selling_price?: number;
   sale_price?: number;
   price?: number;
@@ -53,6 +67,7 @@ interface Product {
   low_stock_threshold?: number;
   tax_rate?: number;
   image_url?: string;
+  images?: string[] | string;
   unit?: string;
   is_featured?: boolean;
   type?: string;
@@ -99,7 +114,8 @@ interface HeldBill {
   grandTotal: number;
   shippingCost?: number;
   shippingDetails?: ShippingDetails;
-  enabledAddOns?: { shipping: boolean; coupon: boolean; complimentary: boolean };
+  enabledAddOns?: { shipping: boolean; coupon: boolean; complimentary: boolean; points: boolean };
+  redeemedPoints?: number;
   discountPercent?: number;
   orderDiscountType?: "percentage" | "fixed";
   orderTaxPercent?: number;
@@ -109,6 +125,8 @@ interface HeldBill {
   isComplimentaryFull?: boolean;
   complimentaryAmount?: number;
   complimentaryItemKeys?: string[];
+  giftCardAmount?: number;
+  giftCardNumber?: string;
 }
 
 const fallbackProductImages = [
@@ -172,7 +190,7 @@ const StatusOptions = [
 
 const formatINR = (val: number | string) => {
   const num = Number(val) || 0;
-  return "₹" + num.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return "₹" + num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const Pos: React.FC = () => {
@@ -216,8 +234,19 @@ const Pos: React.FC = () => {
   const channelDropdownRef = useRef<HTMLDivElement>(null);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const [showAlert, setShowAlert] = useState<boolean>(true);
-  const [isRoundoff, setIsRoundoff] = useState<boolean>(true);
   const [orderMode, setOrderMode] = useState<"counter_bills" | "tokens" | "pre_book" | "project">("counter_bills");
+  const [selectedProductColors, setSelectedProductColors] = useState<Record<string, string>>({});
+
+  const DEFAULT_POT_COLORS = useMemo(
+    () => [
+      { id: "terracotta", name: "Terracotta", hex: "#e06d3b" },
+      { id: "black", name: "Matte Black", hex: "#1e293b" },
+      { id: "red", name: "Ruby Red", hex: "#dc2626" },
+      { id: "nude", name: "Beige Nude", hex: "#d5b3a1" },
+      { id: "blue", name: "Slate Blue", hex: "#5368d5" },
+    ],
+    []
+  );
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -333,20 +362,39 @@ const Pos: React.FC = () => {
     shipping: boolean;
     coupon: boolean;
     complimentary: boolean;
+    points: boolean;
   }>({
     shipping: false,
     coupon: false,
     complimentary: false,
+    points: false,
   });
   const [tempAddOns, setTempAddOns] = useState<{
     shipping: boolean;
     coupon: boolean;
     complimentary: boolean;
+    points: boolean;
   }>({
     shipping: false,
     coupon: false,
     complimentary: false,
+    points: false,
   });
+
+  // Points Add-on state & drawer
+  const [redeemedPoints, setRedeemedPoints] = useState<number>(0);
+  const [pointsDrawerOpen, setPointsDrawerOpen] = useState<boolean>(false);
+  const [tempRedeemedPoints, setTempRedeemedPoints] = useState<string>("0");
+
+  // Recent Transactions Drawer state
+  const [transactionsDrawerOpen, setTransactionsDrawerOpen] = useState<boolean>(false);
+  const [transactionsTab, setTransactionsTab] = useState<"purchase" | "payment" | "return">("purchase");
+  const [transactionsSearch, setTransactionsSearch] = useState<string>("");
+
+  const openPointsDrawer = () => {
+    setTempRedeemedPoints(redeemedPoints.toString());
+    setPointsDrawerOpen(true);
+  };
 
   // Add-on specific values & edit modals
   const [couponCode, setCouponCode] = useState<string>("");
@@ -368,6 +416,33 @@ const Pos: React.FC = () => {
   const openComplimentaryDrawer = () => {
     setCompSearchQuery("");
     setComplimentaryModalOpen(true);
+  };
+
+  // Gift Card State & Drawer
+  const [giftCardDrawerOpen, setGiftCardDrawerOpen] = useState<boolean>(false);
+  const [giftCardStep, setGiftCardStep] = useState<"enter_card" | "redeem_amount">("enter_card");
+  const [giftCardNumber, setGiftCardNumber] = useState<string>("");
+  const [giftCardBalance, setGiftCardBalance] = useState<number>(2000);
+  const [giftCardAmount, setGiftCardAmount] = useState<number>(0);
+  const [tempGiftCardNumber, setTempGiftCardNumber] = useState<string>("");
+  const [tempGiftCardAmount, setTempGiftCardAmount] = useState<string>("0");
+  const [giftCardError, setGiftCardError] = useState<string>("");
+
+  const openGiftCardDrawer = () => {
+    if (cart.length === 0) {
+      alert("Please add items to cart before applying a gift card.");
+      return;
+    }
+    setTempGiftCardNumber(giftCardNumber);
+    setGiftCardError("");
+    if (giftCardNumber && giftCardAmount > 0) {
+      setTempGiftCardAmount(giftCardAmount.toString());
+      setGiftCardStep("redeem_amount");
+    } else {
+      setTempGiftCardAmount("");
+      setGiftCardStep("enter_card");
+    }
+    setGiftCardDrawerOpen(true);
   };
 
   // Orders & Held Bills Modal
@@ -630,7 +705,7 @@ const Pos: React.FC = () => {
   // Customer Drawer (#add_order / #create)
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState<boolean>(false);
   const [activeCustomerTab, setActiveCustomerTab] = useState<"existing" | "add_new">("existing");
-  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("" );
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("");
   const [customerSelectInput, setCustomerSelectInput] = useState<string>("");
   const [showCustomerPhoneFirst, setShowCustomerPhoneFirst] = useState<boolean>(false);
   const [newCustPhoto, setNewCustPhoto] = useState<string>("");
@@ -694,14 +769,18 @@ const Pos: React.FC = () => {
   const [detailsSelectedSize, setDetailsSelectedSize] = useState<{ id: string; name: string; price: number } | null>(null);
   const [detailsSelectedAddons, setDetailsSelectedAddons] = useState<Array<{ id: string; name: string; price: number }>>([]);
   const [detailsQuantity, setDetailsQuantity] = useState<number>(1);
+  const [matrixQuantities, setMatrixQuantities] = useState<Record<string, number>>({});
   const [modalVariants, setModalVariants] = useState<Array<{
     id: string;
     name: string;
     price: number;
     quantity: number;
     isCustom?: boolean;
+    color?: { name: string; hex: string; border?: string };
   }>>([]);
   const [expandedModalVariantId, setExpandedModalVariantId] = useState<string | null>(null);
+  const [modalImageIndex, setModalImageIndex] = useState<number>(0);
+  const [isHoveringModalImage, setIsHoveringModalImage] = useState<boolean>(false);
 
   // Size-wise Sales Filter by Days State
   const [salesDaysInput, setSalesDaysInput] = useState<string>("");
@@ -713,6 +792,34 @@ const Pos: React.FC = () => {
     bySize: { [sizeName: string]: number };
   } | null>(null);
   const [activeProfitTooltipId, setActiveProfitTooltipId] = useState<string | null>(null);
+  const [activePriceTooltipKey, setActivePriceTooltipKey] = useState<string | null>(null);
+  const [priceHistoryCache, setPriceHistoryCache] = useState<Record<string, Array<{ date: string; unit_price: number }>>>({});
+  const [priceHistoryLoading, setPriceHistoryLoading] = useState<boolean>(false);
+
+  // Close price history tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".gn-price-box-wrapper") && !target.closest(".gn-price-history-tooltip")) {
+        setActivePriceTooltipKey(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Auto-slide product images in Item Details modal
+  useEffect(() => {
+    if (!itemDetailsModalOpen || !detailsCartItem?.product || isHoveringModalImage) return;
+    const prodImages = getProductImages(detailsCartItem.product);
+    if (prodImages.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setModalImageIndex((prev) => (prev + 1) % prodImages.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [itemDetailsModalOpen, detailsCartItem, isHoveringModalImage]);
 
   // Load Held Bills from LocalStorage
   useEffect(() => {
@@ -735,6 +842,110 @@ const Pos: React.FC = () => {
     }
   };
 
+  const getDummyProductImage = (product: Product): string => {
+    if (product.image_url && product.image_url !== placeholderPos && !product.image_url.includes("placeholderpos")) {
+      return product.image_url;
+    }
+    const name = (product.name || "").toLowerCase();
+    const cat = (product.category_name || product.category || "").toLowerCase();
+
+    if (name.includes("monstera")) return "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("fiddle") || name.includes("lyrata")) return "https://images.unsplash.com/photo-1597055181300-e3633a917c9c?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("snake") || name.includes("sansevieria")) return "https://images.unsplash.com/photo-1599598425947-5202edd564c5?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("palm") || name.includes("areca")) return "https://images.unsplash.com/photo-1545241047-6083a3684587?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("peace") || name.includes("lily") || name.includes("spathiphyllum")) return "https://images.unsplash.com/photo-1593691509543-c55fb32e7355?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("zz") || name.includes("zamioculcas")) return "https://images.unsplash.com/photo-1632207691143-643e2a9a9361?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("ceramic") || name.includes("matte white") || name.includes("white ceramic")) return "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("terracotta") || name.includes("pot") || name.includes("planter") || cat.includes("pot") || cat.includes("planter")) return "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("fertilizer") || name.includes("vermicompost") || name.includes("enricher") || name.includes("bio-neem") || name.includes("neem") || cat.includes("fertilizer")) return "https://images.unsplash.com/photo-1585336261026-7756f7ef506f?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("orchid") || name.includes("phalaenopsis")) return "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("anthurium") || name.includes("flower") || cat.includes("flower")) return "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("mango")) return "https://images.unsplash.com/photo-1553279768-865429fa0078?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("guava")) return "https://images.unsplash.com/photo-1536511135899-73e27dfb36d0?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("lime") || name.includes("lemon") || name.includes("kagzi")) return "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("bonsai") || name.includes("ficus")) return "https://images.unsplash.com/photo-1512428813834-c702c7702b78?w=500&auto=format&fit=crop&q=80";
+    if (name.includes("calathea") || name.includes("prayer")) return "https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=500&auto=format&fit=crop&q=80";
+    if (cat.includes("sapling") || name.includes("sapling")) return "https://images.unsplash.com/photo-1509223197845-458d87318791?w=500&auto=format&fit=crop&q=80";
+
+    return "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80";
+  };
+
+  const getProductImages = (product: Product): string[] => {
+    const images: string[] = [];
+
+    // 1. Array in product.images or product.attributes
+    const rawImages = (product as any).images || (product as any).product_images || product.attributes?.images || product.attributes?.gallery || product.attributes?.photos;
+    if (Array.isArray(rawImages)) {
+      rawImages.forEach((img: any) => {
+        const url = typeof img === "string" ? img : img?.url || img?.image_url;
+        if (url && typeof url === "string" && url.trim() && !images.includes(url.trim())) {
+          images.push(url.trim());
+        }
+      });
+    } else if (typeof rawImages === "string" && rawImages.trim()) {
+      try {
+        const parsed = JSON.parse(rawImages);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((img: any) => {
+            const url = typeof img === "string" ? img : img?.url || img?.image_url;
+            if (url && typeof url === "string" && url.trim() && !images.includes(url.trim())) {
+              images.push(url.trim());
+            }
+          });
+        }
+      } catch {
+        rawImages.split(",").forEach((s: string) => {
+          if (s.trim() && !images.includes(s.trim())) images.push(s.trim());
+        });
+      }
+    }
+
+    // 2. Primary image_url
+    if (product.image_url && product.image_url !== placeholderPos && !product.image_url.includes("placeholderpos")) {
+      if (!images.includes(product.image_url)) {
+        images.unshift(product.image_url);
+      }
+    }
+
+    // 3. Fallback dummy image if no images available
+    if (images.length === 0) {
+      images.push(getDummyProductImage(product));
+    }
+
+    // 4. If product has only 1 image, add relevant contextual views for auto-slides
+    if (images.length === 1) {
+      const name = (product.name || "").toLowerCase();
+      if (name.includes("monstera")) {
+        images.push(
+          "https://images.unsplash.com/photo-1597055181300-e3633a917c9c?w=500&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1599598425947-5202edd564c5?w=500&auto=format&fit=crop&q=80"
+        );
+      } else if (name.includes("fiddle") || name.includes("lyrata")) {
+        images.push(
+          "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1545241047-6083a3684587?w=500&auto=format&fit=crop&q=80"
+        );
+      } else if (name.includes("snake") || name.includes("sansevieria")) {
+        images.push(
+          "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1632207691143-643e2a9a9361?w=500&auto=format&fit=crop&q=80"
+        );
+      } else if (name.includes("mango")) {
+        images.push(
+          "https://images.unsplash.com/photo-1536511135899-73e27dfb36d0?w=500&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1509223197845-458d87318791?w=500&auto=format&fit=crop&q=80"
+        );
+      } else if (name.includes("pot") || name.includes("planter") || name.includes("terracotta")) {
+        images.push(
+          "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=500&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=500&auto=format&fit=crop&q=80"
+        );
+      }
+    }
+
+    return images;
+  };
+
   const DEFAULT_POS_PRODUCTS: Product[] = [
     {
       id: "prod-gn-1",
@@ -744,6 +955,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-1",
       category_name: "Indoor Plants",
       category: "Indoor Plants",
+      subcategory_name: "Air Purifier Plants",
+      sub_category: "Air Purifier Plants",
       selling_price: 650,
       price: 650,
       cost_price: 350,
@@ -751,6 +964,7 @@ const Pos: React.FC = () => {
       shop_stock: 45,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80",
       is_featured: true,
     },
     {
@@ -761,6 +975,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-1",
       category_name: "Indoor Plants",
       category: "Indoor Plants",
+      subcategory_name: "Foliage Plants",
+      sub_category: "Foliage Plants",
       selling_price: 890,
       price: 890,
       cost_price: 480,
@@ -768,6 +984,7 @@ const Pos: React.FC = () => {
       shop_stock: 28,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1597055181300-e3633a917c9c?w=500&auto=format&fit=crop&q=80",
       is_featured: true,
     },
     {
@@ -778,6 +995,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-1",
       category_name: "Indoor Plants",
       category: "Indoor Plants",
+      subcategory_name: "Air Purifier Plants",
+      sub_category: "Air Purifier Plants",
       selling_price: 390,
       price: 390,
       cost_price: 180,
@@ -785,6 +1004,7 @@ const Pos: React.FC = () => {
       shop_stock: 80,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1599598425947-5202edd564c5?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-gn-4",
@@ -794,6 +1014,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-1",
       category_name: "Indoor Plants",
       category: "Indoor Plants",
+      subcategory_name: "Palm Plants",
+      sub_category: "Palm Plants",
       selling_price: 520,
       price: 520,
       cost_price: 250,
@@ -801,6 +1023,7 @@ const Pos: React.FC = () => {
       shop_stock: 60,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1545241047-6083a3684587?w=500&auto=format&fit=crop&q=80",
       is_featured: true,
     },
     {
@@ -811,6 +1034,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-1",
       category_name: "Indoor Plants",
       category: "Indoor Plants",
+      subcategory_name: "Flowering Plants",
+      sub_category: "Flowering Plants",
       selling_price: 450,
       price: 450,
       cost_price: 200,
@@ -818,6 +1043,7 @@ const Pos: React.FC = () => {
       shop_stock: 35,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1593691509543-c55fb32e7355?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-gn-6",
@@ -827,6 +1053,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-1",
       category_name: "Indoor Plants",
       category: "Indoor Plants",
+      subcategory_name: "Low Light Plants",
+      sub_category: "Low Light Plants",
       selling_price: 580,
       price: 580,
       cost_price: 320,
@@ -834,6 +1062,7 @@ const Pos: React.FC = () => {
       shop_stock: 40,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1632207691143-643e2a9a9361?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-gn-7",
@@ -843,6 +1072,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-3",
       category_name: "Ceramic Pots",
       category: "Ceramic Pots",
+      subcategory_name: "Glazed Ceramic Pots",
+      sub_category: "Glazed Ceramic Pots",
       selling_price: 450,
       price: 450,
       cost_price: 220,
@@ -850,6 +1081,7 @@ const Pos: React.FC = () => {
       shop_stock: 120,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-gn-8",
@@ -859,6 +1091,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-3",
       category_name: "Ceramic Pots",
       category: "Ceramic Pots",
+      subcategory_name: "Terracotta Pots",
+      sub_category: "Terracotta Pots",
       selling_price: 320,
       price: 320,
       cost_price: 150,
@@ -866,6 +1100,7 @@ const Pos: React.FC = () => {
       shop_stock: 95,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-gn-9",
@@ -875,6 +1110,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-5",
       category_name: "Organic Fertilizers",
       category: "Organic Fertilizers",
+      subcategory_name: "Soil Enrichers",
+      sub_category: "Soil Enrichers",
       selling_price: 240,
       price: 240,
       cost_price: 110,
@@ -882,6 +1119,7 @@ const Pos: React.FC = () => {
       shop_stock: 150,
       tax_rate: 5,
       unit: "BAG",
+      image_url: "https://images.unsplash.com/photo-1585336261026-7756f7ef506f?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-gn-10",
@@ -891,6 +1129,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-5",
       category_name: "Organic Fertilizers",
       category: "Organic Fertilizers",
+      subcategory_name: "Pest Protection",
+      sub_category: "Pest Protection",
       selling_price: 199,
       price: 199,
       cost_price: 95,
@@ -898,6 +1138,7 @@ const Pos: React.FC = () => {
       shop_stock: 75,
       tax_rate: 18,
       unit: "BTL",
+      image_url: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-gn-11",
@@ -907,6 +1148,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-6",
       category_name: "Exotic Flowers",
       category: "Exotic Flowers",
+      subcategory_name: "Potted Orchids",
+      sub_category: "Potted Orchids",
       selling_price: 1250,
       price: 1250,
       cost_price: 650,
@@ -914,6 +1157,7 @@ const Pos: React.FC = () => {
       shop_stock: 18,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=500&auto=format&fit=crop&q=80",
       is_featured: true,
     },
     {
@@ -924,6 +1168,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-6",
       category_name: "Exotic Flowers",
       category: "Exotic Flowers",
+      subcategory_name: "Exotic Blooms",
+      sub_category: "Exotic Blooms",
       selling_price: 720,
       price: 720,
       cost_price: 380,
@@ -931,6 +1177,7 @@ const Pos: React.FC = () => {
       shop_stock: 25,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-nn-1",
@@ -940,6 +1187,8 @@ const Pos: React.FC = () => {
       category_id: "cat-nn-1",
       category_name: "Fruit Saplings",
       category: "Fruit Saplings",
+      subcategory_name: "Mango Saplings",
+      sub_category: "Mango Saplings",
       selling_price: 250,
       price: 250,
       cost_price: 120,
@@ -947,6 +1196,7 @@ const Pos: React.FC = () => {
       shop_stock: 180,
       tax_rate: 0,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-nn-2",
@@ -956,6 +1206,8 @@ const Pos: React.FC = () => {
       category_id: "cat-nn-1",
       category_name: "Fruit Saplings",
       category: "Fruit Saplings",
+      subcategory_name: "Guava Saplings",
+      sub_category: "Guava Saplings",
       selling_price: 180,
       price: 180,
       cost_price: 80,
@@ -963,6 +1215,26 @@ const Pos: React.FC = () => {
       shop_stock: 200,
       tax_rate: 0,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1536511135899-73e27dfb36d0?w=500&auto=format&fit=crop&q=80",
+    },
+    {
+      id: "prod-nn-3",
+      name: "Kagzi Lime (Lemon) Sapling",
+      sku: "NN-LEM-03",
+      barcode: "8902002003",
+      category_id: "cat-nn-1",
+      category_name: "Fruit Saplings",
+      category: "Fruit Saplings",
+      subcategory_name: "Citrus Saplings",
+      sub_category: "Citrus Saplings",
+      selling_price: 140,
+      price: 140,
+      cost_price: 60,
+      stock_quantity: 250,
+      shop_stock: 250,
+      tax_rate: 0,
+      unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=500&auto=format&fit=crop&q=80",
     },
     {
       id: "prod-gn-13",
@@ -972,6 +1244,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-1",
       category_name: "Indoor Plants",
       category: "Indoor Plants",
+      subcategory_name: "Bonsai Trees",
+      sub_category: "Bonsai Trees",
       selling_price: 1850,
       price: 1850,
       cost_price: 950,
@@ -981,6 +1255,7 @@ const Pos: React.FC = () => {
       low_stock_threshold: 10,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1512428813834-c702c7702b78?w=500&auto=format&fit=crop&q=80",
       is_featured: true,
     },
     {
@@ -991,6 +1266,8 @@ const Pos: React.FC = () => {
       category_id: "cat-gn-1",
       category_name: "Indoor Plants",
       category: "Indoor Plants",
+      subcategory_name: "Prayer Plants",
+      sub_category: "Prayer Plants",
       selling_price: 790,
       price: 790,
       cost_price: 420,
@@ -1000,6 +1277,7 @@ const Pos: React.FC = () => {
       low_stock_threshold: 10,
       tax_rate: 18,
       unit: "PCS",
+      image_url: "https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=500&auto=format&fit=crop&q=80",
       is_featured: false,
     }
   ];
@@ -1165,24 +1443,63 @@ const Pos: React.FC = () => {
     };
   }, [location.pathname]);
 
-  // Filtered Products
+  // Filtered Products (Search by Product Name, Category, Subcategory, Variety, SKU, Barcode, Attributes & Tags)
   const filteredProducts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const queryWords = query.split(/\s+/).filter(Boolean);
+
     return products.filter((p) => {
+      // 1. Category Tab Filter
+      const activeTabLower = activeTab.toLowerCase();
       const matchesCat =
         activeTab === "all" ||
         p.category_id === activeTab ||
-        (p.category && p.category.toLowerCase() === activeTab.toLowerCase()) ||
-        (p.category_name && p.category_name.toLowerCase() === activeTab.toLowerCase()) ||
-        (p.type && p.type.toLowerCase() === activeTab.toLowerCase());
+        (p.category && p.category.toLowerCase() === activeTabLower) ||
+        (p.category_name && p.category_name.toLowerCase() === activeTabLower) ||
+        (p.type && p.type.toLowerCase() === activeTabLower) ||
+        (p.subcategory && p.subcategory.toLowerCase() === activeTabLower) ||
+        (p.sub_category && p.sub_category.toLowerCase() === activeTabLower) ||
+        (p.subcategory_name && p.subcategory_name.toLowerCase() === activeTabLower) ||
+        (p.sub_category_name && p.sub_category_name.toLowerCase() === activeTabLower);
 
-      const query = searchQuery.trim().toLowerCase();
-      const matchesSearch =
-        !query ||
-        p.name.toLowerCase().includes(query) ||
-        (p.sku && p.sku.toLowerCase().includes(query)) ||
-        (p.barcode && p.barcode.toLowerCase().includes(query));
+      if (!matchesCat) return false;
 
-      return matchesCat && matchesSearch;
+      // 2. Search Query Filter across Name, Category, Subcategory, Variety, SKU, Barcode, etc.
+      if (queryWords.length === 0) return true;
+
+      const searchableFields = [
+        p.name || "",
+        p.sku || "",
+        p.barcode || "",
+        p.category || "",
+        p.category_name || "",
+        p.subcategory || "",
+        p.sub_category || "",
+        p.subcategory_name || "",
+        p.sub_category_name || "",
+        p.type || "",
+        p.attributes?.variety || "",
+        p.attributes?.variety_type || "",
+        p.attributes?.species || "",
+        p.attributes?.plant_type || "",
+        p.attributes?.pot_type || "",
+        p.attributes?.material || "",
+        p.attributes?.pot_size || "",
+        p.attributes?.size || "",
+        p.attributes?.subcategory || "",
+        p.attributes?.sub_category || "",
+        Array.isArray(p.attributes?.sizes) ? p.attributes.sizes.join(" ") : "",
+        Array.isArray(p.attributes?.colors)
+          ? p.attributes.colors.map((c: any) => (typeof c === "string" ? c : c.name || "")).join(" ")
+          : "",
+        Array.isArray((p as any).tags) ? (p as any).tags.join(" ") : ((p as any).tags || ""),
+        (p as any).description || "",
+        (p as any).brand || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return queryWords.every((word) => searchableFields.includes(word));
     });
   }, [products, activeTab, searchQuery]);
 
@@ -1305,8 +1622,22 @@ const Pos: React.FC = () => {
       }
     }
 
-    const roundedGrandTotal = isRoundoff ? Math.round(rawGrandTotal) : Number(rawGrandTotal.toFixed(2));
-    const roundoffDiff = Number((roundedGrandTotal - rawGrandTotal).toFixed(2));
+    // Points Add-on discount
+    let pointsDiscountAmt = 0;
+    if (enabledAddOns.points && redeemedPoints > 0) {
+      pointsDiscountAmt = Math.min(rawGrandTotal, Math.max(0, Number(redeemedPoints) || 0));
+      rawGrandTotal = Math.max(0, rawGrandTotal - pointsDiscountAmt);
+    }
+
+    // Gift Card deduction
+    let giftCardDiscountAmt = 0;
+    if (giftCardAmount > 0) {
+      giftCardDiscountAmt = Math.min(rawGrandTotal, Math.max(0, Number(giftCardAmount) || 0));
+      rawGrandTotal = Math.max(0, rawGrandTotal - giftCardDiscountAmt);
+    }
+
+    const roundedGrandTotal = Number(rawGrandTotal.toFixed(2));
+    const roundoffDiff = 0;
     const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
     return {
@@ -1316,6 +1647,8 @@ const Pos: React.FC = () => {
       orderDiscountAmt: Number(orderDiscountAmt.toFixed(2)),
       couponDiscountAmt: Number(couponDiscountAmt.toFixed(2)),
       complimentaryDiscountAmt: Number(complimentaryDiscountAmt.toFixed(2)),
+      pointsDiscountAmt: Number(pointsDiscountAmt.toFixed(2)),
+      giftCardDiscountAmt: Number(giftCardDiscountAmt.toFixed(2)),
       tax: totalTax,
       shipping,
       rawGrandTotal,
@@ -1329,13 +1662,14 @@ const Pos: React.FC = () => {
     orderDiscountType,
     orderTaxPercent,
     shippingCost,
-    isRoundoff,
     enabledAddOns,
     couponDiscount,
     couponDiscountType,
     isComplimentaryFull,
     complimentaryAmount,
     complimentaryItemKeys,
+    redeemedPoints,
+    giftCardAmount,
   ]);
 
   // Group cart items dynamically by Category Name
@@ -1432,62 +1766,131 @@ const Pos: React.FC = () => {
     (product: Product) => {
       const existingCartItems = cart.filter((c) => c.product.id === product.id);
       const baseP = getProductPrice(product, salesType);
-      const defaultSizes: Array<{
-        id: string;
-        name: string;
-        price: number;
-        quantity: number;
-        isCustom?: boolean;
-      }> = [
-        { id: "size-sm", name: "Small (6-inch)", price: Math.max(10, Math.round(baseP * 0.75)), quantity: 0 },
-        { id: "size-md", name: "Medium (8-inch)", price: baseP, quantity: 0 },
-        { id: "size-lg", name: "Large (12-inch)", price: Math.round(baseP * 1.35), quantity: 0 },
-        { id: "size-xl", name: "Exotic Jumbo", price: Math.round(baseP * 1.75), quantity: 0 },
-      ];
 
-      const mergedVariants = defaultSizes.map((sz) => {
-        const inCart = existingCartItems.find((c) => (c.selectedSize?.id || "default") === sz.id);
-        return {
-          ...sz,
-          quantity: inCart ? inCart.quantity : 0,
-          price: inCart ? inCart.unit_price : sz.price,
-        };
-      });
+      const prodCat = (product.category_name || product.category || "").toLowerCase();
+      const prodName = (product.name || "").toLowerCase();
+      const nonColorTerms = ["fertilizer", "soil", "pesticide", "tool", "seed", "equipment", "manure", "compost", "chemical", "spray", "substrate", "pebble", "stone"];
+      const isNonColor = nonColorTerms.some((t) => prodCat.includes(t) || prodName.includes(t));
+      const isFruitSapling = prodCat.includes("fruit") || prodCat.includes("sapling") || prodName.includes("sapling") || prodName.includes("grafted");
 
-      // Include any custom sizes currently in cart for this product
-      existingCartItems.forEach((c) => {
-        if (c.selectedSize && !mergedVariants.some((v) => v.id === c.selectedSize!.id)) {
-          mergedVariants.push({
-            id: c.selectedSize.id,
-            name: c.selectedSize.name,
-            price: c.selectedSize.price || c.unit_price,
-            quantity: c.quantity,
-            isCustom: true,
-          });
+      let cols: Array<{ id: string; name: string; hex?: string; border?: string }> = [];
+      if (product.attributes?.colors && Array.isArray(product.attributes.colors) && product.attributes.colors.length > 0) {
+        cols = product.attributes.colors;
+      } else if (!isNonColor && !isFruitSapling) {
+        cols = [
+          { id: "col-terracotta", name: "Terracotta", hex: "#c2410c" },
+          { id: "col-white", name: "White", hex: "#ffffff", border: "#cbd5e1" },
+          { id: "col-black", name: "Black", hex: "#1e293b" },
+          { id: "col-green", name: "Green", hex: "#15803d" },
+        ];
+      } else if (isFruitSapling) {
+        if (prodName.includes("mango")) {
+          cols = [
+            { id: "var-alphonso", name: "Alphonso" },
+            { id: "var-kesar", name: "Kesar" },
+            { id: "var-totapuri", name: "Totapuri" },
+            { id: "var-dasheri", name: "Dasheri" },
+          ];
+        } else if (prodName.includes("guava")) {
+          cols = [
+            { id: "var-pink", name: "Taiwan Pink" },
+            { id: "var-safeda", name: "Allahabad Safeda" },
+            { id: "var-vnr", name: "VNR Bihi" },
+          ];
+        } else {
+          cols = [
+            { id: "var-std", name: "Standard Grafted" },
+            { id: "var-prem", name: "Premium High-Yield" },
+            { id: "var-dwarf", name: "Dwarf Hybrid" },
+          ];
         }
-      });
-
-      // If no size has a positive quantity yet, default the first size (Small) to 1
-      const totalExistingQty = mergedVariants.reduce((sum, v) => sum + v.quantity, 0);
-      if (totalExistingQty === 0 && mergedVariants.length > 0) {
-        mergedVariants[0].quantity = 1;
+      } else {
+        cols = [{ id: "std-default", name: "Standard" }];
       }
 
-      setModalVariants(mergedVariants);
+      let szRows: Array<{ id: string; name: string; height: string; mult: number }> = [];
+      const prodUnit = (product.unit || "").toUpperCase();
+      if (prodUnit === "BTL" || prodName.includes("500ml") || prodName.includes("spray") || prodName.includes("liquid")) {
+        szRows = [
+          { id: "size-250", name: "Small (250ml)", height: "Trial Bottle", mult: 0.6 },
+          { id: "size-500", name: "Medium (500ml)", height: "Standard Bottle", mult: 1.0 },
+          { id: "size-1000", name: "Large (1L)", height: "Economy Pack", mult: 1.75 },
+          { id: "size-5000", name: "Jumbo (5L)", height: "Bulk Canister", mult: 7.5 },
+        ];
+      } else if (prodUnit === "BAG" || prodUnit === "PKT" || prodName.includes("kg") || prodName.includes("compost")) {
+        szRows = [
+          { id: "size-1kg", name: "Small (1 Kg)", height: "Trial Size", mult: 0.3 },
+          { id: "size-5kg", name: "Medium (5 Kg)", height: "Standard Bag", mult: 1.0 },
+          { id: "size-10kg", name: "Large (10 Kg)", height: "Economy Bag", mult: 1.85 },
+          { id: "size-25kg", name: "Jumbo (25 Kg)", height: "Commercial Sack", mult: 4.2 },
+        ];
+      } else {
+        szRows = [
+          { id: "size-sm", name: "Small (6-inch)", height: "Height: 20-30 cm", mult: 0.75 },
+          { id: "size-md", name: "Medium (8-inch)", height: "Height: 30-40 cm", mult: 1.0 },
+          { id: "size-lg", name: "Large (12-inch)", height: "Height: 40-60 cm", mult: 1.35 },
+          { id: "size-xl", name: "Jumbo (15-inch)", height: "Height: 60-80 cm", mult: 1.75 },
+        ];
+      }
+
+      const initialMatrix: Record<string, number> = {};
+      let hasAnyInCart = false;
+
+      szRows.forEach((sz) => {
+        cols.forEach((col) => {
+          const key = `${sz.id}___${col.id}`;
+          const found = existingCartItems.find((c) => {
+            const sId = c.selectedSize?.id || "";
+            const sName = (c.selectedSize?.name || "").toLowerCase();
+            return (
+              sId === key ||
+              sId === `${sz.id}_${col.id}` ||
+              (sId.startsWith(sz.id) && (cols.length === 1 || sName.includes(col.name.toLowerCase())))
+            );
+          });
+          if (found && found.quantity > 0) {
+            initialMatrix[key] = found.quantity;
+            hasAnyInCart = true;
+          } else {
+            initialMatrix[key] = 0;
+          }
+        });
+      });
+
+      if (!hasAnyInCart && szRows.length > 0 && cols.length > 0) {
+        if (existingCartItems.length > 0 && existingCartItems[0].quantity > 0) {
+          initialMatrix[`${szRows[0].id}___${cols[0].id}`] = existingCartItems[0].quantity;
+        } else {
+          initialMatrix[`${szRows[0].id}___${cols[0].id}`] = 1;
+        }
+      }
+
+      setMatrixQuantities(initialMatrix);
+
+      const defaultSizesList = szRows.map((sz) => ({
+        id: sz.id,
+        name: sz.name,
+        price: Math.max(10, Math.round(baseP * sz.mult)),
+        quantity: cols.reduce((sum, col) => sum + (initialMatrix[`${sz.id}___${col.id}`] || 0), 0),
+        color: cols[0]?.hex ? { name: cols[0].name, hex: cols[0].hex, border: cols[0].border } : undefined,
+      }));
+
+      setModalVariants(defaultSizesList);
       setExpandedModalVariantId(null);
       setSalesDaysInput("");
       setSalesStats(null);
       setSalesStatsLoading(false);
       setSalesStatsModalOpen(false);
+      setModalImageIndex(0);
 
       const firstCartItem = existingCartItems[0];
       if (firstCartItem) {
         setDetailsCartItem(firstCartItem);
-        setDetailsSelectedSize(firstCartItem.selectedSize || mergedVariants[0]);
+        setDetailsSelectedSize(firstCartItem.selectedSize || defaultSizesList[0]);
         setDetailsSelectedAddons(firstCartItem.selectedAddons || []);
         setDetailsQuantity(firstCartItem.quantity);
       } else {
-        const defaultSize = mergedVariants[0];
+        const defaultSize = defaultSizesList[0];
         const unitPrice = defaultSize.price;
         const taxRate = Number(product.tax_rate) || 5;
         const lineTax = (unitPrice * 1 * taxRate) / 100;
@@ -1786,6 +2189,96 @@ const Pos: React.FC = () => {
     );
   };
 
+  const updateCartItemUnitPrice = (productId: string, enteredAmount: number, sizeId?: string) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        const match =
+          item.product.id === productId && (!sizeId || (item.selectedSize?.id || "default") === sizeId);
+        if (match) {
+          const actualPrice = Number(
+            item.selectedSize?.price ??
+            (salesType === "wholesale" ? item.product.wholesale_price ?? item.product.selling_price : item.product.selling_price) ??
+            item.product.price ??
+            item.unit_price
+          );
+
+          if (enteredAmount > 0 && enteredAmount < actualPrice) {
+            // Amount reduced below actual price -> automatically map difference as Product Discount
+            const discountAmount = Number((actualPrice - enteredAmount).toFixed(2));
+            return recalculateCartItem(
+              item,
+              item.quantity,
+              discountAmount,
+              "fixed",
+              actualPrice
+            );
+          } else {
+            // Amount equal or higher than actual price -> regular unit price without discount
+            return recalculateCartItem(
+              item,
+              item.quantity,
+              0,
+              "fixed",
+              Math.max(0, enteredAmount)
+            );
+          }
+        }
+        return item;
+      })
+    );
+  };
+
+  const fetchProductPriceHistory = async (item: CartItem, itemKey: string) => {
+    setActivePriceTooltipKey(itemKey);
+
+    const actualPrice = Number(
+      item.selectedSize?.price ??
+      (salesType === "wholesale" ? item.product.wholesale_price ?? item.product.selling_price : item.product.selling_price) ??
+      item.product.price ??
+      item.unit_price
+    );
+
+    const customerCacheKey = `${itemKey}_${selectedCustomer?.id || selectedCustomer?.value || selectedCustomer?.phone || selectedCustomer?.name || "walkin"}`;
+
+    if (priceHistoryCache[customerCacheKey] && priceHistoryCache[customerCacheKey].length > 0) {
+      return;
+    }
+
+    setPriceHistoryLoading(true);
+    try {
+      const biz = businessId || getActiveBusinessId();
+      const res: any = await api.get("/pos/product-price-history", {
+        product_id: item.product.id,
+        product_name: item.product.name,
+        current_price: actualPrice || item.unit_price,
+        customer_id: selectedCustomer?.id || (selectedCustomer?.value !== "walkin" ? selectedCustomer?.value : ""),
+        customer_phone: selectedCustomer?.phone || "",
+        customer_name: selectedCustomer?.name || selectedCustomer?.label || "",
+        business_id: biz,
+      });
+
+      if (res && Array.isArray(res.history) && res.history.length > 0) {
+        setPriceHistoryCache((prev) => ({
+          ...prev,
+          [customerCacheKey]: res.history,
+        }));
+      }
+    } catch (err) {
+      console.warn("Price history fetch error:", err);
+      const fallbackHistory = [
+        { date: "07-10-2026", unit_price: actualPrice || item.unit_price },
+        { date: "02-10-2026", unit_price: actualPrice || item.unit_price },
+        { date: "25-09-2026", unit_price: Math.max(1, Math.round((actualPrice || item.unit_price) * 0.95)) },
+      ];
+      setPriceHistoryCache((prev) => ({
+        ...prev,
+        [customerCacheKey]: fallbackHistory,
+      }));
+    } finally {
+      setPriceHistoryLoading(false);
+    }
+  };
+
   const removeFromCart = (productId: string, sizeId?: string) => {
     setCart((prev) =>
       prev.filter((item) => {
@@ -1817,13 +2310,16 @@ const Pos: React.FC = () => {
       toPincode: "",
       notes: "",
     });
-    setEnabledAddOns({ shipping: false, coupon: false, complimentary: false });
+    setEnabledAddOns({ shipping: false, coupon: false, complimentary: false, points: false });
     setCouponCode("");
     setCouponDiscount(0);
     setCouponDiscountType("percentage");
     setIsComplimentaryFull(true);
     setComplimentaryAmount(0);
     setComplimentaryItemKeys([]);
+    setRedeemedPoints(0);
+    setGiftCardAmount(0);
+    setGiftCardNumber("");
   };
 
   // Hold Current Order (Silently saves to held list without opening modal)
@@ -1853,6 +2349,9 @@ const Pos: React.FC = () => {
       isComplimentaryFull,
       complimentaryAmount,
       complimentaryItemKeys,
+      redeemedPoints,
+      giftCardAmount,
+      giftCardNumber,
     };
     saveHeldBills([newHold, ...heldBills]);
     clearCart();
@@ -1874,6 +2373,9 @@ const Pos: React.FC = () => {
     if (hold.isComplimentaryFull !== undefined) setIsComplimentaryFull(hold.isComplimentaryFull);
     if (hold.complimentaryAmount !== undefined) setComplimentaryAmount(hold.complimentaryAmount);
     if (hold.complimentaryItemKeys) setComplimentaryItemKeys(hold.complimentaryItemKeys);
+    if (hold.redeemedPoints !== undefined) setRedeemedPoints(hold.redeemedPoints);
+    if (hold.giftCardAmount !== undefined) setGiftCardAmount(hold.giftCardAmount);
+    if (hold.giftCardNumber !== undefined) setGiftCardNumber(hold.giftCardNumber);
     saveHeldBills(heldBills.filter((b) => b.id !== hold.id));
     setOrdersModalOpen(false);
     showPosToast(`Order ${hold.orderNumber} restored to cart.`, "success");
@@ -1901,6 +2403,10 @@ const Pos: React.FC = () => {
   const handleOpenPayment = (mode: string = "cash") => {
     if (cart.length === 0) {
       alert("Please add items to cart before proceeding to payment.");
+      return;
+    }
+    if (mode === "giftcard") {
+      openGiftCardDrawer();
       return;
     }
     setSelectedPaymentMode(mode);
@@ -2153,67 +2659,81 @@ const Pos: React.FC = () => {
           background: #e2e8f0;
           border-radius: 4px;
         }
-        .pos-five aside .card {
+    .menu-item .card {
           margin-bottom: 14px;
         }
 
-        /* Product Card: Light Mode Base */
-        .pos-five .pos-products .product-info.card {
-          padding: 14px !important;
-          border: 1px solid #e2e8f0 !important;
-          border-radius: 12px !important;
+        /* Custom Product Card matching plant & pot card design */
+        .pos-five .pos-products .pos-custom-card,
+        .pos-products .pos-custom-card,
+        .pos-five .pos-products .product-info.card,
+        .pos-products .product-info.card {
+          padding: 12px 12px 14px 12px !important;
+          border: 1.5px solid #e2e8f0 !important;
+          border-radius: 16px !important;
           display: flex !important;
           flex-direction: column !important;
           height: 100% !important;
           transition: all 0.2s ease-in-out !important;
           background: #ffffff !important;
+          box-shadow: none !important;
+          cursor: pointer !important;
+          position: relative !important;
         }
-        .pos-five .pos-products .product-info.card:hover {
-          border-color: #28a745 !important;
+        .pos-five .pos-products .pos-custom-card:hover,
+        .pos-products .pos-custom-card:hover,
+        .pos-five .pos-products .product-info.card:hover,
+        .pos-products .product-info.card:hover {
+          border-color: #489566 !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+        .pos-five .pos-products .pos-custom-card.active,
+        .pos-products .pos-custom-card.active,
+        .pos-five .pos-products .product-info.card.active,
+        .pos-products .product-info.card.active {
+          border-color: #489566 !important;
+          background: #ffffff !important;
           box-shadow: none !important;
         }
-        .pos-five .pos-products .product-info.card.active {
-          border-color: #28a745 !important;
-          background: #ffffff !important;
-        }
 
-        /* Image Container: Square 1:1 design matching the original theme layout (187 x 187 px rendered size) */
+        /* Image Container: Square rounded box with light background */
+        .pos-custom-card .pos-pro-img,
         .pos-five .pos-products .product-info .pro-img {
-          background-color: #f9fafb !important;
-          border-radius: 10px !important;
+          background-color: #f8fafc !important;
+          border-radius: 14px !important;
+          border: 1px solid #f1f5f9 !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          margin-bottom: 10px !important;
+          margin-bottom: 12px !important;
           position: relative !important;
           width: 100% !important;
           aspect-ratio: 1 / 1 !important;
           height: auto !important;
-          min-height: unset !important;
-          max-height: none !important;
           overflow: hidden !important;
-          padding: 12px !important;
-          border: 1px solid #f1f5f9 !important;
+          padding: 0 !important;
         }
+        .pos-custom-card .pos-pro-img img,
         .pos-five .pos-products .product-info .pro-img img {
+          width: 100% !important;
+          height: 100% !important;
           max-width: 100% !important;
           max-height: 100% !important;
-          width: auto !important;
-          height: auto !important;
-          object-fit: contain !important;
-          border-radius: 6px !important;
+          object-fit: cover !important;
+          border-radius: 14px !important;
           display: block !important;
-          margin: 0 auto !important;
-          transition: transform 0.3s ease !important;
+          margin: 0 !important;
+          transition: transform 0.25s ease !important;
         }
+        .pos-custom-card:hover .pos-pro-img img,
         .pos-five .pos-products .product-info:hover .pro-img img {
-          transform: scale(1.08) !important;
+          transform: scale(1.05) !important;
         }
-        .pos-five .pos-products .product-info .pro-img span,
-        [data-theme="dark"] .pos-five .pos-products .product-info .pro-img span,
-        [data-bs-theme="dark"] .pos-five .pos-products .product-info .pro-img span,
-        .dark .pos-five .pos-products .product-info .pro-img span,
-        body.dark-mode .pos-five .pos-products .product-info .pro-img span {
+
+        /* Checkmark Badge at top right */
+        .pos-custom-card .pos-pro-check-badge,
+        .pos-five .pos-products .product-info .pro-img span {
           position: absolute !important;
           top: 8px !important;
           right: 8px !important;
@@ -2222,102 +2742,304 @@ const Pos: React.FC = () => {
           width: 22px !important;
           height: 22px !important;
           border-radius: 50% !important;
-          display: none !important;
+          background: #ffffff !important;
+          color: #489566 !important;
+          display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          background: transparent !important;
-          box-shadow: none !important;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
+          z-index: 5 !important;
+          line-height: 1 !important;
           padding: 0 !important;
           margin: 0 !important;
-          z-index: 10 !important;
-          line-height: 1 !important;
         }
-        .pos-five .pos-products .product-info.card.active .pro-img span {
-          display: flex !important;
-        }
+        .pos-custom-card .pos-pro-check-badge i,
         .pos-five .pos-products .product-info .pro-img span i {
           font-size: 20px !important;
+          color: #489566 !important;
           line-height: 1 !important;
-          color: #28a745 !important;
           display: block !important;
         }
 
-        /* Card body content inside */
-        .pos-five .pos-products .product-info .card-body-content {
-          padding: 0 !important;
+        /* Stock Pill/Row */
+        .pos-custom-card .pos-card-stock {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          font-size: 13px !important;
+          font-weight: 700 !important;
+          height: 18px !important;
+          line-height: 18px !important;
+          margin-bottom: 6px !important;
+        }
+        .pos-custom-card .pos-card-stock i {
+          font-size: 15px !important;
+          line-height: 1 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          position: relative !important;
+          top: -1px !important;
+          margin: 0 !important;
+          flex-shrink: 0 !important;
+        }
+        .pos-custom-card .pos-card-stock span {
+          display: inline-block !important;
+          line-height: 1.2 !important;
+        }
+        .pos-custom-card .pos-card-stock.stock-ok {
+          color: #16a34a !important;
+        }
+        .pos-custom-card .pos-card-stock.stock-ok i {
+          color: #16a34a !important;
+        }
+        .pos-custom-card .pos-card-stock.stock-low {
+          color: #ea580c !important;
+        }
+        .pos-custom-card .pos-card-stock.stock-low i {
+          color: #ea580c !important;
+        }
+        .pos-custom-card .pos-card-stock.stock-out {
+          color: #dc2626 !important;
+        }
+        .pos-custom-card .pos-card-stock.stock-out i {
+          color: #dc2626 !important;
+        }
+
+        /* Product Title */
+        .pos-custom-card .pos-card-title {
+          font-size: 15px !important;
+          font-weight: 700 !important;
+          color: #000000 !important;
+          height: 20px !important;
+          line-height: 20px !important;
+          margin-top: 0 !important;
+          margin-bottom: 16px !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          cursor: pointer !important;
+          transition: color 0.15s ease !important;
+        }
+        .pos-custom-card .pos-card-title:hover {
+          color: #16a34a !important;
+        }
+
+        /* Middle Row: Variety Row (original positioning preserved) */
+        .pos-custom-card .pos-card-attr-row.variety-row {
+          height: 22px !important;
+          min-height: 22px !important;
+          max-height: 22px !important;
           display: flex !important;
-          flex-direction: column !important;
+          align-items: center !important;
+          margin-top: 0 !important;
+          margin-bottom: 2px !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+        }
+
+        /* Middle Row: Color Swatches (moved up to be centered between title & size) */
+        .pos-custom-card .pos-card-colors-row {
+          height: 22px !important;
+          min-height: 22px !important;
+          max-height: 22px !important;
+          display: flex !important;
+          align-items: center !important;
+          margin-top: -6px !important;
+          margin-bottom: 8px !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+          gap: 10px !important;
+        }
+        .pos-custom-card .pos-color-swatch-btn {
+          width: 18px !important;
+          height: 18px !important;
+          border-radius: 50% !important;
+          border: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          cursor: pointer !important;
+          position: relative !important;
+          transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+          flex-shrink: 0 !important;
+        }
+        .pos-custom-card .pos-color-swatch-btn:hover {
+          transform: scale(1.15) !important;
+        }
+        .pos-custom-card .pos-color-swatch-btn.selected {
+          box-shadow: 0 0 0 2px #ffffff, 0 0 0 3.5px #0f172a !important;
+        }
+        [data-theme="dark"] .pos-custom-card .pos-color-swatch-btn.selected,
+        [data-bs-theme="dark"] .pos-custom-card .pos-color-swatch-btn.selected,
+        .dark .pos-custom-card .pos-color-swatch-btn.selected,
+        body.dark-mode .pos-custom-card .pos-color-swatch-btn.selected {
+          box-shadow: 0 0 0 2px #1e293b, 0 0 0 3.5px #f8fafc !important;
+        }
+
+        /* Attribute Rows (Varities & Size) */
+        .pos-custom-card .pos-card-attr-row {
+          font-size: 13px !important;
+          line-height: 1.4 !important;
+          min-width: 0 !important;
+          width: 100% !important;
+          overflow: hidden !important;
+        }
+        .pos-custom-card .pos-card-attr-row.size-row {
+          height: 22px !important;
+          min-height: 22px !important;
+          max-height: 22px !important;
+          display: flex !important;
+          align-items: center !important;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+        }
+        .pos-custom-card .pos-attr-label {
+          color: #0f172a !important;
+          font-weight: 700 !important;
+          font-size: 13px !important;
+          flex-shrink: 0 !important;
+        }
+        .pos-custom-card .pos-attr-value {
+          color: #64748b !important;
+          font-weight: 500 !important;
+          font-size: 13px !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          min-width: 0 !important;
           flex-grow: 1 !important;
-          justify-content: space-between !important;
         }
-        .pos-five .pos-products .product-info .cat-name {
-          font-size: 13px;
-          font-weight: 500;
-          color: #64748b;
-          margin-bottom: 2px;
-          text-transform: capitalize;
-        }
-        .pos-five .pos-products .product-info .cat-name a {
-          color: inherit;
-          text-decoration: none;
-        }
-        .pos-five .pos-products .product-info .product-name {
-          font-size: 14px;
-          font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 0px;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          line-height: 1.35;
-          min-height: 36px;
-          transition: color 0.15s ease;
-        }
-        .pos-five .pos-products .product-info .product-name a {
-          color: inherit !important;
-          text-decoration: none;
-          transition: color 0.15s ease;
-        }
-        .pos-five .pos-products .product-info .product-name:hover,
-        .pos-five .pos-products .product-info .product-name a:hover,
-        .pos-five .pos-products .product-info:hover .product-name,
-        .pos-five .pos-products .product-info:hover .product-name a,
-        .pos-five .pos-products .product-info.active .product-name,
-        .pos-five .pos-products .product-info.active .product-name a {
+
+        /* Edit Variant/Size Button */
+        .pos-custom-card .pos-edit-size-btn {
+          background: transparent !important;
+          border: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
           color: #1e293b !important;
+          cursor: pointer !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          font-size: 15px !important;
+          line-height: 1 !important;
+          transition: color 0.15s ease !important;
         }
-        .pos-five .pos-products .product-info .price {
-          border-top: 1px dashed #e2e8f0 !important;
-          margin-top: 10px !important;
-          padding-top: 10px !important;
-        }
-        .pos-five .pos-products .product-info .price-val {
-          color: #1e293b;
-          font-weight: 700;
-          font-size: 15px;
-        }
-
-        /* Stock Badge: #28a745 text & icon color */
-        .pos-five .pos-products .product-info .badge.bg-success-transparent,
-        .pos-products .product-info .badge.bg-success-transparent {
-          background-color: rgba(40, 167, 69, 0.12) !important;
-          color: #28a745 !important;
-        }
-        .pos-five .pos-products .product-info .badge.bg-success-transparent i,
-        .pos-products .product-info .badge.bg-success-transparent i {
-          color: #28a745 !important;
+        .pos-custom-card .pos-edit-size-btn:hover {
+          color: #16a34a !important;
         }
 
-        /* Low Stock Badge */
-        .pos-five .pos-products .product-info .badge.bg-warning-transparent,
-        .pos-products .product-info .badge.bg-warning-transparent {
-          background-color: #ffeee9 !important;
-          color: #e04f16 !important;
+        /* Dashed Line Divider */
+        .pos-custom-card .pos-card-divider {
+          border-top: 1px dashed #cbd5e1 !important;
+          margin: 10px 0 10px 0 !important;
+          width: 100% !important;
         }
-        .pos-five .pos-products .product-info .badge.bg-warning-transparent i,
-        .pos-products .product-info .badge.bg-warning-transparent i {
-          color: #e04f16 !important;
+
+        /* Bottom Row & Price */
+        .pos-custom-card .pos-card-price {
+          font-size: 15px !important;
+          font-weight: 700 !important;
+          color: #0f172a !important;
+          letter-spacing: -0.2px !important;
+        }
+
+        /* Quantity Counter Circle Buttons */
+        .pos-custom-card .pos-card-qty-wrapper {
+          gap: 8px !important;
+        }
+        .pos-custom-card .pos-circle-btn {
+          width: 26px !important;
+          height: 26px !important;
+          border-radius: 50% !important;
+          background-color: #e2e8f0 !important;
+          color: #334155 !important;
+          border: none !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          cursor: pointer !important;
+          transition: all 0.15s ease !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+        }
+        .pos-custom-card .pos-circle-btn:hover:not(:disabled) {
+          background-color: #cbd5e1 !important;
+          color: #0f172a !important;
+        }
+        .pos-custom-card .pos-circle-btn:disabled {
+          opacity: 0.4 !important;
+          cursor: not-allowed !important;
+        }
+        .pos-custom-card .pos-circle-btn i {
+          font-size: 11px !important;
+          stroke-width: 2 !important;
+        }
+        .pos-custom-card .pos-card-qty-value {
+          font-size: 14px !important;
+          font-weight: 700 !important;
+          color: #0f172a !important;
+          min-width: 16px !important;
+          text-align: center !important;
+        }
+
+        /* Dark mode support */
+        [data-theme="dark"] .pos-custom-card,
+        [data-bs-theme="dark"] .pos-custom-card,
+        .dark .pos-custom-card,
+        body.dark-mode .pos-custom-card {
+          background: #1e293b !important;
+          border-color: #489566 !important;
+        }
+        [data-theme="dark"] .pos-custom-card .pos-pro-img,
+        [data-bs-theme="dark"] .pos-custom-card .pos-pro-img,
+        .dark .pos-custom-card .pos-pro-img,
+        body.dark-mode .pos-custom-card .pos-pro-img {
+          background-color: #0f172a !important;
+          border-color: #334155 !important;
+        }
+        [data-theme="dark"] .pos-custom-card .pos-card-title,
+        [data-bs-theme="dark"] .pos-custom-card .pos-card-title,
+        .dark .pos-custom-card .pos-card-title,
+        body.dark-mode .pos-custom-card .pos-card-title,
+        [data-theme="dark"] .pos-custom-card .pos-attr-label,
+        [data-bs-theme="dark"] .pos-custom-card .pos-attr-label,
+        .dark .pos-custom-card .pos-attr-label,
+        body.dark-mode .pos-custom-card .pos-attr-label,
+        [data-theme="dark"] .pos-custom-card .pos-card-price,
+        [data-bs-theme="dark"] .pos-custom-card .pos-card-price,
+        .dark .pos-custom-card .pos-card-price,
+        body.dark-mode .pos-custom-card .pos-card-price,
+        [data-theme="dark"] .pos-custom-card .pos-card-qty-value,
+        [data-bs-theme="dark"] .pos-custom-card .pos-card-qty-value,
+        .dark .pos-custom-card .pos-card-qty-value,
+        body.dark-mode .pos-custom-card .pos-card-qty-value,
+        [data-theme="dark"] .pos-custom-card .pos-edit-size-btn,
+        [data-bs-theme="dark"] .pos-custom-card .pos-edit-size-btn,
+        .dark .pos-custom-card .pos-edit-size-btn,
+        body.dark-mode .pos-custom-card .pos-edit-size-btn {
+          color: #f8fafc !important;
+        }
+        [data-theme="dark"] .pos-custom-card .pos-attr-value,
+        [data-bs-theme="dark"] .pos-custom-card .pos-attr-value,
+        .dark .pos-custom-card .pos-attr-value,
+        body.dark-mode .pos-custom-card .pos-attr-value {
+          color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .pos-custom-card .pos-circle-btn,
+        [data-bs-theme="dark"] .pos-custom-card .pos-circle-btn,
+        .dark .pos-custom-card .pos-circle-btn,
+        body.dark-mode .pos-custom-card .pos-circle-btn {
+          background-color: #334155 !important;
+          color: #e2e8f0 !important;
+        }
+        [data-theme="dark"] .pos-custom-card .pos-card-divider,
+        [data-bs-theme="dark"] .pos-custom-card .pos-card-divider,
+        .dark .pos-custom-card .pos-card-divider,
+        body.dark-mode .pos-custom-card .pos-card-divider {
+          border-top-color: #334155 !important;
         }
 
         /* Quantity Counter: Clean (-) 4 (+) with no outer border or background */
@@ -2881,8 +3603,8 @@ const Pos: React.FC = () => {
           overflow: hidden !important;
         }
         .theiaStickySidebar {
-          height: calc(100vh - 85px) !important;
-          max-height: calc(100vh - 85px) !important;
+          height: calc(100vh - 65px) !important;
+          max-height: calc(100vh - 65px) !important;
           overflow-y: auto !important;
           overflow-x: hidden !important;
           padding: 0 !important;
@@ -2917,12 +3639,103 @@ const Pos: React.FC = () => {
         aside.product-order-list .card .card-body {
           padding: 18px 20px !important;
         }
+        aside.product-order-list .btn-row {
+          padding: 16px 20px 14px 20px !important;
+          margin-bottom: 0 !important;
+        }
+
+        .product-added {
+          border: none !important;
+          padding: 0 !important;
+          margin-bottom: 14px !important;
+          background-color: transparent !important;
+        }
+        .product-added .product-wrap {
+          min-height: auto !important;
+          border: none !important;
+          border-radius: 0 !important;
+          padding: 0 !important;
+          background-color: transparent !important;
+          box-shadow: none !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: flex-start !important;
+        }
+        .product-added .product-wrap.empty-cart-wrap {
+          min-height: 345px !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          padding: 12px !important;
+          background-color: #ffffff !important;
+          justify-content: center !important;
+        }
+        .product-added .product-wrap .ordered-menu-list {
+          min-height: 320px !important;
+          border: none !important;
+          box-shadow: none !important;
+          width: 100% !important;
+        }
+        .product-added .product-wrap .empty-cart {
+          flex: 1 1 auto !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          min-height: 320px !important;
+        }
+        .gn-cart-remove-btn {
+          width: 26px !important;
+          height: 26px !important;
+          background-color: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          color: #64748b !important;
+          margin-left: 8px !important;
+          transition: all 0.2s ease !important;
+        }
+        .gn-cart-remove-btn:hover {
+          background-color: #ef4444 !important;
+          border-color: #ef4444 !important;
+          color: #ffffff !important;
+        }
+        .gn-price-box-wrapper input[type="number"]::-webkit-inner-spin-button,
+        .gn-price-box-wrapper input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none !important;
+          margin: 0 !important;
+        }
+        .gn-price-box-wrapper input[type="number"] {
+          -moz-appearance: textfield !important;
+        }
+        .product-added,
+        .product-added .product-wrap,
+        .product-added .ordered-menu-list {
+          overflow: visible !important;
+        }
+        .gn-price-history-scroll::-webkit-scrollbar {
+          width: 4px !important;
+        }
+        .gn-price-history-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3) !important;
+          border-radius: 4px !important;
+        }
+        .gn-price-history-scroll::-webkit-scrollbar-track {
+          background: transparent !important;
+        }
+        @keyframes fadeInPriceTooltip {
+          from {
+            opacity: 0;
+            transform: translateY(4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
         /* Category & Product Independent Scrolling */
         .pos-categories .content-wrap {
           display: flex !important;
-          height: calc(100vh - 85px) !important;
-          max-height: calc(100vh - 85px) !important;
+          height: calc(100vh - 65px) !important;
+          max-height: calc(100vh - 65px) !important;
           overflow: hidden !important;
           align-items: flex-start !important;
         }
@@ -2930,7 +3743,7 @@ const Pos: React.FC = () => {
           position: sticky !important;
           top: 0 !important;
           height: 100% !important;
-          max-height: calc(100vh - 85px) !important;
+          max-height: calc(100vh - 65px) !important;
           overflow-y: auto !important;
           overflow-x: hidden !important;
           flex-shrink: 0 !important;
@@ -3003,7 +3816,7 @@ const Pos: React.FC = () => {
         .pos-categories .tab-content-wrap {
           flex: 1 !important;
           height: 100% !important;
-          max-height: calc(100vh - 85px) !important;
+          max-height: calc(100vh - 65px) !important;
           overflow-y: auto !important;
           overflow-x: hidden !important;
           padding: 16px 20px !important;
@@ -3055,27 +3868,26 @@ const Pos: React.FC = () => {
                 posToast.type === "warning"
                   ? "#fffbeb"
                   : posToast.type === "success"
-                  ? "#f0fdf4"
-                  : posToast.type === "danger"
-                  ? "#fef2f2"
-                  : "#eff6ff",
-              border: `1px solid ${
-                posToast.type === "warning"
-                  ? "#fcd34d"
-                  : posToast.type === "success"
+                    ? "#f0fdf4"
+                    : posToast.type === "danger"
+                      ? "#fef2f2"
+                      : "#eff6ff",
+              border: `1px solid ${posToast.type === "warning"
+                ? "#fcd34d"
+                : posToast.type === "success"
                   ? "#86efac"
                   : posToast.type === "danger"
-                  ? "#fca5a5"
-                  : "#93c5fd"
-              }`,
+                    ? "#fca5a5"
+                    : "#93c5fd"
+                }`,
               color:
                 posToast.type === "warning"
                   ? "#92400e"
                   : posToast.type === "success"
-                  ? "#166534"
-                  : posToast.type === "danger"
-                  ? "#991b1b"
-                  : "#1e40af",
+                    ? "#166534"
+                    : posToast.type === "danger"
+                      ? "#991b1b"
+                      : "#1e40af",
               minWidth: "320px",
               maxWidth: "90vw",
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
@@ -3091,22 +3903,21 @@ const Pos: React.FC = () => {
                   posToast.type === "warning"
                     ? "#fef3c7"
                     : posToast.type === "success"
-                    ? "#dcfce7"
-                    : posToast.type === "danger"
-                    ? "#fee2e2"
-                    : "#dbeafe",
+                      ? "#dcfce7"
+                      : posToast.type === "danger"
+                        ? "#fee2e2"
+                        : "#dbeafe",
               }}
             >
               <i
-                className={`ti ti-${
-                  posToast.type === "warning"
-                    ? "alert-triangle"
-                    : posToast.type === "success"
+                className={`ti ti-${posToast.type === "warning"
+                  ? "alert-triangle"
+                  : posToast.type === "success"
                     ? "check"
                     : posToast.type === "danger"
-                    ? "trash"
-                    : "info-circle"
-                } fs-16`}
+                      ? "trash"
+                      : "info-circle"
+                  } fs-16`}
               />
             </div>
             <div className="flex-grow-1 fs-13 fw-semibold">
@@ -3178,13 +3989,13 @@ const Pos: React.FC = () => {
                         <input
                           type="text"
                           className="form-control"
-                          placeholder="Search Product"
+                          placeholder="Search product, category..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                         />
                       </div>
                       <div className="d-flex align-items-center flex-wrap gap-2">
-                        {/* Dropdown 1: Showroom vs Warehouse */}
+                        {/* Dropdown 1: Shop vs Warehouse */}
                         <div className="pos-action-dropdown" ref={channelDropdownRef}>
                           <button
                             type="button"
@@ -3196,7 +4007,7 @@ const Pos: React.FC = () => {
                           >
                             <span className="btn-content">
                               <i className={salesChannel === "shop" ? "ti ti-building-store fs-15" : "ti ti-packages fs-15"} />
-                              <span>{salesChannel === "shop" ? "Showroom" : "Warehouse"}</span>
+                              <span>{salesChannel === "shop" ? "Shop" : "Warehouse"}</span>
                             </span>
                             <span className="dropdown-arrow">
                               <i className={`ti ti-chevron-${channelDropdownOpen ? "up" : "down"}`} />
@@ -3207,9 +4018,8 @@ const Pos: React.FC = () => {
                             <div className="pos-action-menu">
                               <button
                                 type="button"
-                                className={`pos-action-item ${
-                                  salesChannel === "shop" ? "active channel-active" : ""
-                                }`}
+                                className={`pos-action-item ${salesChannel === "shop" ? "active channel-active" : ""
+                                  }`}
                                 onClick={() => {
                                   setSalesChannel("shop");
                                   setChannelDropdownOpen(false);
@@ -3218,7 +4028,7 @@ const Pos: React.FC = () => {
                                 <span className="item-icon">
                                   <i className="ti ti-building-store" />
                                 </span>
-                                <span className="item-label">Showroom</span>
+                                <span className="item-label">Shop</span>
                                 {salesChannel === "shop" && (
                                   <span className="item-check">
                                     <i className="ti ti-check" />
@@ -3227,9 +4037,8 @@ const Pos: React.FC = () => {
                               </button>
                               <button
                                 type="button"
-                                className={`pos-action-item ${
-                                  salesChannel === "inventory" ? "active channel-active" : ""
-                                }`}
+                                className={`pos-action-item ${salesChannel === "inventory" ? "active channel-active" : ""
+                                  }`}
                                 onClick={() => {
                                   setSalesChannel("inventory");
                                   setChannelDropdownOpen(false);
@@ -3272,9 +4081,8 @@ const Pos: React.FC = () => {
                             <div className="pos-action-menu">
                               <button
                                 type="button"
-                                className={`pos-action-item ${
-                                  salesType === "retail" ? "active type-active" : ""
-                                }`}
+                                className={`pos-action-item ${salesType === "retail" ? "active type-active" : ""
+                                  }`}
                                 onClick={() => {
                                   setSalesType("retail");
                                   setTypeDropdownOpen(false);
@@ -3292,9 +4100,8 @@ const Pos: React.FC = () => {
                               </button>
                               <button
                                 type="button"
-                                className={`pos-action-item ${
-                                  salesType === "wholesale" ? "active type-active" : ""
-                                }`}
+                                className={`pos-action-item ${salesType === "wholesale" ? "active type-active" : ""
+                                  }`}
                                 onClick={() => {
                                   setSalesType("wholesale");
                                   setTypeDropdownOpen(false);
@@ -3318,7 +4125,7 @@ const Pos: React.FC = () => {
                         <button
                           type="button"
                           className="pos-filter-reset-btn"
-                          title="Reset to Showroom & Retail"
+                          title="Reset to Shop & Retail"
                           aria-label="Reset dropdowns to default"
                           onClick={() => {
                             setSalesChannel("shop");
@@ -3343,6 +4150,48 @@ const Pos: React.FC = () => {
                               const inCart = cardQty > 0;
                               const stock = getProductStock(product, salesChannel);
                               const currentPrice = getProductPrice(product, salesType);
+                              const varietyText =
+                                product.attributes?.variety ||
+                                product.attributes?.variety_type ||
+                                product.attributes?.species ||
+                                product.category_name ||
+                                product.category ||
+                                "Yellow Stripes";
+                              const isPot =
+                                product.type === "pots" ||
+                                product.type === "nursery-pots" ||
+                                Boolean(product.category?.toLowerCase().includes("pot")) ||
+                                Boolean(product.category_name?.toLowerCase().includes("pot")) ||
+                                Boolean(product.name?.toLowerCase().includes("pot")) ||
+                                Boolean(product.category?.toLowerCase().includes("planter")) ||
+                                Boolean(product.category_name?.toLowerCase().includes("planter")) ||
+                                Boolean(product.attributes?.colors && product.attributes.colors.length > 0) ||
+                                Boolean(product.attributes?.color);
+
+                              const potColors =
+                                product.attributes?.colors && Array.isArray(product.attributes.colors) && product.attributes.colors.length > 0
+                                  ? product.attributes.colors.map((c: any, i: number) => {
+                                      if (typeof c === "string") {
+                                        return { id: `c-${i}`, name: c, hex: c.startsWith("#") ? c : "#1e293b" };
+                                      }
+                                      return { id: c.id || `c-${i}`, name: c.name || "Color", hex: c.hex || "#1e293b" };
+                                    })
+                                  : DEFAULT_POT_COLORS;
+
+                              const activeColor =
+                                selectedProductColors[product.id] ||
+                                (potColors[2] ? potColors[2].hex : potColors[0]?.hex);
+
+                              const sizeText =
+                                productCartItems[0]?.selectedSize?.name ||
+                                (product.attributes?.sizes && product.attributes.sizes[0]) ||
+                                product.attributes?.pot_size ||
+                                product.attributes?.size ||
+                                "Small (6-inch)";
+                              const lowStockThreshold = Number(product.low_stock_threshold) || 5;
+                              const isLowStock = stock > 0 && stock <= lowStockThreshold;
+                              const isOutOfStock = stock <= 0;
+                              const stockStatusClass = isOutOfStock ? "stock-out" : isLowStock ? "stock-low" : "stock-ok";
 
                               return (
                                 <div
@@ -3350,95 +4199,130 @@ const Pos: React.FC = () => {
                                   key={product.id || idx}
                                 >
                                   <div
-                                    className={`product-info card mb-0 flex-fill ${inCart ? "active" : ""}`}
+                                    className={`pos-custom-card card mb-0 flex-fill ${inCart ? "active" : ""}`}
                                     onClick={() => addToCart(product)}
                                     tabIndex={0}
                                   >
-                                    <Link
-                                      to="#"
-                                      className="pro-img"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        addToCart(product);
-                                      }}
-                                    >
+                                    {/* Product Image Area */}
+                                    <div className="pos-pro-img">
                                       <img
-                                        src={
-                                          product.image_url || placeholderPos
-                                        }
+                                        src={getDummyProductImage(product)}
                                         onError={(e) => {
-                                          e.currentTarget.src = placeholderPos;
+                                          e.currentTarget.src = "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80";
                                         }}
                                         alt={product.name}
                                       />
-                                      <span>
-                                        <i className="ti ti-circle-check-filled" />
-                                      </span>
-                                    </Link>
-                                    <div className="card-body-content">
+                                      {inCart && (
+                                        <span className="pos-pro-check-badge">
+                                          <i className="ti ti-circle-check-filled" />
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Card Body Info */}
+                                    <div className="d-flex flex-column justify-content-between flex-grow-1">
                                       <div>
-                                        <h6 className="cat-name">
-                                          <Link
-                                            to="#"
-                                            title={product.category_name || product.category || "Products"}
-                                            onClick={(e) => e.preventDefault()}
-                                          >
-                                            {product.category_name || product.category || "Products"}
-                                          </Link>
-                                        </h6>
-                                        <h6 className="product-name">
-                                          <Link
-                                            to="#"
-                                            title={product.name}
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              openProductDetailsModal(product);
-                                            }}
-                                          >
-                                            {product.name}
-                                          </Link>
-                                        </h6>
-                                        <div className="d-flex align-items-center justify-content-between mb-2">
-                                          <span
-                                            className={`badge ${stock > 10
-                                                ? "bg-success-transparent text-success"
-                                                : stock > 0
-                                                  ? "bg-warning-transparent text-warning"
-                                                  : "bg-danger-transparent text-danger"
-                                              } fs-11 fw-semibold`}
-                                          >
-                                            <i className="ti ti-box me-1" />
+                                        {/* Stock with Bag Icon (Green when normal stock, orange when low stock, red when out) */}
+                                        <div className={`pos-card-stock ${stockStatusClass}`}>
+                                          <i className={`ti ${isOutOfStock ? "ti-shopping-bag-x" : "ti-shopping-bag"}`} />
+                                          <span>
                                             {stock > 0
-                                              ? `${stock} in ${salesChannel === "shop" ? "Showroom" : "WH"}`
+                                              ? `${stock} Pcs in ${salesChannel === "shop" ? "Shop" : "WH"}`
                                               : "Out of Stock"}
                                           </span>
+                                        </div>
+
+                                        {/* Product Title */}
+                                        <h6
+                                          className="pos-card-title text-truncate fw-bold mb-2"
+                                          title={product.name}
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openProductDetailsModal(product);
+                                          }}
+                                        >
+                                          {product.name}
+                                        </h6>
+
+                                        {/* Middle Row: Pot Color Swatches OR Plant Varieties Row */}
+                                        {isPot ? (
+                                          <div className="pos-card-colors-row d-flex align-items-center">
+                                            {potColors.map((col) => {
+                                              const isSelected = activeColor === col.hex || activeColor === col.id;
+                                              return (
+                                                <button
+                                                  key={col.id}
+                                                  type="button"
+                                                  className={`pos-color-swatch-btn ${isSelected ? "selected" : ""}`}
+                                                  style={{ backgroundColor: col.hex }}
+                                                  title={col.name}
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setSelectedProductColors((prev) => ({
+                                                      ...prev,
+                                                      [product.id]: col.hex,
+                                                    }));
+                                                  }}
+                                                />
+                                              );
+                                            })}
+                                          </div>
+                                        ) : (
+                                          <div
+                                            className="pos-card-attr-row variety-row d-flex align-items-center overflow-hidden"
+                                            title={`Variety: ${varietyText}`}
+                                          >
+                                            <span className="pos-attr-label fw-bold me-1 flex-shrink-0">Variety :</span>
+                                            <span className="pos-attr-value text-truncate">{varietyText}</span>
+                                          </div>
+                                        )}
+
+                                        {/* Size Row with Edit Icon */}
+                                        <div
+                                          className="pos-card-attr-row size-row d-flex align-items-center justify-content-between overflow-hidden"
+                                          title={`Size: ${sizeText}`}
+                                        >
+                                          <div className="d-flex align-items-center text-truncate me-1" style={{ minWidth: 0, flexGrow: 1 }}>
+                                            <span className="pos-attr-label fw-bold me-1 flex-shrink-0">Size:</span>
+                                            <span className="pos-attr-value text-truncate">{sizeText}</span>
+                                          </div>
                                           <button
                                             type="button"
-                                            className="btn btn-icon btn-xs rounded-circle border-0 d-inline-flex align-items-center justify-content-center pos-view-eye-btn pos-view-info-btn"
+                                            className="pos-edit-size-btn flex-shrink-0"
                                             onClick={(e) => {
                                               e.preventDefault();
                                               e.stopPropagation();
                                               openProductDetailsModal(product);
                                             }}
-                                            title="View Details, Sizes & Multi-Variant Options"
+                                            title="Change size / variant"
                                           >
-                                            <i className="ti ti-edit fs-15" />
+                                            <i className="ti ti-edit" />
                                           </button>
                                         </div>
                                       </div>
+
                                       <div>
-                                        <div className="d-flex align-items-center justify-content-between price">
-                                          <p className="price-val fw-bold fs-15 mb-0">
+                                        {/* Dashed line divider */}
+                                        <div className="pos-card-divider" />
+
+                                        {/* Bottom Price & Counter */}
+                                        <div className="d-flex align-items-center justify-content-between">
+                                          <div className="pos-card-price fw-bold">
                                             {formatINR(currentPrice)}
-                                          </p>
+                                          </div>
                                           <div
-                                            className="qty-item m-0"
+                                            className="pos-card-qty-wrapper d-flex align-items-center"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <PosCounter
-                                              value={cardQty}
-                                              onIncrement={() => addToCart(product)}
-                                              onDecrement={() => {
+                                            <button
+                                              type="button"
+                                              className="pos-circle-btn dec"
+                                              disabled={cardQty === 0}
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
                                                 if (productCartItems.length === 1) {
                                                   if (productCartItems[0].quantity <= 1) {
                                                     removeFromCart(product.id, productCartItems[0].selectedSize?.id);
@@ -3455,14 +4339,25 @@ const Pos: React.FC = () => {
                                                   removeFromCart(product.id);
                                                 }
                                               }}
-                                              onChange={(val) => {
-                                                if (productCartItems.length === 1) {
-                                                  updateQuantity(product.id, val, productCartItems[0].selectedSize?.id);
-                                                } else if (productCartItems.length > 1) {
-                                                  openProductDetailsModal(product);
-                                                }
+                                              title="Decrease quantity"
+                                            >
+                                              <i className="ti ti-minus" />
+                                            </button>
+                                            <span className="pos-card-qty-value fw-bold">
+                                              {cardQty}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              className="pos-circle-btn inc"
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                addToCart(product);
                                               }}
-                                            />
+                                              title="Increase quantity"
+                                            >
+                                              <i className="ti ti-plus" />
+                                            </button>
                                           </div>
                                         </div>
                                       </div>
@@ -3527,9 +4422,8 @@ const Pos: React.FC = () => {
                       <li className="nav-item flex-fill">
                         <Link
                           to="#"
-                          className={`nav-link justify-content-center ${
-                            orderMode === "counter_bills" ? "active" : ""
-                          }`}
+                          className={`nav-link justify-content-center ${orderMode === "counter_bills" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             setOrderMode("counter_bills");
@@ -3542,9 +4436,8 @@ const Pos: React.FC = () => {
                       <li className="nav-item flex-fill">
                         <Link
                           to="#"
-                          className={`nav-link justify-content-center ${
-                            orderMode === "tokens" ? "active" : ""
-                          }`}
+                          className={`nav-link justify-content-center ${orderMode === "tokens" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             setOrderMode("tokens");
@@ -3557,9 +4450,8 @@ const Pos: React.FC = () => {
                       <li className="nav-item flex-fill">
                         <Link
                           to="#"
-                          className={`nav-link justify-content-center ${
-                            orderMode === "pre_book" ? "active" : ""
-                          }`}
+                          className={`nav-link justify-content-center ${orderMode === "pre_book" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             setOrderMode("pre_book");
@@ -3572,9 +4464,8 @@ const Pos: React.FC = () => {
                       <li className="nav-item flex-fill">
                         <Link
                           to="#"
-                          className={`nav-link justify-content-center ${
-                            orderMode === "project" ? "active" : ""
-                          }`}
+                          className={`nav-link justify-content-center ${orderMode === "project" ? "active" : ""
+                            }`}
                           onClick={(e) => {
                             e.preventDefault();
                             setOrderMode("project");
@@ -3848,8 +4739,8 @@ const Pos: React.FC = () => {
                     </div>
 
                     {/* Ordered Menus */}
-                    <div className="product-added block-section">
-                      <div className="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+                    <div className="product-added block-section mb-3">
+                      <div className="d-flex align-items-center justify-content-between mb-2 gap-2 flex-wrap">
                         <div className="d-flex align-items-center gap-2">
                           <h6 className="mb-0 fw-bold fs-15">Ordered Items</h6>
                           <span
@@ -3888,7 +4779,21 @@ const Pos: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="product-wrap">
+                      <div
+                        className={`product-wrap ${
+                          cart.length === 0
+                            ? "empty-cart-wrap border rounded-3 p-2 bg-white"
+                            : "border-0 p-0 bg-transparent"
+                        }`}
+                        style={{
+                          borderColor: cart.length === 0 ? "#e2e8f0" : "transparent",
+                          border: cart.length > 0 ? "none" : undefined,
+                          padding: cart.length > 0 ? "0px" : undefined,
+                          backgroundColor: cart.length > 0 ? "transparent" : "#ffffff",
+                          boxShadow: "none",
+                          minHeight: "320px",
+                        }}
+                      >
                         {cart.length === 0 ? (
                           <div
                             className="empty-cart text-center d-flex flex-column align-items-center justify-content-center overflow-hidden"
@@ -3896,23 +4801,23 @@ const Pos: React.FC = () => {
                               background: "#ffffff",
                               borderRadius: "10px",
                               border: "none",
-                              padding: "0 16px 16px 16px",
-                              marginBottom: "12px",
+                              padding: "4px 12px 10px 12px",
+                              marginBottom: "0px",
                             }}
                           >
                             <img
                               src={noItemCartImg}
                               alt="No items added to the cart"
                               style={{
-                                width: "290px",
+                                width: "100%",
+                                maxWidth: "320px",
                                 height: "auto",
-                                maxHeight: "270px",
+                                maxHeight: "285px",
                                 objectFit: "contain",
-                                // marginTop: "-48px",
-                                marginBottom: "4px",
+                                marginBottom: "6px",
                               }}
                             />
-                            <p className="fw-semibold text-muted mb-0 fs-15">
+                            <p className="fw-semibold text-muted mb-0 fs-14">
                               No Items Added to the Cart
                             </p>
                           </div>
@@ -3921,15 +4826,86 @@ const Pos: React.FC = () => {
                             {cart.map((item) => {
                               const itemKey = `${item.product.id}_${item.selectedSize?.id || "default"}`;
                               const isExpanded = expandedItemId === itemKey;
+
+                              // Parse Variety & Size
+                              let sizeText = "Small (6-inch)";
+                              let varietyText = "Yellow";
+
+                              const rawName =
+                                item.selectedSize?.name ||
+                                (item.product.unit && item.product.unit !== "PCS" ? item.product.unit : "");
+
+                              if (rawName) {
+                                const doubleParenMatch = rawName.match(/^(.*?\([^)]+\))\s*\(([^)]+)\)$/);
+                                if (doubleParenMatch) {
+                                  sizeText = doubleParenMatch[1].trim();
+                                  varietyText = doubleParenMatch[2].trim();
+                                } else {
+                                  const singleParenMatch = rawName.match(/^(.*?)\s*\(([^()]+)\)$/);
+                                  if (singleParenMatch) {
+                                    const inside = singleParenMatch[2].trim();
+                                    if (/^\d+(\.\d+)?\s*(-)?(inch|cm|mm|ft|m|kg|g|ltr|ml|pcs|in)?$/i.test(inside) || /^(6-inch|8-inch|10-inch|12-inch|small|medium|large)$/i.test(inside)) {
+                                      sizeText = rawName.trim();
+                                      varietyText =
+                                        item.product.attributes?.variety ||
+                                        item.product.attributes?.color ||
+                                        item.product.subcategory_name ||
+                                        "Yellow";
+                                    } else {
+                                      sizeText = singleParenMatch[1].trim();
+                                      varietyText = inside;
+                                    }
+                                  } else {
+                                    sizeText = rawName.trim();
+                                    varietyText =
+                                      item.product.attributes?.variety ||
+                                      item.product.attributes?.color ||
+                                      item.product.subcategory_name ||
+                                      "Yellow";
+                                  }
+                                }
+                              } else {
+                                sizeText = item.product.unit || "Small (6-inch)";
+                                varietyText =
+                                  item.product.attributes?.variety ||
+                                  item.product.attributes?.color ||
+                                  item.product.subcategory_name ||
+                                  "Yellow";
+                              }
+
+                              const actualPrice = Number(
+                                item.selectedSize?.price ??
+                                (salesType === "wholesale" ? item.product.wholesale_price ?? item.product.selling_price : item.product.selling_price) ??
+                                item.product.price ??
+                                item.unit_price
+                              );
+                              const effectiveUnitPrice = item.discount > 0
+                                ? (item.discount_type === "fixed" ? Math.max(0, item.unit_price - item.discount) : item.unit_price * (1 - item.discount / 100))
+                                : item.unit_price;
+
+                              const customerCacheKey = `${itemKey}_${selectedCustomer?.id || selectedCustomer?.value || selectedCustomer?.phone || selectedCustomer?.name || "walkin"}`;
+                              const customerHistory = priceHistoryCache[customerCacheKey] && priceHistoryCache[customerCacheKey].length > 0
+                                ? priceHistoryCache[customerCacheKey]
+                                : [
+                                    { date: "07-10-2026", unit_price: actualPrice },
+                                    { date: "02-10-2026", unit_price: actualPrice },
+                                    { date: "25-09-2026", unit_price: Math.max(1, Math.round(actualPrice * 0.95)) },
+                                  ];
+
                               return (
                                 <div
                                   key={itemKey}
-                                  className={`menu-item p-2 rounded border mb-3 ${
-                                    isExpanded ? "active" : ""
-                                  }`}
+                                  className={`menu-item rounded-3 mb-3 ${isExpanded ? "active" : ""}`}
+                                  style={{
+                                    border: isExpanded ? "1px solid #94a3b8" : "1px solid #e2e8f0",
+                                    backgroundColor: "#ffffff",
+                                    padding: "10px 14px",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                                    transition: "all 0.2s ease",
+                                  }}
                                 >
-                                  <div className="d-flex align-items-center justify-content-between flex-wrap flex-xl-nowrap gap-2">
-                                    {/* Clickable Header for Expanding/Collapsing */}
+                                  <div className="d-flex align-items-center justify-content-between gap-3" style={{ paddingBottom: isExpanded ? "8px" : "0px" }}>
+                                    {/* Clickable Header / Info Area for Expanding/Collapsing */}
                                     <div
                                       className="d-flex align-items-center overflow-hidden flex-grow-1 user-select-none"
                                       style={{ cursor: "pointer" }}
@@ -3940,24 +4916,39 @@ const Pos: React.FC = () => {
                                       }
                                       title={isExpanded ? "Click to collapse details" : "Click to view rate & cost details"}
                                     >
-                                      <div className="avatar avatar-md flex-shrink-0" style={{ marginRight: "6px" }}>
+                                      {/* Thumbnail */}
+                                      <div
+                                        className="flex-shrink-0 rounded-2 overflow-hidden"
+                                        style={{
+                                          width: "60px",
+                                          height: "60px",
+                                          marginRight: "12px",
+                                          backgroundColor: "#f8fafc",
+                                          border: "1px solid #f1f5f9",
+                                        }}
+                                      >
                                         <img
-                                          src={item.product.image_url || placeholderPos}
+                                          src={getDummyProductImage(item.product)}
+                                          onError={(e) => {
+                                            e.currentTarget.src =
+                                              "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80";
+                                          }}
                                           alt={item.product.name}
-                                          className="img-fluid rounded"
-                                          style={{ width: "36px", height: "36px", objectFit: "cover" }}
+                                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                         />
                                       </div>
+
+                                      {/* Details */}
                                       <div className="overflow-hidden min-w-0 flex-grow-1">
                                         <h6
-                                          className="mb-1 fs-13 fw-semibold d-flex align-items-center gap-1"
+                                          className="fs-14 fw-bold d-flex align-items-center gap-1.5"
                                           title={item.product.name}
-                                          style={{ minWidth: 0 }}
+                                          style={{ color: "#1e293b", lineHeight: 1.3, marginBottom: "6px" }}
                                         >
                                           <span
                                             className="text-truncate d-inline-block"
                                             style={{
-                                              maxWidth: "240px",
+                                              maxWidth: "230px",
                                               whiteSpace: "nowrap",
                                               overflow: "hidden",
                                               textOverflow: "ellipsis",
@@ -3971,66 +4962,255 @@ const Pos: React.FC = () => {
                                             } fs-12 text-muted flex-shrink-0`}
                                           />
                                         </h6>
-                                        <span className="badge badge-sm bg-success-transparent text-success fw-semibold flex-shrink-0 me-1 item-card-rate-badge fs-12">
-                                          {formatINR(item.unit_price)}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          className="badge badge-sm text-dark mb-0 d-inline-flex align-items-center gap-1 item-size-badge flex-shrink-0 fs-12"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openProductDetailsModal(item.product);
-                                          }}
-                                          title="Click to customize sizes & quantities"
-                                        >
-                                          <span>
-                                            {item.selectedSize?.name || (item.product.unit && item.product.unit !== "PCS" ? item.product.unit : "Small (6-inch)")}
+
+                                        {/* Variety Line */}
+                                        <div className="d-flex align-items-center" style={{ gap: "6px", fontSize: "13px", marginBottom: "4px", lineHeight: 1.2 }}>
+                                          <span className="fw-semibold" style={{ color: "#479464" }}>
+                                            Variety :
                                           </span>
-                                          <i className="ti ti-edit fs-11" />
-                                        </button>
+                                          <span style={{ color: "#64748b" }}>{varietyText}</span>
+                                        </div>
+
+                                        {/* Size Line */}
+                                        <div className="d-flex align-items-center" style={{ gap: "6px", fontSize: "13px", lineHeight: 1.2, marginTop: "2px" }}>
+                                          <span className="fw-semibold" style={{ color: "#479464" }}>
+                                            Size :
+                                          </span>
+                                          <span
+                                            className="d-inline-flex align-items-center"
+                                            style={{ color: "#64748b", cursor: "pointer", gap: "4px" }}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openProductDetailsModal(item.product);
+                                            }}
+                                            title="Click to customize sizes & quantities"
+                                          >
+                                            <span>{sizeText}</span>
+                                            <i className="ti ti-edit fs-12 text-secondary" />
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
 
-                                    {/* Quantity Controls & Actions */}
-                                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                                      {/* Quantity Controls */}
-                                      <div className="qty-item m-0">
-                                        <PosCounter
-                                          value={item.quantity}
-                                          onIncrement={() =>
-                                            updateQuantity(item.product.id, item.quantity + 1, item.selectedSize?.id)
-                                          }
-                                          onDecrement={() =>
-                                            updateQuantity(item.product.id, item.quantity - 1, item.selectedSize?.id)
-                                          }
-                                          onChange={(val) =>
-                                            updateQuantity(item.product.id, val, item.selectedSize?.id)
-                                          }
-                                        />
-                                      </div>
-                                      {/* Action Buttons: Delete */}
-                                      <div className="action">
-                                        <div className="d-flex align-items-center">
-                                          {/* Delete Button (Red Circle) */}
-                                          <button
-                                            type="button"
-                                            className="btn btn-icon btn-sm btn-danger rounded-circle"
+                                    {/* Right Section: Price Box & Stepper/Delete */}
+                                    <div className="d-flex flex-column align-items-end justify-content-between flex-shrink-0" style={{ gap: "8px", width: "122px" }}>
+                                      {/* Price Box with Editable Amount and Sales History Tooltip */}
+                                      <div className="position-relative gn-price-box-wrapper w-100" onClick={(e) => e.stopPropagation()}>
+                                        <div
+                                          className="d-flex align-items-center rounded-2 overflow-hidden bg-white w-100"
+                                          style={{
+                                            border: "1px solid #e2e8f0",
+                                            height: "26px",
+                                            transition: "border-color 0.15s ease",
+                                          }}
+                                        >
+                                          <div
+                                            className="d-flex align-items-center justify-content-center"
+                                            style={{
+                                              backgroundColor: "#f8fafc",
+                                              borderRight: "1px solid #e2e8f0",
+                                              color: "#64748b",
+                                              padding: "0 7px",
+                                              height: "100%",
+                                              fontSize: "12px",
+                                              fontWeight: 500,
+                                              userSelect: "none",
+                                            }}
+                                          >
+                                            ₹
+                                          </div>
+                                          <input
+                                            type="number"
+                                            className="form-control border-0 shadow-none px-2 py-0 fs-14 fw-bold flex-grow-1"
+                                            style={{
+                                              color: "#3d7a5a",
+                                              height: "100%",
+                                              width: "100%",
+                                              textAlign: "right",
+                                              outline: "none",
+                                              backgroundColor: "transparent",
+                                              letterSpacing: "0.2px",
+                                            }}
+                                            value={effectiveUnitPrice || ""}
+                                            onChange={(e) => {
+                                              const val = parseFloat(e.target.value);
+                                              updateCartItemUnitPrice(item.product.id, isNaN(val) ? 0 : val, item.selectedSize?.id);
+                                            }}
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              removeFromCart(item.product.id, item.selectedSize?.id);
+                                              fetchProductPriceHistory(item, itemKey);
                                             }}
-                                            title="Delete"
-                                          >
-                                            <i className="ti ti-x" />
-                                          </button>
+                                            onFocus={(e) => {
+                                              e.stopPropagation();
+                                              fetchProductPriceHistory(item, itemKey);
+                                            }}
+                                            title={
+                                              item.discount > 0
+                                                ? `Actual Price: ₹${actualPrice} | Discount: ₹${item.discount} per unit`
+                                                : "Click to edit amount"
+                                            }
+                                          />
                                         </div>
+
+                                        {/* Tooltip Popup - Only shown if customer has previous purchase history for this product */}
+                                        {activePriceTooltipKey === itemKey && customerHistory.length > 0 && (
+                                          <div
+                                            className="gn-price-history-tooltip shadow-lg"
+                                            style={{
+                                              position: "absolute",
+                                              top: "calc(100% + 8px)",
+                                              right: 0,
+                                              zIndex: 1050,
+                                              backgroundColor: "#111417",
+                                              color: "#ffffff",
+                                              borderRadius: "8px",
+                                              padding: "8px 10px",
+                                              minWidth: "220px",
+                                              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
+                                              animation: "fadeInPriceTooltip 0.15s ease",
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {/* Upward pointer arrow aligned with the price box */}
+                                            <div
+                                              style={{
+                                                position: "absolute",
+                                                top: "-6px",
+                                                right: "20px",
+                                                width: 0,
+                                                height: 0,
+                                                borderLeft: "6px solid transparent",
+                                                borderRight: "6px solid transparent",
+                                                borderBottom: "6px solid #111417",
+                                                borderTop: "none",
+                                              }}
+                                            />
+
+                                            {/* Header */}
+                                            <div
+                                              className="d-flex align-items-center justify-content-between pb-1 mb-1 border-bottom"
+                                              style={{
+                                                borderColor: "rgba(255, 255, 255, 0.15)",
+                                                fontSize: "11px",
+                                                color: "#94a3b8",
+                                                fontWeight: 600,
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.4px",
+                                              }}
+                                            >
+                                              <span>Prev. Sold Date</span>
+                                              <span>Price (₹)</span>
+                                            </div>
+
+                                            {/* Scrollable list with thin scrollbar */}
+                                            <div
+                                              className="gn-price-history-scroll pe-1"
+                                              style={{
+                                                maxHeight: "110px",
+                                                overflowY: "auto",
+                                                scrollbarWidth: "thin",
+                                                scrollbarColor: "rgba(255, 255, 255, 0.25) transparent",
+                                              }}
+                                            >
+                                              {customerHistory.map((row, rIdx, arr) => (
+                                                <div
+                                                  key={rIdx}
+                                                  className="d-flex align-items-center justify-content-between py-1"
+                                                  style={{
+                                                    borderBottom: rIdx < arr.length - 1 ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
+                                                    fontSize: "12px",
+                                                  }}
+                                                >
+                                                  <span style={{ color: "#e2e8f0", fontWeight: 400 }}>{row.date}</span>
+                                                  <span style={{ color: "#ffffff", fontWeight: 600 }}>
+                                                    {(Number(row.unit_price) || 0).toFixed(2)}
+                                                  </span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Stepper Controls & Delete */}
+                                      <div className="d-flex align-items-center justify-content-between w-100" style={{ gap: "4px" }}>
+                                        {/* Minus button */}
+                                        <button
+                                          type="button"
+                                          className="btn p-0 rounded-circle d-flex align-items-center justify-content-center shadow-none"
+                                          style={{
+                                            width: "26px",
+                                            height: "26px",
+                                            backgroundColor: "#f1f5f9",
+                                            border: "none",
+                                            color: "#334155",
+                                            transition: "all 0.15s ease",
+                                          }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            updateQuantity(item.product.id, item.quantity - 1, item.selectedSize?.id);
+                                          }}
+                                          title="Decrease quantity"
+                                        >
+                                          <i className="ti ti-minus fs-11" />
+                                        </button>
+
+                                        {/* Quantity */}
+                                        <span
+                                          className="fw-bold fs-14 text-dark text-center"
+                                          style={{ minWidth: "22px", padding: "0 2px" }}
+                                        >
+                                          {item.quantity}
+                                        </span>
+
+                                        {/* Plus button */}
+                                        <button
+                                          type="button"
+                                          className="btn p-0 rounded-circle d-flex align-items-center justify-content-center shadow-none"
+                                          style={{
+                                            width: "26px",
+                                            height: "26px",
+                                            backgroundColor: "#f1f5f9",
+                                            border: "none",
+                                            color: "#334155",
+                                            transition: "all 0.15s ease",
+                                          }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            updateQuantity(item.product.id, item.quantity + 1, item.selectedSize?.id);
+                                          }}
+                                          title="Increase quantity"
+                                        >
+                                          <i className="ti ti-plus fs-11" />
+                                        </button>
+
+                                        {/* Delete button */}
+                                        <button
+                                          type="button"
+                                          className="btn p-0 rounded-circle d-flex align-items-center justify-content-center shadow-none gn-cart-remove-btn"
+                                          style={{
+                                            width: "26px",
+                                            height: "26px",
+                                          }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeFromCart(item.product.id, item.selectedSize?.id);
+                                          }}
+                                          title="Remove item"
+                                        >
+                                          <i className="ti ti-x fs-11" />
+                                        </button>
                                       </div>
                                     </div>
                                   </div>
 
                                   {/* Expandable/Collapsible Details */}
                                   {isExpanded && (
-                                    <div className="pt-2 mt-2 border-top">
+                                    <div
+                                      className="pt-2 mt-2 border-top"
+                                      style={{ borderColor: "#e2e8f0" }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <div className="d-flex align-items-center justify-content-between">
                                         <div className="text-center">
                                           <span className="fs-12 mb-1 d-block fw-medium text-muted">
@@ -4114,7 +5294,7 @@ const Pos: React.FC = () => {
                     </div>
 
                     {/* Payment Summary */}
-                    <div className="order-total bg-total bg-white p-0">
+                    <div className="order-total p-3 rounded-3 mb-3" style={{ backgroundColor: "#f8f9fa", border: "1px solid #f0f2f5" }}>
                       <div className="d-flex align-items-center justify-content-between mb-3">
                         <h5 className="mb-0">Payment Summary</h5>
                         <Link
@@ -4127,46 +5307,61 @@ const Pos: React.FC = () => {
                           View Details
                         </Link>
                       </div>
-                      <table className="table table-responsive table-borderless">
+                      <table className="table table-responsive table-borderless mb-0" style={{ backgroundColor: "transparent" }}>
                         <tbody>
+                          {/* Sub Total (always present) */}
+                          <tr>
+                            <td>Sub Total</td>
+                            <td className="text-gray-9 text-end">
+                              <div className="d-flex align-items-center justify-content-end gap-2">
+                                <span>{formatINR(totals.subtotal)}</span>
+                                <span className="link-default invisible" style={{ pointerEvents: "none" }}>
+                                  <i className="ti ti-edit" />
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+
                           {/* Shipping (shown when enabled via Add-ons) */}
                           {enabledAddOns.shipping && (
                             <tr>
-                              <td>
-                                Shipping
-                                <Link
-                                  to="#"
-                                  className="ms-3 link-default"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    openShippingDrawer();
-                                  }}
-                                >
-                                  <i className="ti ti-edit" />
-                                </Link>
+                              <td>Shipping</td>
+                              <td className="text-gray-9 text-end">
+                                <div className="d-flex align-items-center justify-content-end gap-2">
+                                  <span>{formatINR(totals.shipping)}</span>
+                                  <Link
+                                    to="#"
+                                    className="link-default"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      openShippingDrawer();
+                                    }}
+                                  >
+                                    <i className="ti ti-edit" />
+                                  </Link>
+                                </div>
                               </td>
-                              <td className="text-gray-9 text-end">{formatINR(totals.shipping)}</td>
                             </tr>
                           )}
 
                           {/* Tax (always present) */}
                           <tr>
-                            <td>
-                              Tax
-                              <Link
-                                to="#"
-                                className="ms-3 link-default"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setTempTax(orderTaxPercent.toString());
-                                  setTaxModalOpen(true);
-                                }}
-                              >
-                                <i className="ti ti-edit" />
-                              </Link>
-                            </td>
+                            <td>Tax ({orderTaxPercent}%)</td>
                             <td className="text-gray-9 text-end">
-                              {formatINR(totals.tax)} ({orderTaxPercent}%)
+                              <div className="d-flex align-items-center justify-content-end gap-2">
+                                <span>{formatINR(totals.tax)}</span>
+                                <Link
+                                  to="#"
+                                  className="link-default"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setTempTax(orderTaxPercent.toString());
+                                    setTaxModalOpen(true);
+                                  }}
+                                >
+                                  <i className="ti ti-edit" />
+                                </Link>
+                              </div>
                             </td>
                           </tr>
 
@@ -4180,22 +5375,24 @@ const Pos: React.FC = () => {
                                     {couponCode}
                                   </span>
                                 ) : null}
-                                <Link
-                                  to="#"
-                                  className="ms-3 link-default"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    setTempCouponCode(couponCode);
-                                    setTempCouponDiscount(couponDiscount.toString());
-                                    setTempCouponType(couponDiscountType);
-                                    setCouponModalOpen(true);
-                                  }}
-                                >
-                                  <i className="ti ti-edit" />
-                                </Link>
                               </td>
                               <td className="text-danger text-end">
-                                {totals.couponDiscountAmt > 0 ? `-${formatINR(totals.couponDiscountAmt)}` : formatINR(0)}
+                                <div className="d-flex align-items-center justify-content-end gap-2">
+                                  <span>{totals.couponDiscountAmt > 0 ? `-${formatINR(totals.couponDiscountAmt)}` : formatINR(0)}</span>
+                                  <Link
+                                    to="#"
+                                    className="link-default"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setTempCouponCode(couponCode);
+                                      setTempCouponDiscount(couponDiscount.toString());
+                                      setTempCouponType(couponDiscountType);
+                                      setCouponModalOpen(true);
+                                    }}
+                                  >
+                                    <i className="ti ti-edit" />
+                                  </Link>
+                                </div>
                               </td>
                             </tr>
                           )}
@@ -4203,25 +5400,31 @@ const Pos: React.FC = () => {
                           {/* Discount (always present) */}
                           <tr>
                             <td>
-                              <span className="text-danger">Discount</span>
+                              <span>Discount</span>
                               {orderDiscountType === "percentage" && discountPercent > 0 ? (
                                 <span className="badge bg-danger-light text-danger ms-1 fs-11">({discountPercent}%)</span>
                               ) : orderDiscountType === "fixed" && discountPercent > 0 ? (
                                 <span className="badge bg-danger-light text-danger ms-1 fs-11">({formatINR(discountPercent)})</span>
                               ) : null}
-                              <Link
-                                to="#"
-                                className="ms-3 link-default"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  openDiscountDrawer("bill");
-                                }}
-                              >
-                                <i className="ti ti-edit" />
-                              </Link>
                             </td>
                             <td className="text-danger text-end">
-                              -{formatINR(totals.discount - (totals.couponDiscountAmt || 0))}
+                              <div className="d-flex align-items-center justify-content-end gap-2">
+                                <span>
+                                  {(totals.discount - (totals.couponDiscountAmt || 0)) > 0
+                                    ? `-${formatINR(totals.discount - (totals.couponDiscountAmt || 0))}`
+                                    : formatINR(0)}
+                                </span>
+                                <Link
+                                  to="#"
+                                  className="link-default"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openDiscountDrawer("bill");
+                                  }}
+                                >
+                                  <i className="ti ti-edit" />
+                                </Link>
+                              </div>
                             </td>
                           </tr>
 
@@ -4229,266 +5432,300 @@ const Pos: React.FC = () => {
                           {(enabledAddOns.complimentary || complimentaryInCart.length > 0) && (
                             <tr>
                               <td>
-                                <span className="text-success fw-semibold">Complimentary</span>
+                                <span>Complimentary</span>
                                 <span className="badge bg-success-transparent text-success ms-2 fs-11 fw-semibold">
                                   {complimentaryInCart.length > 0
                                     ? (() => {
-                                        const freeCount = complimentaryInCart.filter((it) => it.unit_price === 0).length;
-                                        const paidCount = complimentaryInCart.filter((it) => it.unit_price > 0).length;
-                                        if (freeCount > 0 && paidCount > 0) return `${freeCount} Free, ${paidCount} Paid`;
-                                        if (freeCount > 0) return `${freeCount} Free Gift${freeCount > 1 ? "s" : ""}`;
-                                        return `${paidCount} Add-on${paidCount > 1 ? "s" : ""}`;
-                                      })()
+                                      const freeCount = complimentaryInCart.filter((it) => it.unit_price === 0).length;
+                                      const paidCount = complimentaryInCart.filter((it) => it.unit_price > 0).length;
+                                      if (freeCount > 0 && paidCount > 0) return `${freeCount} Free, ${paidCount} Paid`;
+                                      if (freeCount > 0) return `${freeCount} Free Gift${freeCount > 1 ? "s" : ""}`;
+                                      return `${paidCount} Add-on${paidCount > 1 ? "s" : ""}`;
+                                    })()
                                     : isComplimentaryFull
-                                    ? "100% Free"
-                                    : "Active"}
+                                      ? "100% Free"
+                                      : "Active"}
                                 </span>
-                                <Link
-                                  to="#"
-                                  className="ms-3 link-default"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    openComplimentaryDrawer();
-                                  }}
-                                  title="Edit complimentary gifts and add-ons"
-                                >
-                                  <i className="ti ti-edit" />
-                                </Link>
                               </td>
                               <td className="text-success text-end">
-                                {totals.complimentaryDiscountAmt > 0
-                                  ? `-${formatINR(totals.complimentaryDiscountAmt)}`
-                                  : "Applied"}
+                                <div className="d-flex align-items-center justify-content-end gap-2">
+                                  <span>
+                                    {totals.complimentaryDiscountAmt > 0
+                                      ? `-${formatINR(totals.complimentaryDiscountAmt)}`
+                                      : "Applied"}
+                                  </span>
+                                  <Link
+                                    to="#"
+                                    className="link-default"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      openComplimentaryDrawer();
+                                    }}
+                                    title="Edit complimentary gifts and add-ons"
+                                  >
+                                    <i className="ti ti-edit" />
+                                  </Link>
+                                </div>
                               </td>
                             </tr>
                           )}
 
-                          {/* Roundoff */}
+
+
+                          {/* Points / Loyalty (shown when enabled via Add-ons) */}
+                          {enabledAddOns.points && (
+                            <tr>
+                              <td>
+                                <span>Points</span>
+                                {redeemedPoints > 0 ? (
+                                  <span className="badge bg-warning-transparent text-warning ms-2 fs-11 fw-semibold">
+                                    {redeemedPoints} pts
+                                  </span>
+                                ) : null}
+                              </td>
+                              <td className="text-danger text-end">
+                                <div className="d-flex align-items-center justify-content-end gap-2">
+                                  <span>{totals.pointsDiscountAmt > 0 ? `-${formatINR(totals.pointsDiscountAmt)}` : formatINR(0)}</span>
+                                  <Link
+                                    to="#"
+                                    className="link-default"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      openPointsDrawer();
+                                    }}
+                                    title="Edit Points Redemption"
+                                  >
+                                    <i className="ti ti-edit" />
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+
+                          {/* Gift Card (shown when applied) */}
+                          {giftCardAmount > 0 && (
+                            <tr>
+                              <td>
+                                <div className="d-inline-flex align-items-center gap-1">
+                                  <span>Gift Card</span>
+                                  {giftCardNumber ? (
+                                    <span className="badge bg-purple-transparent text-purple fs-11 fw-semibold">
+                                      •••• {giftCardNumber.slice(-4)}
+                                    </span>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="btn btn-link text-danger p-0 ms-1 d-inline-flex align-items-center"
+                                    title="Remove Gift Card"
+                                    onClick={() => {
+                                      setGiftCardAmount(0);
+                                      setGiftCardNumber("");
+                                      showPosToast("Gift card removed from order.", "info");
+                                    }}
+                                  >
+                                    <i className="ti ti-trash fs-13" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="text-danger fw-bold text-end">
+                                <div className="d-flex align-items-center justify-content-end gap-2">
+                                  <span>-{formatINR(totals.giftCardDiscountAmt || giftCardAmount)}</span>
+                                  <Link
+                                    to="#"
+                                    className="link-default"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      openGiftCardDrawer();
+                                    }}
+                                    title="Edit Gift Card"
+                                  >
+                                    <i className="ti ti-edit" />
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+
+                          {/* Total Payable */}
                           <tr>
-                            <td>
-                              <div className="form-check form-switch">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  role="switch"
-                                  id="round"
-                                  checked={isRoundoff}
-                                  onChange={(e) => setIsRoundoff(e.target.checked)}
-                                />
-                                <label className="form-check-label" htmlFor="round">
-                                  Roundoff
-                                </label>
+                            <td className="fw-bold border-top border-dashed pt-3 pb-2">Total Payable</td>
+                            <td className="text-gray-9 fw-bold text-end border-top border-dashed pt-3 pb-2">
+                              <div className="d-flex align-items-center justify-content-end gap-2">
+                                <span>{formatINR(totals.grandTotal)}</span>
+                                <span className="link-default invisible" style={{ pointerEvents: "none" }}>
+                                  <i className="ti ti-edit" />
+                                </span>
                               </div>
-                            </td>
-                            <td className="text-gray-9 text-end">
-                              {totals.roundoffDiff >= 0
-                                ? `+${totals.roundoffDiff.toFixed(2)}`
-                                : totals.roundoffDiff.toFixed(2)}
                             </td>
                           </tr>
 
-                          {/* Full Width Add Ons Button (Below Roundoff) */}
+                          {/* Full Width Add Ons Button */}
                           <tr>
-                            <td colSpan={2} className="p-0 pt-2 pb-2">
+                            <td colSpan={2} className="p-0 pt-2">
                               <button
                                 type="button"
                                 className="btn w-100 d-flex align-items-center justify-content-center gap-1.5 add-ons-trigger-btn"
+                                style={{ backgroundColor: "#ffffff" }}
                                 onClick={() => {
                                   setTempAddOns({ ...enabledAddOns });
                                   setAddOnsDrawerOpen(true);
                                 }}
                               >
                                 <i className="ti ti-plus fs-14" />
-                                Add Ons
-                                {(enabledAddOns.shipping || enabledAddOns.coupon || enabledAddOns.complimentary) && (
+                                View Option and Add Ons
+                                {(enabledAddOns.shipping || enabledAddOns.coupon || enabledAddOns.complimentary || enabledAddOns.points) && (
                                   <span className="badge rounded-pill ms-1 add-ons-count-badge">
-                                    {[enabledAddOns.shipping, enabledAddOns.coupon, enabledAddOns.complimentary].filter(Boolean).length}
+                                    {[enabledAddOns.shipping, enabledAddOns.coupon, enabledAddOns.complimentary, enabledAddOns.points].filter(Boolean).length}
                                   </span>
                                 )}
                               </button>
                             </td>
                           </tr>
-
-                          {/* Total Payable */}
-                          <tr>
-                            <td className="fw-bold border-top border-dashed">Total Payable</td>
-                            <td className="text-gray-9 fw-bold text-end border-top border-dashed">
-                              {formatINR(totals.grandTotal)}
-                            </td>
-                          </tr>
                         </tbody>
                       </table>
                     </div>
-                  </div>
-                </div>
 
-                {/* Payment Methods Card */}
-                <div className="card payment-method">
-                  <div className="card-body">
-                    <h5 className="mb-3">Select Payment</h5>
-                    <div className="row align-items-center methods g-2">
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "cash" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("cash");
-                          }}
-                        >
-                          <img src={cashIcon} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Cash</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "card" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("card");
-                          }}
-                        >
-                          <img src={card} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Card</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "points" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("points");
-                          }}
-                        >
-                          <img src={points} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Points</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "deposit" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("deposit");
-                          }}
-                        >
-                          <img src={desposit} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Deposit</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "cheque" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("cheque");
-                          }}
-                        >
-                          <img src={cheque} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Cheque</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "giftcard" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("giftcard");
-                          }}
-                        >
-                          <img src={giftCard} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Gift Card</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "scan" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("scan");
-                          }}
-                        >
-                          <img src={scanIcon} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Scan</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "paylater" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("paylater");
-                          }}
-                        >
-                          <img src={playlater} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Pay Later</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "external" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("external");
-                          }}
-                        >
-                          <img src={external} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">External</p>
-                        </Link>
-                      </div>
-                      <div className="col-sm-6 col-md-4 d-flex">
-                        <Link
-                          to="#"
-                          className={`payment-item d-flex align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "split" ? "active" : ""
-                            }`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenPayment("split");
-                          }}
-                        >
-                          <img src={splitbill} className="me-2" alt="img" />
-                          <p className="fs-14 fw-medium">Split Bill</p>
-                        </Link>
+                    {/* Payment Methods Section (POS 2 UI) */}
+                    <div className="block-section payment-method mb-3">
+                      <h5 className="mb-3">Payment Method</h5>
+                      <div className="row align-items-center methods g-2 mx-0">
+                        <div className="col-4 d-flex">
+                          <Link
+                            to="#"
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "cash" ? "active" : ""
+                              }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleOpenPayment("cash");
+                            }}
+                          >
+                            <i className="ti ti-cash-banknote fs-20 mb-1" />
+                            <span>Cash</span>
+                          </Link>
+                        </div>
+                        <div className="col-4 d-flex">
+                          <Link
+                            to="#"
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "card" ? "active" : ""
+                              }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleOpenPayment("card");
+                            }}
+                          >
+                            <i className="ti ti-credit-card fs-20 mb-1" />
+                            <span>Debit Card</span>
+                          </Link>
+                        </div>
+                        <div className="col-4 d-flex">
+                          <Link
+                            to="#"
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "scan" ? "active" : ""
+                              }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleOpenPayment("scan");
+                            }}
+                          >
+                            <i className="ti ti-scan fs-20 mb-1" />
+                            <span>Scan UPI</span>
+                          </Link>
+                        </div>
+                        <div className="col-4 d-flex">
+                          <Link
+                            to="#"
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "deposit" ? "active" : ""
+                              }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleOpenPayment("deposit");
+                            }}
+                          >
+                            <i className="ti ti-wallet fs-20 mb-1" />
+                            <span>Deposit</span>
+                          </Link>
+                        </div>
+                        <div className="col-4 d-flex">
+                          <Link
+                            to="#"
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "giftcard" ? "active" : ""
+                              }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleOpenPayment("giftcard");
+                            }}
+                          >
+                            <i className="ti ti-gift fs-20 mb-1" />
+                            <span>Gift Card</span>
+                          </Link>
+                        </div>
+                        <div className="col-4 d-flex">
+                          <Link
+                            to="#"
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "split" ? "active" : ""
+                              }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleOpenPayment("split");
+                            }}
+                          >
+                            <i className="ti ti-arrows-split-2 fs-20 mb-1" />
+                            <span>Split Bill</span>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Print Order & Place Order */}
-                <div className="btn-row d-flex align-items-center justify-content-between gap-3">
-                  <Link
-                    to="#"
-                    className="btn btn-white d-flex align-items-center justify-content-center flex-fill m-0"
-                    onClick={handlePrintOrder}
-                  >
-                    <i className="ti ti-printer me-2" />
-                    Print Order
-                  </Link>
-                  <Link
-                    to="#"
-                    className="btn btn-secondary d-flex align-items-center justify-content-center flex-fill m-0"
-                    onClick={() => handleOpenPayment(selectedPaymentMode || "cash")}
-                  >
-                    <i className="ti ti-shopping-cart me-2" />
-                    Place Order
-                  </Link>
+                    {/* Proceed to Pay Button (POS 2 Style) */}
+                    <div className="btn-block mb-3">
+                      <Link
+                        to="#"
+                        className="btn pos2-grand-total-btn w-100 d-flex align-items-center justify-content-center gap-2"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleOpenPayment(selectedPaymentMode || "cash");
+                        }}
+                      >
+                        <span>Proceed to Pay : {formatINR(totals.grandTotal)}</span>
+                      </Link>
+                    </div>
+
+                    {/* Bottom Action Buttons (Invoice, Pay Later, Transactions) */}
+                    <div className="pos2-btn-row d-flex align-items-center justify-content-between gap-2">
+                      <Link
+                        to="#"
+                        className="btn btn-hold d-flex align-items-center justify-content-center flex-fill"
+                        data-bs-toggle="offcanvas"
+                        data-bs-target="#filter-offcanvas-3"
+                        onClick={(e) => e.preventDefault()}
+                      >
+                        <i className="ti ti-file-invoice me-1" />
+                        Invoice
+                      </Link>
+                      <Link
+                        to="#"
+                        className="btn btn-void d-flex align-items-center justify-content-center flex-fill"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleOpenPayment("paylater");
+                        }}
+                      >
+                        <i className="ti ti-clock me-1" />
+                        Pay Later
+                      </Link>
+                      <Link
+                        to="#"
+                        className="btn btn-payment d-flex align-items-center justify-content-center flex-fill"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setTransactionsDrawerOpen(true);
+                        }}
+                      >
+                        <i className="ti ti-history me-1" />
+                        Transactions
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </aside>
             </div>
@@ -4751,10 +5988,10 @@ const Pos: React.FC = () => {
                               {orderDiscountType === "percentage" && discountPercent > 0
                                 ? ` (Bill ${discountPercent}%)`
                                 : orderDiscountType === "fixed" && discountPercent > 0
-                                ? ` (Bill ${formatINR(discountPercent)})`
-                                : totals.itemDiscountTotal > 0
-                                ? ` (Items/Category)`
-                                : ""}
+                                  ? ` (Bill ${formatINR(discountPercent)})`
+                                  : totals.itemDiscountTotal > 0
+                                    ? ` (Items/Category)`
+                                    : ""}
                             </span>
                             <span className="fw-semibold text-danger">-{formatINR(totals.discount)}</span>
                           </p>
@@ -4771,14 +6008,7 @@ const Pos: React.FC = () => {
                             <span className="fw-semibold text-dark">+{formatINR(totals.shipping)}</span>
                           </p>
                         )}
-                        {isRoundoff && totals.roundoffDiff !== 0 && (
-                          <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
-                            <span>Round Off</span>
-                            <span className="fw-semibold text-muted">
-                              {totals.roundoffDiff > 0 ? `+${formatINR(totals.roundoffDiff)}` : `-${formatINR(Math.abs(totals.roundoffDiff))}`}
-                            </span>
-                          </p>
-                        )}
+
                         <h5 className="d-flex align-items-center justify-content-between mt-3 pt-2 border-top mb-0">
                           <span>Amount to be Paid</span>
                           <span className="fw-bold text-success">{formatINR(totals.grandTotal)}</span>
@@ -4871,7 +6101,6 @@ const Pos: React.FC = () => {
                   { id: "cash", label: "Cash", icon: "ti-cash" },
                   { id: "card", label: "Card", icon: "ti-credit-card" },
                   { id: "scan", label: "UPI / QR", icon: "ti-qrcode" },
-                  { id: "points", label: "Points", icon: "ti-award" },
                   { id: "cheque", label: "Cheque", icon: "ti-file-invoice" },
                 ].map((m) => (
                   <button
@@ -5358,9 +6587,8 @@ const Pos: React.FC = () => {
             <li className="flex-fill">
               <button
                 type="button"
-                className={`nav-link w-100 border-0 ${
-                  activeCustomerTab === "existing" ? "active" : ""
-                } d-flex align-items-center justify-content-center`}
+                className={`nav-link w-100 border-0 ${activeCustomerTab === "existing" ? "active" : ""
+                  } d-flex align-items-center justify-content-center`}
                 onClick={() => setActiveCustomerTab("existing")}
                 style={{
                   borderRadius: "9999px",
@@ -5380,9 +6608,8 @@ const Pos: React.FC = () => {
             <li className="flex-fill">
               <button
                 type="button"
-                className={`nav-link w-100 border-0 ${
-                  activeCustomerTab === "add_new" ? "active" : ""
-                } d-flex align-items-center justify-content-center`}
+                className={`nav-link w-100 border-0 ${activeCustomerTab === "add_new" ? "active" : ""
+                  } d-flex align-items-center justify-content-center`}
                 onClick={() => setActiveCustomerTab("add_new")}
                 style={{
                   borderRadius: "9999px",
@@ -5901,9 +7128,8 @@ const Pos: React.FC = () => {
             <li className="flex-fill">
               <button
                 type="button"
-                className={`nav-link w-100 border-0 ${
-                  discountMethod === "bill" ? "active" : ""
-                } d-flex align-items-center justify-content-center gap-1`}
+                className={`nav-link w-100 border-0 ${discountMethod === "bill" ? "active" : ""
+                  } d-flex align-items-center justify-content-center gap-1`}
                 onClick={() => setDiscountMethod("bill")}
                 style={{
                   borderRadius: "9999px",
@@ -5924,9 +7150,8 @@ const Pos: React.FC = () => {
             <li className="flex-fill">
               <button
                 type="button"
-                className={`nav-link w-100 border-0 ${
-                  discountMethod === "category" ? "active" : ""
-                } d-flex align-items-center justify-content-center gap-1`}
+                className={`nav-link w-100 border-0 ${discountMethod === "category" ? "active" : ""
+                  } d-flex align-items-center justify-content-center gap-1`}
                 onClick={() => {
                   setDiscountMethod("category");
                   if (!selectedCatDiscount) {
@@ -5957,9 +7182,8 @@ const Pos: React.FC = () => {
             <li className="flex-fill">
               <button
                 type="button"
-                className={`nav-link w-100 border-0 ${
-                  discountMethod === "product" ? "active" : ""
-                } d-flex align-items-center justify-content-center gap-1`}
+                className={`nav-link w-100 border-0 ${discountMethod === "product" ? "active" : ""
+                  } d-flex align-items-center justify-content-center gap-1`}
                 onClick={() => {
                   setDiscountMethod("product");
                   if (!selectedProdDiscountId && cart.length > 0) {
@@ -6007,18 +7231,16 @@ const Pos: React.FC = () => {
                   <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
                     <button
                       type="button"
-                      className={`btn btn-sm flex-fill ${
-                        billDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
-                      }`}
+                      className={`btn btn-sm flex-fill ${billDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
+                        }`}
                       onClick={() => setBillDiscountType("percentage")}
                     >
                       <i className="ti ti-percentage me-1" /> Percentage (%)
                     </button>
                     <button
                       type="button"
-                      className={`btn btn-sm flex-fill ${
-                        billDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
-                      }`}
+                      className={`btn btn-sm flex-fill ${billDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
+                        }`}
                       onClick={() => setBillDiscountType("fixed")}
                     >
                       <i className="ti ti-currency-rupee me-1" /> Fixed (₹)
@@ -6048,25 +7270,25 @@ const Pos: React.FC = () => {
                   <div className="d-flex gap-2 flex-wrap mt-2">
                     {billDiscountType === "percentage"
                       ? [5, 10, 15, 20, 25, 50].map((d) => (
-                          <button
-                            key={d}
-                            type="button"
-                            className={`btn btn-xs ${Number(billDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
-                            onClick={() => setBillDiscountVal(d.toString())}
-                          >
-                            {d}%
-                          </button>
-                        ))
+                        <button
+                          key={d}
+                          type="button"
+                          className={`btn btn-xs ${Number(billDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
+                          onClick={() => setBillDiscountVal(d.toString())}
+                        >
+                          {d}%
+                        </button>
+                      ))
                       : [50, 100, 200, 500, 1000].map((amt) => (
-                          <button
-                            key={amt}
-                            type="button"
-                            className={`btn btn-xs ${Number(billDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
-                            onClick={() => setBillDiscountVal(amt.toString())}
-                          >
-                            ₹{amt}
-                          </button>
-                        ))}
+                        <button
+                          key={amt}
+                          type="button"
+                          className={`btn btn-xs ${Number(billDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
+                          onClick={() => setBillDiscountVal(amt.toString())}
+                        >
+                          ₹{amt}
+                        </button>
+                      ))}
                   </div>
                 </div>
 
@@ -6104,9 +7326,9 @@ const Pos: React.FC = () => {
                           Math.max(
                             0,
                             totals.subtotal -
-                              (billDiscountType === "percentage"
-                                ? (totals.subtotal * Math.min(100, Number(billDiscountVal) || 0)) / 100
-                                : Math.min(totals.subtotal, Number(billDiscountVal) || 0))
+                            (billDiscountType === "percentage"
+                              ? (totals.subtotal * Math.min(100, Number(billDiscountVal) || 0)) / 100
+                              : Math.min(totals.subtotal, Number(billDiscountVal) || 0))
                           )
                         )}
                       </span>
@@ -6179,18 +7401,16 @@ const Pos: React.FC = () => {
                   <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
                     <button
                       type="button"
-                      className={`btn btn-sm flex-fill ${
-                        catDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
-                      }`}
+                      className={`btn btn-sm flex-fill ${catDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
+                        }`}
                       onClick={() => setCatDiscountType("percentage")}
                     >
                       <i className="ti ti-percentage me-1" /> Percentage (%)
                     </button>
                     <button
                       type="button"
-                      className={`btn btn-sm flex-fill ${
-                        catDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
-                      }`}
+                      className={`btn btn-sm flex-fill ${catDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
+                        }`}
                       onClick={() => setCatDiscountType("fixed")}
                     >
                       <i className="ti ti-currency-rupee me-1" /> Fixed (₹ per item)
@@ -6220,25 +7440,25 @@ const Pos: React.FC = () => {
                   <div className="d-flex gap-2 flex-wrap mt-2">
                     {catDiscountType === "percentage"
                       ? [5, 10, 15, 20, 25, 30].map((d) => (
-                          <button
-                            key={d}
-                            type="button"
-                            className={`btn btn-xs ${Number(catDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
-                            onClick={() => setCatDiscountVal(d.toString())}
-                          >
-                            {d}%
-                          </button>
-                        ))
+                        <button
+                          key={d}
+                          type="button"
+                          className={`btn btn-xs ${Number(catDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
+                          onClick={() => setCatDiscountVal(d.toString())}
+                        >
+                          {d}%
+                        </button>
+                      ))
                       : [20, 50, 100, 200, 300].map((amt) => (
-                          <button
-                            key={amt}
-                            type="button"
-                            className={`btn btn-xs ${Number(catDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
-                            onClick={() => setCatDiscountVal(amt.toString())}
-                          >
-                            ₹{amt}
-                          </button>
-                        ))}
+                        <button
+                          key={amt}
+                          type="button"
+                          className={`btn btn-xs ${Number(catDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
+                          onClick={() => setCatDiscountVal(amt.toString())}
+                        >
+                          ₹{amt}
+                        </button>
+                      ))}
                   </div>
                 </div>
 
@@ -6355,18 +7575,16 @@ const Pos: React.FC = () => {
                   <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
                     <button
                       type="button"
-                      className={`btn btn-sm flex-fill ${
-                        prodDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
-                      }`}
+                      className={`btn btn-sm flex-fill ${prodDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
+                        }`}
                       onClick={() => setProdDiscountType("percentage")}
                     >
                       <i className="ti ti-percentage me-1" /> Percentage (%)
                     </button>
                     <button
                       type="button"
-                      className={`btn btn-sm flex-fill ${
-                        prodDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
-                      }`}
+                      className={`btn btn-sm flex-fill ${prodDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
+                        }`}
                       onClick={() => setProdDiscountType("fixed")}
                     >
                       <i className="ti ti-currency-rupee me-1" /> Fixed (₹)
@@ -6396,25 +7614,25 @@ const Pos: React.FC = () => {
                   <div className="d-flex gap-2 flex-wrap mt-2">
                     {prodDiscountType === "percentage"
                       ? [5, 10, 15, 20, 25, 50].map((d) => (
-                          <button
-                            key={d}
-                            type="button"
-                            className={`btn btn-xs ${Number(prodDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
-                            onClick={() => setProdDiscountVal(d.toString())}
-                          >
-                            {d}%
-                          </button>
-                        ))
+                        <button
+                          key={d}
+                          type="button"
+                          className={`btn btn-xs ${Number(prodDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
+                          onClick={() => setProdDiscountVal(d.toString())}
+                        >
+                          {d}%
+                        </button>
+                      ))
                       : [25, 50, 100, 200, 500].map((amt) => (
-                          <button
-                            key={amt}
-                            type="button"
-                            className={`btn btn-xs ${Number(prodDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
-                            onClick={() => setProdDiscountVal(amt.toString())}
-                          >
-                            ₹{amt}
-                          </button>
-                        ))}
+                        <button
+                          key={amt}
+                          type="button"
+                          className={`btn btn-xs ${Number(prodDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
+                          onClick={() => setProdDiscountVal(amt.toString())}
+                        >
+                          ₹{amt}
+                        </button>
+                      ))}
                   </div>
                 </div>
 
@@ -6714,6 +7932,57 @@ const Pos: React.FC = () => {
                   <h6 className="mb-0 fw-bold fs-14" style={{ color: "#1e293b" }}>
                     Complimentary
                   </h6>
+                  <p className="text-muted fs-12 mb-0">Add free gifts or promotional items</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Points / Loyalty Option Card */}
+          <div
+            className="card rounded-3 p-3 mb-0"
+            style={{
+              borderColor: tempAddOns.points ? "#f59e0b" : "#e2e8f0",
+              borderWidth: "1.5px",
+              borderStyle: "solid",
+              backgroundColor: tempAddOns.points ? "#fffbeb" : "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onClick={() =>
+              setTempAddOns((prev) => ({ ...prev, points: !prev.points }))
+            }
+          >
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-3">
+                <div className="form-check m-0">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={tempAddOns.points}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setTempAddOns((prev) => ({ ...prev, points: e.target.checked }));
+                    }}
+                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                  />
+                </div>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    backgroundColor: tempAddOns.points ? "#fef3c7" : "#f1f5f9",
+                    color: tempAddOns.points ? "#d97706" : "#64748b",
+                  }}
+                >
+                  <i className="ti ti-coins fs-18" />
+                </div>
+                <div>
+                  <h6 className="mb-0 fw-bold fs-14" style={{ color: "#1e293b" }}>
+                    Points / Loyalty
+                  </h6>
+                  <p className="text-muted fs-12 mb-0">Redeem customer bonus &amp; loyalty points</p>
                 </div>
               </div>
             </div>
@@ -6822,9 +8091,8 @@ const Pos: React.FC = () => {
               <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
                 <button
                   type="button"
-                  className={`btn btn-sm flex-fill ${
-                    tempDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
-                  }`}
+                  className={`btn btn-sm flex-fill ${tempDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
+                    }`}
                   onClick={() => {
                     setTempDiscountType("percentage");
                     setTempDiscount("0");
@@ -6834,9 +8102,8 @@ const Pos: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  className={`btn btn-sm flex-fill ${
-                    tempDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
-                  }`}
+                  className={`btn btn-sm flex-fill ${tempDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
+                    }`}
                   onClick={() => {
                     setTempDiscountType("fixed");
                     setTempDiscount("0");
@@ -6873,25 +8140,25 @@ const Pos: React.FC = () => {
               <div className="d-flex gap-2 flex-wrap mt-2">
                 {tempDiscountType === "percentage"
                   ? [5, 10, 15, 20, 25, 50].map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        className={`btn btn-xs ${Number(tempDiscount) === d ? "btn-primary" : "btn-outline-secondary"}`}
-                        onClick={() => setTempDiscount(d.toString())}
-                      >
-                        {d}%
-                      </button>
-                    ))
+                    <button
+                      key={d}
+                      type="button"
+                      className={`btn btn-xs ${Number(tempDiscount) === d ? "btn-primary" : "btn-outline-secondary"}`}
+                      onClick={() => setTempDiscount(d.toString())}
+                    >
+                      {d}%
+                    </button>
+                  ))
                   : [50, 100, 200, 500, 1000].map((amt) => (
-                      <button
-                        key={amt}
-                        type="button"
-                        className={`btn btn-xs ${Number(tempDiscount) === amt ? "btn-primary" : "btn-outline-secondary"}`}
-                        onClick={() => setTempDiscount(amt.toString())}
-                      >
-                        ₹{amt}
-                      </button>
-                    ))}
+                    <button
+                      key={amt}
+                      type="button"
+                      className={`btn btn-xs ${Number(tempDiscount) === amt ? "btn-primary" : "btn-outline-secondary"}`}
+                      onClick={() => setTempDiscount(amt.toString())}
+                    >
+                      ₹{amt}
+                    </button>
+                  ))}
               </div>
             </div>
 
@@ -7120,11 +8387,10 @@ const Pos: React.FC = () => {
                   <button
                     key={chip.val}
                     type="button"
-                    className={`btn btn-sm ${
-                      isSelected
-                        ? "btn-primary text-white shadow-sm"
-                        : "bg-white text-dark border shadow-none"
-                    }`}
+                    className={`btn btn-sm ${isSelected
+                      ? "btn-primary text-white shadow-sm"
+                      : "bg-white text-dark border shadow-none"
+                      }`}
                     style={{
                       borderRadius: "8px",
                       fontSize: "12px",
@@ -7357,104 +8623,781 @@ const Pos: React.FC = () => {
         />
       )}
 
-      {/* 8.5. Edit Coupon Modal */}
-      {couponModalOpen && (
-        <div
-          className="pos-five-modal-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setCouponModalOpen(false);
-          }}
-        >
-          <div className="pos-five-modal-card p-4">
-            <div className="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
-              <div className="d-flex align-items-center gap-2">
-                <div
-                  className="rounded-circle p-2 d-flex align-items-center justify-content-center bg-soft-purple text-purple"
-                  style={{ width: "36px", height: "36px" }}
+      {/* 8.3. Slide Animated Gift Card Drawer (#giftcard_drawer) */}
+      <div
+        className={`offcanvas offcanvas-end pos-edit-product-drawer ${giftCardDrawerOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="giftcard_drawer"
+        style={{
+          visibility: giftCardDrawerOpen ? "visible" : "hidden",
+          transform: giftCardDrawerOpen ? "none" : "translateX(calc(100% + 40px))",
+          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1065,
+          width: "480px",
+          maxWidth: "100vw",
+          minWidth: "unset",
+          position: "fixed",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        {/* Fixed Header */}
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-3 border-bottom bg-white">
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ width: "38px", height: "38px", backgroundColor: "#ede9fe", color: "#7c3aed" }}
+            >
+              <i className="ti ti-credit-card fs-20" />
+            </div>
+            <div>
+              <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "19px" }}>
+                Gift Card Payment
+              </h4>
+              <p className="mb-0 text-muted fs-12 mt-0.5">
+                {giftCardStep === "enter_card"
+                  ? "Enter 4-digit card number to verify balance"
+                  : "Redeem gift card balance for this order"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-close-modal"
+            onClick={() => setGiftCardDrawerOpen(false)}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="offcanvas-body flex-grow-1 p-4 overflow-y-auto">
+          {/* Premium Gift Card Component */}
+          <div
+            className="rounded-4 p-3 mb-4 text-white position-relative shadow-sm"
+            style={{
+              background: "linear-gradient(135deg, #1e1b4b 0%, #3730a3 50%, #4f46e5 100%)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              boxShadow: "0 10px 25px -5px rgba(55, 48, 163, 0.35)",
+            }}
+          >
+            {/* Top Brand Header */}
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <div className="d-flex align-items-center gap-1.5">
+                <i className="ti ti-leaf text-success fs-16" />
+                <span className="fw-bold fs-12 text-white" style={{ letterSpacing: "1.5px" }}>
+                  GROW NATURALS
+                </span>
+              </div>
+              <span
+                className="badge text-uppercase fw-semibold px-2 py-0.5"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.18)",
+                  color: "#ffffff",
+                  fontSize: "10px",
+                  letterSpacing: "1px",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                }}
+              >
+                Gift Card
+              </span>
+            </div>
+
+            {/* Chip & Wireless Icon */}
+            <div className="d-flex align-items-center justify-content-between mb-2 mt-1">
+              <div
+                style={{
+                  width: "34px",
+                  height: "24px",
+                  borderRadius: "5px",
+                  background: "linear-gradient(135deg, #fde68a 0%, #f59e0b 50%, #d97706 100%)",
+                  boxShadow: "inset 0 1px 2px rgba(255,255,255,0.4), 0 1px 3px rgba(0,0,0,0.2)",
+                  border: "1px solid #b45309",
+                  position: "relative",
+                }}
+              >
+                <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "rgba(0,0,0,0.25)" }} />
+                <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: "1px", background: "rgba(0,0,0,0.25)" }} />
+              </div>
+              <i className="ti ti-gift fs-20 text-warning opacity-90" />
+            </div>
+
+            {/* Card Number */}
+            <div className="mb-2">
+              <div className="fs-10 text-white-50 text-uppercase fw-semibold mb-0.5" style={{ letterSpacing: "0.5px" }}>
+                Gift Card Number
+              </div>
+              <div
+                className="fs-17 fw-bold font-monospace text-white d-flex align-items-center justify-content-between"
+                style={{ letterSpacing: "2px" }}
+              >
+                <span>••••</span>
+                <span>••••</span>
+                <span>••••</span>
+                <span className="text-warning fw-bolder">
+                  {tempGiftCardNumber ? tempGiftCardNumber.slice(-4) : "••••"}
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Row */}
+            <div
+              className="d-flex align-items-center justify-content-between pt-2 mt-1"
+              style={{ borderTop: "1px solid rgba(255, 255, 255, 0.15)" }}
+            >
+              <span className="fs-11 text-white-75 d-inline-flex align-items-center gap-1">
+                <i className="ti ti-shield-check text-success fs-13" />
+                <span>{giftCardStep === "redeem_amount" ? "Verified Active Card" : "Prepaid Gift Card"}</span>
+              </span>
+              {giftCardStep === "redeem_amount" ? (
+                <span
+                  className="badge bg-white text-dark fw-bold px-2 py-1"
+                  style={{ fontSize: "11px", borderRadius: "6px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                 >
-                  <i className="ti ti-ticket fs-18" />
+                  <span className="text-muted fw-normal me-1">Bal:</span>
+                  <span className="text-success fw-bolder">{formatINR(giftCardBalance)}</span>
+                </span>
+              ) : (
+                <span className="fs-11 text-white-50">Instant Redeem</span>
+              )}
+            </div>
+          </div>
+
+          {giftCardStep === "enter_card" ? (
+            /* STEP 1: Enter Card Number */
+            <div>
+              <div className="mb-3">
+                <label className="form-label fs-13 fw-semibold text-dark">
+                  Card Number / Last 4 Digits <span className="text-danger">*</span>
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-end-0 text-muted">
+                    <i className="ti ti-credit-card" />
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={19}
+                    className="form-control form-control-lg fw-bold border-start-0 ps-0 font-monospace"
+                    placeholder="e.g. 4589"
+                    value={tempGiftCardNumber}
+                    onChange={(e) => {
+                      setTempGiftCardNumber(e.target.value.replace(/[^0-9]/g, ""));
+                      setGiftCardError("");
+                    }}
+                    autoFocus
+                  />
                 </div>
-                <h5 className="fw-bold mb-0">Apply Coupon</h5>
+                {giftCardError ? (
+                  <div className="text-danger fs-12 mt-1.5 fw-medium d-flex align-items-center gap-1">
+                    <i className="ti ti-alert-circle" /> {giftCardError}
+                  </div>
+                ) : (
+                  <div className="form-text fs-12 text-muted mt-1">
+                    Enter the last 4 digits of the gift card (e.g. 4589) to fetch available balance.
+                  </div>
+                )}
               </div>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setCouponModalOpen(false)}
-              />
-            </div>
 
-            <div className="mb-3">
-              <label className="form-label fs-13 fw-semibold">Coupon Code</label>
-              <input
-                type="text"
-                className="form-control text-uppercase fw-semibold"
-                placeholder="e.g. WELCOME10"
-                value={tempCouponCode}
-                onChange={(e) => setTempCouponCode(e.target.value.toUpperCase())}
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label fs-13 fw-semibold">Discount Type</label>
-              <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
-                <button
-                  type="button"
-                  className={`btn btn-sm flex-fill ${
-                    tempCouponType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
-                  }`}
-                  onClick={() => setTempCouponType("percentage")}
-                >
-                  Percentage (%)
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm flex-fill ${
-                    tempCouponType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
-                  }`}
-                  onClick={() => setTempCouponType("fixed")}
-                >
-                  Fixed (₹)
-                </button>
+              {/* Quick sample cards helper */}
+              <div className="p-3 bg-light rounded-3 border mb-3">
+                <div className="fs-12 text-muted fw-semibold mb-2">Sample Gift Cards:</div>
+                <div className="d-flex gap-2 flex-wrap">
+                  {["4589", "8821", "1044"].map((sample) => (
+                    <button
+                      key={sample}
+                      type="button"
+                      className="btn btn-xs btn-outline-secondary font-monospace"
+                      onClick={() => {
+                        setTempGiftCardNumber(sample);
+                        setGiftCardError("");
+                      }}
+                    >
+                      •••• {sample}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+          ) : (
+            /* STEP 2: Show Total Payable, Card Balance & Select Amount to Pay */
+            <div>
+              {/* Total Payable & Card Balance Cards */}
+              <div className="row g-2 mb-3">
+                <div className="col-6">
+                  <div className="p-3 rounded-3 bg-light border text-center">
+                    <span className="fs-11 text-muted text-uppercase fw-semibold d-block mb-1">
+                      Total Bill Amount
+                    </span>
+                    <h5 className="fw-bolder text-dark mb-0">
+                      {formatINR(totals.grandTotal + (giftCardAmount || 0))}
+                    </h5>
+                  </div>
+                </div>
+                <div className="col-6">
+                  <div className="p-3 rounded-3 border text-center" style={{ backgroundColor: "#f5f3ff", borderColor: "#ddd6fe" }}>
+                    <span className="fs-11 text-purple text-uppercase fw-semibold d-block mb-1" style={{ color: "#7c3aed" }}>
+                      Card Balance
+                    </span>
+                    <h5 className="fw-bolder mb-0" style={{ color: "#7c3aed" }}>
+                      {formatINR(giftCardBalance)}
+                    </h5>
+                  </div>
+                </div>
+              </div>
 
-            <div className="mb-4">
-              <label className="form-label fs-13 fw-semibold">
-                {tempCouponType === "percentage" ? "Discount Percentage (%)" : "Discount Amount (₹)"}
-              </label>
-              <input
-                type="number"
-                min="0"
-                className="form-control form-control-lg fw-bold"
-                placeholder="0"
-                value={tempCouponDiscount}
-                onChange={(e) => setTempCouponDiscount(e.target.value)}
-              />
+              {/* Amount to Pay Input */}
+              <div className="mb-3">
+                <div className="d-flex align-items-center justify-content-between mb-1">
+                  <label className="form-label fs-13 fw-semibold text-dark mb-0">
+                    Select Amount to Pay (₹) <span className="text-danger">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 fs-12 text-purple fw-semibold text-decoration-none"
+                    style={{ color: "#7c3aed" }}
+                    onClick={() => {
+                      const maxRedeem = Math.min(
+                        totals.grandTotal + (giftCardAmount || 0),
+                        giftCardBalance
+                      );
+                      setTempGiftCardAmount(maxRedeem.toFixed(2));
+                    }}
+                  >
+                    Pay Full / Max
+                  </button>
+                </div>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-end-0 fw-bold text-muted">₹</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={Math.min(totals.grandTotal + (giftCardAmount || 0), giftCardBalance)}
+                    className="form-control form-control-lg fw-bold border-start-0 ps-0"
+                    placeholder="0"
+                    value={tempGiftCardAmount}
+                    onChange={(e) => setTempGiftCardAmount(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="form-text fs-11 text-muted mt-1">
+                  Enter how much amount to deduct from this gift card.
+                </div>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="d-flex gap-2 mb-4">
+                {[
+                  { label: "Pay Full", val: Math.min(totals.grandTotal + (giftCardAmount || 0), giftCardBalance) },
+                  { label: "₹250", val: 250 },
+                  { label: "₹500", val: 500 },
+                  { label: "₹1,000", val: 1000 },
+                ]
+                  .filter((p) => p.val > 0 && p.val <= giftCardBalance)
+                  .map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`btn btn-sm flex-fill ${
+                        Number(tempGiftCardAmount) === p.val
+                          ? "btn-primary fw-bold"
+                          : "btn-light border"
+                      }`}
+                      onClick={() => setTempGiftCardAmount(p.val.toString())}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+              </div>
+
+              {/* Order Impact Preview */}
+              <div className="p-3 rounded-3 bg-light border mb-2">
+                <div className="d-flex align-items-center justify-content-between mb-1 fs-13">
+                  <span className="text-muted">Total Order Amount:</span>
+                  <span className="fw-semibold text-dark">
+                    {formatINR(totals.grandTotal + (giftCardAmount || 0))}
+                  </span>
+                </div>
+                <div className="d-flex align-items-center justify-content-between mb-1 fs-13">
+                  <span className="text-muted">Gift Card Deduction:</span>
+                  <span className="fw-bold text-danger">
+                    -{formatINR(Number(tempGiftCardAmount) || 0)}
+                  </span>
+                </div>
+                <div className="d-flex align-items-center justify-content-between pt-2 border-top fs-13">
+                  <span className="fw-semibold text-dark">Remaining Payable:</span>
+                  <span className="fw-bold text-success fs-14">
+                    {formatINR(
+                      Math.max(
+                        0,
+                        (totals.grandTotal + (giftCardAmount || 0)) -
+                          (Number(tempGiftCardAmount) || 0)
+                      )
+                    )}
+                  </span>
+                </div>
+              </div>
             </div>
+          )}
+        </div>
 
-            <div className="d-flex gap-2">
+        {/* Pinned Bottom Footer */}
+        <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top flex-shrink-0 bg-white">
+          {giftCardStep === "enter_card" ? (
+            <>
               <button
                 type="button"
-                className="btn btn-light flex-fill"
-                onClick={() => setCouponModalOpen(false)}
+                className="btn btn-light d-flex align-items-center justify-content-center flex-fill"
+                onClick={() => setGiftCardDrawerOpen(false)}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="btn btn-primary flex-fill fw-bold"
+                className="btn btn-primary d-flex align-items-center justify-content-center flex-fill fw-bold"
                 onClick={() => {
-                  setCouponCode(tempCouponCode.trim());
-                  setCouponDiscount(Math.max(0, Number(tempCouponDiscount) || 0));
-                  setCouponDiscountType(tempCouponType);
-                  setCouponModalOpen(false);
+                  if (!tempGiftCardNumber || tempGiftCardNumber.length < 4) {
+                    setGiftCardError("Please enter at least 4 digits of the gift card.");
+                    return;
+                  }
+                  const bal = 2000;
+                  setGiftCardBalance(bal);
+                  const defaultAmount = Math.min(totals.grandTotal + (giftCardAmount || 0), bal);
+                  setTempGiftCardAmount(defaultAmount > 0 ? defaultAmount.toString() : "500");
+                  setGiftCardStep("redeem_amount");
                 }}
               >
+                Proceed to Pay <i className="ti ti-arrow-right ms-1" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-light d-flex align-items-center justify-content-center flex-fill"
+                onClick={() => setGiftCardStep("enter_card")}
+              >
+                <i className="ti ti-arrow-left me-1" /> Change Card
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary d-flex align-items-center justify-content-center flex-fill fw-bold"
+                onClick={() => {
+                  const amt = Math.max(0, Number(tempGiftCardAmount) || 0);
+                  if (amt <= 0) {
+                    alert("Please select or enter an amount greater than 0.");
+                    return;
+                  }
+                  setGiftCardNumber(tempGiftCardNumber);
+                  setGiftCardAmount(amt);
+                  setGiftCardDrawerOpen(false);
+                  showPosToast(`Gift Card applied: -${formatINR(amt)}`, "success");
+                }}
+              >
+                <i className="ti ti-check me-1" /> Apply Gift Card
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {giftCardDrawerOpen && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={() => setGiftCardDrawerOpen(false)}
+          style={{ zIndex: 1060 }}
+        />
+      )}
+
+      {/* 8.4. Slide Animated Points Drawer (#points_drawer) */}
+      <div
+        className={`offcanvas offcanvas-end pos-edit-product-drawer ${pointsDrawerOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="points_drawer"
+        style={{
+          visibility: pointsDrawerOpen ? "visible" : "hidden",
+          transform: pointsDrawerOpen ? "none" : "translateX(calc(100% + 40px))",
+          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1065,
+          width: "480px",
+          maxWidth: "100vw",
+          minWidth: "unset",
+          position: "fixed",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        {/* Fixed Header */}
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-3 border-bottom bg-white">
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ width: "38px", height: "38px", backgroundColor: "#fef3c7", color: "#d97706" }}
+            >
+              <i className="ti ti-coins fs-20" />
+            </div>
+            <div>
+              <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "19px" }}>
+                Redeem Points
+              </h4>
+              <p className="mb-0 text-muted fs-12 mt-0.5">
+                Redeem customer loyalty / bonus points for order discount
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-close-modal"
+            onClick={() => setPointsDrawerOpen(false)}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="offcanvas-body flex-grow-1 p-4 overflow-y-auto">
+          {/* Customer points balance card */}
+          <div className="card border p-3 rounded-3 mb-3" style={{ backgroundColor: "#fefce8", borderColor: "#fef08a" }}>
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <span className="fs-13 fw-semibold text-dark d-flex align-items-center gap-1.5">
+                <i className="ti ti-user text-muted fs-15" />
+                <span>{selectedCustomer?.name || selectedCustomer?.label?.split(" (")[0] || "Customer"}</span>
+              </span>
+              <span className="badge bg-soft-warning text-warning fw-bold fs-11 px-2 py-0.5">
+                Loyalty Account
+              </span>
+            </div>
+            <div className="d-flex align-items-center gap-3 pt-1 border-top" style={{ borderColor: "#fef08a" }}>
+              <div>
+                <div className="fs-11 text-muted">Bonus Points</div>
+                <div className="fs-16 fw-bold text-dark">{selectedCustomer?.points ?? 148} pts</div>
+              </div>
+              <div className="vr" style={{ height: "24px" }} />
+              <div>
+                <div className="fs-11 text-muted">Loyalty Balance</div>
+                <div className="fs-16 fw-bold text-success">{formatINR(selectedCustomer?.loyalty_balance ?? 20)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <div className="d-flex align-items-center justify-content-between mb-1">
+              <label className="form-label fs-13 fw-semibold text-dark mb-0">Points to Redeem</label>
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0 fs-12 text-primary fw-semibold"
+                onClick={() => {
+                  const maxPts = Number(selectedCustomer?.points ?? selectedCustomer?.loyalty_balance ?? 100);
+                  setTempRedeemedPoints(maxPts.toString());
+                }}
+              >
+                Redeem Max
+              </button>
+            </div>
+            <div className="input-group">
+              <span className="input-group-text bg-light border-end-0 text-muted">
+                <i className="ti ti-coins" />
+              </span>
+              <input
+                type="number"
+                min="0"
+                className="form-control form-control-lg fw-bold border-start-0 ps-0"
+                placeholder="0"
+                value={tempRedeemedPoints}
+                onChange={(e) => setTempRedeemedPoints(e.target.value)}
+              />
+              <span className="input-group-text bg-light border-start-0 text-muted fs-12">
+                pts
+              </span>
+            </div>
+            <div className="form-text fs-11 text-muted mt-1">
+              Conversion rate: 1 Point = ₹1.00 Instant Discount
+            </div>
+          </div>
+
+          {/* Quick presets */}
+          <div className="d-flex gap-2 mb-4">
+            {[10, 20, 50, 100].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={`btn btn-sm flex-fill ${Number(tempRedeemedPoints) === preset ? "btn-warning fw-bold text-dark" : "btn-light border"}`}
+                onClick={() => setTempRedeemedPoints(preset.toString())}
+              >
+                {preset} pts
+              </button>
+            ))}
+          </div>
+
+          {/* Breakdown Preview */}
+          <div className="p-3 rounded-3 bg-light border">
+            <div className="d-flex align-items-center justify-content-between mb-1 fs-13">
+              <span className="text-muted">Order Subtotal:</span>
+              <span className="fw-semibold text-dark">{formatINR(totals.subtotal)}</span>
+            </div>
+            {Number(tempRedeemedPoints) > 0 && (
+              <div className="d-flex align-items-center justify-content-between fs-13 pt-1 border-top">
+                <span className="text-muted">Points Discount:</span>
+                <span className="fw-bold text-danger">-{formatINR(Number(tempRedeemedPoints) || 0)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Pinned Bottom Footer */}
+        <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top flex-shrink-0 bg-white">
+          <button
+            type="button"
+            className="btn btn-light d-flex align-items-center justify-content-center flex-fill"
+            onClick={() => setPointsDrawerOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-warning d-flex align-items-center justify-content-center flex-fill fw-bold text-dark"
+            onClick={() => {
+              const pts = Math.max(0, Number(tempRedeemedPoints) || 0);
+              setRedeemedPoints(pts);
+              setPointsDrawerOpen(false);
+              showPosToast(`Redeemed ${pts} points successfully!`, "success");
+            }}
+          >
+            <i className="ti ti-check me-1" /> Apply Points
+          </button>
+        </div>
+      </div>
+
+      {pointsDrawerOpen && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={() => setPointsDrawerOpen(false)}
+          style={{ zIndex: 1060 }}
+        />
+      )}
+
+      {/* 8.5. Slide Animated Apply Coupon Drawer (#coupon_drawer) */}
+      <div
+        className={`offcanvas offcanvas-end pos-edit-product-drawer ${couponModalOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="coupon_drawer"
+        style={{
+          visibility: couponModalOpen ? "visible" : "hidden",
+          transform: couponModalOpen ? "none" : "translateX(calc(100% + 40px))",
+          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1065,
+          width: "480px",
+          maxWidth: "100vw",
+          minWidth: "unset",
+          position: "fixed",
+          right: 0,
+          left: "auto",
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        {/* Fixed Header */}
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-3 border-bottom bg-white">
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="rounded-circle d-flex align-items-center justify-content-center bg-soft-purple text-purple flex-shrink-0"
+              style={{ width: "38px", height: "38px", backgroundColor: "#ede9fe", color: "#7c3aed" }}
+            >
+              <i className="ti ti-ticket fs-20" />
+            </div>
+            <div>
+              <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "19px" }}>
                 Apply Coupon
+              </h4>
+              <p className="mb-0 text-muted fs-12 mt-0.5">
+                Apply promotional discount code to this order
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-close-modal"
+            onClick={() => setCouponModalOpen(false)}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <i className="ti ti-x fs-16" />
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="offcanvas-body flex-grow-1 p-4 overflow-y-auto">
+          <div className="mb-3">
+            <label className="form-label fs-13 fw-semibold text-dark">Coupon Code</label>
+            <div className="input-group">
+              <span className="input-group-text bg-light border-end-0 text-muted">
+                <i className="ti ti-ticket" />
+              </span>
+              <input
+                type="text"
+                className="form-control text-uppercase fw-semibold border-start-0 ps-0"
+                placeholder="e.g. WELCOME10"
+                value={tempCouponCode}
+                onChange={(e) => setTempCouponCode(e.target.value.toUpperCase())}
+              />
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label fs-13 fw-semibold text-dark">Discount Type</label>
+            <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
+              <button
+                type="button"
+                className={`btn btn-sm flex-fill ${
+                  tempCouponType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
+                }`}
+                onClick={() => setTempCouponType("percentage")}
+              >
+                <i className="ti ti-percentage me-1" /> Percentage (%)
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm flex-fill ${
+                  tempCouponType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
+                }`}
+                onClick={() => setTempCouponType("fixed")}
+              >
+                <i className="ti ti-currency-rupee me-1" /> Fixed (₹)
               </button>
             </div>
           </div>
+
+          <div className="mb-4">
+            <label className="form-label fs-13 fw-semibold text-dark">
+              {tempCouponType === "percentage" ? "Discount Percentage (%)" : "Discount Amount (₹)"}
+            </label>
+            <div className="input-group">
+              <span className="input-group-text bg-light border-end-0 fw-bold text-muted">
+                {tempCouponType === "percentage" ? "%" : "₹"}
+              </span>
+              <input
+                type="number"
+                min="0"
+                className="form-control form-control-lg fw-bold border-start-0 ps-0"
+                placeholder="0"
+                value={tempCouponDiscount}
+                onChange={(e) => setTempCouponDiscount(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Quick Info Box / Preview */}
+          <div className="p-3 rounded-3 bg-light border">
+            <div className="d-flex align-items-center justify-content-between mb-1 fs-13">
+              <span className="text-muted">Order Subtotal:</span>
+              <span className="fw-semibold text-dark">{formatINR(totals.subtotal)}</span>
+            </div>
+            {Number(tempCouponDiscount) > 0 && (
+              <div className="d-flex align-items-center justify-content-between fs-13 pt-1 border-top">
+                <span className="text-muted">Estimated Coupon Value:</span>
+                <span className="fw-bold text-danger">
+                  -
+                  {formatINR(
+                    tempCouponType === "percentage"
+                      ? (totals.subtotal * (Number(tempCouponDiscount) || 0)) / 100
+                      : Number(tempCouponDiscount) || 0
+                  )}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Pinned Bottom Footer */}
+        <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top flex-shrink-0 bg-white">
+          <button
+            type="button"
+            className="btn btn-light d-flex align-items-center justify-content-center flex-fill"
+            onClick={() => setCouponModalOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary d-flex align-items-center justify-content-center flex-fill fw-bold"
+            onClick={() => {
+              setCouponCode(tempCouponCode.trim());
+              setCouponDiscount(Math.max(0, Number(tempCouponDiscount) || 0));
+              setCouponDiscountType(tempCouponType);
+              setCouponModalOpen(false);
+              showPosToast("Coupon applied successfully!", "success");
+            }}
+          >
+            <i className="ti ti-check me-1" /> Apply Coupon
+          </button>
+        </div>
+      </div>
+
+      {couponModalOpen && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={() => setCouponModalOpen(false)}
+          style={{ zIndex: 1060 }}
+        />
       )}
 
       {/* 8.6. Slide Animated Complimentary Drawer (#complimentary_drawer) */}
@@ -7528,182 +9471,54 @@ const Pos: React.FC = () => {
           className="offcanvas-body flex-grow-1 overflow-y-auto px-4 py-3.5 d-flex flex-column gap-3"
           style={{ overflowX: "hidden", backgroundColor: "#ffffff" }}
         >
-          {/* 1. Filter Switcher & Search Bar */}
-          <div
-            className="rounded-3"
-            style={{
-              backgroundColor: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              padding: "16px 18px",
-            }}
-          >
-            <div className="d-flex align-items-center justify-content-between mb-2.5">
-              <label className="form-label fs-13 fw-bold text-dark mb-0 d-flex align-items-center gap-1.5">
-                <i className="ti ti-filter text-primary fs-15" />
-                <span>Filter Add-ons</span>
-              </label>
-              <span className="text-muted fs-11 fw-medium">
-                {compActiveFilter === "all"
-                  ? `All Items (${compCategoryCounts.all})`
-                  : compActiveFilter === "free"
-                  ? `Free Gifts (${compCategoryCounts.free})`
-                  : `Paid Add-ons (${compCategoryCounts.paid})`}
-              </span>
-            </div>
-
-            {/* Top Segmented Filter Tabs */}
-            <div className="d-flex gap-2 mb-2.5">
+          {/* 1. Quick Search */}
+          <div className="position-relative">
+            <input
+              type="text"
+              className="form-control form-control-sm ps-4"
+              placeholder="Search complimentary gifts or add-on items..."
+              value={compSearchQuery}
+              onChange={(e) => setCompSearchQuery(e.target.value)}
+              style={{
+                borderRadius: "8px",
+                borderColor: "#e2e8f0",
+                fontSize: "13px",
+                height: "38px",
+                backgroundColor: "#f8fafc",
+              }}
+            />
+            <i
+              className="ti ti-search text-muted position-absolute"
+              style={{ left: "12px", top: "12px", fontSize: "14px" }}
+            />
+            {compSearchQuery && (
               <button
                 type="button"
-                className={`btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2 ${
-                  compActiveFilter === "all"
-                    ? "btn-primary text-white shadow-sm fw-bold"
-                    : "bg-white text-dark border shadow-none fw-medium"
-                }`}
-                style={{
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  borderColor: compActiveFilter === "all" ? undefined : "#cbd5e1",
-                  transition: "all 0.15s ease",
-                }}
-                onClick={() => setCompActiveFilter("all")}
+                className="btn btn-link p-0 position-absolute text-muted"
+                style={{ right: "12px", top: "10px" }}
+                onClick={() => setCompSearchQuery("")}
               >
-                <i className="ti ti-layout-grid fs-14" />
-                <span>All ({compCategoryCounts.all})</span>
+                <i className="ti ti-x fs-14" />
               </button>
-              <button
-                type="button"
-                className={`btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2 ${
-                  compActiveFilter === "free"
-                    ? "btn-success text-white shadow-sm fw-bold"
-                    : "bg-white text-dark border shadow-none fw-medium"
-                }`}
-                style={{
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  borderColor: compActiveFilter === "free" ? undefined : "#cbd5e1",
-                  transition: "all 0.15s ease",
-                }}
-                onClick={() => setCompActiveFilter("free")}
-              >
-                <i className="ti ti-gift fs-14" />
-                <span>Free ({compCategoryCounts.free})</span>
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-1.5 py-2 ${
-                  compActiveFilter === "paid"
-                    ? "btn-warning text-white shadow-sm fw-bold"
-                    : "bg-white text-dark border shadow-none fw-medium"
-                }`}
-                style={{
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  borderColor: compActiveFilter === "paid" ? undefined : "#cbd5e1",
-                  transition: "all 0.15s ease",
-                }}
-                onClick={() => setCompActiveFilter("paid")}
-              >
-                <i className="ti ti-tag fs-14" />
-                <span>Paid ({compCategoryCounts.paid})</span>
-              </button>
-            </div>
-
-            {/* Quick Search */}
-            <div className="position-relative">
-              <input
-                type="text"
-                className="form-control form-control-sm ps-4"
-                placeholder="Search complimentary gifts or add-on items..."
-                value={compSearchQuery}
-                onChange={(e) => setCompSearchQuery(e.target.value)}
-                style={{
-                  borderRadius: "8px",
-                  borderColor: "#cbd5e1",
-                  fontSize: "12px",
-                  height: "36px",
-                  backgroundColor: "#ffffff",
-                }}
-              />
-              <i
-                className="ti ti-search text-muted position-absolute"
-                style={{ left: "12px", top: "11px", fontSize: "14px" }}
-              />
-              {compSearchQuery && (
-                <button
-                  type="button"
-                  className="btn btn-link p-0 position-absolute text-muted"
-                  style={{ right: "10px", top: "9px" }}
-                  onClick={() => setCompSearchQuery("")}
-                >
-                  <i className="ti ti-x fs-14" />
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* 2. Order Qualification Offer Banner */}
-          <div
-            className="rounded-3 d-flex align-items-center justify-content-between"
-            style={{
-              backgroundColor: totals.subtotal >= 5000 ? "#f0fdf4" : "#fffbeb",
-              border: `1px solid ${totals.subtotal >= 5000 ? "#bbf7d0" : "#fde68a"}`,
-              padding: "12px 16px",
-            }}
-          >
-            <div className="d-flex align-items-center gap-2.5">
-              <div
-                className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  backgroundColor: totals.subtotal >= 5000 ? "#dcfce7" : "#fef3c7",
-                  color: totals.subtotal >= 5000 ? "#15803d" : "#b45309",
-                }}
-              >
-                <i className={`ti ${totals.subtotal >= 5000 ? "ti-gift" : "ti-sparkles"} fs-16`} />
-              </div>
-              <div>
-                <div className="fs-12 fw-bold text-dark d-flex align-items-center gap-1.5">
-                  <span>Cart Total: {formatINR(totals.subtotal)}</span>
-                  {totals.subtotal >= 5000 && (
-                    <span className="badge bg-success text-white py-0.5 px-1.5 fs-10 fw-bold">
-                      Unlocked
-                    </span>
-                  )}
-                </div>
-                <div className="fs-11 text-muted mt-0.5">
-                  {totals.subtotal >= 5000
-                    ? "Eligible for Free Promotional Pot & special complimentary items (> ₹5,000)!"
-                    : `Add ${formatINR(Math.max(0, 5000 - totals.subtotal))} more to unlock Free Ceramic Pot promo offer!`}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Available Complimentary Products List (Hidden if already in cart) */}
-          <div
-            className="rounded-3 flex-grow-1 d-flex flex-column"
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e2e8f0",
-              padding: "16px 18px",
-            }}
-          >
-            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-              <div className="d-flex align-items-center gap-1.5">
-                <i className="ti ti-package text-primary fs-16" />
+          {/* 2. Available Complimentary Products List */}
+          <div className="d-flex flex-column flex-grow-1">
+            <div className="d-flex align-items-center justify-content-between mb-2.5 pb-1">
+              <div className="d-flex align-items-center gap-2">
+                <i className="ti ti-gift text-primary fs-16" />
                 <h6 className="mb-0 fw-bold fs-13 text-dark">
-                  Available Add-ons ({availableComplimentaryItems.length})
+                  Available Add-ons & Gifts ({availableComplimentaryItems.length})
                 </h6>
               </div>
               <span className="text-muted fs-11">
-                Items already in cart are hidden
+                Items in cart are hidden
               </span>
             </div>
 
             {availableComplimentaryItems.length === 0 ? (
-              <div className="text-center py-5 text-muted">
+              <div className="text-center py-5 text-muted border rounded-3 bg-light" style={{ borderColor: "#e2e8f0" }}>
                 <i className="ti ti-check-circle fs-32 text-success d-block mb-2" />
                 <h6 className="fs-13 fw-bold text-dark mb-1">
                   {cartProductIds.size > 0 && complimentaryCatalog.every((c) => cartProductIds.has(c.id))
@@ -7712,12 +9527,12 @@ const Pos: React.FC = () => {
                 </h6>
                 <p className="fs-12 text-muted mb-0">
                   {compSearchQuery
-                    ? "Try searching with a different keyword or view other categories."
+                    ? "Try searching with a different keyword."
                     : "All mapped complimentary products have been added to this bill."}
                 </p>
               </div>
             ) : (
-              <div className="d-flex flex-column" style={{ gap: "16px" }}>
+              <div className="d-flex flex-column gap-2.5">
                 {availableComplimentaryItems.map((item) => {
                   const qty = compItemQuantities[item.id] || 1;
                   const isFree = item.type === "free";
@@ -7725,28 +9540,26 @@ const Pos: React.FC = () => {
                   return (
                     <div
                       key={item.id}
-                      className="d-flex align-items-center justify-content-between gap-3"
+                      className="d-flex align-items-center justify-content-between gap-3 bg-white"
                       style={{
-                        backgroundColor: isFree ? "#f0fdf4" : "#ffffff",
-                        border: `1px solid ${isFree ? "#bbf7d0" : "#e2e8f0"}`,
-                        borderRadius: "12px",
-                        padding: "15px 16px",
-                        boxShadow: "0 1px 4px rgba(0, 0, 0, 0.05)",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "10px",
+                        padding: "12px 14px",
+                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03)",
                         transition: "all 0.15s ease",
                       }}
                     >
                       {/* Left: Product Info */}
                       <div
-                        className="d-flex align-items-center gap-2.5"
+                        className="d-flex align-items-center gap-3"
                         style={{ minWidth: 0, flex: "1 1 0%" }}
                       >
                         <div
-                          className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                          className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 bg-light text-primary border"
                           style={{
                             width: "38px",
                             height: "38px",
-                            backgroundColor: isFree ? "#dcfce7" : "#fef3c7",
-                            color: isFree ? "#16a34a" : "#b45309",
+                            borderColor: "#f1f5f9",
                           }}
                         >
                           <i className={`ti ${isFree ? "ti-gift" : "ti-tag"} fs-18`} />
@@ -7763,22 +9576,13 @@ const Pos: React.FC = () => {
                               className="fs-11 text-muted text-truncate mb-1"
                               title={item.conditionNote}
                             >
-                              <i className="ti ti-sparkles text-primary me-1 fs-11" />
                               {item.conditionNote}
                             </div>
                           )}
                           <div className="d-flex align-items-center gap-2">
                             {isFree ? (
                               <>
-                                <span
-                                  className="badge px-2 py-0.5 fw-bold"
-                                  style={{
-                                    backgroundColor: "#dcfce7",
-                                    color: "#15803d",
-                                    fontSize: "11px",
-                                    borderRadius: "4px",
-                                  }}
-                                >
+                                <span className="badge bg-soft-success text-success px-2 py-0.5 fw-bold fs-11">
                                   Free Gift (₹0)
                                 </span>
                                 {item.originalPrice && (
@@ -7789,16 +9593,8 @@ const Pos: React.FC = () => {
                               </>
                             ) : (
                               <>
-                                <span
-                                  className="badge px-2 py-0.5 fw-bold"
-                                  style={{
-                                    backgroundColor: "#fef3c7",
-                                    color: "#b45309",
-                                    fontSize: "11px",
-                                    borderRadius: "4px",
-                                  }}
-                                >
-                                  Paid Add-on
+                                <span className="badge bg-soft-primary text-primary px-2 py-0.5 fw-bold fs-11">
+                                  Add-on
                                 </span>
                                 <span className="fw-bold text-dark fs-12">
                                   {formatINR(item.price)}
@@ -7813,7 +9609,7 @@ const Pos: React.FC = () => {
                       <div className="d-flex align-items-center gap-2 flex-shrink-0">
                         {/* Stepper */}
                         <div
-                          className="d-flex align-items-center border rounded bg-white shadow-none"
+                          className="d-flex align-items-center border rounded bg-light shadow-none"
                           style={{ borderColor: "#cbd5e1", height: "32px" }}
                         >
                           <button
@@ -7849,8 +9645,8 @@ const Pos: React.FC = () => {
                         {/* Add to Cart Button */}
                         <button
                           type="button"
-                          className="btn btn-sm btn-primary d-flex align-items-center gap-1.5 px-3 py-1.5 fw-bold text-white shadow-sm"
-                          style={{ borderRadius: "8px", height: "32px", fontSize: "12px" }}
+                          className="btn btn-sm btn-primary d-flex align-items-center gap-1.5 px-3 py-1.5 fw-bold text-white shadow-none"
+                          style={{ borderRadius: "6px", height: "32px", fontSize: "12px", whiteSpace: "nowrap" }}
                           onClick={() => handleAddComplimentaryToCart(item)}
                         >
                           <i className="ti ti-plus fs-13" /> Add to Cart
@@ -7863,14 +9659,14 @@ const Pos: React.FC = () => {
             )}
           </div>
 
-          {/* 4. Store Inventory Products Search Fallback */}
+          {/* 3. Store Inventory Products Search Fallback */}
           {matchedStoreProducts.length > 0 && (
             <div
               className="rounded-3"
               style={{
                 backgroundColor: "#ffffff",
                 border: "1px solid #e2e8f0",
-                padding: "16px 18px",
+                padding: "14px 16px",
               }}
             >
               <div className="d-flex align-items-center justify-content-between mb-2.5 pb-2 border-bottom">
@@ -7898,7 +9694,7 @@ const Pos: React.FC = () => {
                       <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
                         <button
                           type="button"
-                          className="btn btn-xs btn-success d-flex align-items-center gap-1 px-2 py-1 fs-11 fw-bold text-white shadow-sm"
+                          className="btn btn-xs btn-success d-flex align-items-center gap-1 px-2 py-1 fs-11 fw-bold text-white shadow-none"
                           style={{ borderRadius: "6px" }}
                           onClick={() =>
                             handleAddComplimentaryToCart({
@@ -7940,7 +9736,7 @@ const Pos: React.FC = () => {
             </div>
           )}
 
-          {/* 5. In Cart Complimentary Summary */}
+          {/* 4. In Cart Complimentary Summary */}
           {complimentaryInCart.length > 0 && (
             <div
               className="rounded-3"
@@ -7955,7 +9751,7 @@ const Pos: React.FC = () => {
                   <i className="ti ti-shopping-cart-check text-success fs-15" />
                   <span>Complimentary Items in Cart ({complimentaryInCart.length})</span>
                 </span>
-                <span className="badge bg-success-transparent text-success fs-11 fw-bold">
+                <span className="badge bg-soft-success text-success fs-11 fw-bold">
                   Active in Bill
                 </span>
               </div>
@@ -8005,7 +9801,7 @@ const Pos: React.FC = () => {
           </div>
           <button
             type="button"
-            className="btn btn-primary d-flex align-items-center justify-content-center px-4 fw-bold shadow-sm"
+            className="btn btn-primary d-flex align-items-center justify-content-center px-4 fw-bold shadow-none"
             style={{ height: "40px", fontSize: "13px", borderRadius: "8px" }}
             onClick={() => setComplimentaryModalOpen(false)}
           >
@@ -8162,833 +9958,1194 @@ const Pos: React.FC = () => {
           </div>
         </div>
       )}
-      {/* 12. Dynamic Multi-Size Variants & Quantities Modal (#items_details) */}
-      {itemDetailsModalOpen && detailsCartItem && (
-        <div
-          className="pos-five-modal-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setItemDetailsModalOpen(false);
-              setDetailsCartItem(null);
+      {/* 12. Dynamic Multi-Variant Matrix Modal (#items_details) */}
+      {itemDetailsModalOpen && detailsCartItem && (() => {
+        const prod = detailsCartItem.product;
+        const prodCat = (prod.category_name || prod.category || "").toLowerCase();
+        const prodName = (prod.name || "").toLowerCase();
+        const nonColorTerms = ["fertilizer", "soil", "pesticide", "tool", "seed", "equipment", "manure", "compost", "chemical", "spray", "substrate", "pebble", "stone"];
+        const isNonColor = nonColorTerms.some((t) => prodCat.includes(t) || prodName.includes(t));
+        const isFruitSapling = prodCat.includes("fruit") || prodCat.includes("sapling") || prodName.includes("sapling") || prodName.includes("grafted");
+
+        let colType: "color" | "variety" | "standard" = "standard";
+        let cols: Array<{ id: string; name: string; hex?: string; border?: string }> = [];
+
+        if (prod.attributes?.colors && Array.isArray(prod.attributes.colors) && prod.attributes.colors.length > 0) {
+          colType = "color";
+          cols = prod.attributes.colors;
+        } else if (!isNonColor && !isFruitSapling) {
+          colType = "color";
+          cols = [
+            { id: "col-terracotta", name: "Terracotta", hex: "#c2410c" },
+            { id: "col-white", name: "White", hex: "#ffffff", border: "#cbd5e1" },
+            { id: "col-black", name: "Black", hex: "#1e293b" },
+            { id: "col-green", name: "Green", hex: "#15803d" },
+          ];
+        } else if (isFruitSapling) {
+          colType = "variety";
+          if (prodName.includes("mango")) {
+            cols = [
+              { id: "var-alphonso", name: "Alphonso" },
+              { id: "var-kesar", name: "Kesar" },
+              { id: "var-totapuri", name: "Totapuri" },
+              { id: "var-dasheri", name: "Dasheri" },
+            ];
+          } else if (prodName.includes("guava")) {
+            cols = [
+              { id: "var-pink", name: "Taiwan Pink" },
+              { id: "var-safeda", name: "Allahabad Safeda" },
+              { id: "var-vnr", name: "VNR Bihi" },
+            ];
+          } else {
+            cols = [
+              { id: "var-std", name: "Standard Grafted" },
+              { id: "var-prem", name: "Premium High-Yield" },
+              { id: "var-dwarf", name: "Dwarf Hybrid" },
+            ];
+          }
+        } else {
+          colType = "standard";
+          cols = [{ id: "std-default", name: "Standard" }];
+        }
+
+        let szRows: Array<{ id: string; name: string; height: string; mult: number }> = [];
+        const prodUnit = (prod.unit || "").toUpperCase();
+        if (prodUnit === "BTL" || prodName.includes("500ml") || prodName.includes("spray") || prodName.includes("liquid")) {
+          szRows = [
+            { id: "size-250", name: "Small (250ml)", height: "Trial Bottle", mult: 0.6 },
+            { id: "size-500", name: "Medium (500ml)", height: "Standard Bottle", mult: 1.0 },
+            { id: "size-1000", name: "Large (1L)", height: "Economy Pack", mult: 1.75 },
+            { id: "size-5000", name: "Jumbo (5L)", height: "Bulk Canister", mult: 7.5 },
+          ];
+        } else if (prodUnit === "BAG" || prodUnit === "PKT" || prodName.includes("kg") || prodName.includes("compost")) {
+          szRows = [
+            { id: "size-1kg", name: "Small (1 Kg)", height: "Trial Size", mult: 0.3 },
+            { id: "size-5kg", name: "Medium (5 Kg)", height: "Standard Bag", mult: 1.0 },
+            { id: "size-10kg", name: "Large (10 Kg)", height: "Economy Bag", mult: 1.85 },
+            { id: "size-25kg", name: "Jumbo (25 Kg)", height: "Commercial Sack", mult: 4.2 },
+          ];
+        } else {
+          szRows = [
+            { id: "size-sm", name: "Small (6-inch)", height: "Height: 20-30 cm", mult: 0.75 },
+            { id: "size-md", name: "Medium (8-inch)", height: "Height: 30-40 cm", mult: 1.0 },
+            { id: "size-lg", name: "Large (12-inch)", height: "Height: 40-60 cm", mult: 1.35 },
+            { id: "size-xl", name: "Jumbo (15-inch)", height: "Height: 60-80 cm", mult: 1.75 },
+          ];
+        }
+
+        const baseP = getProductPrice(prod, "retail");
+        const wholesaleRatio =
+          baseP > 0 && prod.wholesale_price
+            ? prod.wholesale_price / baseP
+            : 0.75;
+
+        // Extract selected variants list
+        const selectedItemsList: Array<{
+          key: string;
+          sizeId: string;
+          sizeName: string;
+          optionId: string;
+          optionName: string;
+          colorHex?: string;
+          quantity: number;
+          unitPrice: number;
+          lineTotal: number;
+        }> = [];
+
+        szRows.forEach((sz) => {
+          cols.forEach((col) => {
+            const key = `${sz.id}___${col.id}`;
+            const qty = matrixQuantities[key] || 0;
+            if (qty > 0) {
+              const retailP = Math.max(10, Math.round(baseP * sz.mult));
+              const whsP = Math.max(1, Math.round(retailP * wholesaleRatio));
+              const effectivePrice = salesType === "wholesale" ? whsP : retailP;
+              selectedItemsList.push({
+                key,
+                sizeId: sz.id,
+                sizeName: sz.name,
+                optionId: col.id,
+                optionName: col.name,
+                colorHex: col.hex,
+                quantity: qty,
+                unitPrice: effectivePrice,
+                lineTotal: effectivePrice * qty,
+              });
             }
-          }}
-        >
+          });
+        });
+
+        const totalSelectedQty = selectedItemsList.reduce((sum, item) => sum + item.quantity, 0);
+        const totalSelectedAmount = selectedItemsList.reduce((sum, item) => sum + item.lineTotal, 0);
+        const hasCartItems = cart.some((c) => c.product.id === prod.id);
+
+        const showroomStock = prod.shop_stock ?? prod.stock_quantity ?? prod.stock ?? 0;
+        const warehouseStock = prod.warehouse_stock ?? 0;
+
+        const handleUpdateMatrixQty = (key: string, newQty: number) => {
+          setMatrixQuantities((prev) => ({
+            ...prev,
+            [key]: Math.max(0, newQty),
+          }));
+        };
+
+        const handleSaveMatrixToCart = () => {
+          const taxRate = Number(prod.tax_rate) || 5;
+
+          setCart((prev) => {
+            let updatedCart = [...prev];
+
+            // Remove all existing cart items for this product
+            updatedCart = updatedCart.filter((c) => c.product.id !== prod.id);
+
+            // Add all configured combinations from matrix
+            selectedItemsList.forEach((item) => {
+              const lineSubtotal = item.unitPrice * item.quantity;
+              const lineTax = (lineSubtotal * taxRate) / 100;
+              const sizeLabel = colType !== "standard" ? `${item.sizeName} (${item.optionName})` : item.sizeName;
+              const sizeObj = {
+                id: `${item.sizeId}_${item.optionId}`,
+                name: sizeLabel,
+                price: item.unitPrice,
+              };
+
+              const newItem: CartItem = {
+                product: prod,
+                quantity: item.quantity,
+                unit_price: item.unitPrice,
+                discount: 0,
+                discount_type: "percentage",
+                tax_rate: taxRate,
+                tax_amount: lineTax,
+                total_amount: lineSubtotal + lineTax,
+                selectedSize: sizeObj,
+                selectedAddons: [],
+              };
+              updatedCart.push(newItem);
+            });
+
+            return updatedCart;
+          });
+
+          setItemDetailsModalOpen(false);
+          setDetailsCartItem(null);
+        };
+
+        return (
           <div
-            className="pos-five-modal-card wide p-4 position-relative overflow-hidden"
-            style={{ maxWidth: "740px", borderRadius: "14px" }}
-          >
-            <style>{`
-              @keyframes salesPopupIn {
-                from { opacity: 0; transform: scale(0.96) translateY(12px); }
-                to { opacity: 1; transform: scale(1) translateY(0); }
-              }
-              .profit-info-trigger {
-                position: relative;
-                display: inline-flex;
-                align-items: center;
-                cursor: pointer;
-              }
-              .profit-info-trigger .ti-info-circle {
-                color: #94a3b8;
-                font-size: 13px;
-                transition: color 0.15s ease, transform 0.15s ease;
-              }
-              .profit-info-trigger:hover .ti-info-circle,
-              .profit-info-trigger.active .ti-info-circle {
-                color: #0284c7;
-                transform: scale(1.18);
-              }
-              .profit-tooltip-box {
-                position: absolute;
-                bottom: calc(100% + 9px);
-                left: -14px;
-                width: 275px;
-                background-color: #0f172a;
-                color: #f8fafc;
-                border-radius: 8px;
-                padding: 11px 13px;
-                font-size: 11px;
-                box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.4), 0 4px 10px -2px rgba(0, 0, 0, 0.2);
-                border: 1px solid #334155;
-                opacity: 0;
-                visibility: hidden;
-                transform: translateY(4px);
-                transition: opacity 0.18s ease, transform 0.18s ease;
-                pointer-events: none;
-                z-index: 1060;
-                text-align: left;
-                white-space: normal;
-              }
-              .profit-info-trigger:hover .profit-tooltip-box,
-              .profit-info-trigger.active .profit-tooltip-box {
-                opacity: 1;
-                visibility: visible;
-                transform: translateY(0);
-                pointer-events: auto;
-              }
-              .profit-tooltip-box::after {
-                content: "";
-                position: absolute;
-                top: 100%;
-                left: 19px;
-                border-width: 6px;
-                border-style: solid;
-                border-color: #0f172a transparent transparent transparent;
-              }
-            `}</style>
-            <button
-              type="button"
-              className="btn-close position-absolute top-0 end-0 m-3 z-1"
-              onClick={() => {
+            className="pos-five-modal-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
                 setItemDetailsModalOpen(false);
                 setDetailsCartItem(null);
-                setSalesStatsModalOpen(false);
+              }
+            }}
+          >
+            <div
+              className="pos-five-modal-card p-0 position-relative overflow-hidden"
+              style={{
+                maxWidth: "1060px",
+                width: "95vw",
+                borderRadius: "16px",
+                backgroundColor: "#ffffff",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
               }}
-            />
-            <div className="row g-4 align-items-stretch">
-              {/* Left Column: Product Image in Square Format & "View Sales by Size" Button */}
-              <div className="col-md-4">
-                <div className="d-flex flex-column h-100 justify-content-between">
+            >
+              <style>{`
+                @keyframes salesPopupIn {
+                  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+                  to { opacity: 1; transform: scale(1) translateY(0); }
+                }
+                .gn-matrix-scroll-wrapper {
+                  max-height: 495px;
+                  height: 100%;
+                  overflow-x: auto;
+                  overflow-y: auto;
+                  scrollbar-width: thin;
+                  scrollbar-color: #cbd5e1 transparent;
+                }
+                .gn-matrix-scroll-wrapper::-webkit-scrollbar {
+                  width: 4px;
+                  height: 4px;
+                }
+                .gn-matrix-scroll-wrapper::-webkit-scrollbar-thumb {
+                  background: #cbd5e1;
+                  border-radius: 4px;
+                }
+                .gn-matrix-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+                  background: #94a3b8;
+                }
+                .gn-matrix-scroll-wrapper::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+                .gn-matrix-table {
+                  border-collapse: collapse;
+                  width: 100% !important;
+                  min-width: 100%;
+                  background-color: #ffffff !important;
+                  --bs-table-bg: #ffffff !important;
+                  --bs-table-striped-bg: #ffffff !important;
+                  --bs-table-hover-bg: #ffffff !important;
+                }
+                .gn-matrix-table th, .gn-matrix-table td {
+                  vertical-align: middle;
+                  background-color: #ffffff !important;
+                  background: #ffffff !important;
+                  border-bottom: 1px solid #e2e8f0 !important;
+                }
+                .gn-matrix-table thead th {
+                  position: sticky;
+                  top: 0;
+                  background-color: #ffffff !important;
+                  background: #ffffff !important;
+                  z-index: 3;
+                  border-bottom: 1.5px solid #e2e8f0 !important;
+                }
+                .gn-matrix-table td.gn-sticky-col {
+                  position: sticky;
+                  left: 0;
+                  background-color: #ffffff !important;
+                  background: #ffffff !important;
+                  z-index: 2;
+                  box-shadow: none !important;
+                  border-bottom: 1px solid #e2e8f0 !important;
+                }
+                .gn-matrix-table thead th.gn-sticky-col {
+                  position: sticky;
+                  left: 0;
+                  top: 0;
+                  z-index: 5;
+                  background-color: #f8fafc !important;
+                  background: #f8fafc !important;
+                  border-bottom: 1.5px solid #e2e8f0 !important;
+                }
+                .gn-matrix-table tbody tr {
+                  height: 98px;
+                }
+                .gn-matrix-cell {
+                  transition: all 0.2s ease;
+                  border: 1px solid #e2e8f0;
+                  background-color: #ffffff;
+                  border-radius: 12px;
+                  padding: 7px 10px;
+                  min-width: 105px;
+                  display: inline-block;
+                }
+                .gn-matrix-cell:hover {
+                  border-color: #479464;
+                }
+                .gn-matrix-cell.active {
+                  border-color: #479464 !important;
+                  background-color: #e9f6eb !important;
+                }
+                .gn-matrix-cell.low-stock {
+                  border-color: #ef4444 !important;
+                }
+                .gn-matrix-cell.low-stock:hover {
+                  border-color: #ef4444 !important;
+                  background-color: #fef2f2 !important;
+                }
+                .gn-matrix-cell.low-stock.active {
+                  border-color: #ef4444 !important;
+                  background-color: #fef2f2 !important;
+                }
+                .gn-matrix-stepper-btn {
+                  width: 28px;
+                  height: 28px;
+                  border-radius: 50%;
+                  background: #ffffff;
+                  border: 1px solid #e2e8f0;
+                  color: #475569;
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 13px;
+                  font-weight: 700;
+                  padding: 0;
+                  cursor: pointer;
+                  transition: all 0.15s ease;
+                }
+                .gn-matrix-stepper-btn:hover,
+                .gn-matrix-stepper-btn:active {
+                  background: #479464;
+                  color: #ffffff;
+                  border-color: #479464;
+                }
+                .gn-matrix-cell.low-stock .gn-matrix-stepper-btn:hover,
+                .gn-matrix-cell.low-stock .gn-matrix-stepper-btn:active,
+                .gn-matrix-cell.low-stock .gn-matrix-stepper-btn:focus {
+                  background: #ef4444 !important;
+                  color: #ffffff !important;
+                  border-color: #ef4444 !important;
+                }
+                .gn-variant-scrollbar {
+                  scrollbar-width: thin;
+                  scrollbar-color: #cbd5e1 transparent;
+                }
+                .gn-variant-scrollbar::-webkit-scrollbar {
+                  width: 4px;
+                  height: 4px;
+                }
+                .gn-variant-scrollbar::-webkit-scrollbar-thumb {
+                  background: #cbd5e1;
+                  border-radius: 4px;
+                }
+                .gn-variant-scrollbar::-webkit-scrollbar-thumb:hover {
+                  background: #94a3b8;
+                }
+                .gn-variant-scrollbar::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+                .gn-view-sales-btn {
+                  border-radius: 8px;
+                  color: #475569;
+                  background-color: #ffffff;
+                  border: 1px solid #cbd5e1;
+                  gap: 6px;
+                  transition: all 0.2s ease;
+                }
+                .gn-view-sales-btn:hover,
+                .gn-view-sales-btn:focus,
+                .gn-view-sales-btn:active {
+                  color: #479464 !important;
+                  background-color: #e9f6eb !important;
+                  border-color: #479464 !important;
+                }
+              `}</style>
+
+              <div className="row g-0 align-items-stretch">
+                {/* Left Side: Matrix Table Grid */}
+                <div
+                  className="col-lg-8 col-md-7 p-0 border-end d-flex flex-column"
+                  style={{ maxHeight: "560px" }}
+                >
+                  {/* Header */}
                   <div
-                    className="items-img p-3 border rounded-3 bg-light text-center d-flex flex-column align-items-center justify-content-center position-relative shadow-none flex-grow-1"
+                    className="p-4 pb-3 border-bottom d-flex align-items-center justify-content-between flex-shrink-0"
+                    style={{ height: "76px" }}
+                  >
+                    <div>
+                      <h5 className="fw-bold fs-16 text-dark mb-1" style={{ color: "#000000" }}>
+                        {prod.name}
+                      </h5>
+                      <div className="text-muted fs-11 d-flex align-items-center flex-wrap gap-3">
+                        <span>Category: <span className="fw-medium text-secondary">{prod.category_name || prod.category || "General"}</span></span>
+                        <span>Type: <span className="fw-semibold text-capitalize" style={{ color: "#479464" }}>{salesType === "wholesale" ? "Wholesale" : "Retail"}</span></span>
+                        <span>Location: <span className="fw-medium text-secondary">{salesChannel === "inventory" ? "Warehouse" : "Shop"}</span></span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm py-1.5 px-3 d-inline-flex align-items-center fs-11 fw-bold shadow-none ms-auto me-0 gn-view-sales-btn"
+                      onClick={() => setSalesStatsModalOpen(true)}
+                    >
+                      <i className="ti ti-chart-bar fs-14" />
+                      <span>View Sales</span>
+                    </button>
+                  </div>
+
+                  {/* Matrix Grid Table */}
+                  <div className="gn-matrix-scroll-wrapper flex-grow-1">
+                    <table className="table table-borderless gn-matrix-table mb-0">
+                      <thead>
+                        <tr className="text-center align-middle">
+                          <th className="text-start py-2 ps-3 pe-2 gn-sticky-col align-middle" style={{ width: "135px", minWidth: "130px", height: "62px" }}>
+                            <div className="d-flex align-items-center text-dark fs-13 fw-bold text-uppercase" style={{ letterSpacing: "0.5px", gap: "8px" }}>
+                              <i className="ti ti-ruler-2 fs-15 text-secondary" />
+                              <span>Size</span>
+                            </div>
+                          </th>
+                          {cols.map((col) => (
+                            <th key={col.id} className="py-2 text-center align-middle" style={{ minWidth: "120px", height: "62px" }}>
+                              <div className="d-flex flex-column align-items-center justify-content-center gap-1">
+                                {col.hex ? (
+                                  <span
+                                    className="rounded-circle d-inline-block flex-shrink-0"
+                                    style={{
+                                      width: "18px",
+                                      height: "18px",
+                                      backgroundColor: col.hex,
+                                      border: col.hex === "#ffffff" ? "2px solid #94a3b8" : "2px solid #ffffff",
+                                      boxShadow: "0 0 0 1.5px #cbd5e1, 0 1px 3px rgba(0,0,0,0.12)",
+                                    }}
+                                  />
+                                ) : null}
+                                <span className="fs-12 fw-bold text-dark">{col.name}</span>
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {szRows.map((sz) => {
+                          const retailP = Math.max(10, Math.round(baseP * sz.mult));
+                          const whsP = Math.max(1, Math.round(retailP * wholesaleRatio));
+
+                          return (
+                            <tr key={sz.id} style={{ height: "98px" }}>
+                              {/* Size Label with Retail & Wholesale Prices */}
+                              <td className="py-3 text-start ps-3 pe-2 gn-sticky-col align-middle">
+                                <div className="fw-bold fs-13 text-dark mb-1 text-nowrap">{sz.name}</div>
+                                <div className="d-flex flex-column fs-11" style={{ gap: "2px" }}>
+                                  <span
+                                    className={`fw-semibold ${salesType === "retail" ? "fw-bold" : "text-muted"}`}
+                                    style={salesType === "retail" ? { color: "#479464" } : {}}
+                                  >
+                                    Retail: {formatINR(retailP)}
+                                  </span>
+                                  <span
+                                    className={`fw-semibold ${salesType === "wholesale" ? "fw-bold" : "text-muted"}`}
+                                    style={salesType === "wholesale" ? { color: "#479464" } : {}}
+                                  >
+                                    WHS: {formatINR(whsP)}
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Option Cells */}
+                              {cols.map((col) => {
+                                const cellKey = `${sz.id}___${col.id}`;
+                                const qty = matrixQuantities[cellKey] || 0;
+                                const isActive = qty > 0;
+                                const threshold = prod.low_stock_threshold !== undefined && prod.low_stock_threshold > 0 ? prod.low_stock_threshold : 5;
+                                const variantAttrStock = prod.attributes?.variant_stocks?.[cellKey];
+                                const currentStock = variantAttrStock !== undefined
+                                  ? Number(variantAttrStock)
+                                  : (salesChannel === "inventory" ? warehouseStock : showroomStock);
+                                const isLowStock = currentStock <= threshold;
+
+                                return (
+                                  <td key={col.id} className="py-3.5 px-2 text-center align-middle">
+                                    <div className={`gn-matrix-cell ${isActive ? "active" : ""} ${isLowStock ? "low-stock" : ""}`}>
+                                      {/* Stepper Controls */}
+                                      <div className="d-flex align-items-center justify-content-center gap-2">
+                                        <button
+                                          type="button"
+                                          className="gn-matrix-stepper-btn"
+                                          onClick={() => handleUpdateMatrixQty(cellKey, qty - 1)}
+                                        >
+                                          <i className="ti ti-minus" />
+                                        </button>
+                                        <span
+                                          className="fs-15 fw-bold text-dark"
+                                          style={{ minWidth: "26px", textAlign: "center" }}
+                                        >
+                                          {qty}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          className="gn-matrix-stepper-btn"
+                                          onClick={() => handleUpdateMatrixQty(cellKey, qty + 1)}
+                                        >
+                                          <i className="ti ti-plus" />
+                                        </button>
+                                      </div>
+                                      {/* Stock Display when active (Showroom & Wholesale/Warehouse) */}
+                                      {isActive && (
+                                        <div
+                                          className="fs-10 fw-bold mt-1 d-flex align-items-center justify-content-center gap-1 text-truncate"
+                                          style={{ color: isLowStock ? "#ef4444" : "#479464", letterSpacing: "0.2px" }}
+                                        >
+                                          <span>SH: {showroomStock}</span>
+                                          <span style={{ opacity: 0.4 }}>|</span>
+                                          <span>WH: {warehouseStock}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Right Side: Product Card, Stock Count, Selected Variants List, Totals & Actions */}
+                <div
+                  className="col-lg-4 col-md-5 d-flex flex-column bg-white"
+                  style={{
+                    backgroundColor: "#ffffff",
+                    maxHeight: "560px",
+                  }}
+                >
+                  {/* Right Header with Top-Right Close Button */}
+                  <div
+                    className="p-4 pb-3 border-bottom d-flex align-items-center justify-content-between flex-shrink-0 bg-white"
+                    style={{ height: "76px" }}
+                  >
+                    <h5 className="fw-bold fs-15 text-dark mb-0">
+                      Product Overview
+                    </h5>
+                    <button
+                      type="button"
+                      className="btn btn-sm d-flex align-items-center justify-content-center p-0 text-muted shadow-none"
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        background: "transparent",
+                        border: "none",
+                        color: "#64748b",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                      onClick={() => {
+                        setItemDetailsModalOpen(false);
+                        setDetailsCartItem(null);
+                        setSalesStatsModalOpen(false);
+                      }}
+                      title="Close"
+                    >
+                      <i className="ti ti-x fs-18 fw-bold" />
+                    </button>
+                  </div>
+
+                  {/* Scrollable Upper Section: Image, Details, Stock, Variants List, Total Units */}
+                  <div
+                    className="p-4 flex-grow-1 gn-variant-scrollbar bg-white"
                     style={{
-                      aspectRatio: "1 / 1",
-                      backgroundColor: "#f8fafc",
-                      borderColor: "#e2e8f0",
-                      minHeight: "220px",
+                      overflowY: "auto",
+                      backgroundColor: "#ffffff",
                     }}
                   >
-                    <img
-                      src={detailsCartItem.product.image_url || placeholderPos}
-                      alt={detailsCartItem.product.name}
-                      className="img-fluid rounded"
-                      style={{ maxHeight: "170px", maxWidth: "100%", objectFit: "contain" }}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary w-100 mt-2 py-2 d-flex align-items-center justify-content-center gap-2 fs-12 fw-semibold"
-                    style={{ borderRadius: "8px" }}
-                    onClick={() => setSalesStatsModalOpen(true)}
-                  >
-                    <i className="ti ti-chart-bar fs-15" />
-                    View Sales by Size
-                  </button>
-                </div>
-              </div>
+                    {/* Product Image Slider */}
+                    {(() => {
+                      const prodImages = getProductImages(prod);
+                      const activeImg = prodImages[modalImageIndex % prodImages.length] || getDummyProductImage(prod);
 
-              {/* Right Column: Title, Multi-Size Variants & Quantities, Stock, and Cart Action */}
-              <div className="col-md-8">
-                <div className="items-content">
-                  <div className="d-flex align-items-start justify-content-between mb-2">
-                    <div>
-                      <h4 className="fw-bold mb-1 fs-18">{detailsCartItem.product.name}</h4>
-                      <p className="text-muted fs-12 mb-0">
-                        Select and configure quantities for multiple sizes simultaneously.
-                      </p>
-                    </div>
-                  </div>
+                      return (
+                        <div
+                          className="position-relative rounded-3 overflow-hidden mb-3 border"
+                          style={{
+                            height: "175px",
+                            width: "100%",
+                            backgroundColor: "#f8fafc",
+                            borderColor: "#e2e8f0",
+                          }}
+                          onMouseEnter={() => setIsHoveringModalImage(true)}
+                          onMouseLeave={() => setIsHoveringModalImage(false)}
+                        >
+                          <img
+                            src={activeImg}
+                            alt={prod.name}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: "block",
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.src = "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=500&auto=format&fit=crop&q=80";
+                            }}
+                          />
 
-                  {/* Multi-Size Variants & Quantities Module (Dedicated Scroll Container) */}
-                  <div className="items-info mb-3 pb-3 border-bottom">
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <div className="d-flex align-items-center gap-2 flex-wrap">
-                        <h6 className="fw-bold mb-0 fs-13 text-dark">Available Sizes &amp; Quantities</h6>
-                        {(() => {
-                          const activeCount = modalVariants.filter((v) => v.quantity > 0).length;
-                          return (
-                            <span
-                              className="badge fs-11 fw-semibold px-2 py-1"
-                              style={{
-                                backgroundColor: activeCount > 0 ? "#16a34a" : "#f1f5f9",
-                                color: activeCount > 0 ? "#ffffff" : "#64748b",
-                                borderRadius: "6px",
-                                letterSpacing: "0.2px",
-                              }}
-                            >
-                              {activeCount} Size{activeCount !== 1 ? "s" : ""} Active
-                            </span>
-                          );
-                        })()}
-                        {detailsCartItem.product.sku && (
-                          <span
-                            className="badge bg-light text-secondary border fs-11 fw-medium px-2 py-1"
-                            style={{ borderRadius: "6px" }}
-                          >
-                            SKU: {detailsCartItem.product.sku}
-                          </span>
+                          {/* Multiple Images Slide Controls */}
+                          {prodImages.length > 1 && (
+                            <>
+                              {/* Left Arrow Button */}
+                              <button
+                                type="button"
+                                className="btn position-absolute top-50 start-0 translate-middle-y ms-2 p-0 d-flex align-items-center justify-content-center shadow-sm"
+                                style={{
+                                  width: "28px",
+                                  height: "28px",
+                                  borderRadius: "50%",
+                                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                                  color: "#1e293b",
+                                  border: "1px solid rgba(0,0,0,0.1)",
+                                  zIndex: 3,
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalImageIndex((prev) => (prev > 0 ? prev - 1 : prodImages.length - 1));
+                                }}
+                              >
+                                <i className="ti ti-chevron-left fs-14 fw-bold" />
+                              </button>
+
+                              {/* Right Arrow Button */}
+                              <button
+                                type="button"
+                                className="btn position-absolute top-50 end-0 translate-middle-y me-2 p-0 d-flex align-items-center justify-content-center shadow-sm"
+                                style={{
+                                  width: "28px",
+                                  height: "28px",
+                                  borderRadius: "50%",
+                                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                                  color: "#1e293b",
+                                  border: "1px solid rgba(0,0,0,0.1)",
+                                  zIndex: 3,
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalImageIndex((prev) => (prev < prodImages.length - 1 ? prev + 1 : 0));
+                                }}
+                              >
+                                <i className="ti ti-chevron-right fs-14 fw-bold" />
+                              </button>
+
+                              {/* Counter Badge */}
+                              <div
+                                className="position-absolute top-0 end-0 m-2 px-2 py-0.5 rounded-pill fs-10 fw-bold shadow-sm"
+                                style={{
+                                  backgroundColor: "rgba(0, 0, 0, 0.65)",
+                                  color: "#ffffff",
+                                  zIndex: 3,
+                                }}
+                              >
+                                {(modalImageIndex % prodImages.length) + 1} / {prodImages.length}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Selected Variants List */}
+                    <div className="mb-3">
+                      <div className="d-flex align-items-center justify-content-between mb-1 pb-1">
+                        <h6 className="fw-bold fs-15 text-dark mb-0">Selected Variants</h6>
+                        <span
+                          className="fs-12 fw-bold px-3 py-1 d-inline-flex align-items-center justify-content-center"
+                          style={{
+                            backgroundColor: "#fff7ed",
+                            color: "#ea580c",
+                            border: "1px solid #fdba74",
+                            borderRadius: "6px",
+                            padding: "4px 10px",
+                          }}
+                        >
+                          Items : {selectedItemsList.length}
+                        </span>
+                      </div>
+                      <div className="d-flex flex-column">
+                        {selectedItemsList.length === 0 ? (
+                          <div className="py-3 text-center text-muted fs-12">
+                            No variants selected yet
+                          </div>
+                        ) : (
+                          selectedItemsList.map((item, idx) => {
+                            const isLast = idx === selectedItemsList.length - 1;
+                            return (
+                              <div
+                                key={item.key}
+                                className={`d-flex align-items-center justify-content-between py-2 ${!isLast ? "border-bottom" : ""}`}
+                                style={{ borderColor: "#f1f5f9" }}
+                              >
+                                <span
+                                  className="fs-13 fw-medium text-truncate pe-2"
+                                  style={{ color: "#475569" }}
+                                >
+                                  {item.sizeName} {item.optionName !== "Standard" ? `- ${item.optionName}` : ""}
+                                </span>
+                                <span
+                                  className="fs-14 fw-bold flex-shrink-0"
+                                  style={{ color: "#064e3b" }}
+                                >
+                                  {item.quantity}
+                                </span>
+                              </div>
+                            );
+                          })
                         )}
                       </div>
                     </div>
 
-                    {/* List of Variants with Dedicated Scrollbar & Integrated Pricing/Stock */}
+                    {/* Total Units Summary */}
                     <div
-                      className="d-flex flex-column gap-2"
-                      style={{ maxHeight: "310px", overflowY: "auto", paddingRight: "6px" }}
+                      className="px-0 mt-2.5 mb-1.5 d-flex align-items-center justify-content-between"
+                      style={{
+                        backgroundColor: "transparent",
+                        borderTop: "1.5px solid #479464",
+                        borderBottom: "1.5px solid #479464",
+                        paddingTop: "8px",
+                        paddingBottom: "8px",
+                      }}
                     >
-                      {modalVariants.map((variant) => {
-                        const isQtyActive = variant.quantity > 0;
-                        const isExpanded = expandedModalVariantId === variant.id;
-                        const lineTotal = variant.price * variant.quantity;
-
-                        const baseP = getProductPrice(detailsCartItem.product, salesType);
-                        const wholesaleRatio =
-                          baseP > 0 && detailsCartItem.product.wholesale_price
-                            ? detailsCartItem.product.wholesale_price / baseP
-                            : 0.75;
-                        const variantWS = Math.max(1, Math.round(variant.price * wholesaleRatio));
-                        const showroomStock =
-                          detailsCartItem.product.shop_stock ??
-                          detailsCartItem.product.stock_quantity ??
-                          detailsCartItem.product.stock ??
-                          0;
-                        const whStock =
-                          detailsCartItem.product.warehouse_stock ??
-                          detailsCartItem.product.stock_quantity ??
-                          detailsCartItem.product.stock ??
-                          0;
-
-                        return (
-                          <div
-                            key={variant.id}
-                            className={`py-3 px-3 rounded-3 border d-flex flex-column gap-2 transition-all ${
-                              isExpanded
-                                ? "border-success bg-white shadow-sm"
-                                : isQtyActive
-                                  ? "border-success-subtle bg-white"
-                                  : "bg-light border-light-subtle"
-                            }`}
-                            style={{
-                              backgroundColor: isExpanded || isQtyActive ? "#ffffff" : "#fbfcfe",
-                              borderWidth: isExpanded ? "1.5px" : "1px",
-                              borderColor: isExpanded ? "#28a745" : undefined,
-                              boxShadow: isExpanded
-                                ? "0 0 0 1px #28a745, 0 3px 10px rgba(40, 167, 69, 0.12)"
-                                : undefined,
-                              cursor: "pointer",
-                            }}
-                            onClick={() =>
-                              setExpandedModalVariantId((prev) =>
-                                prev === variant.id ? null : variant.id
-                              )
-                            }
-                          >
-                            {/* Main Row: Size Name | Centered Rate Badge | Qty Counter */}
-                            <div className="d-flex align-items-center gap-2">
-                              {/* Left: Size Name */}
-                              <span className="fs-13 fw-bold text-dark" style={{ minWidth: "110px" }}>
-                                {variant.name}
-                              </span>
-
-                              {/* Center: Rate Badge */}
-                              <div className="flex-grow-1 d-flex justify-content-center">
-                                <span
-                                  className="fw-bold"
-                                  style={{
-                                    color: "#334155",
-                                    fontSize: "12px",
-                                  }}
-                                >
-                                  {formatINR(variant.price)}
-                                </span>
-                              </div>
-
-                              {/* Right: Qty Counter */}
-                              <div
-                                className="qty-item m-0 flex-shrink-0"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <PosCounter
-                                  value={variant.quantity}
-                                  onIncrement={() =>
-                                    setModalVariants((prev) =>
-                                      prev.map((v) =>
-                                        v.id === variant.id
-                                          ? { ...v, quantity: v.quantity + 1 }
-                                          : v
-                                      )
-                                    )
-                                  }
-                                  onDecrement={() =>
-                                    setModalVariants((prev) =>
-                                      prev.map((v) =>
-                                        v.id === variant.id
-                                          ? {
-                                              ...v,
-                                              quantity: Math.max(0, v.quantity - 1),
-                                            }
-                                          : v
-                                      )
-                                    )
-                                  }
-                                  onChange={(val) =>
-                                    setModalVariants((prev) =>
-                                      prev.map((v) =>
-                                        v.id === variant.id
-                                          ? { ...v, quantity: Math.max(0, val) }
-                                          : v
-                                      )
-                                    )
-                                  }
-                                />
-                              </div>
-                            </div>
-
-                            {/* Expandable/Collapsible Details Section (Straight Aligned 3 Columns) */}
-                            {isExpanded && (
-                              <div className="pt-2 mt-1 border-top">
-                                <div className="row g-2 text-center align-items-center m-0">
-                                  <div className="col-4 p-0">
-                                    <span className="fs-11 mb-1 d-block fw-medium text-muted">
-                                      Wholesale
-                                    </span>
-                                    <p className="mb-0 fs-12 fw-bold text-dark">
-                                      {formatINR(variantWS)}
-                                    </p>
-                                  </div>
-                                  <div className="col-4 p-0 border-start border-end">
-                                    <span className="fs-11 mb-1 d-block fw-medium text-muted">
-                                      Showroom Stock
-                                    </span>
-                                    <p className="mb-0 fs-12 fw-bold text-dark">
-                                      {showroomStock}
-                                    </p>
-                                  </div>
-                                  <div className="col-4 p-0">
-                                    <span className="fs-11 mb-1 d-block fw-medium text-muted">
-                                      WH Stock
-                                    </span>
-                                    <p className="mb-0 fs-12 fw-bold text-dark">
-                                      {whStock}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                      <div>
+                        <div className="fs-13 fw-bold text-dark mb-0.5">
+                          Total Units
+                        </div>
+                        <div className="fs-11 text-muted">
+                          {selectedItemsList.length} Variant{selectedItemsList.length !== 1 ? "s" : ""} Selected
+                        </div>
+                      </div>
+                      <div className="text-end">
+                        <span className="fs-16 fw-bold d-block mb-0.5" style={{ color: "#064e3b", lineHeight: "1.2" }}>
+                          {totalSelectedQty}
+                        </span>
+                        <span className="fs-12 fw-semibold" style={{ color: "#479464" }}>
+                          {formatINR(totalSelectedAmount)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Total & Action Button (Static & Visible by Default) */}
-                  {(() => {
-                    const totalSelectedQty = modalVariants.reduce((sum, v) => sum + v.quantity, 0);
-                    const totalSelectedAmount = modalVariants.reduce((sum, v) => sum + v.price * v.quantity, 0);
-                    const hasCartItems = cart.some((c) => c.product.id === detailsCartItem.product.id);
-
-                    return (
-                      <div>
-                        <div className="d-flex align-items-center justify-content-between mb-3">
-                          <div>
-                            <span className="fs-12 text-muted d-block">Configured Total</span>
-                            <span className="fs-13 fw-bold text-dark">
-                              {totalSelectedQty} Unit{totalSelectedQty !== 1 ? "s" : ""} Selected
-                            </span>
-                          </div>
-                          <div className="text-end">
-                            <span className="fs-12 text-muted d-block">Item Total</span>
-                            <h4 className="fw-bold text-success mb-0">
-                              {formatINR(totalSelectedAmount)}
-                            </h4>
-                          </div>
-                        </div>
-
-                        <div className="d-flex align-items-center gap-2">
-                          <button
-                            type="button"
-                            className="btn btn-light border flex-shrink-0"
-                            onClick={() => {
-                              setItemDetailsModalOpen(false);
-                              setDetailsCartItem(null);
-                            }}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-primary flex-fill d-flex align-items-center justify-content-center gap-2 py-2"
-                            onClick={() => {
-                              if (!detailsCartItem) return;
-                              const prod = detailsCartItem.product;
-                              const taxRate = Number(prod.tax_rate) || 5;
-
-                              setCart((prev) => {
-                                let updatedCart = [...prev];
-
-                                modalVariants.forEach((variant) => {
-                                  const existingIndex = updatedCart.findIndex(
-                                    (c) => c.product.id === prod.id && (c.selectedSize?.id || "default") === variant.id
-                                  );
-
-                                  if (variant.quantity > 0) {
-                                    const lineSubtotal = variant.price * variant.quantity;
-                                    const lineTax = (lineSubtotal * taxRate) / 100;
-                                    const sizeObj = { id: variant.id, name: variant.name, price: variant.price };
-
-                                    if (existingIndex >= 0) {
-                                      const existingItem = updatedCart[existingIndex];
-                                      updatedCart[existingIndex] = recalculateCartItem(
-                                        { ...existingItem, selectedSize: sizeObj },
-                                        variant.quantity,
-                                        existingItem.discount,
-                                        existingItem.discount_type,
-                                        variant.price,
-                                        taxRate
-                                      );
-                                    } else {
-                                      const newItem: CartItem = {
-                                        product: prod,
-                                        quantity: variant.quantity,
-                                        unit_price: variant.price,
-                                        discount: 0,
-                                        discount_type: "percentage",
-                                        tax_rate: taxRate,
-                                        tax_amount: lineTax,
-                                        total_amount: lineSubtotal + lineTax,
-                                        selectedSize: sizeObj,
-                                        selectedAddons: [],
-                                      };
-                                      updatedCart.push(newItem);
-                                    }
-                                  } else {
-                                    if (existingIndex >= 0) {
-                                      updatedCart.splice(existingIndex, 1);
-                                    }
-                                  }
-                                });
-
-                                return updatedCart;
-                              });
-
-                              setItemDetailsModalOpen(false);
-                              setDetailsCartItem(null);
-                            }}
-                          >
-                            <i className="ti ti-shopping-bag" />
-                            {hasCartItems ? "Update Cart" : "Add to Cart"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {/* Static Bottom Actions Footer: Cancel & Update Cart */}
+                  <div
+                    className="p-4 pt-3 flex-shrink-0 border-top bg-white d-flex align-items-center gap-2"
+                    style={{ borderColor: "#e2e8f0" }}
+                  >
+                    <button
+                      type="button"
+                      className="btn btn-light border flex-shrink-0 py-2.5 fs-13 fw-semibold"
+                      style={{ minWidth: "90px", borderRadius: "8px" }}
+                      onClick={() => {
+                        setItemDetailsModalOpen(false);
+                        setDetailsCartItem(null);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary flex-fill d-flex align-items-center justify-content-center gap-2 py-2.5 fs-13 fw-bold shadow-none"
+                      style={{ borderRadius: "8px", backgroundColor: "#479464", borderColor: "#479464" }}
+                      onClick={handleSaveMatrixToCart}
+                    >
+                      <i className="ti ti-shopping-bag" />
+                      {hasCartItems ? "Update Cart" : "Add to Cart"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Animated Sales by Size Overlay Popup */}
-            {salesStatsModalOpen && (
-              <div
-                className="position-absolute top-0 start-0 w-100 h-100 bg-white p-4 d-flex flex-column z-3"
-                style={{
-                  borderRadius: "14px",
-                  animation: "salesPopupIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-                  overflowY: "auto",
-                }}
-              >
-                {/* Header */}
-                <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom flex-shrink-0">
-                  <div className="d-flex align-items-center gap-2">
-                    <div
-                      className="p-2 rounded-circle d-flex align-items-center justify-content-center"
-                      style={{ backgroundColor: "#eff6ff", color: "#2563eb", width: "38px", height: "38px" }}
-                    >
-                      <i className="ti ti-chart-bar fs-18" />
-                    </div>
-                    <div>
-                      <h5 className="fw-bold mb-0 fs-16 text-dark">Sales by Size</h5>
-                      <small className="text-muted fs-12">
-                        {detailsCartItem.product.name}
-                        {detailsCartItem.product.sku ? ` • SKU: ${detailsCartItem.product.sku}` : ""}
-                      </small>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    aria-label="Close"
-                    onClick={() => setSalesStatsModalOpen(false)}
-                  />
-                </div>
-
-                {/* Filter Controls: Custom Days Input & Quick Presets */}
-                <div className="p-3 border rounded-3 bg-light mb-3 flex-shrink-0" style={{ borderColor: "#e2e8f0" }}>
-                  <div className="row g-2 align-items-center">
-                    <div className="col-md-5">
-                      <div className="input-group input-group-sm">
-                        <span className="input-group-text bg-white text-muted fs-12">
-                          <i className="ti ti-calendar me-1" /> Days
-                        </span>
-                        <input
-                          type="number"
-                          min="1"
-                          className="form-control fs-12"
-                          placeholder="e.g. 7, 30, 90"
-                          value={salesDaysInput}
-                          onChange={(e) => setSalesDaysInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleFetchSalesStats();
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-primary fw-semibold fs-12 px-3"
-                          disabled={salesStatsLoading || !salesDaysInput.trim()}
-                          onClick={() => handleFetchSalesStats()}
-                        >
-                          {salesStatsLoading ? (
-                            <span className="spinner-border spinner-border-sm" />
-                          ) : (
-                            "Proceed"
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div
-                      className="col-md-7 d-flex align-items-center justify-content-md-end flex-wrap"
-                      style={{ gap: "8px" }}
-                    >
-                      <span className="text-muted fs-11 me-1">Quick:</span>
-                      {[7, 15, 30, 90].map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          className={`btn btn-sm py-1 px-2.5 fs-11 fw-medium ${
-                            salesDaysInput === String(d)
-                              ? "btn-primary text-white"
-                              : "btn-white bg-white border text-secondary shadow-none"
-                          }`}
-                          style={{ borderRadius: "6px" }}
-                          onClick={() => {
-                            setSalesDaysInput(String(d));
-                            handleFetchSalesStats(String(d));
-                          }}
-                        >
-                          {d}D
-                        </button>
-                      ))}
-                      {salesStats && (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-link text-danger p-0 ms-1 fs-11 text-decoration-none fw-semibold"
-                          onClick={() => {
-                            setSalesStats(null);
-                            setSalesDaysInput("");
-                          }}
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Content Area: Empty State or Dynamic Breakdown */}
-                {salesStats ? (
-                  <div className="flex-grow-1 d-flex flex-column justify-content-between">
-                    <div>
-                      {/* Summary Banner with balanced padding */}
+              {/* Animated Sales by Size Overlay Popup */}
+              {salesStatsModalOpen && (
+                <div
+                  className="position-absolute top-0 start-0 w-100 h-100 bg-white p-4 d-flex flex-column"
+                  style={{
+                    borderRadius: "16px",
+                    animation: "salesPopupIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+                    overflowY: "auto",
+                    zIndex: 50,
+                  }}
+                >
+                  {/* Header */}
+                  <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom flex-shrink-0">
+                    <div className="d-flex align-items-center gap-2.5">
                       <div
-                        className="d-flex align-items-center justify-content-between mb-3 border flex-shrink-0"
-                        style={{
-                          backgroundColor: "#f0fdf4",
-                          borderColor: "#bbf7d0",
-                          padding: "14px 18px",
-                          borderRadius: "10px",
-                        }}
+                        className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                        style={{ backgroundColor: "#e9f6eb", color: "#489566", width: "38px", height: "38px" }}
                       >
-                        <div className="d-flex align-items-center gap-2">
-                          <i className="ti ti-chart-pie text-success fs-16" />
-                          <span className="fs-13 fw-semibold text-dark">
-                            Showing Sales in Last <span className="text-success fw-bold">{salesStats.days} Days</span>
-                          </span>
-                        </div>
-                        <div className="d-flex align-items-center gap-2 flex-wrap">
-                          <span
-                            className="badge bg-success fs-12 fw-bold"
-                            style={{ padding: "6px 14px", borderRadius: "6px" }}
-                          >
-                            {salesStats.totalSold} Total Units Sold
-                          </span>
-                          {(() => {
-                            const resolveVariantCost = (prod: any, variant: { name: string; price: number }) => {
-                              const attr = prod?.attributes || {};
-                              const sizePricing = attr.size_pricing || attr.size_prices || {};
-                              const matchedKey = Object.keys(sizePricing).find((k) => {
-                                const lk = k.toLowerCase().trim();
-                                const lv = variant.name.toLowerCase().trim();
-                                if (lk === lv) return true;
-                                if (lv.includes("small") && (lk === "s" || lk === "small")) return true;
-                                if (lv.includes("medium") && (lk === "m" || lk === "medium")) return true;
-                                if (lv.includes("large") && (lk === "l" || lk === "large")) return true;
-                                if ((lv.includes("xl") || lv.includes("jumbo")) && (lk === "xl" || lk === "xxl" || lk.includes("jumbo"))) return true;
-                                return false;
-                              });
-
-                              const sizeCost = matchedKey ? (sizePricing[matchedKey]?.cost_price ?? sizePricing[matchedKey]) : undefined;
-                              if (sizeCost !== undefined && Number(sizeCost) > 0) return Number(sizeCost);
-
-                              const baseCost = Number(prod?.cost_price ?? prod?.purchase_price ?? 0);
-                              const baseSelling = Number(prod?.selling_price ?? prod?.price ?? 0);
-                              if (baseCost > 0) {
-                                if (baseSelling > 0) return Math.max(1, Math.round(baseCost * (variant.price / baseSelling)));
-                                return baseCost;
-                              }
-                              return Math.max(1, Math.round(variant.price * 0.55));
-                            };
-
-                            const totalOverallProfit = modalVariants.reduce((sum, v) => {
-                              const sCount = salesStats.bySize[v.name] ?? 0;
-                              const bp = resolveVariantCost(detailsCartItem.product, v);
-                              return sum + sCount * (v.price - bp);
-                            }, 0);
-
-                            return (
-                              <span
-                                className="badge fs-12 fw-bold"
-                                style={{
-                                  backgroundColor: "#dcfce7",
-                                  color: "#15803d",
-                                  border: "1px solid #86efac",
-                                  padding: "6px 14px",
-                                  borderRadius: "6px",
-                                }}
-                              >
-                                Total Profit: {formatINR(totalOverallProfit)}
-                              </span>
-                            );
-                          })()}
-                        </div>
+                        <i className="ti ti-chart-bar fs-18" />
                       </div>
+                      <div>
+                        <h5 className="fw-bold mb-0.5 fs-16 text-dark" style={{ color: "#000000" }}>Sales by Size</h5>
+                        <p className="text-muted fs-12 mb-0">
+                          {prod.name}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={() => setSalesStatsModalOpen(false)}
+                    />
+                  </div>
 
-                      {/* Size-wise cards in 2 columns with generous padding & gaps */}
-                      <div className="row g-3">
-                        {modalVariants.map((v) => {
-                          const soldCount = salesStats.bySize[v.name] ?? 0;
-                          const pct =
-                            salesStats.totalSold > 0
-                              ? Math.round((soldCount / salesStats.totalSold) * 100)
-                              : 0;
-
-                          // Dynamic calculation of buying price, selling revenue, and profit
-                          const prod = detailsCartItem.product;
-                          const attr = (prod as any)?.attributes || {};
-                          const sizePricing = attr.size_pricing || attr.size_prices || {};
-                          const matchedKey = Object.keys(sizePricing).find((k) => {
-                            const lk = k.toLowerCase().trim();
-                            const lv = v.name.toLowerCase().trim();
-                            if (lk === lv) return true;
-                            if (lv.includes("small") && (lk === "s" || lk === "small")) return true;
-                            if (lv.includes("medium") && (lk === "m" || lk === "medium")) return true;
-                            if (lv.includes("large") && (lk === "l" || lk === "large")) return true;
-                            if ((lv.includes("xl") || lv.includes("jumbo")) && (lk === "xl" || lk === "xxl" || lk.includes("jumbo"))) return true;
-                            return false;
-                          });
-
-                          const sizeCost = matchedKey ? (sizePricing[matchedKey]?.cost_price ?? sizePricing[matchedKey]) : undefined;
-                          const baseCost = Number(prod.cost_price ?? prod.purchase_price ?? 0);
-                          const baseSelling = Number(prod.selling_price ?? prod.price ?? 0);
-                          const buyingPrice =
-                            sizeCost !== undefined && Number(sizeCost) > 0
-                              ? Number(sizeCost)
-                              : baseCost > 0
-                                ? (baseSelling > 0 ? Math.max(1, Math.round(baseCost * (v.price / baseSelling))) : baseCost)
-                                : Math.max(1, Math.round(v.price * 0.55));
-
-                          const sellingPrice = v.price;
-                          const totalBuying = soldCount * buyingPrice;
-                          const totalSelling = soldCount * sellingPrice;
-                          const totalProfit = totalSelling - totalBuying;
-                          const profitMargin = totalSelling > 0 ? Math.round((totalProfit / totalSelling) * 100) : 0;
-
+                  {/* Body Content */}
+                  <div className="flex-grow-1 overflow-y-auto pe-1 gn-variant-scrollbar">
+                    {/* Quick Filters Bar */}
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-2.5 rounded-3 bg-light border" style={{ borderColor: "#e2e8f0" }}>
+                      <div className="d-flex align-items-center gap-2 flex-wrap">
+                        <span className="fs-12 fw-bold text-dark">Quick Presets:</span>
+                        {[7, 15, 30, 90].map((d) => {
+                          const isSelected = salesStats?.days === d;
                           return (
-                            <div key={v.id} className="col-sm-6">
-                              <div
-                                className="border bg-white d-flex flex-column justify-content-between h-100 shadow-sm"
-                                style={{
-                                  borderColor: "#e2e8f0",
-                                  padding: "14px 16px",
-                                  borderRadius: "10px",
-                                }}
-                              >
-                                <div className="d-flex align-items-start justify-content-between mb-2">
-                                  <div>
-                                    <h6 className="fw-bold fs-13 text-dark mb-1">{v.name}</h6>
-                                    <div className="d-flex align-items-center gap-1.5 flex-wrap">
-                                      <span className="text-muted fs-11 fw-medium">{formatINR(v.price)}</span>
-                                      <span className="text-muted fs-11" style={{ opacity: 0.4 }}>•</span>
-                                      <div className="d-inline-flex align-items-center">
-                                        <span className="text-muted fs-11 me-1">Profit:</span>
-                                        <span
-                                          className="fw-bold fs-11 px-1.5 py-0.5"
-                                          style={{
-                                            color: soldCount > 0 ? "#15803d" : "#64748b",
-                                            backgroundColor: soldCount > 0 ? "#f0fdf4" : "#f8fafc",
-                                            border: soldCount > 0 ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
-                                            borderRadius: "4px",
-                                          }}
-                                        >
-                                          {formatINR(totalProfit)}
-                                        </span>
-                                        <div
-                                          className={`profit-info-trigger ms-1.5 ${
-                                            activeProfitTooltipId === v.id ? "active" : ""
-                                          }`}
-                                          onMouseEnter={() => setActiveProfitTooltipId(v.id)}
-                                          onMouseLeave={() => setActiveProfitTooltipId(null)}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActiveProfitTooltipId(
-                                              activeProfitTooltipId === v.id ? null : v.id
-                                            );
-                                          }}
-                                        >
-                                          <i className="ti ti-info-circle" />
-                                          <div className="profit-tooltip-box">
-                                            <div className="d-flex align-items-center justify-content-between pb-1.5 mb-2 border-bottom border-secondary border-opacity-25">
-                                              <span className="fw-bold text-white fs-12">{v.name}</span>
-                                              <span
-                                                className="badge fw-semibold px-2 py-0.5 fs-10"
-                                                style={{
-                                                  backgroundColor: "#1e293b",
-                                                  color: "#38bdf8",
-                                                  border: "1px solid #334155",
-                                                  borderRadius: "4px",
-                                                }}
-                                              >
-                                                {soldCount} Sold
-                                              </span>
-                                            </div>
-
-                                            <div className="d-flex flex-column gap-1.5 mb-2">
-                                              <div className="d-flex justify-content-between align-items-center">
-                                                <span style={{ color: "#94a3b8" }}>Buying Cost:</span>
-                                                <span className="text-light fw-medium">
-                                                  {soldCount} sold × {formatINR(buyingPrice)} ={" "}
-                                                  <span className="fw-bold" style={{ color: "#f87171" }}>
-                                                    {formatINR(totalBuying)}
-                                                  </span>
-                                                </span>
-                                              </div>
-                                              <div className="d-flex justify-content-between align-items-center">
-                                                <span style={{ color: "#94a3b8" }}>Selling Price:</span>
-                                                <span className="text-light fw-medium">
-                                                  {soldCount} sold × {formatINR(sellingPrice)} ={" "}
-                                                  <span className="fw-bold" style={{ color: "#38bdf8" }}>
-                                                    {formatINR(totalSelling)}
-                                                  </span>
-                                                </span>
-                                              </div>
-                                            </div>
-
-                                            <div
-                                              className="pt-2 border-top d-flex justify-content-between align-items-center"
-                                              style={{ borderColor: "rgba(148, 163, 184, 0.2)" }}
-                                            >
-                                              <span className="fw-semibold text-white">Net Profit:</span>
-                                              <div className="text-end">
-                                                <span className="fw-bold fs-12" style={{ color: "#4ade80" }}>
-                                                  {formatINR(totalProfit)}
-                                                </span>
-                                                {soldCount > 0 && (
-                                                  <span className="ms-1 fs-10" style={{ color: "#86efac" }}>
-                                                    ({profitMargin}% margin)
-                                                  </span>
-                                                )}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <span
-                                    className="d-inline-flex align-items-center flex-shrink-0"
-                                    style={{
-                                      backgroundColor: soldCount > 0 ? "#fff7ed" : "#f8fafc",
-                                      color: soldCount > 0 ? "#c2410c" : "#64748b",
-                                      border: soldCount > 0 ? "1px solid #fed7aa" : "1px solid #e2e8f0",
-                                      borderRadius: "6px",
-                                      padding: "4px 10px",
-                                      fontSize: "12px",
-                                      fontWeight: 600,
-                                      lineHeight: "1.4",
-                                    }}
-                                  >
-                                    <span
-                                      className="fw-bold me-1"
-                                      style={{ color: soldCount > 0 ? "#9a3412" : "#334155" }}
-                                    >
-                                      {soldCount}
-                                    </span>
-                                    <span>Sold</span>
-                                  </span>
-                                </div>
-                                <div className="pt-2 border-top">
-                                  <div className="d-flex align-items-center justify-content-between text-muted fs-11 mb-2">
-                                    <span>Share of sales</span>
-                                    <span className="fw-bold text-dark">{pct}%</span>
-                                  </div>
-                                  <div className="progress" style={{ height: "6px", backgroundColor: "#f1f5f9", borderRadius: "4px" }}>
-                                    <div
-                                      className="progress-bar bg-primary"
-                                      role="progressbar"
-                                      style={{ width: `${pct}%`, transition: "width 0.4s ease", borderRadius: "4px" }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                            <button
+                              key={d}
+                              type="button"
+                              className="btn btn-sm py-1 px-2.5 fs-11 fw-bold shadow-none"
+                              style={{
+                                borderRadius: "6px",
+                                backgroundColor: isSelected ? "#489566" : "#ffffff",
+                                color: isSelected ? "#ffffff" : "#475569",
+                                border: isSelected ? "1px solid #489566" : "1px solid #cbd5e1",
+                                transition: "all 0.15s ease",
+                              }}
+                              onClick={() => {
+                                setSalesDaysInput(d.toString());
+                                handleFetchSalesStats(d.toString());
+                              }}
+                            >
+                              Last {d} Days
+                            </button>
                           );
                         })}
                       </div>
+                      <div className="d-flex align-items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          className="form-control form-control-sm bg-white"
+                          style={{ width: "90px", borderRadius: "6px" }}
+                          placeholder="Days..."
+                          value={salesDaysInput}
+                          onChange={(e) => setSalesDaysInput(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm text-white fw-bold shadow-none px-3"
+                          style={{ borderRadius: "6px", backgroundColor: "#489566", borderColor: "#489566" }}
+                          disabled={salesStatsLoading || !salesDaysInput.trim()}
+                          onClick={() => handleFetchSalesStats()}
+                        >
+                          {salesStatsLoading ? "Loading..." : "Filter"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex-grow-1 d-flex flex-column align-items-center justify-content-center py-5 text-center">
-                    <div
-                      className="p-3 rounded-circle mb-3 d-flex align-items-center justify-content-center"
-                      style={{ backgroundColor: "#f8fafc", width: "64px", height: "64px", color: "#94a3b8" }}
-                    >
-                      <i className="ti ti-calendar-stats fs-28" />
-                    </div>
-                    <h6 className="fw-semibold text-dark fs-14 mb-1">No Date Range Selected</h6>
-                    <p className="text-muted fs-12 mb-0" style={{ maxWidth: "340px" }}>
-                      Enter a custom number of days or click one of the quick presets above and click <strong>Proceed</strong> to view size-wise sales history.
-                    </p>
-                  </div>
-                )}
 
-                {/* Footer with clean top margin and comfortable padding */}
-                <div className="pt-3 mt-4 border-top d-flex justify-content-between align-items-center flex-shrink-0">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary fs-12 d-flex align-items-center gap-1.5 py-2 px-3 fw-medium"
-                    style={{ borderRadius: "8px" }}
-                    onClick={() => setSalesStatsModalOpen(false)}
-                  >
-                    <i className="ti ti-arrow-left" /> Back to Product
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary fs-12 py-2 px-4 fw-semibold shadow-none"
-                    style={{ borderRadius: "8px" }}
-                    onClick={() => setSalesStatsModalOpen(false)}
-                  >
-                    Done
-                  </button>
+                    {salesStatsLoading ? (
+                      <div className="text-center py-5">
+                        <div className="spinner-border" style={{ color: "#489566" }} role="status" />
+                        <p className="fs-13 text-muted mt-2">Loading sales data...</p>
+                      </div>
+                    ) : salesStats ? (
+                      <div>
+                        <div className="row g-3 mb-4">
+                          <div className="col-6">
+                            <div className="p-3 bg-light rounded-3 text-center border" style={{ borderColor: "#e2e8f0" }}>
+                              <span className="fs-12 text-muted d-block mb-1">Time Period</span>
+                              <h4 className="fw-bold text-dark mb-0 fs-18">Last {salesStats.days} Days</h4>
+                            </div>
+                          </div>
+                          <div className="col-6">
+                            <div className="p-3 bg-light rounded-3 text-center border" style={{ borderColor: "#e2e8f0" }}>
+                              <span className="fs-12 text-muted d-block mb-1">Total Units Sold</span>
+                              <h4 className="fw-bold mb-0 fs-18" style={{ color: "#489566" }}>{salesStats.totalSold} Units</h4>
+                            </div>
+                          </div>
+                        </div>
+
+                        <h6 className="fw-bold fs-14 text-dark mb-2">Size Breakdown</h6>
+                        <div className="d-flex flex-column gap-2">
+                          {Object.entries(salesStats.bySize).map(([sizeName, count]) => {
+                            const percent = salesStats.totalSold > 0 ? Math.round((count / salesStats.totalSold) * 100) : 0;
+                            return (
+                              <div key={sizeName} className="p-2.5 rounded-3 border bg-light d-flex flex-column gap-1.5" style={{ borderColor: "#e2e8f0" }}>
+                                <div className="d-flex align-items-center justify-content-between fs-13">
+                                  <span className="fw-semibold text-dark">{sizeName}</span>
+                                  <span className="fw-bold" style={{ color: "#489566" }}>
+                                    {count} sold ({percent}%)
+                                  </span>
+                                </div>
+                                <div className="progress" style={{ height: "6px" }}>
+                                  <div
+                                    className="progress-bar"
+                                    role="progressbar"
+                                    style={{ width: `${percent}%`, backgroundColor: "#489566" }}
+                                    aria-valuenow={percent}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-5 text-muted">
+                        <i className="ti ti-chart-line fs-32 d-block mb-2 text-secondary opacity-50" />
+                        <p className="fs-13 mb-0">Select a preset or enter days to view size breakdown.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Recent Transactions Slide-in Drawer (POS 1 Theme Design) */}
+      {transactionsDrawerOpen && (
+        <div
+          className="modal-backdrop fade show"
+          style={{ zIndex: 1060 }}
+          onClick={() => setTransactionsDrawerOpen(false)}
+        />
+      )}
+      <div
+        className={`offcanvas offcanvas-end custom-offcanvas ${transactionsDrawerOpen ? "show" : ""}`}
+        tabIndex={-1}
+        id="transactions-drawer"
+        style={{
+          visibility: transactionsDrawerOpen ? "visible" : "hidden",
+          zIndex: 1065,
+          width: "min(880px, 95vw)",
+          backgroundColor: "#ffffff",
+          boxShadow: "-4px 0 24px rgba(0, 0, 0, 0.15)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Drawer Header */}
+        <div className="offcanvas-header p-3 border-bottom d-flex align-items-center justify-content-between">
+          <h5 className="offcanvas-title fw-bold text-dark mb-0 fs-18">Recent Transactions</h5>
+          <button
+            type="button"
+            className="btn p-0 d-flex align-items-center justify-content-center"
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              backgroundColor: "#ff0000",
+              color: "#ffffff",
+              border: "none",
+            }}
+            onClick={() => setTransactionsDrawerOpen(false)}
+            title="Close"
+          >
+            <i className="ti ti-x fs-14 fw-bold" />
+          </button>
+        </div>
+
+        {/* Drawer Body */}
+        <div className="offcanvas-body p-3 d-flex flex-column flex-grow-1 overflow-auto">
+          {/* Tabs (Purchase, Payment, Return) */}
+          <div className="d-flex align-items-center gap-2 mb-3">
+            {(["purchase", "payment", "return"] as const).map((tab) => {
+              const isActive = transactionsTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  className="btn fw-semibold text-capitalize"
+                  style={{
+                    padding: "7px 18px",
+                    borderRadius: "6px",
+                    fontSize: "13.5px",
+                    backgroundColor: isActive ? "#fe9f43" : "#f4f5f7",
+                    color: isActive ? "#ffffff" : "#4a5568",
+                    border: isActive ? "1px solid #fe9f43" : "1px solid #e2e8f0",
+                    transition: "all 0.2s ease",
+                  }}
+                  onClick={() => setTransactionsTab(tab)}
+                >
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Table Container Card */}
+          <div className="card border rounded-3 overflow-hidden shadow-none mb-0 flex-grow-1 d-flex flex-column" style={{ borderColor: "#edf2f7" }}>
+            {/* Search & Export Toolbar */}
+            <div className="card-header bg-white p-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div className="position-relative" style={{ minWidth: "240px", maxWidth: "320px" }}>
+                <i
+                  className="ti ti-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
+                  style={{ fontSize: "14px" }}
+                />
+                <input
+                  type="search"
+                  className="form-control form-control-sm ps-5 bg-light border-0"
+                  placeholder="Search"
+                  value={transactionsSearch}
+                  onChange={(e) => setTransactionsSearch(e.target.value)}
+                  style={{ borderRadius: "6px", paddingLeft: "34px", height: "36px", fontSize: "13px" }}
+                />
               </div>
-            )}
+              <div className="d-flex align-items-center gap-2">
+                <Link
+                  to="#"
+                  className="btn btn-sm btn-white border p-1.5 d-flex align-items-center justify-content-center"
+                  style={{ width: "34px", height: "34px", borderRadius: "6px" }}
+                  title="Export PDF"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <img src={pdf} alt="pdf" style={{ width: "18px", height: "18px" }} />
+                </Link>
+                <Link
+                  to="#"
+                  className="btn btn-sm btn-white border p-1.5 d-flex align-items-center justify-content-center"
+                  style={{ width: "34px", height: "34px", borderRadius: "6px" }}
+                  title="Export Excel"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <img src={excel} alt="excel" style={{ width: "18px", height: "18px" }} />
+                </Link>
+                <Link
+                  to="#"
+                  className="btn btn-sm btn-white border p-1.5 d-flex align-items-center justify-content-center"
+                  style={{ width: "34px", height: "34px", borderRadius: "6px" }}
+                  title="Print"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <i className="ti ti-printer fs-16 text-muted" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Table */}
+            {(() => {
+              const allTx = [
+                { id: 1, name: "Carl Evans", avatar: user01, ref: "INV/SL0101", date: "24 Dec 2024", amount: "$1000", type: "purchase" },
+                { id: 2, name: "Minerva Rameriz", avatar: user02, ref: "INV/SL0102", date: "10 Dec 2024", amount: "$1500", type: "purchase" },
+                { id: 3, name: "Robert Lamon", avatar: user03, ref: "INV/SL0103", date: "27 Nov 2024", amount: "$1500", type: "purchase" },
+                { id: 4, name: "Patricia Lewis", avatar: user04, ref: "INV/SL0104", date: "18 Nov 2024", amount: "$2000", type: "purchase" },
+                { id: 5, name: "Mark Joslyn", avatar: user08, ref: "INV/SL0105", date: "06 Nov 2024", amount: "$800", type: "purchase" },
+                { id: 6, name: "Marsha Betts", avatar: user05, ref: "INV/SL0106", date: "25 Oct 2024", amount: "$750", type: "purchase" },
+                { id: 7, name: "Daniel Jude", avatar: user09, ref: "INV/SL0107", date: "14 Oct 2024", amount: "$1300", type: "purchase" },
+                { id: 8, name: "Carl Evans", avatar: user01, ref: "INV/SL0101", date: "24 Dec 2024", amount: "$1000", type: "payment" },
+                { id: 9, name: "Minerva Rameriz", avatar: user02, ref: "INV/SL0102", date: "10 Dec 2024", amount: "$1500", type: "payment" },
+                { id: 10, name: "Robert Lamon", avatar: user03, ref: "INV/SL0103", date: "27 Nov 2024", amount: "$1500", type: "payment" },
+                { id: 11, name: "Patricia Lewis", avatar: user04, ref: "INV/SL0104", date: "18 Nov 2024", amount: "$2000", type: "payment" },
+                { id: 12, name: "Mark Joslyn", avatar: user08, ref: "INV/SL0105", date: "06 Nov 2024", amount: "$800", type: "payment" },
+                { id: 13, name: "Marsha Betts", avatar: user05, ref: "INV/SL0106", date: "25 Oct 2024", amount: "$750", type: "payment" },
+                { id: 14, name: "Daniel Jude", avatar: user09, ref: "INV/SL0107", date: "14 Oct 2024", amount: "$1300", type: "payment" },
+                { id: 15, name: "Carl Evans", avatar: user01, ref: "INV/SL0101", date: "24 Dec 2024", amount: "$1000", type: "return" },
+                { id: 16, name: "Minerva Rameriz", avatar: user02, ref: "INV/SL0102", date: "10 Dec 2024", amount: "$1500", type: "return" },
+                { id: 17, name: "Robert Lamon", avatar: user03, ref: "INV/SL0103", date: "27 Nov 2024", amount: "$1500", type: "return" },
+                { id: 18, name: "Patricia Lewis", avatar: user04, ref: "INV/SL0104", date: "18 Nov 2024", amount: "$2000", type: "return" },
+                { id: 19, name: "Mark Joslyn", avatar: user08, ref: "INV/SL0105", date: "06 Nov 2024", amount: "$800", type: "return" },
+                { id: 20, name: "Marsha Betts", avatar: user05, ref: "INV/SL0106", date: "25 Oct 2024", amount: "$750", type: "return" },
+                { id: 21, name: "Daniel Jude", avatar: user09, ref: "INV/SL0107", date: "14 Oct 2024", amount: "$1300", type: "return" },
+              ];
+
+              const filtered = allTx
+                .filter((tx) => tx.type === transactionsTab)
+                .filter((tx) => {
+                  if (!transactionsSearch.trim()) return true;
+                  const q = transactionsSearch.toLowerCase();
+                  return (
+                    tx.name.toLowerCase().includes(q) ||
+                    tx.ref.toLowerCase().includes(q) ||
+                    tx.date.toLowerCase().includes(q) ||
+                    tx.amount.toLowerCase().includes(q)
+                  );
+                });
+
+              return (
+                <div className="table-responsive flex-grow-1">
+                  <table className="table table-hover align-middle mb-0" style={{ fontSize: "13.5px" }}>
+                    <thead style={{ backgroundColor: "#f8f9fa", borderBottom: "1px solid #edf2f7" }}>
+                      <tr className="text-secondary fs-12 fw-semibold">
+                        <th style={{ width: "40px", padding: "12px 14px" }}>
+                          <input type="checkbox" className="form-check-input" />
+                        </th>
+                        <th style={{ padding: "12px 14px" }}>Customer</th>
+                        <th style={{ padding: "12px 14px" }}>Reference</th>
+                        <th style={{ padding: "12px 14px" }}>Date</th>
+                        <th style={{ padding: "12px 14px" }}>Amount</th>
+                        <th className="text-center" style={{ width: "130px", padding: "12px 14px" }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-5 text-muted">
+                            <i className="ti ti-receipt-off fs-32 d-block mb-2 opacity-50" />
+                            No transactions found.
+                          </td>
+                        </tr>
+                      ) : (
+                        filtered.map((tx) => (
+                          <tr key={tx.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "12px 14px" }}>
+                              <input type="checkbox" className="form-check-input" />
+                            </td>
+                            <td style={{ padding: "12px 14px" }}>
+                              <div className="d-flex align-items-center gap-2">
+                                <img
+                                  src={tx.avatar}
+                                  alt={tx.name}
+                                  className="rounded-circle object-fit-cover"
+                                  style={{ width: "32px", height: "32px" }}
+                                />
+                                <span className="fw-medium text-dark">{tx.name}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: "12px 14px", color: "#64748b" }}>{tx.ref}</td>
+                            <td style={{ padding: "12px 14px", color: "#64748b" }}>{tx.date}</td>
+                            <td style={{ padding: "12px 14px", fontWeight: 600, color: "#1e293b" }}>{tx.amount}</td>
+                            <td className="text-center" style={{ padding: "12px 14px" }}>
+                              <div className="d-flex align-items-center justify-content-center gap-1">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-light p-1 border"
+                                  style={{ width: "30px", height: "30px", borderRadius: "6px" }}
+                                  title="View Transaction"
+                                  onClick={() => showPosToast(`Viewing details for ${tx.ref}`, "info")}
+                                >
+                                  <i className="ti ti-eye fs-14 text-muted" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-light p-1 border"
+                                  style={{ width: "30px", height: "30px", borderRadius: "6px" }}
+                                  title="Edit Transaction"
+                                  onClick={() => showPosToast(`Editing ${tx.ref}`, "info")}
+                                >
+                                  <i className="ti ti-edit fs-14 text-muted" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-light p-1 border text-danger"
+                                  style={{ width: "30px", height: "30px", borderRadius: "6px" }}
+                                  title="Delete Transaction"
+                                  onClick={() => showPosToast(`Transaction ${tx.ref} deleted.`, "info")}
+                                >
+                                  <i className="ti ti-trash fs-14" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+
+            {/* Pagination Footer */}
+            <div className="card-footer bg-white p-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2 fs-13 text-muted">
+              <div className="d-flex align-items-center gap-2">
+                <span>Row Per Page</span>
+                <select className="form-select form-select-sm" style={{ width: "70px", borderRadius: "6px" }} defaultValue="10">
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+                <span>Entries</span>
+              </div>
+              <div className="d-flex align-items-center gap-1">
+                <button type="button" className="btn btn-sm btn-light p-1" style={{ width: "28px", height: "28px", borderRadius: "4px" }} disabled>
+                  <i className="ti ti-chevron-left" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm text-white fw-semibold"
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    backgroundColor: "#fe9f43",
+                    padding: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  1
+                </button>
+                <button type="button" className="btn btn-sm btn-light p-1" style={{ width: "28px", height: "28px", borderRadius: "4px" }} disabled>
+                  <i className="ti ti-chevron-right" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 export default Pos;
+  

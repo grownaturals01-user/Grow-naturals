@@ -5,6 +5,7 @@ import PrimeDataTable from "../../components/data-table";
 import TableTopHead from "../../components/table-top-head";
 import SearchFromApi from "../../components/data-table/search";
 import { api, getActiveBusinessId } from "../../services/api";
+import { Edit, Trash2 } from "lucide-react";
 
 interface SubCategoryData {
   id: string;
@@ -224,23 +225,25 @@ const SubCategories: React.FC = () => {
         <div className="edit-delete-action d-flex align-items-center gap-1">
           <button
             type="button"
-            className="btn btn-sm btn-icon btn-light"
+            className="btn btn-sm btn-icon btn-light d-flex align-items-center justify-content-center"
             data-bs-toggle="modal"
             data-bs-target="#add-subcategory-modal"
             onClick={() => handleOpenEdit(row)}
-            title="Edit"
+            title="Edit Subcategory"
+            style={{ width: "32px", height: "32px" }}
           >
-            <i className="feather icon-edit text-primary fs-14" />
+            <Edit size={16} className="text-primary" />
           </button>
           <button
             type="button"
-            className="btn btn-sm btn-icon btn-light"
+            className="btn btn-sm btn-icon btn-light d-flex align-items-center justify-content-center"
             data-bs-toggle="modal"
             data-bs-target="#delete-subcategory-modal"
             onClick={() => setDeleteId(row.id)}
-            title="Delete"
+            title="Delete Subcategory"
+            style={{ width: "32px", height: "32px" }}
           >
-            <i className="feather icon-trash-2 text-danger fs-14" />
+            <Trash2 size={16} className="text-danger" />
           </button>
         </div>
       ),

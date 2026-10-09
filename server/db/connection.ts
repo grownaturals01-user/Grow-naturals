@@ -48,19 +48,43 @@ export async function getDb(): Promise<DbClient> {
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     } else {
-      // Clean up stale lock files from previous unclean shutdowns
-      const staleFiles = ['postmaster.pid', '.s.PGSQL.5432.lock.out', '.s.PGSQL.5432.lock'];
+      const staleFiles = ['postmaster.pid', '.s.PGSQL.5432.lock.out', '.s.PGSQL.5432.lock', 'postmaster.opts'];
       for (const sf of staleFiles) {
         const fp = path.join(dataDir, sf);
         if (fs.existsSync(fp)) {
-          try { fs.unlinkSync(fp); } catch (e) {}
+          try {
+            fs.unlinkSync(fp);
+            console.log(`[DB] Cleaned up stale lock file: ${sf}`);
+          } catch (e) {}
         }
       }
     }
+
     console.log(`[DB] Starting embedded PostgreSQL (PGlite) at: ${dataDir}`);
     const { PGlite } = await import('@electric-sql/pglite');
-    const pglite = new PGlite(dataDir);
-    await pglite.waitReady;
+    let pglite: any;
+    try {
+      pglite = new PGlite(dataDir);
+      await pglite.waitReady;
+    } catch (firstErr) {
+      console.warn('[DB] PGlite failed to load cluster. Recovering fresh database...', firstErr);
+      try {
+        const backupDir = path.resolve(__dirname, `../../data/postgres_corrupted_${Date.now()}`);
+        if (fs.existsSync(dataDir)) {
+          try {
+            fs.renameSync(dataDir, backupDir);
+          } catch {
+            fs.rmSync(dataDir, { recursive: true, force: true });
+          }
+        }
+      } catch (rmErr) {
+        console.warn('[DB] Could not move corrupted directory:', rmErr);
+      }
+      fs.mkdirSync(dataDir, { recursive: true });
+      pglite = new PGlite(dataDir);
+      await pglite.waitReady;
+      console.log('[DB] Fresh database initialized and recovered successfully.');
+    }
 
     dbInstance = {
       async query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
@@ -102,10 +126,12 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE challan_items ADD COLUMN IF NOT EXISTS total NUMERIC(12,2) DEFAULT 0.00;`,
     `ALTER TABLE quotations ADD COLUMN IF NOT EXISTS customer_gstin VARCHAR(32) DEFAULT '';`,
     `ALTER TABLE quotations ADD COLUMN IF NOT EXISTS customer_address TEXT DEFAULT '';`,
-    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(32) DEFAULT 'customer';`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(32) DEFAULT 'retailer';`,
     `ALTER TABLE customers ADD COLUMN IF NOT EXISTS credit_limit NUMERIC(12,2) DEFAULT 0.00;`,
     `ALTER TABLE customers ADD COLUMN IF NOT EXISTS closing_balance NUMERIC(12,2) DEFAULT 0.00;`,
     `ALTER TABLE customers ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS unit VARCHAR(32) DEFAULT 'PCS';`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
     `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approval_status VARCHAR(32) DEFAULT 'approved';`,
     `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approved_by VARCHAR(64) DEFAULT '';`,
     `ALTER TABLE delivery_challans ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;`,

@@ -40,8 +40,10 @@ CREATE TABLE IF NOT EXISTS customers (
   email VARCHAR(128) DEFAULT '',
   address TEXT DEFAULT '',
   gstin VARCHAR(32) DEFAULT '',
-  customer_type VARCHAR(32) DEFAULT 'customer',
+  customer_type VARCHAR(32) DEFAULT 'retailer',
   credit_limit NUMERIC(12,2) DEFAULT 0.00,
+  closing_balance NUMERIC(12,2) DEFAULT 0.00,
+  opening_balance NUMERIC(12,2) DEFAULT 0.00,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -84,6 +86,7 @@ CREATE TABLE IF NOT EXISTS products (
   hsn_code VARCHAR(32) DEFAULT '',
   stock_quantity INTEGER NOT NULL DEFAULT 0,
   low_stock_threshold INTEGER DEFAULT 5,
+  unit VARCHAR(32) DEFAULT 'PCS',
   supplier_id VARCHAR(64) REFERENCES suppliers(id) ON DELETE SET NULL,
   image_url TEXT DEFAULT '',
   discount_pieces INTEGER DEFAULT 0,

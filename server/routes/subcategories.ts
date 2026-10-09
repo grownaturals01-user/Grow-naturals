@@ -7,11 +7,35 @@ function getBusinessId(req: Request): string {
   return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
+// Ensure subcategories table and columns exist
+async function ensureSubCategoryColumns(db: any) {
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS subcategories (
+        id VARCHAR(64) PRIMARY KEY,
+        business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+        category_id VARCHAR(64) REFERENCES categories(id) ON DELETE SET NULL,
+        name VARCHAR(128) NOT NULL,
+        code VARCHAR(64) DEFAULT '',
+        description TEXT DEFAULT '',
+        status VARCHAR(32) DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'Active';
+      ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS code VARCHAR(64) DEFAULT '';
+      ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
+    `);
+  } catch (err) {
+    // Ignore if already exists
+  }
+}
+
 // GET /api/subcategories
 router.get('/', async (req: Request, res: Response) => {
   try {
     const businessId = getBusinessId(req);
     const db = await getDb();
+    await ensureSubCategoryColumns(db);
 
     const result = await db.query(
       `SELECT 
@@ -29,7 +53,13 @@ router.get('/', async (req: Request, res: Response) => {
       [businessId]
     );
 
-    res.json(result.rows || []);
+    const enriched = (result.rows || []).map((sub: any) => ({
+      ...sub,
+      status: sub.status || 'Active',
+      product_count: Number(sub.product_count || 0)
+    }));
+
+    res.json(enriched);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

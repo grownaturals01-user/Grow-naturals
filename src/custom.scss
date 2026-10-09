@@ -493,8 +493,8 @@
 }
 
 .theiaStickySidebar {
-  height: calc(100vh - 85px) !important;
-  max-height: calc(100vh - 85px) !important;
+  height: calc(100vh - 65px) !important;
+  max-height: calc(100vh - 65px) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scrollbar-width: thin !important;
@@ -512,8 +512,8 @@
 .pos-categories {
   .content-wrap {
     display: flex !important;
-    height: calc(100vh - 85px) !important;
-    max-height: calc(100vh - 85px) !important;
+    height: calc(100vh - 65px) !important;
+    max-height: calc(100vh - 65px) !important;
     overflow: hidden !important;
     align-items: flex-start !important;
   }
@@ -522,7 +522,7 @@
     position: sticky !important;
     top: 0 !important;
     height: 100% !important;
-    max-height: calc(100vh - 85px) !important;
+    max-height: calc(100vh - 65px) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     flex-shrink: 0 !important;
@@ -603,7 +603,7 @@
   .tab-content-wrap {
     flex: 1 !important;
     height: 100% !important;
-    max-height: calc(100vh - 85px) !important;
+    max-height: calc(100vh - 65px) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     padding: 16px 20px !important;
@@ -638,6 +638,10 @@
 }
 
 [data-theme="dark"] {
+  .product-added .product-wrap.empty-cart-wrap {
+    border-color: #334155 !important;
+    background-color: #1e293b !important;
+  }
   .product-info {
     h6.product-name {
       color: #ffffff !important;
@@ -1428,22 +1432,64 @@ button.hold-list-btn,
   }
 }
 
-/* 4. Ordered Items Container Minimum Height (prevents height collapse when products are selected) */
-.product-added .product-wrap {
-  min-height: 330px !important;
+/* 4. Ordered Items Container Outline (below heading) */
+.product-added {
   border: none !important;
-  box-shadow: none !important;
+  padding: 0 !important;
+  margin-bottom: 14px !important;
+  background-color: transparent !important;
+  overflow: visible !important;
+
+  .product-wrap {
+    min-height: auto !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+
+    &.empty-cart-wrap {
+      min-height: 345px !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 8px !important;
+      padding: 12px !important;
+      background-color: #ffffff !important;
+      justify-content: center !important;
+    }
+  }
+
+  .product-wrap .ordered-menu-list {
+    min-height: 320px !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
 }
 
-.product-added .product-wrap .ordered-menu-list {
-  min-height: 330px !important;
-  border: none !important;
-  box-shadow: none !important;
+.gn-price-history-scroll::-webkit-scrollbar {
+  width: 4px !important;
+}
+.gn-price-history-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-radius: 4px !important;
+}
+.gn-price-history-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+aside.product-order-list .btn-row {
+  padding: 16px 20px 14px 20px !important;
+  margin-bottom: 0 !important;
 }
 
 /* 5. Add Ons Trigger Button (Below Roundoff in Payment Summary) */
 .add-ons-trigger-btn {
-  background-color: #f8fafc !important;
+  background-color: #ffffff !important;
   border: 1px dashed #cbd5e1 !important;
   color: #334155 !important;
   font-size: 13px !important;
@@ -1453,17 +1499,26 @@ button.hold-list-btn,
   transition: all 0.2s ease !important;
 
   &:hover {
-    background-color: #f1f5f9 !important;
+    background-color: #ffffff !important;
     border-color: #94a3b8 !important;
     color: #0f172a !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
   }
 
   .add-ons-count-badge {
     background-color: #ea580c !important;
     color: #ffffff !important;
-    font-size: 10px !important;
-    padding: 2px 6px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 3px 8px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 10px !important;
     line-height: 1 !important;
+    margin-left: 6px !important;
   }
 }
 
@@ -1506,19 +1561,19 @@ button.hold-list-btn,
 .menu-item {
   background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
-  border-radius: 10px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
   margin-bottom: 12px !important;
-  padding: 10px 12px !important;
+  padding: 10px 10px !important;
   transition: all 0.2s ease !important;
 
   &:hover {
-    box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06) !important;
     border-color: #cbd5e1 !important;
   }
 
   &.active {
-    border-color: #28a745 !important;
+    border-color: #479464 !important;
     box-shadow: none !important;
   }
 
@@ -1585,6 +1640,22 @@ button.hold-list-btn,
 
     &:hover {
       background: #ef4444 !important;
+      color: #ffffff !important;
+    }
+  }
+
+  .gn-cart-remove-btn {
+    width: 26px !important;
+    height: 26px !important;
+    background-color: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #64748b !important;
+    margin-left: 8px !important;
+    transition: all 0.2s ease !important;
+
+    &:hover {
+      background-color: #ef4444 !important;
+      border-color: #ef4444 !important;
       color: #ffffff !important;
     }
   }
@@ -2239,6 +2310,210 @@ body.dark-mode .qty-item .inc {
   }
 }
 
+@keyframes fadeInPriceTooltip {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+.gn-price-history-scroll::-webkit-scrollbar {
+  width: 4px;
+}
 
+.gn-price-history-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gn-price-history-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+.gn-price-history-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.order-total {
+  .table {
+    --bs-table-bg: transparent !important;
+    background-color: transparent !important;
+    margin-bottom: 0;
+
+    td {
+      background-color: transparent !important;
+      padding: 7px 4px;
+      vertical-align: middle;
+
+      &:first-child {
+        color: #646b72 !important;
+        font-weight: 500;
+
+        span:not(.badge) {
+          color: #646b72 !important;
+        }
+      }
+    }
+  }
+}
+
+/* POS 2 Style Payment Method & Actions */
+.pos-five {
+  overflow-x: hidden;
+
+  .product-order-list {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  .payment-method {
+    overflow-x: hidden;
+    max-width: 100%;
+
+    h5 {
+      font-weight: 700;
+      color: #0e2d42;
+      font-size: 18px;
+    }
+
+    .methods {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+
+      > [class*="col-"] {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+      }
+
+      .payment-item {
+        background-color: #ffffff;
+        border: 1.5px solid #edf2f7;
+        border-radius: 12px;
+        padding: 10px 6px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+        min-height: 68px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+
+        i {
+          color: #4a5568;
+          font-size: 18px;
+          transition: all 0.2s ease-in-out;
+        }
+
+        span {
+          color: #2d3748;
+          font-weight: 500;
+          font-size: 12.5px;
+          margin-top: 3px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
+        }
+
+        &:hover {
+          border-color: #cbd5e1;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        &.active {
+          background-color: #f0fdf4;
+          border-color: #22c55e;
+          i {
+            color: #16a34a;
+          }
+          span {
+            color: #000000 !important;
+            font-weight: 600;
+          }
+        }
+      }
+    }
+  }
+
+  .pos2-grand-total-btn {
+    background-color: #072b45 !important;
+    border-color: #072b45 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 15.5px !important;
+    padding: 11px 16px !important;
+    border-radius: 8px !important;
+    text-align: center;
+    display: block;
+    width: 100%;
+    text-decoration: none;
+    letter-spacing: 0.2px;
+    box-shadow: 0 2px 6px rgba(7, 43, 69, 0.2);
+
+    &:hover {
+      background-color: #051e30 !important;
+      border-color: #051e30 !important;
+      color: #ffffff !important;
+    }
+  }
+
+  .pos2-btn-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    .btn {
+      font-weight: 600;
+      font-size: 13.5px;
+      padding: 10px 8px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      border: none;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+      white-space: nowrap;
+
+      i {
+        font-size: 15px;
+      }
+    }
+
+    .btn-hold {
+      background-color: #5c3cf2 !important;
+      color: #ffffff !important;
+      &:hover {
+        background-color: #4b2bdc !important;
+      }
+    }
+
+    .btn-void {
+      background-color: #ff0000 !important;
+      color: #ffffff !important;
+      &:hover {
+        background-color: #dd0000 !important;
+      }
+    }
+
+    .btn-payment {
+      background-color: #27ae60 !important;
+      color: #ffffff !important;
+      &:hover {
+        background-color: #219653 !important;
+      }
+    }
+  }
+}
 

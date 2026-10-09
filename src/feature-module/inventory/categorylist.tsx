@@ -1,76 +1,25 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import EditCategoryList from "../../core/modals/inventory/editcategorylist";
 import CommonFooter from "../../components/footer/commonFooter";
 import PrimeDataTable from "../../components/data-table";
 import TableTopHead from "../../components/table-top-head";
-import DeleteModal from "../../components/delete-modal";
 import SearchFromApi from "../../components/data-table/search";
 import { api, getActiveBusinessId } from "../../services/api";
+import { Edit, Trash2, Layers } from "lucide-react";
 
-// Define interfaces for type safety
 interface CategoryItem {
-  id?: string;
+  id: string;
   category: string;
   categoryslug: string;
+  description?: string;
   createdon: string;
   status: string;
+  product_count: number;
 }
 
-const fallbackCategories: CategoryItem[] = [
-  {
-    id: "1",
-    category: "Computers",
-    categoryslug: "computers",
-    createdon: "25 May 2024",
-    status: "Active",
-  },
-  {
-    id: "2",
-    category: "Electronics",
-    categoryslug: "electronics",
-    createdon: "24 Jun 2024",
-    status: "Active",
-  },
-  {
-    id: "3",
-    category: "Shoe",
-    categoryslug: "shoe",
-    createdon: "23 Jul 2024",
-    status: "Active",
-  },
-  {
-    id: "4",
-    category: "Speaker",
-    categoryslug: "speaker",
-    createdon: "22 Aug 2024",
-    status: "Active",
-  },
-  {
-    id: "5",
-    category: "Furnitures",
-    categoryslug: "furnitures",
-    createdon: "21 Sep 2024",
-    status: "Active",
-  },
-  {
-    id: "6",
-    category: "Bags",
-    categoryslug: "bags",
-    createdon: "20 Oct 2024",
-    status: "Active",
-  },
-  {
-    id: "7",
-    category: "Phone",
-    categoryslug: "phone",
-    createdon: "19 Nov 2024",
-    status: "Active",
-  },
-];
-
 const CategoryList: React.FC = () => {
-  const [categories, setCategories] = useState<CategoryItem[]>(fallbackCategories);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
@@ -78,29 +27,46 @@ const CategoryList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Add category state
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatSlug, setNewCatSlug] = useState("");
+  // Add / Edit Category Modal State
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [catName, setCatName] = useState("");
+  const [catSlug, setCatSlug] = useState("");
+  const [catDescription, setCatDescription] = useState("");
+  const [catStatus, setCatStatus] = useState("Active");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const fetchCategories = useCallback(async () => {
+    setLoading(true);
     try {
       const businessId = getActiveBusinessId();
       const res = await api.get<any[]>("/categories", { business_id: businessId });
-      if (Array.isArray(res) && res.length > 0) {
+      if (Array.isArray(res)) {
         const mapped: CategoryItem[] = res.map((c: any) => ({
           id: c.id,
           category: c.name,
-          categoryslug: c.slug || c.name.toLowerCase().replace(/\s+/g, "-"),
-          createdon: c.created_at ? new Date(c.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
-          status: "Active",
+          categoryslug: c.slug || c.type || (c.name ? c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "general"),
+          description: c.description || "",
+          createdon: c.created_at
+            ? new Date(c.created_at).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "Today",
+          status: c.status || "Active",
+          product_count: Number(c.product_count || 0),
         }));
         setCategories(mapped);
       } else {
-        setCategories(fallbackCategories);
+        setCategories([]);
       }
     } catch (err) {
-      console.warn("Failed to load categories, using fallback:", err);
-      setCategories(fallbackCategories);
+      console.warn("Failed to load categories:", err);
+      setCategories([]);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -112,23 +78,63 @@ const CategoryList: React.FC = () => {
     setSearchQuery(value);
   };
 
-  const handleAddCategory = async (e: React.FormEvent) => {
+  const handleOpenAdd = () => {
+    setIsEditMode(false);
+    setCurrentId(null);
+    setCatName("");
+    setCatSlug("");
+    setCatDescription("");
+    setCatStatus("Active");
+    setFormError(null);
+  };
+
+  const handleOpenEdit = (item: CategoryItem) => {
+    setIsEditMode(true);
+    setCurrentId(item.id);
+    setCatName(item.category);
+    setCatSlug(item.categoryslug);
+    setCatDescription(item.description || "");
+    setCatStatus(item.status || "Active");
+    setFormError(null);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCatName.trim()) return;
+    if (!catName.trim()) {
+      setFormError("Category name is required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
     try {
       const businessId = getActiveBusinessId();
-      await api.post("/categories", {
-        name: newCatName.trim(),
-        slug: newCatSlug.trim() || newCatName.toLowerCase().replace(/\s+/g, "-"),
+      const payload = {
+        name: catName.trim(),
+        slug: catSlug.trim() || catName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        type: catSlug.trim() || catName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        description: catDescription.trim(),
+        status: catStatus,
         business_id: businessId,
-      });
-      setNewCatName("");
-      setNewCatSlug("");
+      };
+
+      if (isEditMode && currentId) {
+        await api.put(`/categories/${currentId}`, payload);
+      } else {
+        await api.post("/categories", payload);
+      }
+
       await fetchCategories();
-      const closeBtn = document.querySelector("#add-category [data-bs-dismiss='modal']") as HTMLElement;
-      closeBtn?.click();
-    } catch (err) {
-      console.error("Failed to add category:", err);
+      const modalEl = document.getElementById("category-modal");
+      if (modalEl) {
+        const closeBtn = modalEl.querySelector("[data-bs-dismiss='modal']") as HTMLElement;
+        closeBtn?.click();
+      }
+    } catch (err: any) {
+      console.error("Failed to save category:", err);
+      setFormError(err.message || "Failed to save category. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -138,8 +144,14 @@ const CategoryList: React.FC = () => {
       await api.delete(`/categories/${deleteId}`);
       setDeleteId(null);
       await fetchCategories();
-    } catch (err) {
+      const modalEl = document.getElementById("delete-category-modal");
+      if (modalEl) {
+        const closeBtn = modalEl.querySelector("[data-bs-dismiss='modal']") as HTMLElement;
+        closeBtn?.click();
+      }
+    } catch (err: any) {
       console.error("Failed to delete category:", err);
+      alert(err.message || "Failed to delete category.");
     }
   };
 
@@ -149,7 +161,8 @@ const CategoryList: React.FC = () => {
       const q = searchQuery.toLowerCase();
       return (
         item.category.toLowerCase().includes(q) ||
-        item.categoryslug.toLowerCase().includes(q)
+        item.categoryslug.toLowerCase().includes(q) ||
+        (item.description && item.description.toLowerCase().includes(q))
       );
     }
     return true;
@@ -161,12 +174,39 @@ const CategoryList: React.FC = () => {
       field: "category",
       key: "category",
       sortable: true,
+      body: (data: CategoryItem) => (
+        <div className="d-flex align-items-center">
+          <div className="avatar avatar-md bg-light-primary text-primary me-2 d-flex align-items-center justify-content-center border rounded">
+            <Layers size={18} />
+          </div>
+          <div>
+            <h6 className="fw-semibold mb-0 text-dark">{data.category}</h6>
+            {data.description ? (
+              <span className="fs-12 text-muted text-truncate d-inline-block" style={{ maxWidth: "200px" }}>
+                {data.description}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ),
     },
     {
       header: "Category Slug",
       field: "categoryslug",
       key: "categoryslug",
       sortable: true,
+      body: (data: CategoryItem) => (
+        <span className="badge bg-light text-secondary border fs-12 fw-normal">{data.categoryslug}</span>
+      ),
+    },
+    {
+      header: "Products",
+      field: "product_count",
+      key: "product_count",
+      sortable: true,
+      body: (data: CategoryItem) => (
+        <span className="fw-bold text-dark fs-13">{data.product_count} items</span>
+      ),
     },
     {
       header: "Created On",
@@ -180,33 +220,44 @@ const CategoryList: React.FC = () => {
       key: "status",
       sortable: true,
       body: (data: CategoryItem) => (
-        <span className="badge bg-success fw-medium fs-10">{data.status}</span>
+        <span
+          className={`badge ${
+            data.status === "Active" ? "bg-success" : "bg-danger"
+          } fw-medium fs-11 px-2 py-1 rounded-pill`}
+        >
+          {data.status}
+        </span>
       ),
     },
     {
-      header: "",
+      header: "Actions",
       field: "actions",
       key: "actions",
       sortable: false,
-      body: (row: any) => (
+      body: (row: CategoryItem) => (
         <div className="edit-delete-action d-flex align-items-center">
-          <Link
-            className="me-2 p-2 d-flex align-items-center border rounded"
-            to="#"
+          <button
+            type="button"
+            className="me-2 d-flex align-items-center justify-content-center btn btn-sm btn-outline-light border rounded text-primary"
             data-bs-toggle="modal"
-            data-bs-target="#edit-customer"
+            data-bs-target="#category-modal"
+            onClick={() => handleOpenEdit(row)}
+            title="Edit Category"
+            style={{ width: "32px", height: "32px" }}
           >
-            <i className="feather icon-edit"></i>
-          </Link>
-          <Link
-            className="p-2 d-flex align-items-center border rounded"
-            to="#"
+            <Edit size={16} className="text-primary" />
+          </button>
+          <button
+            type="button"
+            className="d-flex align-items-center justify-content-center btn btn-sm btn-outline-light border rounded text-danger"
             data-bs-toggle="modal"
-            data-bs-target="#delete-modal"
-            onClick={() => setDeleteId(row.id || null)}
+            data-bs-target="#delete-category-modal"
+            onClick={() => setDeleteId(row.id)}
+            title="Delete Category"
+            style={{ width: "32px", height: "32px" }}
           >
-            <i className="feather icon-trash-2"></i>
-          </Link>
+            <Trash2 size={16} className="text-danger" />
+          </button>
         </div>
       ),
     },
@@ -220,23 +271,24 @@ const CategoryList: React.FC = () => {
             <div className="add-item d-flex">
               <div className="page-title">
                 <h4 className="fw-bold">Category</h4>
-                <h6>Manage your categories</h6>
+                <h6>Manage your product categories and classification</h6>
               </div>
             </div>
             <TableTopHead />
             <div className="page-btn">
-              <Link
-                to="#"
+              <button
+                type="button"
                 className="btn btn-primary"
                 data-bs-toggle="modal"
-                data-bs-target="#add-category"
+                data-bs-target="#category-modal"
+                onClick={handleOpenAdd}
               >
                 <i className="ti ti-circle-plus me-1"></i>
                 Add Category
-              </Link>
+              </button>
             </div>
           </div>
-          {/* /product list */}
+
           <div className="card table-list-card">
             <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
               <SearchFromApi
@@ -251,9 +303,9 @@ const CategoryList: React.FC = () => {
                     className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
                     data-bs-toggle="dropdown"
                   >
-                    {statusFilter ? statusFilter : "Status"}
+                    {statusFilter ? statusFilter : "Status: All"}
                   </Link>
-                  <ul className="dropdown-menu dropdown-menu-end p-3">
+                  <ul className="dropdown-menu dropdown-menu-end p-2">
                     <li>
                       <Link
                         to="#"
@@ -292,154 +344,173 @@ const CategoryList: React.FC = () => {
                     </li>
                   </ul>
                 </div>
-                <div className="dropdown">
-                  <Link
-                    to="#"
-                    className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                    data-bs-toggle="dropdown"
-                  >
-                    Sort By : Last 7 Days
-                  </Link>
-                  <ul className="dropdown-menu dropdown-menu-end p-3">
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Recently Added
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Ascending
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Desending
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Last Month
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="dropdown-item rounded-1">
-                        Last 7 Days
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
               </div>
             </div>
             <div className="card-body">
-              <div className="table-responsive category-table">
-                <PrimeDataTable
-                  column={columns}
-                  data={filteredCategories}
-                  rows={rows}
-                  setRows={setRows}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                  totalRecords={filteredCategories.length}
-                  searchQuery={searchQuery}
-                  selectionMode="checkbox"
-                  selection={selectedProducts}
-                  onSelectionChange={(e: any) => setSelectedProducts(e.value)}
-                />
-              </div>
+              {loading ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="table-responsive category-table">
+                  <PrimeDataTable
+                    column={columns}
+                    data={filteredCategories}
+                    rows={rows}
+                    setRows={setRows}
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    totalRecords={filteredCategories.length}
+                    searchQuery={searchQuery}
+                    selectionMode="checkbox"
+                    selection={selectedProducts}
+                    onSelectionChange={(e: any) => setSelectedProducts(e.value)}
+                  />
+                </div>
+              )}
             </div>
           </div>
-          {/* /product list */}
         </div>
         <CommonFooter />
       </div>
 
-      {/* Add Category */}
-      <div className="modal fade" id="add-category">
+      {/* Add / Edit Category Modal */}
+      <div className="modal fade" id="category-modal" tabIndex={-1} aria-hidden="true">
         <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="page-wrapper-new p-0">
-              <div className="content">
-                <div className="modal-header">
-                  <div className="page-title">
-                    <h4>Add Category</h4>
+          <div className="modal-content border-0 shadow-lg">
+            <div className="modal-header border-bottom bg-light px-4 py-3">
+              <h5 className="modal-title fw-bold">
+                {isEditMode ? "Edit Category" : "Add New Category"}
+              </h5>
+              <button
+                type="button"
+                className="btn-close custom-btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <form onSubmit={handleSaveCategory}>
+              <div className="modal-body p-4">
+                {formError && (
+                  <div className="alert alert-danger py-2 px-3 fs-13 mb-3">
+                    {formError}
                   </div>
-                  <button
-                    type="button"
-                    className="close bg-danger text-white fs-16"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"
-                  >
-                    <span aria-hidden="true">×</span>
-                  </button>
+                )}
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">
+                    Category Name <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. Indoor Plants, Ceramic Pots, Organic Fertilizers"
+                    value={catName}
+                    onChange={(e) => {
+                      setCatName(e.target.value);
+                      if (!isEditMode) {
+                        setCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+                      }
+                    }}
+                    required
+                  />
                 </div>
-                <form onSubmit={handleAddCategory}>
-                  <div className="modal-body">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Category<span className="text-danger ms-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={newCatName}
-                        onChange={(e) => {
-                          setNewCatName(e.target.value);
-                          setNewCatSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
-                        }}
-                        required
-                      />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Category Slug<span className="text-danger ms-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={newCatSlug}
-                        onChange={(e) => setNewCatSlug(e.target.value)}
-                      />
-                    </div>
-                    <div className="mb-0">
-                      <div className="status-toggle modal-status d-flex justify-content-between align-items-center">
-                        <span className="status-label">
-                          Status<span className="text-danger ms-1">*</span>
-                        </span>
-                        <input
-                          type="checkbox"
-                          id="user2"
-                          className="check"
-                          defaultChecked
-                        />
-                        <label htmlFor="user2" className="checktoggle" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="modal-footer">
-                    <button
-                      type="button"
-                      className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none"
-                      data-bs-dismiss="modal"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="btn btn-primary fs-13 fw-medium p-2 px-3"
-                    >
-                      Add Category
-                    </button>
-                  </div>
-                </form>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">
+                    Category Slug <span className="text-muted fs-12">(URL identifier)</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. indoor-plants"
+                    value={catSlug}
+                    onChange={(e) => setCatSlug(e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Description</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    placeholder="Brief description of this category..."
+                    value={catDescription}
+                    onChange={(e) => setCatDescription(e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Status</label>
+                  <select
+                    className="form-select"
+                    value={catStatus}
+                    onChange={(e) => setCatStatus(e.target.value)}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
               </div>
+
+              <div className="modal-footer bg-light border-top px-4 py-3">
+                <button
+                  type="button"
+                  className="btn btn-secondary fs-13 px-3"
+                  data-bs-dismiss="modal"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary fs-13 px-4"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                      Saving...
+                    </>
+                  ) : isEditMode ? (
+                    "Save Changes"
+                  ) : (
+                    "Create Category"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {/* /Add / Edit Category Modal */}
+
+      {/* Delete Category Confirmation Modal */}
+      <div className="modal fade" id="delete-category-modal" tabIndex={-1} aria-hidden="true">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content text-center p-4 border-0 shadow-lg">
+            <div className="mb-3">
+              <span className="avatar avatar-xl bg-danger-transparent text-danger rounded-circle d-inline-flex align-items-center justify-content-center">
+                <Trash2 size={28} />
+              </span>
+            </div>
+            <h5 className="fw-bold mb-2">Delete Category?</h5>
+            <p className="text-muted fs-14 mb-4">
+              Are you sure you want to delete this category? Any associated products may become uncategorized.
+            </p>
+            <div className="d-flex justify-content-center gap-2">
+              <button type="button" className="btn btn-secondary px-4" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button type="button" className="btn btn-danger px-4" onClick={handleDelete}>
+                Delete
+              </button>
             </div>
           </div>
         </div>
       </div>
-      {/* /Add Category */}
-
-      <EditCategoryList />
-      <DeleteModal onConfirm={handleDelete} />
+      {/* /Delete Modal */}
     </div>
   );
 };

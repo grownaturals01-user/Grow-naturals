@@ -36,12 +36,22 @@ router.get('/', async (req: Request, res: Response) => {
       const unpaid = Number(row.unpaid_invoices_amount || 0);
       const explicitClosing = Number(row.closing_balance || row.opening_balance || 0);
       const effectiveBalance = explicitClosing > 0 ? explicitClosing : unpaid;
+      const creditLimit = Number(row.credit_limit || 0);
+      const availableCredit = creditLimit > 0 ? Math.max(0, creditLimit - effectiveBalance) : 0;
+      const isCreditExceeded = creditLimit > 0 && effectiveBalance > creditLimit;
+
+      const rawType = String(row.customer_type || '').toLowerCase();
+      const customerType = rawType === 'wholesaler' ? 'wholesaler' : 'retailer';
 
       return {
         ...row,
+        customer_type: customerType,
+        credit_limit: creditLimit,
         closing_balance: effectiveBalance,
         total_spent: Number(row.total_spent || 0),
-        unpaid_invoices_amount: unpaid
+        unpaid_invoices_amount: unpaid,
+        available_credit: availableCredit,
+        is_credit_exceeded: isCreditExceeded
       };
     });
 
@@ -91,10 +101,19 @@ router.get('/:id', async (req: Request, res: Response) => {
     const fallback = knownBalances[nameKey] || 0;
 
     const closingBalance = Number(customer.closing_balance || customer.opening_balance || unpaidAmount || fallback);
+    const creditLimit = Number(customer.credit_limit || 0);
+    const availableCredit = creditLimit > 0 ? Math.max(0, creditLimit - closingBalance) : 0;
+    const isCreditExceeded = creditLimit > 0 && closingBalance > creditLimit;
+    const rawType = String(customer.customer_type || '').toLowerCase();
+    const customerType = rawType === 'wholesaler' ? 'wholesaler' : 'retailer';
 
     res.json({
       ...customer,
+      customer_type: customerType,
+      credit_limit: creditLimit,
       closing_balance: closingBalance,
+      available_credit: availableCredit,
+      is_credit_exceeded: isCreditExceeded,
       invoices: invoices.rows
     });
   } catch (error: any) {
@@ -102,39 +121,132 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+let columnsEnsured = false;
+async function ensureCustomerColumns(db: any) {
+  if (columnsEnsured) return;
+  const alterStatements = [
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(32) DEFAULT 'retailer';`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS credit_limit NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS closing_balance NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12,2) DEFAULT 0.00;`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS city VARCHAR(128) DEFAULT '';`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS state VARCHAR(128) DEFAULT '';`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS country VARCHAR(128) DEFAULT '';`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS postal_code VARCHAR(32) DEFAULT '';`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS business_id VARCHAR(64) DEFAULT '';`
+  ];
+  for (const stmt of alterStatements) {
+    try {
+      await db.exec(stmt);
+    } catch (err) {
+      // Ignore individual alter error if column exists or unsupported
+    }
+  }
+  columnsEnsured = true;
+}
+
+async function getCustomerColumns(db: any): Promise<Set<string>> {
+  try {
+    const res = await db.query(`SELECT column_name FROM information_schema.columns WHERE table_name = 'customers'`);
+    if (res && res.rows && res.rows.length > 0) {
+      return new Set(res.rows.map((r: any) => String(r.column_name).toLowerCase()));
+    }
+  } catch (e) {
+    // fallback
+  }
+  return new Set(['id', 'name', 'phone', 'email', 'address', 'gstin', 'customer_type', 'credit_limit']);
+}
+
 // POST /api/customers
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, phone, email, address, gstin, customer_type, credit_limit, closing_balance, opening_balance } = req.body;
+    const {
+      name,
+      phone,
+      email,
+      address,
+      gstin,
+      customer_type,
+      credit_limit,
+      closing_balance,
+      opening_balance,
+      city,
+      state,
+      country,
+      postal_code,
+      image_url,
+      business_id
+    } = req.body;
 
-    if (!name) {
+    if (!name || !String(name).trim()) {
       return res.status(400).json({ error: 'Customer name is required' });
     }
 
+    const rawType = String(customer_type || '').trim().toLowerCase();
+    const normalizedType = rawType === 'wholesaler' ? 'wholesaler' : 'retailer';
+    const parsedCreditLimit = credit_limit !== undefined && credit_limit !== '' ? Math.max(0, Number(credit_limit) || 0) : 0.00;
+
     const db = await getDb();
+    await ensureCustomerColumns(db);
+    const availableCols = await getCustomerColumns(db);
+
     const id = `cust-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
-    const result = await db.query(
-      `INSERT INTO customers (id, name, phone, email, address, gstin, customer_type, credit_limit, closing_balance, opening_balance)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
-      [
-        id,
-        name,
-        phone || '',
-        email || '',
-        address || '',
-        gstin || '',
-        customer_type || 'customer',
-        Number(credit_limit) || 0.00,
-        Number(closing_balance) || 0.00,
-        Number(opening_balance) || 0.00
-      ]
-    );
+    const dataMap: Record<string, any> = {
+      id,
+      name: String(name).trim(),
+      phone: phone || '',
+      email: email || '',
+      address: address || '',
+      gstin: gstin || '',
+      customer_type: normalizedType,
+      credit_limit: parsedCreditLimit,
+      closing_balance: Number(closing_balance) || 0.00,
+      opening_balance: Number(opening_balance) || 0.00,
+      city: city || '',
+      state: state || '',
+      country: country || '',
+      postal_code: postal_code || '',
+      image_url: image_url || '',
+      business_id: business_id || ''
+    };
 
-    res.status(201).json(result.rows[0]);
+    const insertCols: string[] = [];
+    const insertParams: any[] = [];
+    const placeholders: string[] = [];
+
+    for (const [col, val] of Object.entries(dataMap)) {
+      if (availableCols.has(col)) {
+        insertCols.push(col);
+        insertParams.push(val);
+        placeholders.push(`$${insertParams.length}`);
+      }
+    }
+
+    let insertedRow: any = {};
+    if (insertCols.length > 0) {
+      const sql = `INSERT INTO customers (${insertCols.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
+      const result = await db.query(sql, insertParams);
+      insertedRow = result.rows[0] || {};
+    }
+
+    res.status(201).json({
+      id,
+      name: String(name).trim(),
+      phone: phone || '',
+      email: email || '',
+      address: address || '',
+      gstin: gstin || '',
+      customer_type: normalizedType,
+      credit_limit: parsedCreditLimit,
+      closing_balance: Number(insertedRow.closing_balance || closing_balance || 0),
+      opening_balance: Number(insertedRow.opening_balance || opening_balance || 0),
+      ...insertedRow
+    });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[Customers POST Error]', error);
+    res.status(500).json({ error: error.message || 'Failed to create customer' });
   }
 });
 
@@ -142,35 +254,71 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, phone, email, address, gstin, customer_type, credit_limit, closing_balance, opening_balance } = req.body;
-
     const db = await getDb();
-    const result = await db.query(
-      `UPDATE customers SET
-        name = COALESCE($1, name),
-        phone = COALESCE($2, phone),
-        email = COALESCE($3, email),
-        address = COALESCE($4, address),
-        gstin = COALESCE($5, gstin),
-        customer_type = COALESCE($6, customer_type),
-        credit_limit = COALESCE($7, credit_limit),
-        closing_balance = COALESCE($8, closing_balance),
-        opening_balance = COALESCE($9, opening_balance)
-       WHERE id = $10
-       RETURNING *`,
-      [
-        name,
-        phone,
-        email,
-        address,
-        gstin,
-        customer_type,
-        credit_limit !== undefined ? Number(credit_limit) : null,
-        closing_balance !== undefined ? Number(closing_balance) : null,
-        opening_balance !== undefined ? Number(opening_balance) : null,
-        id
-      ]
-    );
+    await ensureCustomerColumns(db);
+    const availableCols = await getCustomerColumns(db);
+
+    const {
+      name,
+      phone,
+      email,
+      address,
+      gstin,
+      customer_type,
+      credit_limit,
+      closing_balance,
+      opening_balance,
+      city,
+      state,
+      country,
+      postal_code,
+      image_url,
+      business_id
+    } = req.body;
+
+    let normalizedType: string | undefined = undefined;
+    if (customer_type !== undefined) {
+      const rawType = String(customer_type || '').trim().toLowerCase();
+      normalizedType = rawType === 'wholesaler' ? 'wholesaler' : 'retailer';
+    }
+
+    const parsedCreditLimit = credit_limit !== undefined && credit_limit !== '' ? Math.max(0, Number(credit_limit) || 0) : undefined;
+
+    const updateFields: Record<string, any> = {};
+    if (name !== undefined) updateFields.name = String(name).trim();
+    if (phone !== undefined) updateFields.phone = phone;
+    if (email !== undefined) updateFields.email = email;
+    if (address !== undefined) updateFields.address = address;
+    if (gstin !== undefined) updateFields.gstin = gstin;
+    if (normalizedType !== undefined) updateFields.customer_type = normalizedType;
+    if (parsedCreditLimit !== undefined) updateFields.credit_limit = parsedCreditLimit;
+    if (closing_balance !== undefined) updateFields.closing_balance = Number(closing_balance);
+    if (opening_balance !== undefined) updateFields.opening_balance = Number(opening_balance);
+    if (city !== undefined) updateFields.city = city;
+    if (state !== undefined) updateFields.state = state;
+    if (country !== undefined) updateFields.country = country;
+    if (postal_code !== undefined) updateFields.postal_code = postal_code;
+    if (image_url !== undefined) updateFields.image_url = image_url;
+    if (business_id !== undefined) updateFields.business_id = business_id;
+
+    const setClauses: string[] = [];
+    const params: any[] = [];
+
+    for (const [col, val] of Object.entries(updateFields)) {
+      if (availableCols.has(col)) {
+        params.push(val);
+        setClauses.push(`${col} = $${params.length}`);
+      }
+    }
+
+    if (setClauses.length === 0) {
+      const current = await db.query(`SELECT * FROM customers WHERE id = $1`, [id]);
+      return res.json(current.rows[0] || { id, ...req.body });
+    }
+
+    params.push(id);
+    const sql = `UPDATE customers SET ${setClauses.join(', ')} WHERE id = $${params.length} RETURNING *`;
+    const result = await db.query(sql, params);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Customer not found' });
@@ -178,7 +326,8 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     res.json(result.rows[0]);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[Customers PUT Error]', error);
+    res.status(500).json({ error: error.message || 'Failed to update customer' });
   }
 });
 

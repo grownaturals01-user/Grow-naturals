@@ -61,6 +61,35 @@ export const SidebarData = [
         showSubRoute: false,
         submenu: false,
       },
+      {
+        label: "Category",
+        link: "/category-list",
+        icon: "layout-list",
+        showSubRoute: false,
+        submenu: false,
+      },
+      {
+        label: "Sub Category",
+        link: "/sub-categories",
+        icon: "git-branch",
+        showSubRoute: false,
+        submenu: false,
+      },
+    ],
+  },
+  {
+    label: "People",
+    submenuOpen: true,
+    showSubRoute: false,
+    submenuHdr: "People",
+    submenuItems: [
+      {
+        label: "Customers",
+        link: "/customers",
+        icon: "users-group",
+        showSubRoute: false,
+        submenu: false,
+      },
     ],
   },
 ];

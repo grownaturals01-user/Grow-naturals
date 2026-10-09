@@ -79,26 +79,28 @@ const Biller = () => {
       body: (_row: any) => (
         <div className="edit-delete-action d-flex align-items-center">
           <Link
-            className="me-2 p-2 d-flex align-items-center border rounded"
+            className="me-2 p-2 d-flex align-items-center btn btn-sm btn-outline-light border rounded text-secondary"
             to="#"
           >
-            <i  className="feather icon-eye"></i>
+            <i className="ti ti-eye fs-16"></i>
           </Link>
           <Link
-            className="me-2 p-2 d-flex align-items-center border rounded"
+            className="me-2 p-2 d-flex align-items-center btn btn-sm btn-outline-light border rounded text-primary"
             to="#"
             data-bs-toggle="modal"
             data-bs-target="#edit-biller"
+            title="Edit Biller"
           >
-            <i className="feather icon-edit"></i>
+            <i className="ti ti-edit fs-16"></i>
           </Link>
           <Link
             data-bs-toggle="modal"
             data-bs-target="#delete-modal"
-            className="p-2 d-flex align-items-center border rounded"
+            className="p-2 d-flex align-items-center btn btn-sm btn-outline-light border rounded text-danger"
             to="#"
+            title="Delete Biller"
           >
-            <i className="feather icon-trash-2"></i>
+            <i className="ti ti-trash fs-16"></i>
           </Link>
         </div>
       ),

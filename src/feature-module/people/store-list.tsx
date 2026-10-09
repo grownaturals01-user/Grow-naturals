@@ -41,20 +41,21 @@ const StoreList = () => {
       key: "actions",
       sortable: false,
       body: (_row: any) => (
-        <div className="edit-delete-action">
-          <Link className="me-2 p-2" to="#">
-            <i  className="feather icon-eye"></i>
+        <div className="edit-delete-action d-flex align-items-center">
+          <Link className="me-2 p-2 d-flex align-items-center btn btn-sm btn-outline-light border rounded text-secondary" to="#">
+            <i className="ti ti-eye fs-16"></i>
           </Link>
           <Link
-            className="me-2 p-2"
+            className="me-2 p-2 d-flex align-items-center btn btn-sm btn-outline-light border rounded text-primary"
             to="#"
             data-bs-toggle="modal"
             data-bs-target="#edit-store"
+            title="Edit Store"
           >
-            <i  className="feather icon-edit"></i>
+            <i className="ti ti-edit fs-16"></i>
           </Link>
-          <Link className="p-2" to="#"  data-bs-toggle="modal" data-bs-target="#delete-modal">
-            <i  className="feather icon-trash-2"></i>
+          <Link className="p-2 d-flex align-items-center btn btn-sm btn-outline-light border rounded text-danger" to="#" data-bs-toggle="modal" data-bs-target="#delete-modal" title="Delete Store">
+            <i className="ti ti-trash fs-16"></i>
           </Link>
         </div>
       ),

@@ -56,6 +56,35 @@ export const SidebarData1 = [
         route: "/add-product",
         subRoutes: [],
       },
+      {
+        tittle: "Category",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/category-list",
+        subRoutes: [],
+      },
+      {
+        tittle: "Sub Category",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/sub-categories",
+        subRoutes: [],
+      },
+    ],
+  },
+  {
+    tittle: "People",
+    hasSubRoute: true,
+    icon: "users-group",
+    showSubRoute: false,
+    subRoutes: [
+      {
+        tittle: "Customers",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/customers",
+        subRoutes: [],
+      },
     ],
   },
 ];
