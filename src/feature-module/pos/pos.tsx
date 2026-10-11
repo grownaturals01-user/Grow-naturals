@@ -40,6 +40,7 @@ import { useBusiness } from "../../context/BusinessContext";
 import confetti from "canvas-confetti";
 import { TbUserPause } from "react-icons/tb";
 import { IoIosPause } from "react-icons/io";
+import { AiFillPlusCircle } from "react-icons/ai";
 
 interface Product {
   id: string;
@@ -78,13 +79,16 @@ interface CartItem {
   product: Product;
   quantity: number;
   unit_price: number;
+  original_price?: number;
   discount: number;
   discount_type?: "percentage" | "fixed";
+  discount_source?: "category" | "product";
+  discount_category_name?: string;
   tax_rate: number;
   tax_amount: number;
   total_amount: number;
   notes?: string;
-  selectedSize?: { id: string; name: string; price: number };
+  selectedSize?: { id: string; name: string; price: number; originalPrice?: number };
   selectedAddons?: Array<{ id: string; name: string; price: number }>;
 }
 
@@ -113,8 +117,12 @@ interface HeldBill {
   subtotal: number;
   grandTotal: number;
   shippingCost?: number;
+  serviceCharge?: number;
+  labourCharge?: number;
+  courierCharge?: number;
+  additionalCharges?: { id: string; name: string; amount: number }[];
   shippingDetails?: ShippingDetails;
-  enabledAddOns?: { shipping: boolean; coupon: boolean; complimentary: boolean; points: boolean };
+  enabledAddOns?: { shipping: boolean; coupon: boolean; complimentary: boolean; points: boolean; giftcard?: boolean };
   redeemedPoints?: number;
   discountPercent?: number;
   orderDiscountType?: "percentage" | "fixed";
@@ -308,6 +316,20 @@ const Pos: React.FC = () => {
   const [paymentNotes, setPaymentNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // Dynamic Payment Method Detail States
+  const [cardTerminal, setCardTerminal] = useState<string>("Pine Labs");
+  const [cardType, setCardType] = useState<string>("Visa / Mastercard");
+  const [cardAuthCode, setCardAuthCode] = useState<string>("");
+  const [upiUtr, setUpiUtr] = useState<string>("");
+  const [splitCashAmount, setSplitCashAmount] = useState<string>("");
+  const [splitCardAmount, setSplitCardAmount] = useState<string>("");
+  const [splitUpiAmount, setSplitUpiAmount] = useState<string>("");
+  const [chequeNumber, setChequeNumber] = useState<string>("");
+  const [chequeBank, setChequeBank] = useState<string>("HDFC Bank");
+  const [chequeDate, setChequeDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [modalGiftCardNum, setModalGiftCardNum] = useState<string>("GN-GIFT-8942");
+  const [modalGiftCardBalance] = useState<number>(2500);
+
   // Success Receipt Modal
   const [completedInvoice, setCompletedInvoice] = useState<any>(null);
   const [receiptModalOpen, setReceiptModalOpen] = useState<boolean>(false);
@@ -321,6 +343,87 @@ const Pos: React.FC = () => {
   const [tempTax, setTempTax] = useState<string>("0");
   const [shippingModalOpen, setShippingModalOpen] = useState<boolean>(false);
   const [tempShipping, setTempShipping] = useState<string>("0");
+  const [serviceCharge, setServiceCharge] = useState<number>(0);
+  const [tempServiceCharge, setTempServiceCharge] = useState<string>("0");
+  const [labourCharge, setLabourCharge] = useState<number>(0);
+  const [tempLabourCharge, setTempLabourCharge] = useState<string>("0");
+  const [courierCharge, setCourierCharge] = useState<number>(0);
+  const [tempCourierCharge, setTempCourierCharge] = useState<string>("0");
+  const [availableGstRates, setAvailableGstRates] = useState<number[]>(() => {
+    const defaults = [3, 5, 12, 18];
+    try {
+      const stored = localStorage.getItem("gn_available_gst_rates");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return Array.from(new Set([...defaults, ...parsed])).sort((a, b) => a - b);
+        }
+      }
+    } catch {}
+    return defaults;
+  });
+  const [customGstModalOpen, setCustomGstModalOpen] = useState<{ rowIndex: number } | null>(null);
+  const [customGstInput, setCustomGstInput] = useState<string>("");
+
+  const [additionalCharges, setAdditionalCharges] = useState<{
+    id: string;
+    name: string;
+    amount: number;
+    gstOption?: string;
+    taxType?: "taxable" | "exempted";
+    gstPercent?: number;
+  }[]>([]);
+  const [tempAdditionalCharges, setTempAdditionalCharges] = useState<{
+    id: string;
+    name: string;
+    amount: string;
+    gstOption: string;
+    taxType?: "taxable" | "exempted";
+    gstPercent?: number;
+  }[]>([
+    { id: "charge_1", name: "", amount: "", gstOption: "18", taxType: "taxable", gstPercent: 18 },
+  ]);
+  const [chargeSuggestionFocusIndex, setChargeSuggestionFocusIndex] = useState<number | null>(null);
+  const [openGstDropdownIndex, setOpenGstDropdownIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".custom-gst-dropdown-container")) {
+        setOpenGstDropdownIndex(null);
+      }
+    };
+    if (openGstDropdownIndex !== null) {
+      document.addEventListener("mousedown", handleOutsideClick);
+      return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }
+  }, [openGstDropdownIndex]);
+  const [chargeSuggestions, setChargeSuggestions] = useState<string[]>(() => {
+    const defaultSuggestions = [
+      "Package Charge",
+      "Packaging Charge",
+      "Service Charge",
+      "Courier Charge",
+      "Labour Charge",
+      "Delivery Charge",
+      "Handling Fee",
+      "Installation Charge",
+      "Gift Wrapping",
+      "Express Delivery",
+    ];
+    try {
+      const stored = localStorage.getItem("gn_charge_suggestions");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return Array.from(new Set([...defaultSuggestions, ...parsed]));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return defaultSuggestions;
+  });
   const [shippingDetails, setShippingDetails] = useState<ShippingDetails>({
     fromName: "",
     fromPhone: "",
@@ -350,9 +453,31 @@ const Pos: React.FC = () => {
     notes: "",
   });
 
-  const openShippingDrawer = () => {
+  const [shippingDrawerMode, setShippingDrawerMode] = useState<"additional_charges" | "shipping_details">("additional_charges");
+
+  const openShippingDrawer = (mode: "additional_charges" | "shipping_details" = "additional_charges") => {
+    setShippingDrawerMode(mode);
     setTempShipping(shippingCost.toString());
+    setTempServiceCharge(serviceCharge.toString());
+    setTempLabourCharge(labourCharge.toString());
+    setTempCourierCharge(courierCharge.toString());
     setTempShippingDetails({ ...shippingDetails });
+    if (additionalCharges.length > 0) {
+      setTempAdditionalCharges(
+        additionalCharges.map((c) => ({
+          id: c.id,
+          name: c.name,
+          amount: c.amount === 0 ? "" : c.amount.toString(),
+          gstOption: c.gstOption ?? (c.taxType === "exempted" ? "exempted" : `${c.gstPercent ?? 18}`),
+          taxType: c.taxType || "taxable",
+          gstPercent: c.gstPercent !== undefined ? c.gstPercent : 18,
+        }))
+      );
+    } else {
+      setTempAdditionalCharges([
+        { id: `charge_${Date.now()}`, name: "", amount: "", gstOption: "18", taxType: "taxable", gstPercent: 18 },
+      ]);
+    }
     setShippingModalOpen(true);
   };
 
@@ -363,22 +488,26 @@ const Pos: React.FC = () => {
     coupon: boolean;
     complimentary: boolean;
     points: boolean;
+    giftcard: boolean;
   }>({
     shipping: false,
     coupon: false,
     complimentary: false,
     points: false,
+    giftcard: false,
   });
   const [tempAddOns, setTempAddOns] = useState<{
     shipping: boolean;
     coupon: boolean;
     complimentary: boolean;
     points: boolean;
+    giftcard: boolean;
   }>({
     shipping: false,
     coupon: false,
     complimentary: false,
     points: false,
+    giftcard: false,
   });
 
   // Points Add-on state & drawer
@@ -415,6 +544,7 @@ const Pos: React.FC = () => {
 
   const openComplimentaryDrawer = () => {
     setCompSearchQuery("");
+    setTempShippingDetails({ ...shippingDetails });
     setComplimentaryModalOpen(true);
   };
 
@@ -627,6 +757,45 @@ const Pos: React.FC = () => {
     );
   }, [cart]);
 
+  const compItemPriceDetails = useMemo(() => {
+    let freeOriginalTotal = 0;
+    let paidTotal = 0;
+    let freeCount = 0;
+    let paidCount = 0;
+
+    complimentaryInCart.forEach((it) => {
+      const isFree =
+        it.unit_price === 0 ||
+        it.selectedSize?.id === "comp-free" ||
+        it.notes?.includes("Free");
+
+      if (isFree) {
+        freeCount += it.quantity;
+        let origP = it.original_price || it.selectedSize?.originalPrice || 0;
+        if (!origP || origP === 0) {
+          const cat = complimentaryCatalog.find((c) => c.id === it.product.id);
+          origP =
+            cat?.originalPrice ||
+            (cat && cat.price > 0 ? cat.price : 0) ||
+            it.product.price ||
+            it.product.selling_price ||
+            0;
+        }
+        freeOriginalTotal += origP * it.quantity;
+      } else {
+        paidCount += it.quantity;
+        paidTotal += it.total_amount ?? it.unit_price * it.quantity;
+      }
+    });
+
+    return {
+      freeOriginalTotal,
+      paidTotal,
+      freeCount,
+      paidCount,
+    };
+  }, [complimentaryInCart, complimentaryCatalog]);
+
   const matchedStoreProducts = useMemo(() => {
     if (!compSearchQuery.trim()) return [];
     const q = compSearchQuery.toLowerCase();
@@ -649,6 +818,7 @@ const Pos: React.FC = () => {
       name: string;
       type: "free" | "paid";
       price: number;
+      originalPrice?: number;
       category?: string;
       unit?: string;
       image_url?: string;
@@ -658,6 +828,10 @@ const Pos: React.FC = () => {
     const qty = compItemQuantities[item.id] || 1;
     const unitPrice =
       item.type === "free" ? 0 : customPrice !== undefined ? customPrice : item.price;
+    const originalPrice =
+      item.type === "free"
+        ? (item.originalPrice || item.price || 0)
+        : unitPrice;
 
     const compCartItem: CartItem = {
       product: {
@@ -669,13 +843,14 @@ const Pos: React.FC = () => {
         image_url: item.image_url,
         selling_price: unitPrice,
         sale_price: unitPrice,
-        price: unitPrice,
+        price: originalPrice > 0 ? originalPrice : unitPrice,
         tax_rate: 0,
         stock: 999,
         shop_stock: 999,
       },
       quantity: qty,
       unit_price: unitPrice,
+      original_price: originalPrice,
       discount: 0,
       discount_type: "percentage",
       tax_rate: 0,
@@ -685,7 +860,8 @@ const Pos: React.FC = () => {
       selectedSize: {
         id: item.type === "free" ? "comp-free" : "comp-paid",
         name: item.type === "free" ? "Free Gift" : `Add-on (${formatINR(unitPrice)})`,
-        price: unitPrice,
+        price: originalPrice > 0 ? originalPrice : unitPrice,
+        originalPrice: originalPrice,
       },
       selectedAddons: [],
     };
@@ -732,13 +908,18 @@ const Pos: React.FC = () => {
 
   // Discount Module Drawer States (Bill, Category, Product)
   const [discountDrawerOpen, setDiscountDrawerOpen] = useState<boolean>(false);
+  const [discountDrawerMode, setDiscountDrawerMode] = useState<"manage" | "apply">("apply");
   const [discountMethod, setDiscountMethod] = useState<"bill" | "category" | "product">("bill");
   const [billDiscountType, setBillDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [billDiscountVal, setBillDiscountVal] = useState<string>("0");
-  const [selectedCatDiscount, setSelectedCatDiscount] = useState<string>("");
+  const [selectedCatDiscounts, setSelectedCatDiscounts] = useState<string[]>([]);
+  const selectedCatDiscount = selectedCatDiscounts[0] || "";
+  const setSelectedCatDiscount = (val: string) => setSelectedCatDiscounts(val ? [val] : []);
   const [catDiscountType, setCatDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [catDiscountVal, setCatDiscountVal] = useState<string>("0");
-  const [selectedProdDiscountId, setSelectedProdDiscountId] = useState<string>("");
+  const [selectedProdDiscountIds, setSelectedProdDiscountIds] = useState<string[]>([]);
+  const selectedProdDiscountId = selectedProdDiscountIds[0] || "";
+  const setSelectedProdDiscountId = (val: string) => setSelectedProdDiscountIds(val ? [val] : []);
   const [prodDiscountType, setProdDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [prodDiscountVal, setProdDiscountVal] = useState<string>("0");
 
@@ -1523,13 +1704,17 @@ const Pos: React.FC = () => {
     overrideDiscount?: number,
     overrideDiscountType?: "percentage" | "fixed",
     overrideUnitPrice?: number,
-    overrideTaxRate?: number
+    overrideTaxRate?: number,
+    overrideDiscountSource?: "category" | "product",
+    overrideDiscountCatName?: string
   ): CartItem => {
     const quantity = overrideQty !== undefined ? Math.max(1, overrideQty) : item.quantity;
     const unit_price = overrideUnitPrice !== undefined ? Math.max(0, overrideUnitPrice) : item.unit_price;
     const discount = overrideDiscount !== undefined ? Math.max(0, overrideDiscount) : (item.discount || 0);
     const discount_type = overrideDiscountType !== undefined ? overrideDiscountType : (item.discount_type || "percentage");
     const tax_rate = overrideTaxRate !== undefined ? Math.max(0, overrideTaxRate) : (item.tax_rate ?? item.product.tax_rate ?? 5);
+    const discount_source = overrideDiscountSource !== undefined ? overrideDiscountSource : item.discount_source;
+    const discount_category_name = overrideDiscountCatName !== undefined ? overrideDiscountCatName : item.discount_category_name;
 
     const lineRawSubtotal = unit_price * quantity;
     let lineDiscountAmount = 0;
@@ -1551,6 +1736,8 @@ const Pos: React.FC = () => {
       unit_price,
       discount,
       discount_type,
+      discount_source: discount > 0 ? (discount_source || "product") : undefined,
+      discount_category_name: discount > 0 ? discount_category_name : undefined,
       tax_rate,
       tax_amount: Number(tax_amount.toFixed(2)),
       total_amount: Number(total_amount.toFixed(2)),
@@ -1600,9 +1787,23 @@ const Pos: React.FC = () => {
     const taxableAmount = Math.max(0, rawSubtotal - totalDiscount);
     const itemTaxes = cart.reduce((acc, item) => acc + (item.tax_amount || 0), 0);
     const orderTax = orderTaxPercent > 0 ? (taxableAmount * orderTaxPercent) / 100 : 0;
-    const totalTax = Number((itemTaxes > 0 ? itemTaxes : orderTax).toFixed(2));
-    const shipping = enabledAddOns.shipping ? (Number(shippingCost) || 0) : 0;
-    let rawGrandTotal = Math.max(0, taxableAmount + totalTax + shipping);
+    const additionalChargesTax = additionalCharges.reduce((acc, c) => {
+      const opt = c.gstOption ?? (c.taxType === "exempted" ? "exempted" : `${c.gstPercent ?? 18}`);
+      if (opt !== "none" && opt !== "exempted") {
+        const rate = Number(opt);
+        if (!isNaN(rate) && rate > 0) {
+          return acc + (Math.max(0, Number(c.amount) || 0) * rate) / 100;
+        }
+      }
+      return acc;
+    }, 0);
+    const totalTax = Number(((itemTaxes > 0 ? itemTaxes : orderTax) + additionalChargesTax).toFixed(2));
+    const shipping = (enabledAddOns.shipping || shippingCost > 0) ? (Number(shippingCost) || 0) : 0;
+    const servCharge = Math.max(0, Number(serviceCharge) || 0);
+    const labCharge = Math.max(0, Number(labourCharge) || 0);
+    const courCharge = Math.max(0, Number(courierCharge) || 0);
+    const customChargesSum = additionalCharges.reduce((acc, c) => acc + (Math.max(0, Number(c.amount) || 0)), 0);
+    let rawGrandTotal = Math.max(0, taxableAmount + totalTax + shipping + servCharge + labCharge + courCharge + customChargesSum);
 
     // Complimentary Add-on
     let complimentaryDiscountAmt = 0;
@@ -1651,6 +1852,11 @@ const Pos: React.FC = () => {
       giftCardDiscountAmt: Number(giftCardDiscountAmt.toFixed(2)),
       tax: totalTax,
       shipping,
+      serviceCharge: servCharge,
+      labourCharge: labCharge,
+      courierCharge: courCharge,
+      additionalChargesList: additionalCharges,
+      additionalChargesSum: customChargesSum,
       rawGrandTotal,
       grandTotal: roundedGrandTotal,
       roundoffDiff,
@@ -1662,6 +1868,10 @@ const Pos: React.FC = () => {
     orderDiscountType,
     orderTaxPercent,
     shippingCost,
+    serviceCharge,
+    labourCharge,
+    courierCharge,
+    additionalCharges,
     enabledAddOns,
     couponDiscount,
     couponDiscountType,
@@ -2003,7 +2213,12 @@ const Pos: React.FC = () => {
     }
   };
 
-  const openDiscountDrawer = (method: "bill" | "category" | "product" = "bill", prodId?: string) => {
+  const openDiscountDrawer = (
+    method: "bill" | "category" | "product" = "bill",
+    prodId?: string,
+    mode: "manage" | "apply" = "apply"
+  ) => {
+    setDiscountDrawerMode(mode);
     setDiscountMethod(method);
     setBillDiscountType(orderDiscountType);
     setBillDiscountVal(discountPercent > 0 ? discountPercent.toString() : "0");
@@ -2043,38 +2258,181 @@ const Pos: React.FC = () => {
       const val = Math.max(0, Number(billDiscountVal) || 0);
       setOrderDiscountType(billDiscountType);
       setDiscountPercent(billDiscountType === "percentage" ? Math.min(100, val) : val);
+      showPosToast(`Invoice / Bill discount of ${billDiscountType === "percentage" ? `${val}%` : formatINR(val)} applied.`, "success");
     } else if (discountMethod === "category") {
       const val = Math.max(0, Number(catDiscountVal) || 0);
-      if (!selectedCatDiscount) {
-        alert("Please select a category");
+      if (selectedCatDiscounts.length === 0) {
+        showPosToast("Please select at least one category", "warning");
         return;
       }
       setCart((prev) =>
         prev.map((item) => {
           const itemCat = item.product.category_name || item.product.category || "General";
-          if (itemCat.toLowerCase() === selectedCatDiscount.toLowerCase()) {
-            return recalculateCartItem(item, undefined, val, catDiscountType);
+          const matched = selectedCatDiscounts.find(
+            (c) => c.toLowerCase() === itemCat.toLowerCase()
+          );
+          if (matched) {
+            return recalculateCartItem(item, undefined, val, catDiscountType, undefined, undefined, "category", matched);
           }
           return item;
         })
       );
+      showPosToast(
+        `Category discount applied to ${selectedCatDiscounts.length} categor${selectedCatDiscounts.length > 1 ? "ies" : "y"}: ${catDiscountType === "percentage" ? `${val}%` : `${formatINR(val)} / item`}`,
+        "success"
+      );
     } else if (discountMethod === "product") {
       const val = Math.max(0, Number(prodDiscountVal) || 0);
-      if (!selectedProdDiscountId) {
-        alert("Please select a product");
+      if (selectedProdDiscountIds.length === 0) {
+        showPosToast("Please select at least one product", "warning");
         return;
       }
       setCart((prev) =>
         prev.map((item) => {
-          if (item.product.id === selectedProdDiscountId) {
-            return recalculateCartItem(item, undefined, val, prodDiscountType);
+          if (selectedProdDiscountIds.includes(item.product.id)) {
+            return recalculateCartItem(item, undefined, val, prodDiscountType, undefined, undefined, "product");
           }
           return item;
         })
       );
+      showPosToast(
+        `Product discount applied to ${selectedProdDiscountIds.length} product${selectedProdDiscountIds.length > 1 ? "s" : ""}: ${prodDiscountType === "percentage" ? `${val}%` : `${formatINR(val)} / item`}`,
+        "success"
+      );
     }
 
     setDiscountDrawerOpen(false);
+  };
+
+  // Active applied discounts categorized by Invoice, Category, and Product
+  const activeDiscountsBreakdown = useMemo(() => {
+    const rawSubtotal = cart.reduce((acc, item) => acc + item.unit_price * item.quantity, 0);
+    const itemDiscountTotal = cart.reduce((acc, item) => {
+      const lineRaw = item.unit_price * item.quantity;
+      if (item.discount > 0) {
+        if (item.discount_type === "fixed") {
+          return acc + Math.min(lineRaw, item.discount * item.quantity);
+        } else {
+          return acc + (lineRaw * Math.min(100, item.discount)) / 100;
+        }
+      }
+      return acc;
+    }, 0);
+    const subtotalAfterItemDiscounts = Math.max(0, rawSubtotal - itemDiscountTotal);
+
+    let billSavings = 0;
+    if (discountPercent > 0) {
+      if (orderDiscountType === "percentage") {
+        billSavings = (subtotalAfterItemDiscounts * Math.min(100, discountPercent)) / 100;
+      } else {
+        billSavings = Math.min(subtotalAfterItemDiscounts, Math.max(0, Number(discountPercent) || 0));
+      }
+    }
+
+    // Category discounts aggregation
+    const catMap = new Map<string, { items: CartItem[]; count: number; savings: number; discount: number; discount_type: "percentage" | "fixed" }>();
+    
+    // Product discounts list
+    const prodList: Array<{ item: CartItem; savings: number }> = [];
+
+    cart.forEach((item) => {
+      if (item.discount > 0) {
+        const lineRaw = item.unit_price * item.quantity;
+        const lineSavings =
+          item.discount_type === "fixed"
+            ? Math.min(lineRaw, item.discount * item.quantity)
+            : (lineRaw * Math.min(100, item.discount)) / 100;
+
+        if (item.discount_source === "category" || item.discount_category_name) {
+          const catName = item.discount_category_name || item.product.category_name || item.product.category || "General";
+          const existing = catMap.get(catName);
+          if (existing) {
+            existing.items.push(item);
+            existing.count += item.quantity;
+            existing.savings += lineSavings;
+          } else {
+            catMap.set(catName, {
+              items: [item],
+              count: item.quantity,
+              savings: lineSavings,
+              discount: item.discount,
+              discount_type: item.discount_type || "percentage",
+            });
+          }
+        } else {
+          prodList.push({
+            item,
+            savings: lineSavings,
+          });
+        }
+      }
+    });
+
+    const categoriesList = Array.from(catMap.entries()).map(([catName, data]) => ({
+      categoryName: catName,
+      ...data,
+    }));
+
+    const hasAnyDiscount = discountPercent > 0 || categoriesList.length > 0 || prodList.length > 0;
+    const totalAppliedSavings = Number((billSavings + itemDiscountTotal).toFixed(2));
+
+    return {
+      bill: discountPercent > 0 ? {
+        percent: discountPercent,
+        type: orderDiscountType,
+        savings: billSavings,
+      } : null,
+      categories: categoriesList,
+      products: prodList,
+      hasAnyDiscount,
+      totalAppliedSavings,
+    };
+  }, [cart, discountPercent, orderDiscountType]);
+
+  const handleRemoveBillDiscount = () => {
+    setDiscountPercent(0);
+    setBillDiscountVal("0");
+    showPosToast("Invoice / Bill discount removed.", "info");
+  };
+
+  const handleRemoveCategoryDiscount = (categoryName: string) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        const itemCat = item.discount_category_name || item.product.category_name || item.product.category || "General";
+        if (itemCat.toLowerCase() === categoryName.toLowerCase()) {
+          return recalculateCartItem(item, undefined, 0, "percentage", undefined, undefined, undefined, undefined);
+        }
+        return item;
+      })
+    );
+    setCatDiscountVal("0");
+    showPosToast(`Category discount removed for "${categoryName}".`, "info");
+  };
+
+  const handleRemoveProductDiscount = (productId: string) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product.id === productId) {
+          return recalculateCartItem(item, undefined, 0, "percentage", undefined, undefined, undefined, undefined);
+        }
+        return item;
+      })
+    );
+    setProdDiscountVal("0");
+    showPosToast("Product discount removed.", "info");
+  };
+
+  const handleRemoveAllDiscounts = () => {
+    setDiscountPercent(0);
+    setBillDiscountVal("0");
+    setCatDiscountVal("0");
+    setProdDiscountVal("0");
+    setCart((prev) =>
+      prev.map((item) =>
+        recalculateCartItem(item, undefined, 0, "percentage", undefined, undefined, undefined, undefined)
+      )
+    );
+    showPosToast("All discounts removed from order.", "info");
   };
 
   const handleClearDiscount = () => {
@@ -2083,29 +2441,16 @@ const Pos: React.FC = () => {
       setBillDiscountVal("0");
     } else if (discountMethod === "category") {
       setCatDiscountVal("0");
-      if (selectedCatDiscount) {
-        setCart((prev) =>
-          prev.map((item) => {
-            const itemCat = item.product.category_name || item.product.category || "General";
-            if (itemCat.toLowerCase() === selectedCatDiscount.toLowerCase()) {
-              return recalculateCartItem(item, undefined, 0, "percentage");
-            }
-            return item;
-          })
-        );
-      }
+      selectedCatDiscounts.forEach((cat) => {
+        handleRemoveCategoryDiscount(cat);
+      });
+      setSelectedCatDiscounts([]);
     } else if (discountMethod === "product") {
       setProdDiscountVal("0");
-      if (selectedProdDiscountId) {
-        setCart((prev) =>
-          prev.map((item) => {
-            if (item.product.id === selectedProdDiscountId) {
-              return recalculateCartItem(item, undefined, 0, "percentage");
-            }
-            return item;
-          })
-        );
-      }
+      selectedProdDiscountIds.forEach((pid) => {
+        handleRemoveProductDiscount(pid);
+      });
+      setSelectedProdDiscountIds([]);
     }
   };
 
@@ -2296,6 +2641,14 @@ const Pos: React.FC = () => {
     setOrderDiscountType("percentage");
     setOrderTaxPercent(0);
     setShippingCost(0);
+    setServiceCharge(0);
+    setLabourCharge(0);
+    setCourierCharge(0);
+    setTempCourierCharge("0");
+    setAdditionalCharges([]);
+    setTempAdditionalCharges([
+      { id: `charge_${Date.now()}`, name: "", amount: "", gstOption: "18", taxType: "taxable", gstPercent: 18 },
+    ]);
     setShippingDetails({
       fromName: "",
       fromPhone: "",
@@ -2310,11 +2663,11 @@ const Pos: React.FC = () => {
       toPincode: "",
       notes: "",
     });
-    setEnabledAddOns({ shipping: false, coupon: false, complimentary: false, points: false });
+    setEnabledAddOns({ shipping: false, coupon: false, complimentary: false, points: false, giftcard: false });
     setCouponCode("");
     setCouponDiscount(0);
     setCouponDiscountType("percentage");
-    setIsComplimentaryFull(true);
+    setIsComplimentaryFull(false);
     setComplimentaryAmount(0);
     setComplimentaryItemKeys([]);
     setRedeemedPoints(0);
@@ -2338,6 +2691,10 @@ const Pos: React.FC = () => {
       subtotal: totals.subtotal,
       grandTotal: totals.grandTotal,
       shippingCost,
+      serviceCharge,
+      labourCharge,
+      courierCharge,
+      additionalCharges: [...additionalCharges],
       shippingDetails,
       enabledAddOns,
       discountPercent,
@@ -2362,8 +2719,12 @@ const Pos: React.FC = () => {
     setCart(hold.items);
     if (hold.customer) setSelectedCustomer(hold.customer);
     if (hold.shippingCost !== undefined) setShippingCost(hold.shippingCost);
+    if (hold.serviceCharge !== undefined) setServiceCharge(hold.serviceCharge);
+    if (hold.labourCharge !== undefined) setLabourCharge(hold.labourCharge);
+    if (hold.courierCharge !== undefined) setCourierCharge(hold.courierCharge);
+    if (hold.additionalCharges) setAdditionalCharges(hold.additionalCharges);
     if (hold.shippingDetails) setShippingDetails(hold.shippingDetails);
-    if (hold.enabledAddOns) setEnabledAddOns(hold.enabledAddOns);
+    if (hold.enabledAddOns) setEnabledAddOns({ ...hold.enabledAddOns, giftcard: Boolean(hold.enabledAddOns.giftcard) });
     if (hold.discountPercent !== undefined) setDiscountPercent(hold.discountPercent);
     if (hold.orderDiscountType) setOrderDiscountType(hold.orderDiscountType);
     if (hold.orderTaxPercent !== undefined) setOrderTaxPercent(hold.orderTaxPercent);
@@ -2405,12 +2766,12 @@ const Pos: React.FC = () => {
       alert("Please add items to cart before proceeding to payment.");
       return;
     }
-    if (mode === "giftcard") {
-      openGiftCardDrawer();
-      return;
-    }
     setSelectedPaymentMode(mode);
     setReceivedAmount(totals.grandTotal.toString());
+    const half = Math.floor(totals.grandTotal / 2);
+    setSplitCashAmount(half.toString());
+    setSplitCardAmount("0");
+    setSplitUpiAmount(Math.max(0, totals.grandTotal - half).toFixed(2));
     setPaymentModalOpen(true);
   };
 
@@ -2453,6 +2814,10 @@ const Pos: React.FC = () => {
         discount: totals.discount,
         tax: totals.tax,
         shipping: totals.shipping,
+        serviceCharge: totals.serviceCharge,
+        labourCharge: totals.labourCharge,
+        courierCharge: totals.courierCharge,
+        additionalCharges: [...additionalCharges],
         shipping_details: shippingDetails,
         grandTotal: totals.grandTotal,
         payment_method: selectedPaymentMode,
@@ -2610,10 +2975,22 @@ const Pos: React.FC = () => {
       `*Items Subtotal:* ₹${totals.subtotal.toFixed(2)}`,
       ...(totals.discount > 0 ? [`*Discount:* -₹${totals.discount.toFixed(2)}`] : []),
       ...(totals.tax > 0 ? [`*Tax:* +₹${totals.tax.toFixed(2)}`] : []),
-      ...(totals.shipping > 0 || shippingDetails.toAddress ? [
-        `*Delivery To:* ${shippingDetails.toName || custName}${shippingDetails.toAddress ? ` (${shippingDetails.toAddress}, ${shippingDetails.toCity})` : ""}`,
-        `*Shipping Charges:* +₹${totals.shipping.toFixed(2)}`
+      ...(totals.shipping > 0 ? [`*Shipping Charges:* +₹${totals.shipping.toFixed(2)}`] : []),
+      ...(totals.courierCharge > 0 ? [`*Courier Charge:* +₹${totals.courierCharge.toFixed(2)}`] : []),
+      ...(shippingDetails.fromAddress || shippingDetails.fromName ? [
+        `*From:* ${shippingDetails.fromName || "Store"}${shippingDetails.fromAddress ? ` (${[shippingDetails.fromAddress, shippingDetails.fromCity].filter(Boolean).join(", ")})` : ""}${shippingDetails.fromPhone ? ` • 📞 ${shippingDetails.fromPhone}` : ""}`
       ] : []),
+      ...(shippingDetails.toAddress || shippingDetails.toName ? [
+        `*Delivery To:* ${shippingDetails.toName || custName}${shippingDetails.toAddress ? ` (${[shippingDetails.toAddress, shippingDetails.toCity, shippingDetails.toState, shippingDetails.toPincode].filter(Boolean).join(", ")})` : ""}${shippingDetails.toPhone ? ` • 📞 ${shippingDetails.toPhone}` : ""}`
+      ] : []),
+      ...(shippingDetails.notes ? [`*Courier Notes / Instructions:* ${shippingDetails.notes}`] : []),
+      ...(totals.serviceCharge > 0 ? [`*Service Charge:* +₹${totals.serviceCharge.toFixed(2)}`] : []),
+      ...(totals.labourCharge > 0 ? [`*Labour Charge:* +₹${totals.labourCharge.toFixed(2)}`] : []),
+      ...(additionalCharges.map((ch) => {
+        const opt = ch.gstOption ?? (ch.taxType === "exempted" ? "exempted" : `${ch.gstPercent ?? 18}`);
+        const gstTag = opt === "none" ? " (No GST)" : opt === "exempted" ? " (Exempted)" : ` (GST ${opt}%)`;
+        return `*${ch.name}${gstTag}:* +₹${Number(ch.amount).toFixed(2)}`;
+      })),
       `*Grand Total:* *₹${totals.grandTotal.toFixed(2)}*`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `Thank you for shopping with Grow Naturals! 🌱`,
@@ -3662,7 +4039,8 @@ const Pos: React.FC = () => {
           justify-content: flex-start !important;
         }
         .product-added .product-wrap.empty-cart-wrap {
-          min-height: 345px !important;
+          min-height: 180px !important;
+          max-height: 230px !important;
           border: 1px solid #e2e8f0 !important;
           border-radius: 8px !important;
           padding: 12px !important;
@@ -3670,7 +4048,7 @@ const Pos: React.FC = () => {
           justify-content: center !important;
         }
         .product-added .product-wrap .ordered-menu-list {
-          min-height: 320px !important;
+          min-height: 220px !important;
           border: none !important;
           box-shadow: none !important;
           width: 100% !important;
@@ -3681,7 +4059,12 @@ const Pos: React.FC = () => {
           flex-direction: column !important;
           align-items: center !important;
           justify-content: center !important;
-          min-height: 320px !important;
+          min-height: 160px !important;
+        }
+        .product-added .product-wrap .empty-cart img {
+          max-height: 125px !important;
+          width: auto !important;
+          object-fit: contain !important;
         }
         .gn-cart-remove-btn {
           width: 26px !important;
@@ -4310,7 +4693,7 @@ const Pos: React.FC = () => {
                                         {/* Bottom Price & Counter */}
                                         <div className="d-flex align-items-center justify-content-between">
                                           <div className="pos-card-price fw-bold">
-                                            {formatINR(currentPrice)}
+                                            {formatINR(currentPrice).replace(/\.00$/, "")}
                                           </div>
                                           <div
                                             className="pos-card-qty-wrapper d-flex align-items-center"
@@ -5268,31 +5651,78 @@ const Pos: React.FC = () => {
                         )}
                       </div>
 
-                      {discountPercent > 0 && (
-                        <div className="discount-item d-flex align-items-center justify-content-between bg-purple-transparent mt-3 flex-wrap gap-2">
-                          <div className="d-flex align-items-center">
-                            <span className="bg-purple discount-icon br-5 flex-shrink-0 me-2">
-                              <img src={discountImg} alt="img" />
-                            </span>
-                            <div>
-                              <h6 className="fs-14 fw-bold text-purple mb-1">
-                                Discount {orderDiscountType === "percentage" ? `${discountPercent}%` : formatINR(discountPercent)}
-                              </h6>
-                              <p className="mb-0">Applied to current order</p>
+                      {(() => {
+                        if (!activeDiscountsBreakdown.hasAnyDiscount) return null;
+                        const { bill, categories, products, totalAppliedSavings } = activeDiscountsBreakdown;
+
+                        let titleText = `Discount: ${formatINR(totalAppliedSavings)}`;
+                        let subtitleText = "Applied to current order";
+
+                        if (bill && categories.length === 0 && products.length === 0) {
+                          const valText = bill.type === "percentage" ? `${bill.percent}%` : formatINR(bill.percent);
+                          titleText = `Bill Discount ${valText}`;
+                          subtitleText = `Applied to entire bill • Savings: ${formatINR(bill.savings)}`;
+                        } else if (!bill && categories.length > 0 && products.length === 0) {
+                          if (categories.length === 1) {
+                            const cat = categories[0];
+                            const valText = cat.discount_type === "percentage" ? `${cat.discount}%` : `${formatINR(cat.discount)}/item`;
+                            titleText = `Category Discount: ${cat.categoryName} (${valText})`;
+                            subtitleText = `Applied to ${cat.count} item${cat.count > 1 ? "s" : ""} • Savings: ${formatINR(cat.savings)}`;
+                          } else {
+                            const totalItems = categories.reduce((s, c) => s + c.count, 0);
+                            const totalCatSavings = categories.reduce((s, c) => s + c.savings, 0);
+                            titleText = `Category Discount (${categories.length} Categories)`;
+                            subtitleText = `Applied to ${totalItems} items in cart • Savings: ${formatINR(totalCatSavings)}`;
+                          }
+                        } else if (!bill && categories.length === 0 && products.length > 0) {
+                          if (products.length === 1) {
+                            const prod = products[0];
+                            const valText = prod.item.discount_type === "percentage" ? `${prod.item.discount}%` : `${formatINR(prod.item.discount)}/item`;
+                            titleText = `Product Discount: ${prod.item.product.name} (${valText})`;
+                            subtitleText = `Applied to ${prod.item.quantity} qty • Savings: ${formatINR(prod.savings)}`;
+                          } else {
+                            const totalProdSavings = products.reduce((s, p) => s + p.savings, 0);
+                            titleText = `Product Discount (${products.length} Products)`;
+                            subtitleText = `Applied to ${products.length} items in cart • Savings: ${formatINR(totalProdSavings)}`;
+                          }
+                        } else {
+                          const parts: string[] = [];
+                          if (bill) parts.push(`Bill (${bill.type === "percentage" ? `${bill.percent}%` : formatINR(bill.percent)})`);
+                          if (categories.length > 0) parts.push(`${categories.length} Categor${categories.length > 1 ? "ies" : "y"}`);
+                          if (products.length > 0) parts.push(`${products.length} Product${products.length > 1 ? "s" : ""}`);
+                          titleText = `Discounts: ${formatINR(totalAppliedSavings)}`;
+                          subtitleText = `Applied: ${parts.join(" + ")}`;
+                        }
+
+                        return (
+                          <div className="discount-item d-flex align-items-center justify-content-between bg-purple-transparent mt-3 flex-wrap gap-2">
+                            <div className="d-flex align-items-center min-w-0 flex-grow-1" style={{ gap: "14px" }}>
+                              <span className="bg-purple discount-icon br-5 flex-shrink-0 m-0">
+                                <img src={discountImg} alt="img" />
+                              </span>
+                              <div className="min-w-0">
+                                <h6 className="fs-14 fw-bold text-purple mb-1 text-truncate" title={titleText}>
+                                  {titleText}
+                                </h6>
+                                <p className="mb-0 fs-12 text-muted text-truncate" title={subtitleText}>
+                                  {subtitleText}
+                                </p>
+                              </div>
                             </div>
+                            <Link
+                              to="#"
+                              className="close-icon flex-shrink-0"
+                              title="Remove discount"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleRemoveAllDiscounts();
+                              }}
+                            >
+                              <i className="ti ti-trash" />
+                            </Link>
                           </div>
-                          <Link
-                            to="#"
-                            className="close-icon"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setDiscountPercent(0);
-                            }}
-                          >
-                            <i className="ti ti-trash" />
-                          </Link>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
 
                     {/* Payment Summary */}
@@ -5315,43 +5745,42 @@ const Pos: React.FC = () => {
                           <tr>
                             <td>Sub Total</td>
                             <td className="text-gray-9 text-end">
-                              <div className="d-flex align-items-center justify-content-end gap-2">
-                                <span>{formatINR(totals.subtotal)}</span>
-                                <span className="link-default invisible" style={{ pointerEvents: "none" }}>
-                                  <i className="ti ti-edit" />
-                                </span>
-                              </div>
+                              <span>{formatINR(totals.subtotal)}</span>
                             </td>
                           </tr>
 
-                          {/* Shipping (shown when enabled via Add-ons) */}
-                          {enabledAddOns.shipping && (
-                            <tr>
-                              <td>Shipping</td>
-                              <td className="text-gray-9 text-end">
-                                <div className="d-flex align-items-center justify-content-end gap-2">
-                                  <span>{formatINR(totals.shipping)}</span>
-                                  <Link
-                                    to="#"
-                                    className="link-default"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      openShippingDrawer();
-                                    }}
-                                  >
-                                    <i className="ti ti-edit" />
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
+                          {/* Discount (always present) */}
+                          <tr>
+                            <td>
+                              <div className="d-inline-flex align-items-center gap-1 flex-wrap">
+                                <span>Discount</span>
+                                <Link
+                                  to="#"
+                                  className="link-default"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openDiscountDrawer("bill", undefined, "manage");
+                                  }}
+                                  title="Edit & Manage Discounts"
+                                >
+                                  <i className="ti ti-edit" />
+                                </Link>
+                              </div>
+                            </td>
+                            <td className="text-danger text-end">
+                              <span>
+                                {(totals.discount - (totals.couponDiscountAmt || 0)) > 0
+                                  ? `-${formatINR(totals.discount - (totals.couponDiscountAmt || 0))}`
+                                  : formatINR(0)}
+                              </span>
+                            </td>
+                          </tr>
 
                           {/* Tax (always present) */}
                           <tr>
-                            <td>Tax ({orderTaxPercent}%)</td>
-                            <td className="text-gray-9 text-end">
-                              <div className="d-flex align-items-center justify-content-end gap-2">
-                                <span>{formatINR(totals.tax)}</span>
+                            <td>
+                              <div className="d-inline-flex align-items-center gap-1">
+                                <span>Tax ({orderTaxPercent}%)</span>
                                 <Link
                                   to="#"
                                   className="link-default"
@@ -5360,319 +5789,494 @@ const Pos: React.FC = () => {
                                     setTempTax(orderTaxPercent.toString());
                                     setTaxModalOpen(true);
                                   }}
+                                  title="Edit Tax"
                                 >
                                   <i className="ti ti-edit" />
                                 </Link>
                               </div>
                             </td>
-                          </tr>
-
-                          {/* Coupon (shown when enabled via Add-ons) */}
-                          {enabledAddOns.coupon && (
-                            <tr>
-                              <td>
-                                Coupon
-                                {couponCode ? (
-                                  <span className="badge bg-purple-transparent text-purple ms-2 fs-11 fw-semibold">
-                                    {couponCode}
-                                  </span>
-                                ) : null}
-                              </td>
-                              <td className="text-danger text-end">
-                                <div className="d-flex align-items-center justify-content-end gap-2">
-                                  <span>{totals.couponDiscountAmt > 0 ? `-${formatINR(totals.couponDiscountAmt)}` : formatINR(0)}</span>
-                                  <Link
-                                    to="#"
-                                    className="link-default"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setTempCouponCode(couponCode);
-                                      setTempCouponDiscount(couponDiscount.toString());
-                                      setTempCouponType(couponDiscountType);
-                                      setCouponModalOpen(true);
-                                    }}
-                                  >
-                                    <i className="ti ti-edit" />
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-
-                          {/* Discount (always present) */}
-                          <tr>
-                            <td>
-                              <span>Discount</span>
-                              {orderDiscountType === "percentage" && discountPercent > 0 ? (
-                                <span className="badge bg-danger-light text-danger ms-1 fs-11">({discountPercent}%)</span>
-                              ) : orderDiscountType === "fixed" && discountPercent > 0 ? (
-                                <span className="badge bg-danger-light text-danger ms-1 fs-11">({formatINR(discountPercent)})</span>
-                              ) : null}
-                            </td>
-                            <td className="text-danger text-end">
-                              <div className="d-flex align-items-center justify-content-end gap-2">
-                                <span>
-                                  {(totals.discount - (totals.couponDiscountAmt || 0)) > 0
-                                    ? `-${formatINR(totals.discount - (totals.couponDiscountAmt || 0))}`
-                                    : formatINR(0)}
-                                </span>
-                                <Link
-                                  to="#"
-                                  className="link-default"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    openDiscountDrawer("bill");
-                                  }}
-                                >
-                                  <i className="ti ti-edit" />
-                                </Link>
-                              </div>
+                            <td className="text-gray-9 text-end">
+                              <span>{formatINR(totals.tax)}</span>
                             </td>
                           </tr>
 
-                          {/* Complimentary (shown when enabled via Add-ons or complimentary items present) */}
-                          {(enabledAddOns.complimentary || complimentaryInCart.length > 0) && (
-                            <tr>
-                              <td>
-                                <span>Complimentary</span>
-                                <span className="badge bg-success-transparent text-success ms-2 fs-11 fw-semibold">
-                                  {complimentaryInCart.length > 0
-                                    ? (() => {
-                                      const freeCount = complimentaryInCart.filter((it) => it.unit_price === 0).length;
-                                      const paidCount = complimentaryInCart.filter((it) => it.unit_price > 0).length;
-                                      if (freeCount > 0 && paidCount > 0) return `${freeCount} Free, ${paidCount} Paid`;
-                                      if (freeCount > 0) return `${freeCount} Free Gift${freeCount > 1 ? "s" : ""}`;
-                                      return `${paidCount} Add-on${paidCount > 1 ? "s" : ""}`;
-                                    })()
-                                    : isComplimentaryFull
-                                      ? "100% Free"
-                                      : "Active"}
-                                </span>
-                              </td>
-                              <td className="text-success text-end">
-                                <div className="d-flex align-items-center justify-content-end gap-2">
-                                  <span>
-                                    {totals.complimentaryDiscountAmt > 0
-                                      ? `-${formatINR(totals.complimentaryDiscountAmt)}`
-                                      : "Applied"}
-                                  </span>
-                                  <Link
-                                    to="#"
-                                    className="link-default"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      openComplimentaryDrawer();
-                                    }}
-                                    title="Edit complimentary gifts and add-ons"
-                                  >
-                                    <i className="ti ti-edit" />
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
+                          {/* ADD-ONS SECTION */}
+                          {(enabledAddOns.shipping ||
+                            shippingCost > 0 ||
+                            additionalCharges.length > 0 ||
+                            courierCharge > 0 ||
+                            serviceCharge > 0 ||
+                            labourCharge > 0 ||
+                            enabledAddOns.coupon ||
+                            enabledAddOns.complimentary ||
+                            complimentaryInCart.length > 0 ||
+                            enabledAddOns.points ||
+                            enabledAddOns.giftcard ||
+                            giftCardAmount > 0) && (
+                            <>
+                              <tr>
+                                <td colSpan={2} className="pt-3 pb-3 border-top">
+                                  <h6 className="mb-0 fw-bold fs-14 text-dark">Add ons</h6>
+                                </td>
+                              </tr>
 
+                              {/* Shipping (shown when enabled via Add-ons) */}
+                              {(enabledAddOns.shipping || shippingCost > 0) && (
+                                <tr>
+                                  <td>
+                                    <div className="d-inline-flex align-items-center gap-1">
+                                      <Link
+                                        to="#"
+                                        className="order-total-delete-btn"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setEnabledAddOns((prev) => ({ ...prev, shipping: false }));
+                                          setShippingCost(0);
+                                          setTempShipping("0");
+                                          setShippingDetails({
+                                            fromName: "",
+                                            fromPhone: "",
+                                            fromAddress: "",
+                                            fromCity: "",
+                                            fromPincode: "",
+                                            toName: "",
+                                            toPhone: "",
+                                            toAddress: "",
+                                            toCity: "",
+                                            toState: "",
+                                            toPincode: "",
+                                            notes: "",
+                                          });
+                                          showPosToast("Shipping removed from add-ons", "info");
+                                        }}
+                                        title="Remove Shipping"
+                                      >
+                                        <i className="ti ti-trash fs-13" />
+                                      </Link>
+                                      <span>Shipping</span>
+                                      <Link
+                                        to="#"
+                                        className="link-default"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          openShippingDrawer("shipping_details");
+                                        }}
+                                        title="Edit Shipping & Delivery Details"
+                                      >
+                                        <i className="ti ti-edit" />
+                                      </Link>
+                                    </div>
+                                  </td>
+                                  <td className="text-gray-9 text-end">
+                                    <span>{formatINR(totals.shipping)}</span>
+                                  </td>
+                                </tr>
+                              )}
 
+                              {/* Dynamic Additional Charges (shown in Add ons) */}
+                              {additionalCharges.map((ch) => (
+                                <tr key={ch.id}>
+                                  <td>
+                                    <div className="d-inline-flex align-items-center gap-1">
+                                      <Link
+                                        to="#"
+                                        className="order-total-delete-btn"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setAdditionalCharges((prev) => prev.filter((item) => item.id !== ch.id));
+                                          showPosToast(`${ch.name} removed`, "info");
+                                        }}
+                                        title={`Remove ${ch.name}`}
+                                      >
+                                        <i className="ti ti-trash fs-13" />
+                                      </Link>
+                                      <span>
+                                        {ch.name}
+                                        {(() => {
+                                          const opt = ch.gstOption ?? (ch.taxType === "exempted" ? "exempted" : `${ch.gstPercent ?? 18}`);
+                                          if (opt === "exempted") {
+                                            return (
+                                              <span
+                                                className="badge bg-soft-secondary text-secondary ms-1"
+                                                style={{ fontSize: "10px", padding: "2px 5px" }}
+                                              >
+                                                Exempted
+                                              </span>
+                                            );
+                                          }
+                                          if (opt === "0") {
+                                            return (
+                                              <span
+                                                className="badge bg-soft-warning text-warning ms-1"
+                                                style={{ fontSize: "10px", padding: "2px 5px" }}
+                                              >
+                                                0% GST
+                                              </span>
+                                            );
+                                          }
+                                          const num = Number(opt);
+                                          if (!isNaN(num) && num > 0) {
+                                            return (
+                                              <span
+                                                className="badge bg-soft-info text-info ms-1"
+                                                style={{ fontSize: "10px", padding: "2px 5px" }}
+                                              >
+                                                {num}% GST
+                                              </span>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </span>
+                                      <Link
+                                        to="#"
+                                        className="link-default"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          openShippingDrawer("additional_charges");
+                                        }}
+                                        title={`Edit ${ch.name}`}
+                                      >
+                                        <i className="ti ti-edit" />
+                                      </Link>
+                                    </div>
+                                  </td>
+                                  <td className="text-gray-9 text-end">
+                                    <span>{formatINR(ch.amount)}</span>
+                                  </td>
+                                </tr>
+                              ))}
 
-                          {/* Points / Loyalty (shown when enabled via Add-ons) */}
-                          {enabledAddOns.points && (
-                            <tr>
-                              <td>
-                                <span>Points</span>
-                                {redeemedPoints > 0 ? (
-                                  <span className="badge bg-warning-transparent text-warning ms-2 fs-11 fw-semibold">
-                                    {redeemedPoints} pts
-                                  </span>
-                                ) : null}
-                              </td>
-                              <td className="text-danger text-end">
-                                <div className="d-flex align-items-center justify-content-end gap-2">
-                                  <span>{totals.pointsDiscountAmt > 0 ? `-${formatINR(totals.pointsDiscountAmt)}` : formatINR(0)}</span>
-                                  <Link
-                                    to="#"
-                                    className="link-default"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      openPointsDrawer();
-                                    }}
-                                    title="Edit Points Redemption"
-                                  >
-                                    <i className="ti ti-edit" />
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
+                              {/* Courier Charge (configured in Additional Charges drawer) */}
+                              {courierCharge > 0 && (
+                                <tr>
+                                  <td>
+                                    <div className="d-inline-flex align-items-center gap-1">
+                                      <Link
+                                        to="#"
+                                        className="order-total-delete-btn"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setCourierCharge(0);
+                                          setTempCourierCharge("0");
+                                          showPosToast("Courier charge removed", "info");
+                                        }}
+                                        title="Remove Courier Charge"
+                                      >
+                                        <i className="ti ti-trash fs-13" />
+                                      </Link>
+                                      <span>Courier Charge</span>
+                                      {shippingDetails.toCity ? (
+                                        <span className="badge bg-soft-info text-info fs-11 fw-normal">
+                                          to {shippingDetails.toCity}
+                                        </span>
+                                      ) : null}
+                                      <Link
+                                        to="#"
+                                        className="link-default"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          openShippingDrawer("additional_charges");
+                                        }}
+                                        title="Edit Courier & Shipping Details"
+                                      >
+                                        <i className="ti ti-edit" />
+                                      </Link>
+                                    </div>
+                                  </td>
+                                  <td className="text-gray-9 text-end">
+                                    <span>{formatINR(courierCharge)}</span>
+                                  </td>
+                                </tr>
+                              )}
 
-                          {/* Gift Card (shown when applied) */}
-                          {giftCardAmount > 0 && (
-                            <tr>
-                              <td>
-                                <div className="d-inline-flex align-items-center gap-1">
-                                  <span>Gift Card</span>
-                                  {giftCardNumber ? (
-                                    <span className="badge bg-purple-transparent text-purple fs-11 fw-semibold">
-                                      •••• {giftCardNumber.slice(-4)}
-                                    </span>
-                                  ) : null}
-                                  <button
-                                    type="button"
-                                    className="btn btn-link text-danger p-0 ms-1 d-inline-flex align-items-center"
-                                    title="Remove Gift Card"
-                                    onClick={() => {
-                                      setGiftCardAmount(0);
-                                      setGiftCardNumber("");
-                                      showPosToast("Gift card removed from order.", "info");
-                                    }}
-                                  >
-                                    <i className="ti ti-trash fs-13" />
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="text-danger fw-bold text-end">
-                                <div className="d-flex align-items-center justify-content-end gap-2">
-                                  <span>-{formatINR(totals.giftCardDiscountAmt || giftCardAmount)}</span>
-                                  <Link
-                                    to="#"
-                                    className="link-default"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      openGiftCardDrawer();
-                                    }}
-                                    title="Edit Gift Card"
-                                  >
-                                    <i className="ti ti-edit" />
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
+                              {/* Coupon (shown when enabled via Add-ons) */}
+                              {enabledAddOns.coupon && (
+                                <tr>
+                                  <td>
+                                    <div className="d-inline-flex align-items-center gap-1">
+                                      <Link
+                                        to="#"
+                                        className="order-total-delete-btn"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setEnabledAddOns((prev) => ({ ...prev, coupon: false }));
+                                          setCouponCode("");
+                                          setTempCouponCode("");
+                                          setCouponDiscount(0);
+                                          setTempCouponDiscount("0");
+                                          showPosToast("Coupon removed from add-ons", "info");
+                                        }}
+                                        title="Remove Coupon"
+                                      >
+                                        <i className="ti ti-trash fs-13" />
+                                      </Link>
+                                      <span>Coupon</span>
+                                      {couponCode ? (
+                                        <span className="badge bg-purple-transparent text-purple fs-11 fw-semibold">
+                                          {couponCode}
+                                        </span>
+                                      ) : null}
+                                      <Link
+                                        to="#"
+                                        className="link-default"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setTempCouponCode(couponCode);
+                                          setTempCouponDiscount(couponDiscount.toString());
+                                          setTempCouponType(couponDiscountType);
+                                          setCouponModalOpen(true);
+                                        }}
+                                        title="Edit Coupon"
+                                      >
+                                        <i className="ti ti-edit" />
+                                      </Link>
+                                    </div>
+                                  </td>
+                                  <td className="text-danger text-end">
+                                    <span>{totals.couponDiscountAmt > 0 ? `-${formatINR(totals.couponDiscountAmt)}` : formatINR(0)}</span>
+                                  </td>
+                                </tr>
+                              )}
+
+                              {/* Points / Loyalty (shown when enabled via Add-ons) */}
+                              {enabledAddOns.points && (
+                                <tr>
+                                  <td>
+                                    <div className="d-inline-flex align-items-center gap-1">
+                                      <Link
+                                        to="#"
+                                        className="order-total-delete-btn"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setEnabledAddOns((prev) => ({ ...prev, points: false }));
+                                          setRedeemedPoints(0);
+                                          setTempRedeemedPoints("0");
+                                          showPosToast("Points removed from add-ons", "info");
+                                        }}
+                                        title="Remove Points"
+                                      >
+                                        <i className="ti ti-trash fs-13" />
+                                      </Link>
+                                      <span>Points</span>
+                                      {redeemedPoints > 0 ? (
+                                        <span className="badge bg-warning-transparent text-warning fs-11 fw-semibold">
+                                          {redeemedPoints} pts
+                                        </span>
+                                      ) : null}
+                                      <Link
+                                        to="#"
+                                        className="link-default"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          openPointsDrawer();
+                                        }}
+                                        title="Edit Points Redemption"
+                                      >
+                                        <i className="ti ti-edit" />
+                                      </Link>
+                                    </div>
+                                  </td>
+                                  <td className="text-danger text-end">
+                                    <span>{totals.pointsDiscountAmt > 0 ? `-${formatINR(totals.pointsDiscountAmt)}` : formatINR(0)}</span>
+                                  </td>
+                                </tr>
+                              )}
+
+                              {/* Gift Card (shown when enabled via Add-ons or applied) */}
+                              {(enabledAddOns.giftcard || giftCardAmount > 0) && (
+                                <tr>
+                                  <td>
+                                    <div className="d-inline-flex align-items-center gap-1">
+                                      <Link
+                                        to="#"
+                                        className="order-total-delete-btn"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setEnabledAddOns((prev) => ({ ...prev, giftcard: false }));
+                                          setGiftCardAmount(0);
+                                          setGiftCardNumber("");
+                                          setTempGiftCardAmount("0");
+                                          setTempGiftCardNumber("");
+                                          showPosToast("Gift Card removed from add-ons", "info");
+                                        }}
+                                        title="Remove Gift Card"
+                                      >
+                                        <i className="ti ti-trash fs-13" />
+                                      </Link>
+                                      <span>Gift Card</span>
+                                      {giftCardNumber ? (
+                                        <span className="badge bg-purple-transparent text-purple fs-11 fw-semibold">
+                                          •••• {giftCardNumber.slice(-4)}
+                                        </span>
+                                      ) : null}
+                                      <Link
+                                        to="#"
+                                        className="link-default"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          openGiftCardDrawer();
+                                        }}
+                                        title="Edit Gift Card"
+                                      >
+                                        <i className="ti ti-edit" />
+                                      </Link>
+                                    </div>
+                                  </td>
+                                  <td className="text-danger text-end">
+                                    <span>{giftCardAmount > 0 ? `-${formatINR(totals.giftCardDiscountAmt || giftCardAmount)}` : formatINR(0)}</span>
+                                  </td>
+                                </tr>
+                              )}
+
+                              {/* Complimentary (shown when enabled via Add-ons or complimentary items present) */}
+                              {(enabledAddOns.complimentary || complimentaryInCart.length > 0) && (
+                                <tr>
+                                  <td>
+                                    <div className="d-inline-flex align-items-center gap-1">
+                                      <Link
+                                        to="#"
+                                        className="order-total-delete-btn"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setEnabledAddOns((prev) => ({ ...prev, complimentary: false }));
+                                          setIsComplimentaryFull(false);
+                                          setComplimentaryAmount(0);
+                                          setComplimentaryItemKeys([]);
+                                          setCart((prev) =>
+                                            prev.filter(
+                                              (item) =>
+                                                !item.notes?.includes("Complimentary") &&
+                                                item.selectedSize?.id !== "comp-free" &&
+                                                item.selectedSize?.id !== "comp-paid"
+                                            )
+                                          );
+                                          showPosToast("Complimentary removed from add-ons", "info");
+                                        }}
+                                        title="Remove Complimentary"
+                                      >
+                                        <i className="ti ti-trash fs-13" />
+                                      </Link>
+                                      <span>Complimentary</span>
+                                      <span className="badge bg-success-transparent text-success fs-11 fw-semibold">
+                                        {complimentaryInCart.length > 0
+                                          ? (() => {
+                                            const freeCount = complimentaryInCart.filter((it) => it.unit_price === 0).length;
+                                            const paidCount = complimentaryInCart.filter((it) => it.unit_price > 0).length;
+                                            if (freeCount > 0 && paidCount > 0) return `${freeCount} Free, ${paidCount} Paid`;
+                                            if (freeCount > 0) return `${freeCount} Free Gift${freeCount > 1 ? "s" : ""}`;
+                                            return `${paidCount} Add-on${paidCount > 1 ? "s" : ""}`;
+                                          })()
+                                          : isComplimentaryFull
+                                            ? "100% Free"
+                                            : "Active"}
+                                      </span>
+                                      <Link
+                                        to="#"
+                                        className="link-default"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          openComplimentaryDrawer();
+                                        }}
+                                        title="Edit complimentary gifts and add-ons"
+                                      >
+                                        <i className="ti ti-edit" />
+                                      </Link>
+                                    </div>
+                                  </td>
+                                  <td className="text-end">
+                                    {complimentaryInCart.length > 0 ? (
+                                      <div className="d-inline-flex align-items-center justify-content-end gap-1.5 flex-wrap">
+                                        {compItemPriceDetails.freeCount > 0 && (
+                                          <span
+                                            style={{
+                                              textDecoration: "line-through",
+                                              color: "#000000",
+                                              textDecorationColor: "#000000",
+                                              fontWeight: 600,
+                                            }}
+                                          >
+                                            {formatINR(compItemPriceDetails.freeOriginalTotal)}
+                                          </span>
+                                        )}
+                                        {compItemPriceDetails.paidCount > 0 && (
+                                          <span className="text-gray-9 fw-semibold">
+                                            {compItemPriceDetails.freeCount > 0
+                                              ? `+${formatINR(compItemPriceDetails.paidTotal)}`
+                                              : formatINR(compItemPriceDetails.paidTotal)}
+                                          </span>
+                                        )}
+                                        {compItemPriceDetails.freeCount > 0 &&
+                                          compItemPriceDetails.paidCount === 0 &&
+                                          compItemPriceDetails.freeOriginalTotal === 0 && (
+                                            <span className="text-success fw-semibold">₹0.00</span>
+                                          )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-success">
+                                        {totals.complimentaryDiscountAmt > 0
+                                          ? `-${formatINR(totals.complimentaryDiscountAmt)}`
+                                          : "Applied"}
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </>
                           )}
 
                           {/* Total Payable */}
                           <tr>
                             <td className="fw-bold border-top border-dashed pt-3 pb-2">Total Payable</td>
                             <td className="text-gray-9 fw-bold text-end border-top border-dashed pt-3 pb-2">
-                              <div className="d-flex align-items-center justify-content-end gap-2">
-                                <span>{formatINR(totals.grandTotal)}</span>
-                                <span className="link-default invisible" style={{ pointerEvents: "none" }}>
-                                  <i className="ti ti-edit" />
-                                </span>
-                              </div>
-                            </td>
-                          </tr>
-
-                          {/* Full Width Add Ons Button */}
-                          <tr>
-                            <td colSpan={2} className="p-0 pt-2">
-                              <button
-                                type="button"
-                                className="btn w-100 d-flex align-items-center justify-content-center gap-1.5 add-ons-trigger-btn"
-                                style={{ backgroundColor: "#ffffff" }}
-                                onClick={() => {
-                                  setTempAddOns({ ...enabledAddOns });
-                                  setAddOnsDrawerOpen(true);
-                                }}
-                              >
-                                <i className="ti ti-plus fs-14" />
-                                View Option and Add Ons
-                                {(enabledAddOns.shipping || enabledAddOns.coupon || enabledAddOns.complimentary || enabledAddOns.points) && (
-                                  <span className="badge rounded-pill ms-1 add-ons-count-badge">
-                                    {[enabledAddOns.shipping, enabledAddOns.coupon, enabledAddOns.complimentary, enabledAddOns.points].filter(Boolean).length}
-                                  </span>
-                                )}
-                              </button>
+                              <span>{formatINR(totals.grandTotal)}</span>
                             </td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
 
-                    {/* Payment Methods Section (POS 2 UI) */}
+                    {/* 3 Action Buttons (Discount, Add ons, Additional charges) in Same Design */}
                     <div className="block-section payment-method mb-3">
-                      <h5 className="mb-3">Payment Method</h5>
                       <div className="row align-items-center methods g-2 mx-0">
                         <div className="col-4 d-flex">
                           <Link
                             to="#"
-                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "cash" ? "active" : ""
-                              }`}
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${(discountPercent > 0 || totals.discount > 0) ? "active" : ""}`}
                             onClick={(e) => {
                               e.preventDefault();
-                              handleOpenPayment("cash");
+                              openDiscountDrawer("bill", undefined, "apply");
                             }}
                           >
-                            <i className="ti ti-cash-banknote fs-20 mb-1" />
-                            <span>Cash</span>
+                            <i className="ti ti-percentage fs-20 mb-1" />
+                            <span>Discount</span>
                           </Link>
                         </div>
                         <div className="col-4 d-flex">
                           <Link
                             to="#"
-                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "card" ? "active" : ""
-                              }`}
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${(enabledAddOns.shipping || enabledAddOns.coupon || enabledAddOns.complimentary || enabledAddOns.points || enabledAddOns.giftcard) ? "active" : ""}`}
                             onClick={(e) => {
                               e.preventDefault();
-                              handleOpenPayment("card");
+                              setTempAddOns({ ...enabledAddOns });
+                              setAddOnsDrawerOpen(true);
                             }}
                           >
-                            <i className="ti ti-credit-card fs-20 mb-1" />
-                            <span>Debit Card</span>
+                            <i className="ti ti-apps fs-20 mb-1" />
+                            <span>Add ons</span>
                           </Link>
                         </div>
                         <div className="col-4 d-flex">
                           <Link
                             to="#"
-                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "scan" ? "active" : ""
-                              }`}
+                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${(additionalCharges.length > 0 || serviceCharge > 0 || labourCharge > 0 || courierCharge > 0) ? "active" : ""}`}
                             onClick={(e) => {
                               e.preventDefault();
-                              handleOpenPayment("scan");
+                              openShippingDrawer("additional_charges");
                             }}
                           >
-                            <i className="ti ti-scan fs-20 mb-1" />
-                            <span>Scan UPI</span>
-                          </Link>
-                        </div>
-                        <div className="col-4 d-flex">
-                          <Link
-                            to="#"
-                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "deposit" ? "active" : ""
-                              }`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleOpenPayment("deposit");
-                            }}
-                          >
-                            <i className="ti ti-wallet fs-20 mb-1" />
-                            <span>Deposit</span>
-                          </Link>
-                        </div>
-                        <div className="col-4 d-flex">
-                          <Link
-                            to="#"
-                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "giftcard" ? "active" : ""
-                              }`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleOpenPayment("giftcard");
-                            }}
-                          >
-                            <i className="ti ti-gift fs-20 mb-1" />
-                            <span>Gift Card</span>
-                          </Link>
-                        </div>
-                        <div className="col-4 d-flex">
-                          <Link
-                            to="#"
-                            className={`payment-item d-flex flex-column align-items-center justify-content-center p-2 flex-fill ${selectedPaymentMode === "split" ? "active" : ""
-                              }`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleOpenPayment("split");
-                            }}
-                          >
-                            <i className="ti ti-arrows-split-2 fs-20 mb-1" />
-                            <span>Split Bill</span>
+                            <i className="ti ti-truck-delivery fs-20 mb-1" />
+                            <span>Additional charges</span>
                           </Link>
                         </div>
                       </div>
@@ -5692,7 +6296,7 @@ const Pos: React.FC = () => {
                       </Link>
                     </div>
 
-                    {/* Bottom Action Buttons (Invoice, Pay Later, Transactions) */}
+                    {/* Bottom Action Buttons (Invoice, View Order, Hold) */}
                     <div className="pos2-btn-row d-flex align-items-center justify-content-between gap-2">
                       <Link
                         to="#"
@@ -5709,22 +6313,22 @@ const Pos: React.FC = () => {
                         className="btn btn-void d-flex align-items-center justify-content-center flex-fill"
                         onClick={(e) => {
                           e.preventDefault();
-                          handleOpenPayment("paylater");
+                          setTransactionsDrawerOpen(true);
                         }}
                       >
-                        <i className="ti ti-clock me-1" />
-                        Pay Later
+                        <i className="ti ti-eye me-1" />
+                        View Order
                       </Link>
                       <Link
                         to="#"
                         className="btn btn-payment d-flex align-items-center justify-content-center flex-fill"
                         onClick={(e) => {
                           e.preventDefault();
-                          setTransactionsDrawerOpen(true);
+                          handleHoldOrder();
                         }}
                       >
-                        <i className="ti ti-history me-1" />
-                        Transactions
+                        <i className="ti ti-player-pause me-1" />
+                        Hold
                       </Link>
                     </div>
                   </div>
@@ -5886,8 +6490,8 @@ const Pos: React.FC = () => {
                 </div>
               ))}
 
-              {/* Shipping & Delivery Details */}
-              {(enabledAddOns.shipping || shippingCost > 0 || shippingDetails.toName || shippingDetails.toAddress) && (
+              {/* Shipping & Courier Delivery Details */}
+              {(enabledAddOns.shipping || shippingCost > 0 || courierCharge > 0 || shippingDetails.toName || shippingDetails.toAddress || shippingDetails.fromName || shippingDetails.fromAddress || shippingDetails.notes) && (
                 <div className="accordion-item border rounded-3 mb-3 p-3" style={{ backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" }}>
                   <div className="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-success border-opacity-25">
                     <div className="d-flex align-items-center gap-2">
@@ -5897,17 +6501,31 @@ const Pos: React.FC = () => {
                       >
                         <i className="ti ti-truck-delivery fs-15" />
                       </div>
-                      <span className="fw-bold fs-13 text-dark">Shipping &amp; Delivery Details</span>
+                      <span className="fw-bold fs-13 text-dark">
+                        {courierCharge > 0 ? "Courier & Delivery Details" : "Shipping & Delivery Details"}
+                      </span>
                     </div>
                     <div className="d-flex align-items-center gap-2">
-                      <span className="badge bg-success fs-11 fw-bold">
-                        {shippingCost > 0 ? `+${formatINR(shippingCost)}` : "Free Delivery"}
-                      </span>
+                      {courierCharge > 0 && (
+                        <span className="badge bg-primary fs-11 fw-bold">
+                          Courier: +{formatINR(courierCharge)}
+                        </span>
+                      )}
+                      {shippingCost > 0 && (
+                        <span className="badge bg-success fs-11 fw-bold">
+                          Shipping: +{formatINR(shippingCost)}
+                        </span>
+                      )}
+                      {!shippingCost && !courierCharge && (
+                        <span className="badge bg-success fs-11 fw-bold">
+                          Free Delivery
+                        </span>
+                      )}
                       <button
                         type="button"
                         className="btn btn-xs btn-outline-success bg-white py-0.5 px-1.5 fs-11"
                         style={{ borderRadius: "4px" }}
-                        onClick={() => openShippingDrawer()}
+                        onClick={() => openShippingDrawer(courierCharge > 0 ? "additional_charges" : "shipping_details")}
                       >
                         <i className="ti ti-edit me-0.5" /> Edit
                       </button>
@@ -5915,7 +6533,7 @@ const Pos: React.FC = () => {
                   </div>
 
                   <div className="d-flex flex-column gap-2 fs-12">
-                    {(shippingDetails.fromName || shippingDetails.fromAddress || shippingDetails.fromPhone || shippingDetails.fromCity) && (
+                    {(shippingDetails.fromName || shippingDetails.fromAddress || shippingDetails.fromPhone || shippingDetails.fromCity || shippingDetails.fromPincode) && (
                       <div className="d-flex align-items-start gap-1.5">
                         <span className="text-muted fw-semibold" style={{ minWidth: "50px" }}>From:</span>
                         <div className="text-dark">
@@ -5930,7 +6548,7 @@ const Pos: React.FC = () => {
                       </div>
                     )}
 
-                    {(shippingDetails.toName || shippingDetails.toAddress || shippingDetails.toPhone || shippingDetails.toCity) && (
+                    {(shippingDetails.toName || shippingDetails.toAddress || shippingDetails.toPhone || shippingDetails.toCity || shippingDetails.toState || shippingDetails.toPincode) && (
                       <div className="d-flex align-items-start gap-1.5">
                         <span className="text-muted fw-semibold" style={{ minWidth: "50px" }}>To:</span>
                         <div className="text-dark">
@@ -5946,10 +6564,17 @@ const Pos: React.FC = () => {
                     )}
 
                     {shippingDetails.notes && (
-                      <div className="mt-1 p-2 rounded bg-white border border-success border-opacity-25 fs-11 text-secondary">
-                        <i className="ti ti-note me-1 text-success" />
-                        <span className="fw-medium text-dark">Notes: </span>
-                        {shippingDetails.notes}
+                      <div className="mt-1 p-2 rounded bg-white border border-success border-opacity-25 fs-11 text-secondary d-flex align-items-center gap-1.5">
+                        <span
+                          className="rounded-circle d-inline-flex align-items-center justify-content-center bg-soft-warning text-warning"
+                          style={{ width: "20px", height: "20px", flexShrink: 0 }}
+                        >
+                          <i className="ti ti-notes fs-12" />
+                        </span>
+                        <div>
+                          <span className="fw-semibold text-dark">Courier Notes: </span>
+                          {shippingDetails.notes}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -6010,6 +6635,62 @@ const Pos: React.FC = () => {
                             <span className="fw-semibold text-dark">+{formatINR(totals.shipping)}</span>
                           </p>
                         )}
+                        {additionalCharges.map((ch) => {
+                          const opt = ch.gstOption ?? (ch.taxType === "exempted" ? "exempted" : `${ch.gstPercent ?? 18}`);
+                          const isExempt = opt === "exempted" || opt === "none" || ch.taxType === "exempted";
+                          const gstNum = isExempt ? 0 : (ch.gstPercent !== undefined ? ch.gstPercent : Number(opt) || 0);
+                          return (
+                            <p key={ch.id} className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                              <span className="d-inline-flex align-items-center gap-1.5 flex-wrap">
+                                <span>{ch.name}</span>
+                                {isExempt ? (
+                                  <span
+                                    className="badge bg-light text-secondary border fs-10 fw-normal py-0 px-1"
+                                    style={{ borderRadius: "3px" }}
+                                  >
+                                    {opt === "none" ? "No GST" : "Exempted"}
+                                  </span>
+                                ) : (
+                                  <span
+                                    className="badge bg-soft-info text-info fs-10 fw-normal py-0 px-1"
+                                    style={{ borderRadius: "3px" }}
+                                  >
+                                    GST {gstNum}%
+                                  </span>
+                                )}
+                              </span>
+                              <span className="fw-semibold text-dark">+{formatINR(ch.amount)}</span>
+                            </p>
+                          );
+                        })}
+                        {courierCharge > 0 && (
+                          <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                            <span className="d-inline-flex align-items-center gap-1.5 flex-wrap">
+                              <span>Courier Charge</span>
+                              {shippingDetails.toCity ? (
+                                <span
+                                  className="badge bg-soft-primary text-primary fs-10 fw-normal py-0 px-1"
+                                  style={{ borderRadius: "3px" }}
+                                >
+                                  to {shippingDetails.toCity}
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="fw-semibold text-dark">+{formatINR(totals.courierCharge)}</span>
+                          </p>
+                        )}
+                        {serviceCharge > 0 && (
+                          <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                            <span>Service Charge</span>
+                            <span className="fw-semibold text-dark">+{formatINR(totals.serviceCharge)}</span>
+                          </p>
+                        )}
+                        {labourCharge > 0 && (
+                          <p className="d-flex align-items-center justify-content-between mb-2 text-dark">
+                            <span>Labour Charge</span>
+                            <span className="fw-semibold text-dark">+{formatINR(totals.labourCharge)}</span>
+                          </p>
+                        )}
 
                         <h5 className="d-flex align-items-center justify-content-between mt-3 pt-2 border-top mb-0">
                           <span>Amount to be Paid</span>
@@ -6068,7 +6749,7 @@ const Pos: React.FC = () => {
             if (e.target === e.currentTarget) setPaymentModalOpen(false);
           }}
         >
-          <div className="pos-five-modal-card p-4">
+          <div className="pos-five-modal-card p-4" style={{ maxWidth: "580px" }}>
             <div className="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
               <div className="d-flex align-items-center gap-2">
                 <div
@@ -6090,108 +6771,489 @@ const Pos: React.FC = () => {
             </div>
 
             {/* Total Payable Box */}
-            <div className="bg-light p-3 rounded-3 text-center mb-4 border">
-              <span className="text-muted fs-13 d-block mb-1">TOTAL AMOUNT PAYABLE</span>
-              <h2 className="text-primary fw-bolder mb-0">{formatINR(totals.grandTotal)}</h2>
+            <div
+              className="p-3 rounded-3 text-center mb-3 border"
+              style={{ backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" }}
+            >
+              <span className="text-muted fs-12 fw-semibold d-block mb-1 text-uppercase letter-spacing-1">
+                Total Amount Payable
+              </span>
+              <h2 className="fw-bolder mb-0" style={{ color: "#0f8040" }}>
+                {formatINR(totals.grandTotal)}
+              </h2>
+              <small className="text-muted fs-12">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)} item{cart.length > 1 ? "s" : ""} in order
+              </small>
             </div>
 
             {/* Payment Method Switcher */}
             <div className="mb-3">
-              <label className="form-label fw-bold fs-13 mb-2">Payment Method</label>
-              <div className="d-flex flex-wrap gap-2">
+              <label className="form-label fw-bold fs-13 mb-2 text-dark">Select Payment Method</label>
+              <div className="row g-2">
                 {[
-                  { id: "cash", label: "Cash", icon: "ti-cash" },
-                  { id: "card", label: "Card", icon: "ti-credit-card" },
-                  { id: "scan", label: "UPI / QR", icon: "ti-qrcode" },
+                  { id: "cash", label: "Cash", icon: "ti-cash-banknote" },
+                  { id: "card", label: "Debit Card", icon: "ti-credit-card" },
+                  { id: "scan", label: "Scan UPI", icon: "ti-scan" },
+                  { id: "deposit", label: "Deposit", icon: "ti-wallet" },
+                  { id: "split", label: "Split Bill", icon: "ti-arrows-split-2" },
                   { id: "cheque", label: "Cheque", icon: "ti-file-invoice" },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    className={`btn btn-sm ${selectedPaymentMode === m.id ? "btn-primary" : "btn-outline-secondary"
-                      } d-inline-flex align-items-center gap-1`}
-                    onClick={() => {
-                      setSelectedPaymentMode(m.id);
-                      if (m.id === "cash") setReceivedAmount(totals.grandTotal.toString());
-                    }}
-                  >
-                    <i className={`ti ${m.icon}`} />
-                    {m.label}
-                  </button>
-                ))}
+                ].map((m) => {
+                  const isActive = selectedPaymentMode === m.id;
+                  return (
+                    <div key={m.id} className="col-4">
+                      <button
+                        type="button"
+                        className="btn w-100 d-inline-flex align-items-center justify-content-center gap-2"
+                        style={{
+                          padding: "10px 8px",
+                          fontSize: "13px",
+                          fontWeight: isActive ? 600 : 500,
+                          borderRadius: "8px",
+                          backgroundColor: isActive ? "#0f8040" : "#ffffff",
+                          color: isActive ? "#ffffff" : "#334155",
+                          border: isActive ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                          boxShadow: isActive ? "0 2px 6px rgba(15, 128, 64, 0.2)" : "none",
+                          transition: "all 0.15s ease",
+                          whiteSpace: "nowrap",
+                        }}
+                        onClick={() => {
+                          setSelectedPaymentMode(m.id);
+                          if (m.id === "cash" && (!receivedAmount || Number(receivedAmount) === 0)) {
+                            setReceivedAmount(totals.grandTotal.toString());
+                          }
+                        }}
+                      >
+                        <i className={`ti ${m.icon} fs-16 ${isActive ? "text-white" : "text-muted"}`} />
+                        <span>{m.label}</span>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Cash Options */}
-            {selectedPaymentMode === "cash" && (
-              <div className="mb-3">
-                <label className="form-label fw-semibold fs-13">Cash Received (₹)</label>
-                <div className="input-group mb-2">
-                  <span className="input-group-text">₹</span>
-                  <input
-                    type="number"
-                    className="form-control form-control-lg fw-bold"
-                    value={receivedAmount}
-                    onChange={(e) => setReceivedAmount(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="d-flex gap-2 flex-wrap mb-3">
-                  {[
-                    totals.grandTotal,
-                    Math.ceil(totals.grandTotal / 50) * 50,
-                    Math.ceil(totals.grandTotal / 100) * 100,
-                    Math.ceil(totals.grandTotal / 500) * 500,
-                  ].map((chipVal, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className="btn btn-xs btn-outline-primary"
-                      onClick={() => setReceivedAmount(chipVal.toString())}
-                    >
-                      ₹{chipVal}
-                    </button>
-                  ))}
-                </div>
-
-                {Number(receivedAmount) >= totals.grandTotal && (
-                  <div className="alert alert-success d-flex align-items-center justify-content-between p-2 mb-0">
-                    <span className="fs-13 fw-semibold">Change to Return:</span>
-                    <span className="fs-15 fw-bold text-success">
-                      {formatINR(Number(receivedAmount) - totals.grandTotal)}
-                    </span>
+            {/* DYNAMIC CONTENT PANE BASED ON SELECTED PAYMENT METHOD */}
+            <div className="mb-3 p-3 rounded-3 border bg-light-subtle">
+              {/* 1. Cash Method */}
+              {selectedPaymentMode === "cash" && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <label className="form-label fw-bold fs-13 mb-0 text-dark">Cash Received (₹)</label>
+                    <span className="fs-12 text-muted">Enter tender from customer</span>
                   </div>
-                )}
-              </div>
-            )}
+                  <div className="input-group input-group-lg mb-2.5">
+                    <span className="input-group-text fw-bold text-dark bg-light px-3">₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      className="form-control fw-bold fs-18"
+                      value={receivedAmount}
+                      onChange={(e) => setReceivedAmount(e.target.value)}
+                      placeholder="0"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="d-flex gap-2 flex-wrap mb-3">
+                    {[
+                      { label: "Exact", val: totals.grandTotal },
+                      { label: `₹${Math.ceil(totals.grandTotal / 50) * 50}`, val: Math.ceil(totals.grandTotal / 50) * 50 },
+                      { label: `₹${Math.ceil(totals.grandTotal / 100) * 100}`, val: Math.ceil(totals.grandTotal / 100) * 100 },
+                      { label: `₹${Math.ceil(totals.grandTotal / 500) * 500}`, val: Math.ceil(totals.grandTotal / 500) * 500 },
+                      { label: "₹2,000", val: 2000 },
+                    ].map((chip, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary py-1 px-3 fs-12 rounded-pill fw-medium"
+                        onClick={() => setReceivedAmount(chip.val.toString())}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {Number(receivedAmount) >= totals.grandTotal ? (
+                    <div
+                      className="p-3 rounded-3 d-flex align-items-center justify-content-between mb-0 border"
+                      style={{ backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" }}
+                    >
+                      <span className="fs-13 fw-semibold text-dark d-flex align-items-center gap-1.5">
+                        <i className="ti ti-cash fs-18" style={{ color: "#0f8040" }} />
+                        <span>Change to Return:</span>
+                      </span>
+                      <span className="fs-16 fw-bolder" style={{ color: "#0f8040" }}>
+                        {formatINR(Number(receivedAmount) - totals.grandTotal)}
+                      </span>
+                    </div>
+                  ) : Number(receivedAmount) > 0 ? (
+                    <div
+                      className="p-3 rounded-3 d-flex align-items-center justify-content-between mb-0 border"
+                      style={{ backgroundColor: "#fffbeb", borderColor: "#fde68a" }}
+                    >
+                      <span className="fs-13 fw-semibold text-dark d-flex align-items-center gap-1.5">
+                        <i className="ti ti-alert-triangle fs-18 text-warning" />
+                        <span>Remaining Due:</span>
+                      </span>
+                      <span className="fs-16 fw-bold text-danger">
+                        {formatINR(totals.grandTotal - Number(receivedAmount))}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* 2. Debit / Credit Card Method */}
+              {selectedPaymentMode === "card" && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-bold fs-13 text-dark">Card &amp; Terminal Details</span>
+                    <span className="badge bg-primary-transparent text-primary fs-11">POS Terminal</span>
+                  </div>
+
+                  {/* Terminal Selection */}
+                  <div className="row g-2 mb-2.5">
+                    <div className="col-6">
+                      <label className="form-label fs-12 text-muted mb-1">Card Network</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={cardType}
+                        onChange={(e) => setCardType(e.target.value)}
+                      >
+                        <option value="Visa / Mastercard">Visa / Mastercard</option>
+                        <option value="RuPay">RuPay Debit</option>
+                        <option value="Amex">American Express</option>
+                        <option value="Other">Other Card</option>
+                      </select>
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label fs-12 text-muted mb-1">POS EDC Terminal</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={cardTerminal}
+                        onChange={(e) => setCardTerminal(e.target.value)}
+                      >
+                        <option value="Pine Labs">Pine Labs Machine 1</option>
+                        <option value="HDFC EDC">HDFC EDC Terminal</option>
+                        <option value="Paytm POS">Paytm Smart POS</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Card Reference / Last 4 */}
+                  <div className="mb-2">
+                    <label className="form-label fs-12 text-muted mb-1">Card Last 4 Digits / Auth Ref (Optional)</label>
+                    <div className="input-group input-group-sm">
+                      <span className="input-group-text"><i className="ti ti-credit-card" /></span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        maxLength={16}
+                        placeholder="e.g. 4892 or Auth #9281"
+                        value={cardAuthCode}
+                        onChange={(e) => setCardAuthCode(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-2 bg-white border d-flex align-items-center gap-2 text-muted fs-12">
+                    <i className="ti ti-device-mobile-message fs-18 text-primary" />
+                    <span>Swipe or tap the card on <strong>{cardTerminal}</strong> for <strong>{formatINR(totals.grandTotal)}</strong>.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Scan UPI / QR Method */}
+              {selectedPaymentMode === "scan" && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-bold fs-13 text-dark">Scan Dynamic QR to Pay</span>
+                    <span className="badge bg-success-transparent text-success fs-11">Instant UPI</span>
+                  </div>
+
+                  <div className="bg-white p-3 rounded-3 border text-center mb-2.5">
+                    {/* Simulated Clean Dynamic QR Display */}
+                    <div
+                      className="mx-auto p-2 bg-light rounded-3 d-flex flex-column align-items-center justify-content-center mb-2"
+                      style={{ width: "160px", height: "160px", border: "2px dashed #0f8040" }}
+                    >
+                      <i className="ti ti-qrcode fs-60 text-dark mb-1" style={{ fontSize: "74px" }} />
+                      <span className="badge bg-success text-white fs-11 fw-bold">
+                        {formatINR(totals.grandTotal)}
+                      </span>
+                    </div>
+                    <div className="d-flex justify-content-center gap-1.5 flex-wrap">
+                      <span className="badge bg-light text-dark border fs-11">Google Pay</span>
+                      <span className="badge bg-light text-dark border fs-11">PhonePe</span>
+                      <span className="badge bg-light text-dark border fs-11">Paytm</span>
+                      <span className="badge bg-light text-dark border fs-11">BHIM UPI</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label fs-12 text-muted mb-1">UPI UTR / Reference No (Optional)</label>
+                    <div className="input-group input-group-sm">
+                      <span className="input-group-text"><i className="ti ti-hash" /></span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="12-digit UTR number"
+                        value={upiUtr}
+                        onChange={(e) => setUpiUtr(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Customer Deposit / Wallet Method */}
+              {selectedPaymentMode === "deposit" && (() => {
+                const isWalkin = !selectedCustomer || selectedCustomer?.value === "walkin";
+                const depositBalance = isWalkin ? 0 : 3500;
+                const canAfford = depositBalance >= totals.grandTotal;
+
+                return (
+                  <div>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <span className="fw-bold fs-13 text-dark">Customer Advance / Deposit</span>
+                      <span className={`badge ${isWalkin ? "bg-warning-transparent text-warning" : "bg-info-transparent text-info"} fs-11`}>
+                        {isWalkin ? "Walk-in" : "Registered Customer"}
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-3 border mb-2">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="text-muted fs-13">Customer:</span>
+                        <span className="fw-bold fs-13 text-dark">
+                          {selectedCustomer?.label?.split(" (")[0] || selectedCustomer?.name || "Walk in Customer"}
+                        </span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="text-muted fs-13">Available Deposit Balance:</span>
+                        <span className="fw-bold fs-14 text-primary">
+                          {formatINR(depositBalance)}
+                        </span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center mb-2 border-top pt-2">
+                        <span className="text-muted fs-13">Bill Amount to Deduct:</span>
+                        <span className="fw-bold fs-14 text-danger">
+                          -{formatINR(totals.grandTotal)}
+                        </span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center border-top pt-2">
+                        <span className="fw-bold fs-13 text-dark">Remaining Balance:</span>
+                        <span className="fw-bold fs-15 text-success">
+                          {formatINR(Math.max(0, depositBalance - totals.grandTotal))}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isWalkin ? (
+                      <div className="alert alert-warning p-2 fs-12 mb-0 d-flex align-items-center gap-2">
+                        <i className="ti ti-alert-circle fs-16 flex-shrink-0" />
+                        <span>Walk-in customers do not have a deposit wallet. Please select a registered customer to use deposit balance.</span>
+                      </div>
+                    ) : !canAfford ? (
+                      <div className="alert alert-danger p-2 fs-12 mb-0 d-flex align-items-center gap-2">
+                        <i className="ti ti-alert-triangle fs-16 flex-shrink-0" />
+                        <span>Insufficient deposit balance ({formatINR(depositBalance)}). Please use Split Bill or another payment method.</span>
+                      </div>
+                    ) : (
+                      <div className="alert alert-success p-2 fs-12 mb-0 d-flex align-items-center gap-2">
+                        <i className="ti ti-check fs-16 text-success flex-shrink-0" />
+                        <span>Deposit balance is sufficient. Amount will be deducted upon confirmation.</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+
+
+              {/* 6. Split Bill Method */}
+              {selectedPaymentMode === "split" && (() => {
+                const cashVal = Number(splitCashAmount) || 0;
+                const cardVal = Number(splitCardAmount) || 0;
+                const upiVal = Number(splitUpiAmount) || 0;
+                const totalSplit = cashVal + cardVal + upiVal;
+                const diff = Number((totals.grandTotal - totalSplit).toFixed(2));
+                const isExact = Math.abs(diff) < 0.05;
+
+                return (
+                  <div>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <span className="fw-bold fs-13 text-dark">Multi-Tender Bill Split</span>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-outline-primary py-0 px-2"
+                        onClick={() => {
+                          const half = Math.floor(totals.grandTotal / 2);
+                          setSplitCashAmount(half.toString());
+                          setSplitCardAmount("0");
+                          setSplitUpiAmount((totals.grandTotal - half).toFixed(2));
+                        }}
+                      >
+                        Auto 50/50
+                      </button>
+                    </div>
+
+                    <div className="row g-2 mb-2">
+                      <div className="col-4">
+                        <label className="form-label fs-12 text-muted mb-1">
+                          <i className="ti ti-cash me-1 text-success" />Cash (₹)
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm fw-bold"
+                          placeholder="0"
+                          value={splitCashAmount}
+                          onChange={(e) => setSplitCashAmount(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-4">
+                        <label className="form-label fs-12 text-muted mb-1">
+                          <i className="ti ti-credit-card me-1 text-primary" />Card (₹)
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm fw-bold"
+                          placeholder="0"
+                          value={splitCardAmount}
+                          onChange={(e) => setSplitCardAmount(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-4">
+                        <label className="form-label fs-12 text-muted mb-1">
+                          <i className="ti ti-qrcode me-1 text-info" />UPI (₹)
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm fw-bold"
+                          placeholder="0"
+                          value={splitUpiAmount}
+                          onChange={(e) => setSplitUpiAmount(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Split Balance Status Indicator */}
+                    <div
+                      className={`p-2.5 rounded-2 border d-flex align-items-center justify-content-between fs-12 ${
+                        isExact
+                          ? "bg-success-transparent text-success border-success"
+                          : diff > 0
+                          ? "bg-warning-transparent text-dark border-warning"
+                          : "bg-danger-transparent text-danger border-danger"
+                      }`}
+                    >
+                      <span>
+                        Total Allocated: <strong>{formatINR(totalSplit)}</strong> / {formatINR(totals.grandTotal)}
+                      </span>
+                      <span className="fw-bold">
+                        {isExact ? (
+                          <span><i className="ti ti-check me-1" />Balanced</span>
+                        ) : diff > 0 ? (
+                          <span>Remaining: {formatINR(diff)}</span>
+                        ) : (
+                          <span>Excess: {formatINR(Math.abs(diff))}</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 7. Cheque Method */}
+              {selectedPaymentMode === "cheque" && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-bold fs-13 text-dark">Cheque Payment Details</span>
+                    <span className="badge bg-secondary-transparent text-secondary fs-11">Cheque</span>
+                  </div>
+
+                  <div className="row g-2 mb-2">
+                    <div className="col-6">
+                      <label className="form-label fs-12 text-muted mb-1">Cheque Number</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. 004821"
+                        value={chequeNumber}
+                        onChange={(e) => setChequeNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label fs-12 text-muted mb-1">Bank Name</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. HDFC Bank"
+                        value={chequeBank}
+                        onChange={(e) => setChequeBank(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-2">
+                    <label className="form-label fs-12 text-muted mb-1">Cheque Date</label>
+                    <input
+                      type="date"
+                      className="form-control form-control-sm"
+                      value={chequeDate}
+                      onChange={(e) => setChequeDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="p-2 rounded-2 bg-white border text-muted fs-12 d-flex align-items-center gap-2">
+                    <i className="ti ti-info-circle text-primary fs-16" />
+                    <span>Payee: <strong>Grow Naturals Store</strong> for amount <strong>{formatINR(totals.grandTotal)}</strong>.</span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Notes */}
-            <div className="mb-4">
-              <label className="form-label fw-semibold fs-13">Payment Notes</label>
-              <textarea
-                className="form-control form-control-sm"
-                rows={2}
+            <div className="mb-3">
+              <label className="form-label fw-bold fs-13 mb-1.5 text-dark">
+                Payment Notes / Remarks <span className="fw-normal text-muted fs-12">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                className="form-control py-2 fs-13"
                 value={paymentNotes}
                 onChange={(e) => setPaymentNotes(e.target.value)}
-                placeholder="Optional payment or reference note..."
+                placeholder="Reference number, customer comment or payment notes..."
               />
             </div>
 
-            <div className="d-flex gap-2">
+            <div className="d-flex gap-2.5 pt-1">
               <button
                 type="button"
-                className="btn btn-light flex-fill"
+                className="btn btn-light flex-fill py-2.5 fw-semibold text-secondary"
+                style={{ borderRadius: "8px", fontSize: "14px" }}
                 onClick={() => setPaymentModalOpen(false)}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="btn btn-primary flex-fill fw-bold"
+                className="btn flex-fill py-2.5 fw-bold text-white shadow-sm"
+                style={{
+                  backgroundColor: "#0f8040",
+                  borderColor: "#0f8040",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                }}
                 disabled={isSubmitting}
                 onClick={handleExecuteCheckout}
               >
-                {isSubmitting ? "Processing..." : "Complete & Pay"}
+                {isSubmitting ? (
+                  <span><i className="ti ti-loader me-1 spin" /> Processing...</span>
+                ) : (
+                  <span>
+                    <i className="ti ti-check me-1.5" />
+                    Complete &amp; Pay {formatINR(totals.grandTotal)}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -6231,11 +7293,17 @@ const Pos: React.FC = () => {
               <div className="border-bottom border-dashed pb-2 mb-2">
                 <div>Customer: {completedInvoice.customer_name}</div>
                 <div>Payment: {completedInvoice.payment_method?.toUpperCase()}</div>
-                {completedInvoice.shipping_details?.toAddress && (
+                {(completedInvoice.shipping_details?.fromAddress || completedInvoice.shipping_details?.toAddress || completedInvoice.shipping_details?.notes) && (
                   <div className="mt-1 pt-1 border-top border-dashed">
-                    <div><strong>Delivery To:</strong> {completedInvoice.shipping_details.toName || completedInvoice.customer_name}</div>
-                    <div>{completedInvoice.shipping_details.toAddress}, {completedInvoice.shipping_details.toCity} {completedInvoice.shipping_details.toPincode}</div>
-                    {completedInvoice.shipping_details.toPhone && <div>Ph: {completedInvoice.shipping_details.toPhone}</div>}
+                    {completedInvoice.shipping_details?.fromAddress && (
+                      <div><strong>From:</strong> {completedInvoice.shipping_details.fromName || "Store"} ({[completedInvoice.shipping_details.fromAddress, completedInvoice.shipping_details.fromCity, completedInvoice.shipping_details.fromPincode].filter(Boolean).join(", ")}) {completedInvoice.shipping_details.fromPhone ? `• Ph: ${completedInvoice.shipping_details.fromPhone}` : ""}</div>
+                    )}
+                    {completedInvoice.shipping_details?.toAddress && (
+                      <div><strong>Delivery To:</strong> {completedInvoice.shipping_details.toName || completedInvoice.customer_name} ({[completedInvoice.shipping_details.toAddress, completedInvoice.shipping_details.toCity, completedInvoice.shipping_details.toState, completedInvoice.shipping_details.toPincode].filter(Boolean).join(", ")}) {completedInvoice.shipping_details.toPhone ? `• Ph: ${completedInvoice.shipping_details.toPhone}` : ""}</div>
+                    )}
+                    {completedInvoice.shipping_details?.notes && (
+                      <div><strong>Courier Notes:</strong> {completedInvoice.shipping_details.notes}</div>
+                    )}
                   </div>
                 )}
               </div>
@@ -6278,6 +7346,30 @@ const Pos: React.FC = () => {
                   <div className="d-flex justify-content-between">
                     <span>Shipping:</span>
                     <span>+{formatINR(completedInvoice.shipping)}</span>
+                  </div>
+                )}
+                {completedInvoice.additionalCharges?.map((ch: any) => (
+                  <div key={ch.id} className="d-flex justify-content-between">
+                    <span>{ch.name}:</span>
+                    <span>+{formatINR(ch.amount)}</span>
+                  </div>
+                ))}
+                {completedInvoice.courierCharge > 0 && (
+                  <div className="d-flex justify-content-between">
+                    <span>Courier Charge:</span>
+                    <span>+{formatINR(completedInvoice.courierCharge)}</span>
+                  </div>
+                )}
+                {completedInvoice.serviceCharge > 0 && (
+                  <div className="d-flex justify-content-between">
+                    <span>Service Charge:</span>
+                    <span>+{formatINR(completedInvoice.serviceCharge)}</span>
+                  </div>
+                )}
+                {completedInvoice.labourCharge > 0 && (
+                  <div className="d-flex justify-content-between">
+                    <span>Labour Charge:</span>
+                    <span>+{formatINR(completedInvoice.labourCharge)}</span>
                   </div>
                 )}
                 <div className="d-flex justify-content-between fw-bold fs-14 mt-1 border-top pt-1">
@@ -7084,20 +8176,22 @@ const Pos: React.FC = () => {
         }}
       >
         {/* Fixed Header */}
-        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-2">
-          <div className="d-flex align-items-center gap-2">
+        <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-3 border-bottom">
+          <div className="d-flex align-items-center gap-3">
             <div
-              className="rounded-circle p-2 d-flex align-items-center justify-content-center bg-soft-danger text-danger"
-              style={{ width: "38px", height: "38px" }}
+              className={`rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0 ${discountDrawerMode === "manage" ? "bg-soft-danger text-danger" : "bg-soft-success text-success"}`}
+              style={{ width: "40px", height: "40px" }}
             >
-              <i className="ti ti-discount-2 fs-20" />
+              <i className={`ti ${discountDrawerMode === "manage" ? "ti-receipt-2" : "ti-percentage"} fs-20`} />
             </div>
-            <div>
-              <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "19px" }}>
-                Discount Module
+            <div className="ms-1">
+              <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "18px" }}>
+                {discountDrawerMode === "manage" ? "Active Applied Discounts" : "Apply New Discount"}
               </h4>
-              <p className="mb-0 text-muted fs-12">
-                Apply discount by bill, category, or specific product
+              <p className="mb-0 text-muted fs-12 mt-0.5">
+                {discountDrawerMode === "manage"
+                  ? "Review and remove active invoice, category, or product discounts"
+                  : "Apply discount by bill, category, or specific product"}
               </p>
             </div>
           </div>
@@ -7124,593 +8218,1164 @@ const Pos: React.FC = () => {
           </button>
         </div>
 
-        {/* 3 Top Discount Method Switcher Buttons */}
-        <div className="orders-tab d-flex align-items-center px-4 pt-2 pb-3 flex-shrink-0">
-          <ul className="nav nav-pills w-100 d-flex gap-2 align-items-center flex-nowrap mb-0 p-0">
-            <li className="flex-fill">
-              <button
-                type="button"
-                className={`nav-link w-100 border-0 ${discountMethod === "bill" ? "active" : ""
-                  } d-flex align-items-center justify-content-center gap-1`}
-                onClick={() => setDiscountMethod("bill")}
-                style={{
-                  borderRadius: "9999px",
-                  padding: "8px 10px",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                  backgroundColor: discountMethod === "bill" ? "#0f172a" : "#f8fafc",
-                  color: discountMethod === "bill" ? "#ffffff" : "#475569",
-                  border: discountMethod === "bill" ? "none" : "1px solid #e2e8f0",
-                  transition: "all 0.2s ease",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <i className="ti ti-receipt-2" />
-                By Bill
-              </button>
-            </li>
-            <li className="flex-fill">
-              <button
-                type="button"
-                className={`nav-link w-100 border-0 ${discountMethod === "category" ? "active" : ""
-                  } d-flex align-items-center justify-content-center gap-1`}
-                onClick={() => {
-                  setDiscountMethod("category");
-                  if (!selectedCatDiscount) {
-                    const firstCat =
-                      cart[0]?.product.category_name ||
-                      cart[0]?.product.category ||
-                      categories[0]?.name ||
-                      "";
-                    setSelectedCatDiscount(firstCat);
-                  }
-                }}
-                style={{
-                  borderRadius: "9999px",
-                  padding: "8px 10px",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                  backgroundColor: discountMethod === "category" ? "#0f172a" : "#f8fafc",
-                  color: discountMethod === "category" ? "#ffffff" : "#475569",
-                  border: discountMethod === "category" ? "none" : "1px solid #e2e8f0",
-                  transition: "all 0.2s ease",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <i className="ti ti-category" />
-                By Category
-              </button>
-            </li>
-            <li className="flex-fill">
-              <button
-                type="button"
-                className={`nav-link w-100 border-0 ${discountMethod === "product" ? "active" : ""
-                  } d-flex align-items-center justify-content-center gap-1`}
-                onClick={() => {
-                  setDiscountMethod("product");
-                  if (!selectedProdDiscountId && cart.length > 0) {
-                    setSelectedProdDiscountId(cart[0].product.id);
-                  }
-                }}
-                style={{
-                  borderRadius: "9999px",
-                  padding: "8px 10px",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                  backgroundColor: discountMethod === "product" ? "#0f172a" : "#f8fafc",
-                  color: discountMethod === "product" ? "#ffffff" : "#475569",
-                  border: discountMethod === "product" ? "none" : "1px solid #e2e8f0",
-                  transition: "all 0.2s ease",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <i className="ti ti-box" />
-                By Product
-              </button>
-            </li>
-          </ul>
-        </div>
-
         {/* Scrollable Content Body */}
         <div className="offcanvas-body flex-grow-1 overflow-y-auto px-4 py-3">
-          <form id="apply-discount-module-form" onSubmit={handleApplyDiscount}>
-            {/* METHOD 1: DISCOUNT BY BILL */}
-            {discountMethod === "bill" && (
-              <div>
-                <div className="p-3 bg-light rounded-3 border mb-3">
-                  <div className="d-flex align-items-center justify-content-between mb-1">
-                    <span className="fs-12 text-muted">Current Order Subtotal</span>
-                    <span className="fs-13 fw-bold text-dark">{formatINR(totals.subtotal)}</span>
-                  </div>
-                  <div className="d-flex align-items-center justify-content-between">
-                    <span className="fs-12 text-muted">Cart Items</span>
-                    <span className="fs-12 fw-semibold text-muted">{totals.totalItems} items</span>
-                  </div>
+          {/* VIEW 1: MANAGE APPLIED DISCOUNTS (Only shown when discountDrawerMode === 'manage') */}
+          {discountDrawerMode === "manage" && (
+            <div className="d-flex flex-column gap-3">
+              {/* Header Row: Title & Remove All Action */}
+              <div className="d-flex align-items-center justify-content-between">
+                <div>
+                  <h6 className="fw-bold fs-14 text-dark mb-0">Active Applied Discounts</h6>
+                  <span className="fs-12 text-muted">
+                    {activeDiscountsBreakdown.hasAnyDiscount
+                      ? `${(activeDiscountsBreakdown.bill ? 1 : 0) + activeDiscountsBreakdown.categories.length + activeDiscountsBreakdown.products.length} discount rule(s) active on this order`
+                      : "No discounts applied"}
+                  </span>
                 </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold fs-13 mb-2">Discount Type</label>
-                  <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
-                    <button
-                      type="button"
-                      className={`btn btn-sm flex-fill ${billDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
-                        }`}
-                      onClick={() => setBillDiscountType("percentage")}
-                    >
-                      <i className="ti ti-percentage me-1" /> Percentage (%)
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-sm flex-fill ${billDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
-                        }`}
-                      onClick={() => setBillDiscountType("fixed")}
-                    >
-                      <i className="ti ti-currency-rupee me-1" /> Fixed (₹)
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold fs-13 mb-1">
-                    {billDiscountType === "percentage" ? "Bill Discount Percentage (%)" : "Bill Discount Amount (₹)"}
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light text-muted">
-                      {billDiscountType === "percentage" ? "%" : "₹"}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max={billDiscountType === "percentage" ? 100 : totals.subtotal}
-                      step="any"
-                      className="form-control form-control-lg fw-bold"
-                      placeholder="0"
-                      value={billDiscountVal}
-                      onChange={(e) => setBillDiscountVal(e.target.value)}
-                    />
-                  </div>
-                  <div className="d-flex gap-2 flex-wrap mt-2">
-                    {billDiscountType === "percentage"
-                      ? [5, 10, 15, 20, 25, 50].map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          className={`btn btn-xs ${Number(billDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
-                          onClick={() => setBillDiscountVal(d.toString())}
-                        >
-                          {d}%
-                        </button>
-                      ))
-                      : [50, 100, 200, 500, 1000].map((amt) => (
-                        <button
-                          key={amt}
-                          type="button"
-                          className={`btn btn-xs ${Number(billDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
-                          onClick={() => setBillDiscountVal(amt.toString())}
-                        >
-                          ₹{amt}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-
-                {Number(billDiscountVal) > 0 && totals.subtotal > 0 && (
-                  <div
-                    className="p-3 rounded-3 mb-2"
-                    style={{
-                      backgroundColor: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                    }}
+                {activeDiscountsBreakdown.hasAnyDiscount && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-2 px-3 py-1.5 fs-12 fw-semibold"
+                    onClick={handleRemoveAllDiscounts}
+                    style={{ borderRadius: "6px" }}
+                    title="Remove all discounts from this order"
                   >
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="fs-13 fw-medium" style={{ color: "#64748b" }}>
-                        Total Savings:
-                      </span>
-                      <span className="fs-14 fw-bold text-danger">
-                        -
-                        {formatINR(
-                          billDiscountType === "percentage"
-                            ? (totals.subtotal * Math.min(100, Number(billDiscountVal) || 0)) / 100
-                            : Math.min(totals.subtotal, Number(billDiscountVal) || 0)
-                        )}
-                      </span>
-                    </div>
-                    <div
-                      className="d-flex align-items-center justify-content-between pt-2"
-                      style={{ borderTop: "1px solid #e2e8f0" }}
-                    >
-                      <span className="fs-13 fw-bold" style={{ color: "#1e293b" }}>
-                        Estimated Total:
-                      </span>
-                      <span className="fs-15 fw-bold" style={{ color: "#16a34a" }}>
-                        {formatINR(
-                          Math.max(
-                            0,
-                            totals.subtotal -
-                            (billDiscountType === "percentage"
-                              ? (totals.subtotal * Math.min(100, Number(billDiscountVal) || 0)) / 100
-                              : Math.min(totals.subtotal, Number(billDiscountVal) || 0))
-                          )
-                        )}
-                      </span>
-                    </div>
-                  </div>
+                    <i className="ti ti-trash fs-13 me-0.5" /> Remove All
+                  </button>
                 )}
               </div>
-            )}
 
-            {/* METHOD 2: DISCOUNT BY CATEGORY */}
-            {discountMethod === "category" && (
-              <div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold fs-13 mb-1">Select Category</label>
-                  <div className="d-flex flex-column gap-2">
-                    {(() => {
-                      const allCats = Array.from(
-                        new Set([
-                          ...cart.map((c) => c.product.category_name || c.product.category || "General"),
-                          ...categories.map((c) => c.name || c.id || "General"),
-                        ])
-                      ).filter(Boolean);
-
-                      return allCats.map((catName) => {
-                        const itemsInCart = cart.filter(
-                          (c) =>
-                            (c.product.category_name || c.product.category || "General").toLowerCase() ===
-                            catName.toLowerCase()
-                        );
-                        const catSubtotal = itemsInCart.reduce((sum, it) => sum + it.unit_price * it.quantity, 0);
-                        const isSelected = selectedCatDiscount.toLowerCase() === catName.toLowerCase();
-
-                        return (
-                          <div
-                            key={catName}
-                            onClick={() => setSelectedCatDiscount(catName)}
-                            className="p-2 px-3 border rounded-3 d-flex align-items-center justify-content-between"
-                            style={{
-                              cursor: "pointer",
-                              backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
-                              borderColor: isSelected ? "#22c55e" : "#e2e8f0",
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            <div className="d-flex align-items-center gap-2">
-                              <i className={`ti ti-category ${isSelected ? "text-success" : "text-muted"}`} />
-                              <span className={`fs-13 ${isSelected ? "fw-bold text-dark" : "text-secondary"}`}>
-                                {catName}
-                              </span>
-                            </div>
-                            <div className="d-flex align-items-center gap-2">
-                              {itemsInCart.length > 0 ? (
-                                <span className="badge bg-soft-primary text-primary fs-11">
-                                  {itemsInCart.length} in cart ({formatINR(catSubtotal)})
-                                </span>
-                              ) : (
-                                <span className="badge bg-light text-muted fs-11">0 in cart</span>
-                              )}
-                              {isSelected && <i className="ti ti-check text-success fs-16" />}
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold fs-13 mb-2">Discount Type</label>
-                  <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
-                    <button
-                      type="button"
-                      className={`btn btn-sm flex-fill ${catDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
-                        }`}
-                      onClick={() => setCatDiscountType("percentage")}
-                    >
-                      <i className="ti ti-percentage me-1" /> Percentage (%)
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-sm flex-fill ${catDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
-                        }`}
-                      onClick={() => setCatDiscountType("fixed")}
-                    >
-                      <i className="ti ti-currency-rupee me-1" /> Fixed (₹ per item)
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold fs-13 mb-1">
-                    {catDiscountType === "percentage" ? "Category Discount (%)" : "Discount Amount (₹)"}
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light text-muted">
-                      {catDiscountType === "percentage" ? "%" : "₹"}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max={catDiscountType === "percentage" ? 100 : 99999}
-                      step="any"
-                      className="form-control form-control-lg fw-bold"
-                      placeholder="0"
-                      value={catDiscountVal}
-                      onChange={(e) => setCatDiscountVal(e.target.value)}
-                    />
-                  </div>
-                  <div className="d-flex gap-2 flex-wrap mt-2">
-                    {catDiscountType === "percentage"
-                      ? [5, 10, 15, 20, 25, 30].map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          className={`btn btn-xs ${Number(catDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
-                          onClick={() => setCatDiscountVal(d.toString())}
-                        >
-                          {d}%
-                        </button>
-                      ))
-                      : [20, 50, 100, 200, 300].map((amt) => (
-                        <button
-                          key={amt}
-                          type="button"
-                          className={`btn btn-xs ${Number(catDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
-                          onClick={() => setCatDiscountVal(amt.toString())}
-                        >
-                          ₹{amt}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-
-                {Number(catDiscountVal) > 0 && selectedCatDiscount && (() => {
-                  const matchingItems = cart.filter(
-                    (c) =>
-                      (c.product.category_name || c.product.category || "General").toLowerCase() ===
-                      selectedCatDiscount.toLowerCase()
-                  );
-                  const catRawSubtotal = matchingItems.reduce((sum, it) => sum + it.unit_price * it.quantity, 0);
-                  const catQty = matchingItems.reduce((sum, it) => sum + it.quantity, 0);
-                  const numVal = Number(catDiscountVal) || 0;
-                  const catSavings =
-                    catDiscountType === "percentage"
-                      ? (catRawSubtotal * Math.min(100, numVal)) / 100
-                      : Math.min(catRawSubtotal, numVal * catQty);
-
-                  return catRawSubtotal > 0 ? (
+              {/* Total Savings Summary Banner Card */}
+              {activeDiscountsBreakdown.hasAnyDiscount && (
+                <div
+                  className="d-flex align-items-center justify-content-between p-3 rounded-3"
+                  style={{
+                    backgroundColor: "transparent",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div className="d-flex align-items-center" style={{ gap: "14px" }}>
                     <div
-                      className="p-3 rounded-3 mb-2"
-                      style={{
-                        backgroundColor: "#f8fafc",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                      }}
+                      className="rounded-circle d-flex align-items-center justify-content-center bg-white text-danger shadow-xs flex-shrink-0"
+                      style={{ width: "42px", height: "42px", border: "1px solid #fee2e2" }}
                     >
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <span className="fs-13 fw-medium" style={{ color: "#64748b" }}>
-                          Category Savings ({matchingItems.length} items):
-                        </span>
-                        <span className="fs-14 fw-bold text-danger">
-                          -{formatINR(catSavings)}
-                        </span>
+                      <i className="ti ti-receipt-tax fs-18" />
+                    </div>
+                    <div>
+                      <div className="fs-12 fw-bold text-uppercase text-danger mb-0.5" style={{ letterSpacing: "0.5px" }}>
+                        Total discounted value
                       </div>
-                      <div
-                        className="d-flex align-items-center justify-content-between pt-2"
-                        style={{ borderTop: "1px solid #e2e8f0" }}
-                      >
-                        <span className="fs-13 fw-bold" style={{ color: "#1e293b" }}>
-                          Category Total:
-                        </span>
-                        <span className="fs-15 fw-bold" style={{ color: "#16a34a" }}>
-                          {formatINR(Math.max(0, catRawSubtotal - catSavings))}
-                        </span>
+                      <div className="fs-12 text-muted">
+                        Deducted from payable amount
                       </div>
                     </div>
-                  ) : null;
-                })()}
-              </div>
-            )}
+                  </div>
+                  <div className="text-end">
+                    <span className="fs-18 fw-bolder text-danger">
+                      -{formatINR(activeDiscountsBreakdown.totalAppliedSavings)}
+                    </span>
+                  </div>
+                </div>
+              )}
 
-            {/* METHOD 3: DISCOUNT BY PRODUCT */}
-            {discountMethod === "product" && (
-              <div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold fs-13 mb-1">Select Product</label>
-                  {cart.length === 0 ? (
-                    <div className="text-center p-3 border rounded-3 bg-light text-muted fs-13">
-                      <i className="ti ti-shopping-cart-x fs-20 d-block mb-1" />
-                      No products in cart. Add items to apply product-level discount.
-                    </div>
-                  ) : (
-                    <div className="d-flex flex-column gap-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
-                      {cart.map((item) => {
-                        const isSelected = selectedProdDiscountId === item.product.id;
-                        return (
-                          <div
-                            key={item.product.id}
-                            onClick={() => {
-                              setSelectedProdDiscountId(item.product.id);
-                              if (item.discount > 0) setProdDiscountVal(item.discount.toString());
-                            }}
-                            className="p-2 border rounded-3 d-flex align-items-center justify-content-between"
-                            style={{
-                              cursor: "pointer",
-                              backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
-                              borderColor: isSelected ? "#22c55e" : "#e2e8f0",
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            <div className="d-flex align-items-center gap-2">
-                              <div
-                                className="rounded overflow-hidden bg-light flex-shrink-0"
-                                style={{ width: 34, height: 34 }}
-                              >
-                                <img
-                                  src={item.product.image_url || fallbackProductImages[0]}
-                                  alt={item.product.name}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                />
-                              </div>
-                              <div>
-                                <h6 className="fs-13 fw-semibold mb-0 text-truncate" style={{ maxWidth: "200px" }}>
-                                  {item.product.name}
-                                </h6>
-                                <small className="text-muted fs-11">
-                                  {formatINR(item.unit_price)} × {item.quantity} qty
-                                </small>
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center gap-2">
-                              <span className="fs-13 fw-bold text-dark">{formatINR(item.total_amount)}</span>
-                              {isSelected && <i className="ti ti-check text-success fs-16" />}
-                            </div>
+              {/* Empty State */}
+              {!activeDiscountsBreakdown.hasAnyDiscount ? (
+                <div className="p-4 border rounded-3 bg-light text-center my-3">
+                  <i className="ti ti-percentage-off fs-36 text-muted d-block mb-2 opacity-50" />
+                  <h6 className="fs-14 fw-semibold text-dark mb-1">No discounts applied to this order yet</h6>
+                  <p className="fs-12 text-muted mb-3">
+                    Discounts applied by invoice, category, or product will appear here for easy removal.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-sm text-white px-3 fw-semibold"
+                    style={{ backgroundColor: "#0f8040", borderColor: "#0f8040" }}
+                    onClick={() => setDiscountDrawerMode("apply")}
+                  >
+                    <i className="ti ti-plus me-1" /> Apply New Discount
+                  </button>
+                </div>
+              ) : (
+                <div className="d-flex flex-column gap-2.5">
+                  <div className="fs-11 fw-bold text-muted text-uppercase" style={{ letterSpacing: "0.6px" }}>
+                    Applied Discounts Breakdown
+                  </div>
+
+                  {/* 1. Discount by Invoice / Bill */}
+                  {activeDiscountsBreakdown.bill && (
+                    <div
+                      className="p-3 border rounded-3 bg-white shadow-xs d-flex align-items-center justify-content-between gap-3"
+                      style={{ borderColor: "#e2e8f0" }}
+                    >
+                      <div className="d-flex align-items-center flex-grow-1 min-w-0" style={{ gap: "16px" }}>
+                        <div
+                          className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                          style={{
+                            width: "44px",
+                            height: "44px",
+                            backgroundColor: "#eff6ff",
+                            color: "#2563eb",
+                            border: "1px solid #dbeafe",
+                          }}
+                        >
+                          <i className="ti ti-file-invoice fs-20" />
+                        </div>
+                        <div className="flex-grow-1 min-w-0">
+                          <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                            <span className="fw-bold fs-14 text-dark text-truncate">
+                              Invoice / Bill Discount
+                            </span>
+                            <span
+                              className="badge fs-11 fw-semibold px-2 py-0.5"
+                              style={{
+                                backgroundColor: "#eff6ff",
+                                color: "#1d4ed8",
+                                border: "1px solid #bfdbfe",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              {activeDiscountsBreakdown.bill.type === "percentage"
+                                ? `${activeDiscountsBreakdown.bill.percent}% OFF`
+                                : `${formatINR(activeDiscountsBreakdown.bill.percent)} OFF`}
+                            </span>
                           </div>
-                        );
-                      })}
+                          <div className="fs-12 text-muted">
+                            Savings: <strong className="text-danger fw-bold">-{formatINR(activeDiscountsBreakdown.bill.savings)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-2 px-3 py-1.5 fs-12 fw-semibold flex-shrink-0"
+                        style={{ borderRadius: "6px" }}
+                        onClick={handleRemoveBillDiscount}
+                        title="Remove Invoice Discount"
+                      >
+                        <i className="ti ti-trash fs-13 me-0.5" /> Remove
+                      </button>
                     </div>
                   )}
-                </div>
 
-                <div className="mb-3">
-                  <label className="form-label fw-semibold fs-13 mb-2">Discount Type</label>
-                  <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
-                    <button
-                      type="button"
-                      className={`btn btn-sm flex-fill ${prodDiscountType === "percentage" ? "btn-primary shadow-sm" : "btn-light border-0"
-                        }`}
-                      onClick={() => setProdDiscountType("percentage")}
-                    >
-                      <i className="ti ti-percentage me-1" /> Percentage (%)
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-sm flex-fill ${prodDiscountType === "fixed" ? "btn-primary shadow-sm" : "btn-light border-0"
-                        }`}
-                      onClick={() => setProdDiscountType("fixed")}
-                    >
-                      <i className="ti ti-currency-rupee me-1" /> Fixed (₹)
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold fs-13 mb-1">
-                    {prodDiscountType === "percentage" ? "Product Discount (%)" : "Product Discount (₹)"}
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light text-muted">
-                      {prodDiscountType === "percentage" ? "%" : "₹"}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max={prodDiscountType === "percentage" ? 100 : 99999}
-                      step="any"
-                      className="form-control form-control-lg fw-bold"
-                      placeholder="0"
-                      value={prodDiscountVal}
-                      onChange={(e) => setProdDiscountVal(e.target.value)}
-                    />
-                  </div>
-                  <div className="d-flex gap-2 flex-wrap mt-2">
-                    {prodDiscountType === "percentage"
-                      ? [5, 10, 15, 20, 25, 50].map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          className={`btn btn-xs ${Number(prodDiscountVal) === d ? "btn-primary" : "btn-outline-secondary"}`}
-                          onClick={() => setProdDiscountVal(d.toString())}
-                        >
-                          {d}%
-                        </button>
-                      ))
-                      : [25, 50, 100, 200, 500].map((amt) => (
-                        <button
-                          key={amt}
-                          type="button"
-                          className={`btn btn-xs ${Number(prodDiscountVal) === amt ? "btn-primary" : "btn-outline-secondary"}`}
-                          onClick={() => setProdDiscountVal(amt.toString())}
-                        >
-                          ₹{amt}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-
-                {Number(prodDiscountVal) > 0 && selectedProdDiscountId && (() => {
-                  const targetItem = cart.find((c) => c.product.id === selectedProdDiscountId);
-                  if (!targetItem) return null;
-                  const itemRawTotal = targetItem.unit_price * targetItem.quantity;
-                  const numVal = Number(prodDiscountVal) || 0;
-                  const itemSavings =
-                    prodDiscountType === "percentage"
-                      ? (itemRawTotal * Math.min(100, numVal)) / 100
-                      : Math.min(itemRawTotal, numVal * targetItem.quantity);
-
-                  return (
+                  {/* 2. Discounts by Category */}
+                  {activeDiscountsBreakdown.categories.map((cat) => (
                     <div
-                      className="p-3 rounded-3 mb-2"
+                      key={cat.categoryName}
+                      className="p-3 border rounded-3 bg-white shadow-xs d-flex align-items-center justify-content-between gap-3"
+                      style={{ borderColor: "#e2e8f0" }}
+                    >
+                      <div className="d-flex align-items-center flex-grow-1 min-w-0" style={{ gap: "16px" }}>
+                        <div
+                          className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                          style={{
+                            width: "44px",
+                            height: "44px",
+                            backgroundColor: "#f0fdf4",
+                            color: "#0f8040",
+                            border: "1px solid #bbf7d0",
+                          }}
+                        >
+                          <i className="ti ti-category fs-20" />
+                        </div>
+                        <div className="flex-grow-1 min-w-0">
+                          <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                            <span className="fw-bold fs-14 text-dark text-truncate">
+                              Category: {cat.categoryName}
+                            </span>
+                            <span
+                              className="badge fs-11 fw-semibold px-2 py-0.5"
+                              style={{
+                                backgroundColor: "#f0fdf4",
+                                color: "#0f8040",
+                                border: "1px solid #bbf7d0",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              {cat.discount_type === "percentage"
+                                ? `${cat.discount}% OFF`
+                                : `${formatINR(cat.discount)}/item`}
+                            </span>
+                          </div>
+                          <div className="fs-12 text-muted">
+                            {cat.count} item{cat.count > 1 ? "s" : ""} in cart • Savings:{" "}
+                            <strong className="text-danger fw-bold">-{formatINR(cat.savings)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-2 px-3 py-1.5 fs-12 fw-semibold flex-shrink-0"
+                        style={{ borderRadius: "6px" }}
+                        onClick={() => handleRemoveCategoryDiscount(cat.categoryName)}
+                        title={`Remove Discount for category ${cat.categoryName}`}
+                      >
+                        <i className="ti ti-trash fs-13 me-0.5" /> Remove
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* 3. Discounts by Product */}
+                  {activeDiscountsBreakdown.products.map(({ item, savings }) => (
+                    <div
+                      key={item.product.id}
+                      className="p-3 border rounded-3 bg-white shadow-xs d-flex align-items-center justify-content-between gap-3"
+                      style={{ borderColor: "#e2e8f0" }}
+                    >
+                      <div className="d-flex align-items-center flex-grow-1 min-w-0" style={{ gap: "16px" }}>
+                        <div
+                          className="rounded-3 overflow-hidden bg-light border flex-shrink-0"
+                          style={{ width: "46px", height: "46px" }}
+                        >
+                          <img
+                            src={item.product.image_url || fallbackProductImages[0]}
+                            alt={item.product.name}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        </div>
+                        <div className="flex-grow-1 min-w-0">
+                          <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                            <span
+                              className="fw-bold fs-14 text-dark text-truncate"
+                              title={item.product.name}
+                              style={{ maxWidth: "220px" }}
+                            >
+                              {item.product.name}
+                            </span>
+                            <span
+                              className="badge fs-11 fw-semibold px-2 py-0.5"
+                              style={{
+                                backgroundColor: "#fff7ed",
+                                color: "#c2410c",
+                                border: "1px solid #ffedd5",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              {item.discount_type === "percentage"
+                                ? `${item.discount}% OFF`
+                                : `${formatINR(item.discount)}/item`}
+                            </span>
+                          </div>
+                          <div className="fs-12 text-muted">
+                            {item.quantity} qty • Savings:{" "}
+                            <strong className="text-danger fw-bold">-{formatINR(savings)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-2 px-3 py-1.5 fs-12 fw-semibold flex-shrink-0"
+                        style={{ borderRadius: "6px" }}
+                        onClick={() => handleRemoveProductDiscount(item.product.id)}
+                        title={`Remove Discount for ${item.product.name}`}
+                      >
+                        <i className="ti ti-trash fs-13 me-0.5" /> Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW 2: APPLY NEW DISCOUNT (Only shown when discountDrawerMode === 'apply') */}
+          {discountDrawerMode === "apply" && (
+            <div>
+              {/* 3 Top Discount Method Switcher Buttons */}
+              <div className="d-flex align-items-center mb-3">
+                <ul className="nav nav-pills w-100 d-flex gap-2 align-items-center flex-nowrap mb-0 p-0">
+                  <li className="flex-fill">
+                    <button
+                      type="button"
+                      className="nav-link w-100 border-0 d-flex align-items-center justify-content-center"
+                      onClick={() => setDiscountMethod("bill")}
                       style={{
-                        backgroundColor: "#f8fafc",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                        borderRadius: "8px",
+                        padding: "9px 12px",
+                        fontSize: "13px",
+                        fontWeight: discountMethod === "bill" ? 600 : 500,
+                        backgroundColor: discountMethod === "bill" ? "#0f8040" : "#f8fafc",
+                        color: discountMethod === "bill" ? "#ffffff" : "#475569",
+                        border: discountMethod === "bill" ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                        boxShadow: discountMethod === "bill" ? "0 2px 8px rgba(15, 128, 64, 0.22)" : "none",
+                        transition: "all 0.18s ease",
+                        whiteSpace: "nowrap",
+                        gap: "8px",
                       }}
                     >
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <span className="fs-13 fw-medium" style={{ color: "#64748b" }}>
-                          Product Savings ({targetItem.product.name}):
-                        </span>
-                        <span className="fs-14 fw-bold text-danger">
-                          -{formatINR(itemSavings)}
-                        </span>
+                      <i className="ti ti-receipt-2 fs-15" />
+                      <span>By Bill</span>
+                    </button>
+                  </li>
+                  <li className="flex-fill">
+                    <button
+                      type="button"
+                      className="nav-link w-100 border-0 d-flex align-items-center justify-content-center"
+                      onClick={() => {
+                        setDiscountMethod("category");
+                        if (!selectedCatDiscount) {
+                          const firstCat =
+                            cart[0]?.product.category_name ||
+                            cart[0]?.product.category ||
+                            categories[0]?.name ||
+                            "";
+                          setSelectedCatDiscount(firstCat);
+                        }
+                      }}
+                      style={{
+                        borderRadius: "8px",
+                        padding: "9px 12px",
+                        fontSize: "13px",
+                        fontWeight: discountMethod === "category" ? 600 : 500,
+                        backgroundColor: discountMethod === "category" ? "#0f8040" : "#f8fafc",
+                        color: discountMethod === "category" ? "#ffffff" : "#475569",
+                        border: discountMethod === "category" ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                        boxShadow: discountMethod === "category" ? "0 2px 8px rgba(15, 128, 64, 0.22)" : "none",
+                        transition: "all 0.18s ease",
+                        whiteSpace: "nowrap",
+                        gap: "8px",
+                      }}
+                    >
+                      <i className="ti ti-category fs-15" />
+                      <span>By Category</span>
+                    </button>
+                  </li>
+                  <li className="flex-fill">
+                    <button
+                      type="button"
+                      className="nav-link w-100 border-0 d-flex align-items-center justify-content-center"
+                      onClick={() => {
+                        setDiscountMethod("product");
+                        if (!selectedProdDiscountId && cart.length > 0) {
+                          setSelectedProdDiscountId(cart[0].product.id);
+                        }
+                      }}
+                      style={{
+                        borderRadius: "8px",
+                        padding: "9px 12px",
+                        fontSize: "13px",
+                        fontWeight: discountMethod === "product" ? 600 : 500,
+                        backgroundColor: discountMethod === "product" ? "#0f8040" : "#f8fafc",
+                        color: discountMethod === "product" ? "#ffffff" : "#475569",
+                        border: discountMethod === "product" ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                        boxShadow: discountMethod === "product" ? "0 2px 8px rgba(15, 128, 64, 0.22)" : "none",
+                        transition: "all 0.18s ease",
+                        whiteSpace: "nowrap",
+                        gap: "8px",
+                      }}
+                    >
+                      <i className="ti ti-box fs-15" />
+                      <span>By Product</span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
+              <form id="apply-discount-module-form" onSubmit={handleApplyDiscount}>
+                {/* METHOD 1: DISCOUNT BY BILL */}
+                {discountMethod === "bill" && (
+                  <div>
+                    <div
+                      className="p-3 rounded-3 border mb-3"
+                      style={{ backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" }}
+                    >
+                      <div className="d-flex align-items-center justify-content-between mb-1.5">
+                        <span className="fs-12 fw-semibold text-muted">Current Order Subtotal</span>
+                        <span className="fs-14 fw-bold" style={{ color: "#0f8040" }}>{formatINR(totals.subtotal)}</span>
                       </div>
-                      <div
-                        className="d-flex align-items-center justify-content-between pt-2"
-                        style={{ borderTop: "1px solid #e2e8f0" }}
-                      >
-                        <span className="fs-13 fw-bold" style={{ color: "#1e293b" }}>
-                          Product Total:
-                        </span>
-                        <span className="fs-15 fw-bold" style={{ color: "#16a34a" }}>
-                          {formatINR(Math.max(0, itemRawTotal - itemSavings))}
-                        </span>
+                      <div className="d-flex align-items-center justify-content-between">
+                        <span className="fs-12 text-muted">Cart Items</span>
+                        <span className="fs-12 fw-semibold text-dark">{totals.totalItems} items</span>
                       </div>
                     </div>
-                  );
-                })()}
-              </div>
-            )}
-          </form>
+
+                    <div className="mb-3">
+                      <label className="form-label fw-bold fs-13 mb-1.5 text-dark">Discount Type</label>
+                      <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
+                        <button
+                          type="button"
+                          className="btn btn-sm flex-fill fw-semibold py-1.5"
+                          style={{
+                            backgroundColor: billDiscountType === "percentage" ? "#0f8040" : "transparent",
+                            color: billDiscountType === "percentage" ? "#ffffff" : "#475569",
+                            border: "none",
+                            borderRadius: "6px",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => setBillDiscountType("percentage")}
+                        >
+                          <i className="ti ti-percentage me-1" /> Percentage (%)
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm flex-fill fw-semibold py-1.5"
+                          style={{
+                            backgroundColor: billDiscountType === "fixed" ? "#0f8040" : "transparent",
+                            color: billDiscountType === "fixed" ? "#ffffff" : "#475569",
+                            border: "none",
+                            borderRadius: "6px",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => setBillDiscountType("fixed")}
+                        >
+                          <i className="ti ti-currency-rupee me-1" /> Fixed (₹)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label fw-bold fs-13 mb-1 text-dark">
+                        {billDiscountType === "percentage" ? "Bill Discount Percentage (%)" : "Bill Discount Amount (₹)"}
+                      </label>
+                      <div className="input-group mb-2" style={{ maxWidth: "180px" }}>
+                        <span className="input-group-text bg-light text-muted fw-bold px-2.5 fs-14">
+                          {billDiscountType === "percentage" ? "%" : "₹"}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={billDiscountType === "percentage" ? 100 : totals.subtotal}
+                          step="any"
+                          className="form-control fw-bold fs-15"
+                          placeholder="0"
+                          value={billDiscountVal}
+                          onChange={(e) => setBillDiscountVal(e.target.value)}
+                        />
+                      </div>
+                      <div className="d-flex flex-wrap" style={{ gap: "8px" }}>
+                        {billDiscountType === "percentage"
+                          ? [5, 10, 15, 20, 25, 50].map((d) => {
+                            const isSelected = Number(billDiscountVal) === d;
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                className="btn btn-sm"
+                                style={{
+                                  minWidth: "48px",
+                                  height: "36px",
+                                  padding: "6px 12px",
+                                  borderRadius: "6px",
+                                  fontSize: "13px",
+                                  fontWeight: isSelected ? 600 : 500,
+                                  backgroundColor: isSelected ? "#0f8040" : "#ffffff",
+                                  color: isSelected ? "#ffffff" : "#334155",
+                                  border: isSelected ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onClick={() => setBillDiscountVal(d.toString())}
+                              >
+                                {d}%
+                              </button>
+                            );
+                          })
+                          : [50, 100, 200, 500, 1000].map((amt) => {
+                            const isSelected = Number(billDiscountVal) === amt;
+                            return (
+                              <button
+                                key={amt}
+                                type="button"
+                                className="btn btn-sm"
+                                style={{
+                                  minWidth: "54px",
+                                  height: "36px",
+                                  padding: "6px 12px",
+                                  borderRadius: "6px",
+                                  fontSize: "13px",
+                                  fontWeight: isSelected ? 600 : 500,
+                                  backgroundColor: isSelected ? "#0f8040" : "#ffffff",
+                                  color: isSelected ? "#ffffff" : "#334155",
+                                  border: isSelected ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onClick={() => setBillDiscountVal(amt.toString())}
+                              >
+                                ₹{amt}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {Number(billDiscountVal) > 0 && totals.subtotal > 0 && (
+                      <div
+                        className="p-3 rounded-3 mb-2"
+                        style={{
+                          backgroundColor: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                        }}
+                      >
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span className="fs-13 fw-medium text-muted">
+                            Total Savings:
+                          </span>
+                          <span className="fs-15 fw-bold text-danger">
+                            -
+                            {formatINR(
+                              billDiscountType === "percentage"
+                                ? (totals.subtotal * Math.min(100, Number(billDiscountVal) || 0)) / 100
+                                : Math.min(totals.subtotal, Number(billDiscountVal) || 0)
+                            )}
+                          </span>
+                        </div>
+                        <div
+                          className="d-flex align-items-center justify-content-between pt-2"
+                          style={{ borderTop: "1px solid #e2e8f0" }}
+                        >
+                          <span className="fs-13 fw-bold text-dark">
+                            Estimated Total:
+                          </span>
+                          <span className="fs-16 fw-bolder" style={{ color: "#0f8040" }}>
+                            {formatINR(
+                              Math.max(
+                                0,
+                                totals.subtotal -
+                                (billDiscountType === "percentage"
+                                  ? (totals.subtotal * Math.min(100, Number(billDiscountVal) || 0)) / 100
+                                  : Math.min(totals.subtotal, Number(billDiscountVal) || 0))
+                              )
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* METHOD 2: DISCOUNT BY CATEGORY */}
+                {discountMethod === "category" && (
+                  <div>
+                    <div className="mb-3">
+                      {(() => {
+                        const cartCats = Array.from(
+                          new Set(cart.map((c) => c.product.category_name || c.product.category || "General"))
+                        ).filter(Boolean);
+
+                        return (
+                          <>
+                            <div className="d-flex align-items-center justify-content-between mb-2">
+                              <label className="form-label fw-bold fs-13 mb-0 text-dark">
+                                Select Categories ({selectedCatDiscounts.length} selected)
+                              </label>
+                              {cartCats.length > 0 && (
+                                <button
+                                  type="button"
+                                  className="btn btn-link btn-sm p-0 fs-12 text-decoration-none fw-semibold"
+                                  style={{ color: "#0f8040" }}
+                                  onClick={() => {
+                                    if (selectedCatDiscounts.length === cartCats.length) {
+                                      setSelectedCatDiscounts([]);
+                                    } else {
+                                      setSelectedCatDiscounts([...cartCats]);
+                                    }
+                                  }}
+                                >
+                                  {selectedCatDiscounts.length === cartCats.length ? "Deselect All" : "Select All"}
+                                </button>
+                              )}
+                            </div>
+
+                            {cartCats.length === 0 ? (
+                              <div className="text-center p-3 border rounded-3 bg-light text-muted fs-13 mt-2">
+                                <i className="ti ti-shopping-cart-x fs-20 d-block mb-1 opacity-50" />
+                                No products in cart to categorize. Add items to cart first.
+                              </div>
+                            ) : (
+                              <div
+                                className="border rounded-3 overflow-hidden bg-white shadow-xs mt-2"
+                                style={{ maxHeight: "240px", overflowY: "auto", borderColor: "#e2e8f0" }}
+                              >
+                                {cartCats.map((catName, idx) => {
+                                  const itemsInCart = cart.filter(
+                                    (c) =>
+                                      (c.product.category_name || c.product.category || "General").toLowerCase() ===
+                                      catName.toLowerCase()
+                                  );
+                                  const catSubtotal = itemsInCart.reduce((sum, it) => sum + it.unit_price * it.quantity, 0);
+                                  const isSelected = selectedCatDiscounts.some(
+                                    (c) => c.toLowerCase() === catName.toLowerCase()
+                                  );
+
+                                  return (
+                                    <div
+                                      key={catName}
+                                      onClick={() => {
+                                        setSelectedCatDiscounts((prev) => {
+                                          const exists = prev.some((c) => c.toLowerCase() === catName.toLowerCase());
+                                          if (exists) {
+                                            return prev.filter((c) => c.toLowerCase() !== catName.toLowerCase());
+                                          } else {
+                                            return [...prev, catName];
+                                          }
+                                        });
+                                      }}
+                                      className="d-flex align-items-center justify-content-between"
+                                      style={{
+                                        padding: "12px 16px",
+                                        cursor: "pointer",
+                                        backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
+                                        borderBottom: idx === cartCats.length - 1 ? "none" : "1px solid #f1f5f9",
+                                        borderLeft: isSelected ? "4px solid #0f8040" : "4px solid transparent",
+                                        transition: "all 0.15s ease",
+                                      }}
+                                    >
+                                      <div className="d-flex align-items-center min-w-0" style={{ gap: "12px" }}>
+                                        {/* Checkbox */}
+                                        <div
+                                          className="d-flex align-items-center justify-content-center rounded flex-shrink-0"
+                                          style={{
+                                            width: "20px",
+                                            height: "20px",
+                                            border: isSelected ? "1.5px solid #0f8040" : "1.5px solid #cbd5e1",
+                                            backgroundColor: isSelected ? "#0f8040" : "#ffffff",
+                                            color: "#ffffff",
+                                            transition: "all 0.15s ease",
+                                          }}
+                                        >
+                                          {isSelected && <i className="ti ti-check fs-12 fw-bold" />}
+                                        </div>
+
+                                        {/* Icon Squircle */}
+                                        <div
+                                          className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                          style={{
+                                            width: "32px",
+                                            height: "32px",
+                                            backgroundColor: isSelected ? "#e7f6ec" : "#f1f5f9",
+                                            color: isSelected ? "#0f8040" : "#64748b",
+                                          }}
+                                        >
+                                          <i className="ti ti-category fs-16" />
+                                        </div>
+
+                                        {/* Category Name */}
+                                        <span className={`fs-13 text-truncate ${isSelected ? "fw-bold text-dark" : "fw-medium text-dark"}`}>
+                                          {catName}
+                                        </span>
+                                      </div>
+
+                                      {/* Right Badge */}
+                                      <div className="flex-shrink-0 ms-3">
+                                        <span
+                                          className="badge fs-12 fw-semibold px-2.5 py-1.5"
+                                          style={{
+                                            backgroundColor: isSelected ? "#e7f6ec" : "#f8fafc",
+                                            color: isSelected ? "#0f8040" : "#475569",
+                                            border: isSelected ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+                                            borderRadius: "6px",
+                                          }}
+                                        >
+                                          {itemsInCart.length} in cart ({formatINR(catSubtotal)})
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label fw-bold fs-13 mb-1.5 text-dark">Discount Type</label>
+                      <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
+                        <button
+                          type="button"
+                          className="btn btn-sm flex-fill fw-semibold py-1.5"
+                          style={{
+                            backgroundColor: catDiscountType === "percentage" ? "#0f8040" : "transparent",
+                            color: catDiscountType === "percentage" ? "#ffffff" : "#475569",
+                            border: "none",
+                            borderRadius: "6px",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => setCatDiscountType("percentage")}
+                        >
+                          <i className="ti ti-percentage me-1" /> Percentage (%)
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm flex-fill fw-semibold py-1.5"
+                          style={{
+                            backgroundColor: catDiscountType === "fixed" ? "#0f8040" : "transparent",
+                            color: catDiscountType === "fixed" ? "#ffffff" : "#475569",
+                            border: "none",
+                            borderRadius: "6px",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => setCatDiscountType("fixed")}
+                        >
+                          <i className="ti ti-currency-rupee me-1" /> Fixed (₹ per item)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label fw-bold fs-13 mb-1 text-dark">
+                        {catDiscountType === "percentage" ? "Category Discount (%)" : "Discount Amount (₹ per item)"}
+                      </label>
+                      <div className="input-group mb-2" style={{ maxWidth: "180px" }}>
+                        <span className="input-group-text bg-light text-muted fw-bold px-2.5 fs-14">
+                          {catDiscountType === "percentage" ? "%" : "₹"}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={catDiscountType === "percentage" ? 100 : 99999}
+                          step="any"
+                          className="form-control fw-bold fs-15"
+                          placeholder="0"
+                          value={catDiscountVal}
+                          onChange={(e) => setCatDiscountVal(e.target.value)}
+                        />
+                      </div>
+                      <div className="d-flex flex-wrap" style={{ gap: "8px" }}>
+                        {catDiscountType === "percentage"
+                          ? [5, 10, 15, 20, 25, 30].map((d) => {
+                            const isSelected = Number(catDiscountVal) === d;
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                className="btn btn-sm"
+                                style={{
+                                  minWidth: "48px",
+                                  height: "36px",
+                                  padding: "6px 12px",
+                                  borderRadius: "6px",
+                                  fontSize: "13px",
+                                  fontWeight: isSelected ? 600 : 500,
+                                  backgroundColor: isSelected ? "#0f8040" : "#ffffff",
+                                  color: isSelected ? "#ffffff" : "#334155",
+                                  border: isSelected ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onClick={() => setCatDiscountVal(d.toString())}
+                              >
+                                {d}%
+                              </button>
+                            );
+                          })
+                          : [20, 50, 100, 200, 300].map((amt) => {
+                            const isSelected = Number(catDiscountVal) === amt;
+                            return (
+                              <button
+                                key={amt}
+                                type="button"
+                                className="btn btn-sm"
+                                style={{
+                                  minWidth: "54px",
+                                  height: "36px",
+                                  padding: "6px 12px",
+                                  borderRadius: "6px",
+                                  fontSize: "13px",
+                                  fontWeight: isSelected ? 600 : 500,
+                                  backgroundColor: isSelected ? "#0f8040" : "#ffffff",
+                                  color: isSelected ? "#ffffff" : "#334155",
+                                  border: isSelected ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onClick={() => setCatDiscountVal(amt.toString())}
+                              >
+                                ₹{amt}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {Number(catDiscountVal) > 0 && selectedCatDiscounts.length > 0 && (() => {
+                      const matchingItems = cart.filter((c) => {
+                        const itemCat = c.product.category_name || c.product.category || "General";
+                        return selectedCatDiscounts.some((sc) => sc.toLowerCase() === itemCat.toLowerCase());
+                      });
+                      const catRawSubtotal = matchingItems.reduce((sum, it) => sum + it.unit_price * it.quantity, 0);
+                      const catQty = matchingItems.reduce((sum, it) => sum + it.quantity, 0);
+                      const numVal = Number(catDiscountVal) || 0;
+                      const catSavings =
+                        catDiscountType === "percentage"
+                          ? (catRawSubtotal * Math.min(100, numVal)) / 100
+                          : Math.min(catRawSubtotal, numVal * catQty);
+
+                      return catRawSubtotal > 0 ? (
+                        <div
+                          className="p-3 rounded-3 mb-2"
+                          style={{
+                            backgroundColor: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                          }}
+                        >
+                          <div className="d-flex align-items-center justify-content-between mb-2">
+                            <span className="fs-13 fw-medium text-muted">
+                              Category Savings ({matchingItems.length} items in {selectedCatDiscounts.length} {selectedCatDiscounts.length > 1 ? "categories" : "category"}):
+                            </span>
+                            <span className="fs-14 fw-bold text-danger">
+                              -{formatINR(catSavings)}
+                            </span>
+                          </div>
+                          <div
+                            className="d-flex align-items-center justify-content-between pt-2"
+                            style={{ borderTop: "1px solid #e2e8f0" }}
+                          >
+                            <span className="fs-13 fw-bold text-dark">
+                              Category Total:
+                            </span>
+                            <span className="fs-15 fw-bold" style={{ color: "#0f8040" }}>
+                              {formatINR(Math.max(0, catRawSubtotal - catSavings))}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
+
+                {/* METHOD 3: DISCOUNT BY PRODUCT */}
+                {discountMethod === "product" && (
+                  <div>
+                    <div className="mb-3">
+                      <div className="d-flex align-items-center justify-content-between mb-2">
+                        <label className="form-label fw-bold fs-13 mb-0 text-dark">
+                          Select Products ({selectedProdDiscountIds.length} selected)
+                        </label>
+                        {cart.length > 0 && (
+                          <button
+                            type="button"
+                            className="btn btn-link btn-sm p-0 fs-12 text-decoration-none fw-semibold"
+                            style={{ color: "#0f8040" }}
+                            onClick={() => {
+                              const allIds = cart.map((c) => c.product.id);
+                              if (selectedProdDiscountIds.length === allIds.length) {
+                                setSelectedProdDiscountIds([]);
+                              } else {
+                                setSelectedProdDiscountIds(allIds);
+                              }
+                            }}
+                          >
+                            {selectedProdDiscountIds.length === cart.length ? "Deselect All" : "Select All"}
+                          </button>
+                        )}
+                      </div>
+                      {cart.length === 0 ? (
+                        <div className="text-center p-3 border rounded-3 bg-light text-muted fs-13 mt-2">
+                          <i className="ti ti-shopping-cart-x fs-20 d-block mb-1 opacity-50" />
+                          No products in cart. Add items to apply product-level discount.
+                        </div>
+                      ) : (
+                        <div
+                          className="border rounded-3 overflow-hidden bg-white shadow-xs mt-2"
+                          style={{ maxHeight: "240px", overflowY: "auto", borderColor: "#e2e8f0" }}
+                        >
+                          {cart.map((item, idx) => {
+                            const isSelected = selectedProdDiscountIds.includes(item.product.id);
+                            return (
+                              <div
+                                key={item.product.id}
+                                onClick={() => {
+                                  setSelectedProdDiscountIds((prev) => {
+                                    if (prev.includes(item.product.id)) {
+                                      return prev.filter((id) => id !== item.product.id);
+                                    } else {
+                                      return [...prev, item.product.id];
+                                    }
+                                  });
+                                  if (item.discount > 0) setProdDiscountVal(item.discount.toString());
+                                }}
+                                className="d-flex align-items-center justify-content-between"
+                                style={{
+                                  padding: "12px 16px",
+                                  cursor: "pointer",
+                                  backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
+                                  borderBottom: idx === cart.length - 1 ? "none" : "1px solid #f1f5f9",
+                                  borderLeft: isSelected ? "4px solid #0f8040" : "4px solid transparent",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <div className="d-flex align-items-center min-w-0" style={{ gap: "12px" }}>
+                                  {/* Checkbox */}
+                                  <div
+                                    className="d-flex align-items-center justify-content-center rounded flex-shrink-0"
+                                    style={{
+                                      width: "20px",
+                                      height: "20px",
+                                      border: isSelected ? "1.5px solid #0f8040" : "1.5px solid #cbd5e1",
+                                      backgroundColor: isSelected ? "#0f8040" : "#ffffff",
+                                      color: "#ffffff",
+                                      transition: "all 0.15s ease",
+                                    }}
+                                  >
+                                    {isSelected && <i className="ti ti-check fs-12 fw-bold" />}
+                                  </div>
+
+                                  {/* Thumbnail */}
+                                  <div
+                                    className="rounded-2 overflow-hidden bg-light flex-shrink-0 border"
+                                    style={{ width: "40px", height: "40px" }}
+                                  >
+                                    <img
+                                      src={item.product.image_url || fallbackProductImages[0]}
+                                      alt={item.product.name}
+                                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                    />
+                                  </div>
+
+                                  {/* Info */}
+                                  <div className="min-w-0">
+                                    <h6
+                                      className={`fs-13 mb-0.5 text-truncate ${isSelected ? "fw-bold text-dark" : "fw-semibold text-dark"}`}
+                                      style={{ maxWidth: "210px" }}
+                                    >
+                                      {item.product.name}
+                                    </h6>
+                                    <small className="text-muted fs-11">
+                                      {formatINR(item.unit_price)} × {item.quantity} qty
+                                    </small>
+                                  </div>
+                                </div>
+
+                                {/* Right: Price */}
+                                <div className="flex-shrink-0 ms-3">
+                                  <span className="fs-13 fw-bold text-dark">{formatINR(item.total_amount)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label fw-bold fs-13 mb-1.5 text-dark">Discount Type</label>
+                      <div className="d-flex gap-2 p-1 bg-light rounded-3 border">
+                        <button
+                          type="button"
+                          className="btn btn-sm flex-fill fw-semibold py-1.5"
+                          style={{
+                            backgroundColor: prodDiscountType === "percentage" ? "#0f8040" : "transparent",
+                            color: prodDiscountType === "percentage" ? "#ffffff" : "#475569",
+                            border: "none",
+                            borderRadius: "6px",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => setProdDiscountType("percentage")}
+                        >
+                          <i className="ti ti-percentage me-1" /> Percentage (%)
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm flex-fill fw-semibold py-1.5"
+                          style={{
+                            backgroundColor: prodDiscountType === "fixed" ? "#0f8040" : "transparent",
+                            color: prodDiscountType === "fixed" ? "#ffffff" : "#475569",
+                            border: "none",
+                            borderRadius: "6px",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => setProdDiscountType("fixed")}
+                        >
+                          <i className="ti ti-currency-rupee me-1" /> Fixed (₹ per item)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label fw-bold fs-13 mb-1 text-dark">
+                        {prodDiscountType === "percentage" ? "Product Discount (%)" : "Product Discount (₹ per item)"}
+                      </label>
+                      <div className="input-group mb-2" style={{ maxWidth: "180px" }}>
+                        <span className="input-group-text bg-light text-muted fw-bold px-2.5 fs-14">
+                          {prodDiscountType === "percentage" ? "%" : "₹"}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={prodDiscountType === "percentage" ? 100 : 99999}
+                          step="any"
+                          className="form-control fw-bold fs-15"
+                          placeholder="0"
+                          value={prodDiscountVal}
+                          onChange={(e) => setProdDiscountVal(e.target.value)}
+                        />
+                      </div>
+                      <div className="d-flex flex-wrap" style={{ gap: "8px" }}>
+                        {prodDiscountType === "percentage"
+                          ? [5, 10, 15, 20, 25, 30].map((d) => {
+                            const isSelected = Number(prodDiscountVal) === d;
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                className="btn btn-sm"
+                                style={{
+                                  minWidth: "48px",
+                                  height: "36px",
+                                  padding: "6px 12px",
+                                  borderRadius: "6px",
+                                  fontSize: "13px",
+                                  fontWeight: isSelected ? 600 : 500,
+                                  backgroundColor: isSelected ? "#0f8040" : "#ffffff",
+                                  color: isSelected ? "#ffffff" : "#334155",
+                                  border: isSelected ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onClick={() => setProdDiscountVal(d.toString())}
+                              >
+                                {d}%
+                              </button>
+                            );
+                          })
+                          : [25, 50, 100, 200, 500].map((amt) => {
+                            const isSelected = Number(prodDiscountVal) === amt;
+                            return (
+                              <button
+                                key={amt}
+                                type="button"
+                                className="btn btn-sm"
+                                style={{
+                                  minWidth: "54px",
+                                  height: "36px",
+                                  padding: "6px 12px",
+                                  borderRadius: "6px",
+                                  fontSize: "13px",
+                                  fontWeight: isSelected ? 600 : 500,
+                                  backgroundColor: isSelected ? "#0f8040" : "#ffffff",
+                                  color: isSelected ? "#ffffff" : "#334155",
+                                  border: isSelected ? "1.5px solid #0f8040" : "1.5px solid #e2e8f0",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onClick={() => setProdDiscountVal(amt.toString())}
+                              >
+                                ₹{amt}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {Number(prodDiscountVal) > 0 && selectedProdDiscountIds.length > 0 && (() => {
+                      const targetItems = cart.filter((c) => selectedProdDiscountIds.includes(c.product.id));
+                      if (targetItems.length === 0) return null;
+                      const numVal = Number(prodDiscountVal) || 0;
+                      const totalSavings = targetItems.reduce((acc, it) => {
+                        const lineRaw = it.unit_price * it.quantity;
+                        const sav =
+                          prodDiscountType === "percentage"
+                            ? (lineRaw * Math.min(100, numVal)) / 100
+                            : Math.min(lineRaw, numVal * it.quantity);
+                        return acc + sav;
+                      }, 0);
+                      const totalRaw = targetItems.reduce((acc, it) => acc + it.unit_price * it.quantity, 0);
+
+                      return (
+                        <div
+                          className="p-3 rounded-3 mb-2"
+                          style={{
+                            backgroundColor: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                          }}
+                        >
+                          <div className="d-flex align-items-center justify-content-between mb-2">
+                            <span className="fs-13 fw-medium text-muted">
+                              Product Savings ({targetItems.length} selected):
+                            </span>
+                            <span className="fs-14 fw-bold text-danger">
+                              -{formatINR(totalSavings)}
+                            </span>
+                          </div>
+                          <div
+                            className="d-flex align-items-center justify-content-between pt-2"
+                            style={{ borderTop: "1px solid #e2e8f0" }}
+                          >
+                            <span className="fs-13 fw-bold text-dark">
+                              Products Total:
+                            </span>
+                            <span className="fs-15 fw-bold" style={{ color: "#0f8040" }}>
+                              {formatINR(Math.max(0, totalRaw - totalSavings))}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
         </div>
 
         {/* Pinned Bottom Footer */}
         <div className="offcanvas-footer d-flex align-items-center gap-2 p-3 border-top flex-shrink-0 bg-white">
-          <button
-            type="button"
-            className="btn btn-outline-danger d-flex align-items-center justify-content-center"
-            onClick={handleClearDiscount}
-            style={{ minWidth: "90px" }}
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            className="btn btn-light d-flex align-items-center justify-content-center flex-fill"
-            onClick={() => setDiscountDrawerOpen(false)}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary d-flex align-items-center justify-content-center flex-fill fw-bold"
-            onClick={() => {
-              const form = document.getElementById("apply-discount-module-form") as HTMLFormElement;
-              if (form) form.requestSubmit();
-            }}
-          >
-            <i className="ti ti-check me-1" /> Apply Discount
-          </button>
+          {discountDrawerMode === "manage" ? (
+            <>
+              {activeDiscountsBreakdown.hasAnyDiscount && (
+                <button
+                  type="button"
+                  className="btn btn-outline-danger d-flex align-items-center justify-content-center gap-1 fw-semibold flex-fill"
+                  onClick={handleRemoveAllDiscounts}
+                >
+                  <i className="ti ti-trash fs-14" /> Remove All Discounts
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-light d-flex align-items-center justify-content-center flex-fill fw-semibold"
+                onClick={() => setDiscountDrawerOpen(false)}
+              >
+                Close
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline-danger d-flex align-items-center justify-content-center"
+                onClick={handleClearDiscount}
+                style={{ minWidth: "90px" }}
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                className="btn btn-light d-flex align-items-center justify-content-center flex-fill"
+                onClick={() => setDiscountDrawerOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn text-white d-flex align-items-center justify-content-center flex-fill fw-bold shadow-sm"
+                style={{ backgroundColor: "#0f8040", borderColor: "#0f8040" }}
+                onClick={() => {
+                  const form = document.getElementById("apply-discount-module-form") as HTMLFormElement;
+                  if (form) form.requestSubmit();
+                }}
+              >
+                <i className="ti ti-check me-1.5" /> Apply Discount
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -7890,57 +9555,7 @@ const Pos: React.FC = () => {
             </div>
           </div>
 
-          {/* 3. Complimentary Option Card */}
-          <div
-            className="card rounded-3 p-3 mb-0"
-            style={{
-              borderColor: tempAddOns.complimentary ? "#10b981" : "#e2e8f0",
-              borderWidth: "1.5px",
-              borderStyle: "solid",
-              backgroundColor: tempAddOns.complimentary ? "#ecfdf5" : "#ffffff",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onClick={() =>
-              setTempAddOns((prev) => ({ ...prev, complimentary: !prev.complimentary }))
-            }
-          >
-            <div className="d-flex align-items-center justify-content-between">
-              <div className="d-flex align-items-center gap-3">
-                <div className="form-check m-0">
-                  <input
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={tempAddOns.complimentary}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      setTempAddOns((prev) => ({ ...prev, complimentary: e.target.checked }));
-                    }}
-                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
-                  />
-                </div>
-                <div
-                  className="rounded-circle d-flex align-items-center justify-content-center"
-                  style={{
-                    width: 38,
-                    height: 38,
-                    backgroundColor: tempAddOns.complimentary ? "#d1fae5" : "#f1f5f9",
-                    color: tempAddOns.complimentary ? "#059669" : "#64748b",
-                  }}
-                >
-                  <i className="ti ti-gift fs-18" />
-                </div>
-                <div>
-                  <h6 className="mb-0 fw-bold fs-14" style={{ color: "#1e293b" }}>
-                    Complimentary
-                  </h6>
-                  <p className="text-muted fs-12 mb-0">Add free gifts or promotional items</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 4. Points / Loyalty Option Card */}
+          {/* 3. Points / Loyalty Option Card */}
           <div
             className="card rounded-3 p-3 mb-0"
             style={{
@@ -7985,6 +9600,106 @@ const Pos: React.FC = () => {
                     Points / Loyalty
                   </h6>
                   <p className="text-muted fs-12 mb-0">Redeem customer bonus &amp; loyalty points</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Gift Card Option Card */}
+          <div
+            className="card rounded-3 p-3 mb-0"
+            style={{
+              borderColor: tempAddOns.giftcard ? "#a855f7" : "#e2e8f0",
+              borderWidth: "1.5px",
+              borderStyle: "solid",
+              backgroundColor: tempAddOns.giftcard ? "#faf5ff" : "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onClick={() =>
+              setTempAddOns((prev) => ({ ...prev, giftcard: !prev.giftcard }))
+            }
+          >
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-3">
+                <div className="form-check m-0">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={tempAddOns.giftcard}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setTempAddOns((prev) => ({ ...prev, giftcard: e.target.checked }));
+                    }}
+                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                  />
+                </div>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    backgroundColor: tempAddOns.giftcard ? "#f3e8ff" : "#f1f5f9",
+                    color: tempAddOns.giftcard ? "#9333ea" : "#64748b",
+                  }}
+                >
+                  <i className="ti ti-gift fs-18" />
+                </div>
+                <div>
+                  <h6 className="mb-0 fw-bold fs-14" style={{ color: "#1e293b" }}>
+                    Gift Card
+                  </h6>
+                  <p className="text-muted fs-12 mb-0">Redeem store gift voucher or card balance</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Complimentary Option Card */}
+          <div
+            className="card rounded-3 p-3 mb-0"
+            style={{
+              borderColor: tempAddOns.complimentary ? "#10b981" : "#e2e8f0",
+              borderWidth: "1.5px",
+              borderStyle: "solid",
+              backgroundColor: tempAddOns.complimentary ? "#ecfdf5" : "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onClick={() =>
+              setTempAddOns((prev) => ({ ...prev, complimentary: !prev.complimentary }))
+            }
+          >
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-3">
+                <div className="form-check m-0">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={tempAddOns.complimentary}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setTempAddOns((prev) => ({ ...prev, complimentary: e.target.checked }));
+                    }}
+                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                  />
+                </div>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    backgroundColor: tempAddOns.complimentary ? "#d1fae5" : "#f1f5f9",
+                    color: tempAddOns.complimentary ? "#059669" : "#64748b",
+                  }}
+                >
+                  <i className="ti ti-gift fs-18" />
+                </div>
+                <div>
+                  <h6 className="mb-0 fw-bold fs-14" style={{ color: "#1e293b" }}>
+                    Complimentary
+                  </h6>
+                  <p className="text-muted fs-12 mb-0">Add free gifts or promotional items</p>
                 </div>
               </div>
             </div>
@@ -8300,17 +10015,23 @@ const Pos: React.FC = () => {
         <div className="offcanvas-header d-flex align-items-center justify-content-between flex-shrink-0 px-4 pt-4 pb-3 border-bottom">
           <div className="d-flex align-items-center gap-2">
             <div
-              className="rounded-circle p-2 d-flex align-items-center justify-content-center bg-soft-primary text-primary"
+              className={`rounded-circle p-2 d-flex align-items-center justify-content-center ${
+                shippingDrawerMode === "shipping_details"
+                  ? "bg-soft-info text-info"
+                  : "bg-soft-primary text-primary"
+              }`}
               style={{ width: "38px", height: "38px" }}
             >
-              <i className="ti ti-truck-delivery fs-20" />
+              <i className={`ti ${shippingDrawerMode === "shipping_details" ? "ti-map-pin" : "ti-truck-delivery"} fs-20`} />
             </div>
             <div>
               <h4 className="offcanvas-title mb-0 fw-bold" style={{ color: "#1e293b", fontSize: "19px" }}>
-                Shipping &amp; Delivery
+                {shippingDrawerMode === "shipping_details" ? "Shipping & Delivery Details" : "Additional Charges"}
               </h4>
               <p className="mb-0 text-muted fs-12">
-                Configure shipping charges, origin and destination details
+                {shippingDrawerMode === "shipping_details"
+                  ? "Manage shipping charges and delivery destination details"
+                  : "Add custom charges like package charge, service charge, etc."}
               </p>
             </div>
           </div>
@@ -8339,258 +10060,790 @@ const Pos: React.FC = () => {
 
         {/* Scrollable Content Body */}
         <div className="offcanvas-body flex-grow-1 overflow-y-auto px-4 py-3 d-flex flex-column gap-3">
-          {/* Shipping Charges Card */}
-          <div
-            className="rounded-3"
-            style={{
-              backgroundColor: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              padding: "16px 18px",
-            }}
-          >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <label className="form-label fs-13 fw-bold text-dark mb-0 d-flex align-items-center gap-1.5">
-                <i className="ti ti-currency-rupee text-primary fs-15" />
-                Shipping Charges (₹)
-              </label>
-              <span className="text-muted fs-11 fw-medium">Quick Select</span>
-            </div>
+          {shippingDrawerMode === "additional_charges" ? (
+            <div className="d-flex flex-column gap-2 pt-1">
 
-            <div className="input-group mb-3">
-              <span
-                className="input-group-text bg-white fw-bold text-primary border-end-0 fs-16"
-                style={{ borderColor: "#cbd5e1", paddingLeft: "14px", paddingRight: "14px" }}
-              >
-                ₹
-              </span>
-              <input
-                type="number"
-                min="0"
-                className="form-control form-control-lg fw-bold border-start-0 fs-16 ps-1"
-                style={{ borderColor: "#cbd5e1" }}
-                placeholder="0"
-                value={tempShipping}
-                onChange={(e) => setTempShipping(e.target.value)}
-              />
-            </div>
-
-            <div className="d-flex flex-wrap align-items-center" style={{ gap: "8px" }}>
-              {[
-                { label: "₹0 (Free)", val: "0" },
-                { label: "₹50", val: "50" },
-                { label: "₹100", val: "100" },
-                { label: "₹150", val: "150" },
-                { label: "₹200", val: "200" },
-                { label: "₹350", val: "350" },
-                { label: "₹500", val: "500" },
-              ].map((chip) => {
-                const isSelected = String(tempShipping) === chip.val;
-                return (
-                  <button
-                    key={chip.val}
-                    type="button"
-                    className={`btn btn-sm ${isSelected
-                      ? "btn-primary text-white shadow-sm"
-                      : "bg-white text-dark border shadow-none"
-                      }`}
-                    style={{
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      padding: "6px 13px",
-                      borderColor: isSelected ? undefined : "#cbd5e1",
-                      transition: "all 0.15s ease",
-                    }}
-                    onClick={() => setTempShipping(chip.val)}
-                  >
-                    {chip.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Shipping From (Sender / Store Origin) */}
-          <div
-            className="p-3 rounded-3"
-            style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
-          >
-            <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-              <div
-                className="rounded-circle d-flex align-items-center justify-content-center bg-soft-info text-info"
-                style={{ width: "26px", height: "26px" }}
-              >
-                <i className="ti ti-building-warehouse fs-14" />
-              </div>
-              <h6 className="mb-0 fw-bold fs-13 text-dark">
-                Shipping From (Store / Warehouse)
-              </h6>
-            </div>
-
-            <div className="row g-2">
-              <div className="col-12">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">
-                  Store / Sender Name
-                </label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="e.g. GrowNaturals Main Store"
-                  value={tempShippingDetails.fromName}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, fromName: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-12">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">
-                  Contact Phone
-                </label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="e.g. +91 98765 43210"
-                  value={tempShippingDetails.fromPhone}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, fromPhone: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-12">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">
-                  Sender Address / Hub
-                </label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="e.g. Plot 42, Green Agro Park"
-                  value={tempShippingDetails.fromAddress}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, fromAddress: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-7">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">City</label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="e.g. Mumbai"
-                  value={tempShippingDetails.fromCity}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, fromCity: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-5">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">Pincode</label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="400001"
-                  value={tempShippingDetails.fromPincode}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, fromPincode: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Shipping To (Destination / Customer Details) */}
-          <div
-            className="p-3 rounded-3"
-            style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
-          >
-            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-              <div className="d-flex align-items-center gap-2">
+              {tempAdditionalCharges.map((row, index) => (
                 <div
-                  className="rounded-circle d-flex align-items-center justify-content-center bg-soft-success text-success"
-                  style={{ width: "26px", height: "26px" }}
+                  key={row.id || index}
+                  className="d-flex align-items-center gap-2 mb-2 position-relative"
                 >
-                  <i className="ti ti-map-pin fs-14" />
+                  {/* Field 1: Charge Name with suggestions (reduced width) */}
+                  <div className="position-relative" style={{ width: "155px", flexShrink: 0 }}>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      spellCheck={false}
+                      className="form-control form-control-sm"
+                      style={{
+                        height: "38px",
+                        borderColor: "#cbd5e1",
+                        fontSize: "13px",
+                        borderRadius: "6px",
+                      }}
+                      placeholder="e.g. Package charge"
+                      value={row.name}
+                      onFocus={() => setChargeSuggestionFocusIndex(index)}
+                      onBlur={() => {
+                        setChargeSuggestionFocusIndex((curr) => (curr !== null ? null : curr));
+                      }}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTempAdditionalCharges((prev) =>
+                          prev.map((item, i) => (i === index ? { ...item, name: val } : item))
+                        );
+                      }}
+                    />
+
+                    {/* Manual Suggestions popup while typing */}
+                    {chargeSuggestionFocusIndex === index && row.name.trim().length > 0 && (() => {
+                      const matches = chargeSuggestions.filter(
+                        (s) =>
+                          s.toLowerCase().includes(row.name.trim().toLowerCase()) &&
+                          s.toLowerCase() !== row.name.trim().toLowerCase()
+                      );
+                      if (matches.length === 0) return null;
+                      return (
+                        <div
+                          className="position-absolute bg-white border rounded-2 py-1 w-100"
+                          style={{
+                            top: "calc(100% + 4px)",
+                            left: 0,
+                            zIndex: 1070,
+                            maxHeight: "170px",
+                            overflowY: "auto",
+                            boxShadow: "0 8px 24px rgba(15, 23, 42, 0.12)",
+                            borderColor: "#e2e8f0",
+                          }}
+                        >
+                          <div
+                            className="px-3 py-1 text-muted"
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            Suggestions
+                          </div>
+                          {matches.slice(0, 6).map((item) => (
+                            <div
+                              key={item}
+                              className="px-3 py-2 fs-13 d-flex align-items-center justify-content-between text-dark"
+                              style={{
+                                cursor: "pointer",
+                                transition: "all 0.12s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "#f1f5f9";
+                                e.currentTarget.style.color = "#0070f3";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "transparent";
+                                e.currentTarget.style.color = "#1e293b";
+                              }}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setTempAdditionalCharges((prev) =>
+                                  prev.map((r, i) => (i === index ? { ...r, name: item } : r))
+                                );
+                                setChargeSuggestionFocusIndex(null);
+                              }}
+                            >
+                              <div className="d-flex align-items-center gap-2">
+                                <i className="ti ti-history text-muted fs-13" />
+                                <span className="fw-medium">{item}</span>
+                              </div>
+                              <i className="ti ti-arrow-up-left text-muted fs-11" />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Field 2: Amount (₹) */}
+                  <div style={{ width: "85px", flexShrink: 0 }}>
+                    <div className="input-group input-group-sm">
+                      <span
+                        className="input-group-text bg-white text-muted border-end-0 px-2 fs-12"
+                        style={{ borderColor: "#cbd5e1" }}
+                      >
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        className="form-control border-start-0 fs-13 fw-bold px-1.5"
+                        style={{ height: "38px", borderColor: "#cbd5e1" }}
+                        placeholder="0"
+                        value={row.amount}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setTempAdditionalCharges((prev) =>
+                            prev.map((item, i) => (i === index ? { ...item, amount: val } : item))
+                          );
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Field 3: Custom Styled GST Rate Dropdown (increased width) */}
+                  <div
+                    className="gn-gst-dropdown-container custom-gst-dropdown-container"
+                    style={{ width: "140px", flexShrink: 0 }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    {(() => {
+                      const currentVal = row.gstOption ?? (row.taxType === "exempted" ? "exempted" : `${row.gstPercent ?? 18}`);
+                      const displayLabel =
+                        currentVal === "none"
+                          ? "None"
+                          : currentVal === "exempted"
+                          ? "Exempted"
+                          : currentVal === "0"
+                          ? "GST @ 0%"
+                          : `${currentVal}%`;
+                      const isOpen = openGstDropdownIndex === index;
+
+                      const optionsList: Array<{ value: string; label: string }> = [
+                        { value: "none", label: "None" },
+                        { value: "exempted", label: "Exempted" },
+                        { value: "0", label: "GST @ 0%" },
+                        ...availableGstRates
+                          .filter((rate) => rate !== 0)
+                          .map((rate) => ({ value: rate.toString(), label: `${rate}%` })),
+                      ];
+
+                      return (
+                        <>
+                          <button
+                            type="button"
+                            className={`gn-gst-trigger-btn ${isOpen ? "open" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenGstDropdownIndex((prev) => (prev === index ? null : index));
+                            }}
+                          >
+                            <span className="text-truncate">{displayLabel}</span>
+                            <i
+                              className="ti ti-chevron-down text-muted fs-12 ms-1"
+                              style={{
+                                transform: isOpen ? "rotate(180deg)" : "none",
+                              }}
+                            />
+                          </button>
+
+                          {isOpen && (
+                            <div className="gn-gst-dropdown-menu">
+                              {optionsList.map((opt) => {
+                                const isSelected = opt.value === currentVal;
+                                return (
+                                  <button
+                                    type="button"
+                                    key={opt.value}
+                                    className={`gn-gst-dropdown-item ${isSelected ? "active" : ""}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const isExempt = opt.value === "exempted" || opt.value === "none";
+                                      const num = isExempt ? 0 : Number(opt.value);
+                                      setTempAdditionalCharges((prev) =>
+                                        prev.map((item, i) =>
+                                          i === index
+                                            ? {
+                                                ...item,
+                                                gstOption: opt.value,
+                                                taxType: isExempt ? "exempted" : "taxable",
+                                                gstPercent: isNaN(num) ? 0 : num,
+                                              }
+                                            : item
+                                        )
+                                      );
+                                      setOpenGstDropdownIndex(null);
+                                    }}
+                                  >
+                                    <span>{opt.label}</span>
+                                    {isSelected && <i className="ti ti-check fs-12" />}
+                                  </button>
+                                );
+                              })}
+
+                              {/* + Add GST Option */}
+                              <button
+                                type="button"
+                                className="gn-gst-dropdown-add"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenGstDropdownIndex(null);
+                                  setCustomGstModalOpen({ rowIndex: index });
+                                  setCustomGstInput("");
+                                }}
+                              >
+                                <i className="ti ti-plus fs-12" />
+                                <span>Add GST...</span>
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Delete Icon - Shown by default for all rows including the 1st */}
+                  <div style={{ width: "24px", flexShrink: 0 }} className="text-center">
+                    <button
+                      type="button"
+                      className="gn-charge-delete-btn"
+                      title="Remove charge"
+                      onClick={() => {
+                        setTempAdditionalCharges((prev) => {
+                          if (prev.length <= 1) {
+                            return [
+                              {
+                                id: `charge_${Date.now()}`,
+                                name: "",
+                                amount: "",
+                                gstOption: "18",
+                                taxType: "taxable",
+                                gstPercent: 18,
+                              },
+                            ];
+                          }
+                          return prev.filter((_, i) => i !== index);
+                        });
+                      }}
+                    >
+                      <i className="ti ti-trash fs-17" />
+                    </button>
+                  </div>
                 </div>
-                <h6 className="mb-0 fw-bold fs-13 text-dark">
-                  Shipping To (Delivery Destination)
-                </h6>
-              </div>
-              {selectedCustomer?.value !== "walkin" && (
+              ))}
+
+              {/* Add Another Charge Button */}
+              <div className="pt-2">
                 <button
                   type="button"
-                  className="btn btn-xs btn-link text-primary p-0 text-decoration-none fs-11 fw-semibold"
+                  className="gn-add-charge-btn w-100 border-0 shadow-none"
                   onClick={() => {
-                    setTempShippingDetails((p) => ({
-                      ...p,
-                      toName: selectedCustomer?.name || selectedCustomer?.label?.split(" (")[0] || p.toName,
-                      toPhone: selectedCustomer?.phone || p.toPhone,
-                      toAddress: selectedCustomer?.address || p.toAddress,
-                    }));
+                    setTempAdditionalCharges((prev) => [
+                      ...prev,
+                      {
+                        id: `charge_${Date.now()}_${Math.random()}`,
+                        name: "",
+                        amount: "",
+                        gstOption: "18",
+                        taxType: "taxable",
+                        gstPercent: 18,
+                      },
+                    ]);
                   }}
                 >
-                  <i className="ti ti-copy me-1" /> Autofill Customer
+                  <AiFillPlusCircle size={18} />
+                  <span>
+                    {tempAdditionalCharges.length === 0 ? "Add Additional Charges" : "Add Another Charge"}
+                  </span>
                 </button>
-              )}
-            </div>
+              </div>
 
-            <div className="row g-2">
-              <div className="col-12">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">
-                  Recipient Name <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="e.g. Rajesh Kumar Sharma"
-                  value={tempShippingDetails.toName}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, toName: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-12">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">
-                  Recipient Phone <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="e.g. +91 98234 56789"
-                  value={tempShippingDetails.toPhone}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, toPhone: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-12">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">
-                  Delivery Address <span className="text-danger">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  className="form-control form-control-sm"
-                  placeholder="Street address, building, area landmark, city & pincode..."
-                  value={tempShippingDetails.toAddress}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, toAddress: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-12">
-                <label className="form-label fs-12 fw-medium text-muted mb-1">
-                  Delivery Instructions / Notes
-                </label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="e.g. Handle with care (Live plants), Call upon delivery"
-                  value={tempShippingDetails.notes}
-                  onChange={(e) =>
-                    setTempShippingDetails((p) => ({ ...p, notes: e.target.value }))
-                  }
-                />
+              {/* Courier & Delivery Section */}
+              <div className="border-top pt-3 mt-2 d-flex flex-column gap-3">
+                <div className="d-flex align-items-center gap-2">
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center bg-soft-primary text-primary"
+                    style={{ width: "28px", height: "28px" }}
+                  >
+                    <i className="ti ti-package fs-16" />
+                  </div>
+                  <div>
+                    <h6 className="mb-0 fw-bold fs-13 text-dark">Courier Details</h6>
+                    <span className="text-muted fs-11">Set courier charges, addresses, and instructions</span>
+                  </div>
+                </div>
+
+                {/* Courier Amount Card */}
+                <div
+                  className="rounded-3 p-3"
+                  style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0" }}
+                >
+                  <label className="form-label fs-12 fw-bold text-dark mb-1.5 d-flex align-items-center gap-1">
+                    <i className="ti ti-currency-rupee text-primary fs-14" />
+                    Courier Amount (₹)
+                  </label>
+                  <div className="input-group input-group-sm">
+                    <span
+                      className="input-group-text bg-white fw-bold text-muted border-end-0 fs-13"
+                      style={{ borderColor: "#cbd5e1", paddingLeft: "10px", paddingRight: "10px", color: "#64748b" }}
+                    >
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      className="form-control form-control-sm fw-bold border-start-0 fs-14"
+                      style={{ height: "38px", borderColor: "#cbd5e1" }}
+                      placeholder="0"
+                      value={tempCourierCharge}
+                      onChange={(e) => setTempCourierCharge(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* From Address (Origin) */}
+                <div
+                  className="p-3 rounded-3"
+                  style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+                >
+                  <div className="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+                    <div
+                      className="rounded-circle d-flex align-items-center justify-content-center bg-soft-info text-info"
+                      style={{ width: "24px", height: "24px" }}
+                    >
+                      <i className="ti ti-building-warehouse fs-13" />
+                    </div>
+                    <h6 className="mb-0 fw-bold fs-13 text-dark">
+                      From Address (Sender / Origin)
+                    </h6>
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-12">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">
+                        Store / Sender Name
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. GrowNaturals Store"
+                        value={tempShippingDetails.fromName}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, fromName: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">
+                        Contact Phone
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. +91 98765 43210"
+                        value={tempShippingDetails.fromPhone}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, fromPhone: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">
+                        Sender Address / Hub
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. Plot 42, Green Agro Park"
+                        value={tempShippingDetails.fromAddress}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, fromAddress: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-7">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">City</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. Mumbai"
+                        value={tempShippingDetails.fromCity}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, fromCity: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-5">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">Pincode</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="400001"
+                        value={tempShippingDetails.fromPincode}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, fromPincode: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* To Address (Destination) */}
+                <div
+                  className="p-3 rounded-3"
+                  style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                    <div className="d-flex align-items-center gap-2">
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center bg-soft-success text-success"
+                        style={{ width: "24px", height: "24px" }}
+                      >
+                        <i className="ti ti-map-pin fs-13" />
+                      </div>
+                      <h6 className="mb-0 fw-bold fs-13 text-dark">
+                        To Address (Receiver / Destination)
+                      </h6>
+                    </div>
+                    {selectedCustomer?.value !== "walkin" && (
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-link text-primary p-0 text-decoration-none fs-11 fw-semibold"
+                        onClick={() => {
+                          setTempShippingDetails((p) => ({
+                            ...p,
+                            toName: selectedCustomer?.name || selectedCustomer?.label?.split(" (")[0] || p.toName,
+                            toPhone: selectedCustomer?.phone || p.toPhone,
+                            toAddress: selectedCustomer?.address || p.toAddress,
+                          }));
+                        }}
+                      >
+                        Autofill Customer
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-12">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">
+                        Receiver / Customer Name
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. John Doe"
+                        value={tempShippingDetails.toName}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, toName: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">
+                        Contact Phone
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. +91 98111 22334"
+                        value={tempShippingDetails.toPhone}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, toPhone: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">
+                        Delivery Address
+                      </label>
+                      <textarea
+                        rows={2}
+                        className="form-control form-control-sm"
+                        placeholder="Street address, building, area landmark..."
+                        value={tempShippingDetails.toAddress}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, toAddress: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-5">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">City</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. Mumbai"
+                        value={tempShippingDetails.toCity}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, toCity: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-4">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">State</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Maharashtra"
+                        value={tempShippingDetails.toState}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, toState: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="col-3">
+                      <label className="form-label fs-11 fw-medium text-muted mb-1">Pincode</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="400001"
+                        value={tempShippingDetails.toPincode}
+                        onChange={(e) =>
+                          setTempShippingDetails((p) => ({ ...p, toPincode: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Courier Notes */}
+                <div
+                  className="p-3 rounded-3"
+                  style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+                >
+                  <label className="form-label fs-12 fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                    <span
+                      className="rounded-circle d-flex align-items-center justify-content-center bg-soft-warning text-warning"
+                      style={{ width: "24px", height: "24px", flexShrink: 0 }}
+                    >
+                      <i className="ti ti-notes fs-13" />
+                    </span>
+                    <span>Courier Notes / Special Instructions</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    className="form-control form-control-sm"
+                    placeholder="Note down anything required for courier (e.g. Tracking No: AWB12345, Handle with care, Call upon delivery)..."
+                    value={tempShippingDetails.notes}
+                    onChange={(e) =>
+                      setTempShippingDetails((p) => ({ ...p, notes: e.target.value }))
+                    }
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Shipping Charges Card */}
+              <div
+                className="rounded-3"
+                style={{
+                  backgroundColor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  padding: "16px 18px",
+                }}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <label className="form-label fs-13 fw-bold text-dark mb-0 d-flex align-items-center gap-1.5">
+                    <i className="ti ti-currency-rupee text-primary fs-15" />
+                    Shipping Charges (₹)
+                  </label>
+                </div>
+
+                <div className="input-group mb-0">
+                  <span
+                    className="input-group-text bg-white fw-bold text-primary border-end-0 fs-16"
+                    style={{ borderColor: "#cbd5e1", paddingLeft: "14px", paddingRight: "14px" }}
+                  >
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-control form-control-lg fw-bold border-start-0 fs-16 ps-1"
+                    style={{ borderColor: "#cbd5e1" }}
+                    placeholder="0"
+                    value={tempShipping}
+                    onChange={(e) => setTempShipping(e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Shipping Addresses (Only shown in Shipping Details mode) */}
+          {shippingDrawerMode === "shipping_details" && (
+            <>
+              {/* Shipping From (Sender / Store Origin) */}
+              <div
+                className="p-3 rounded-3"
+                style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+              >
+                <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center bg-soft-info text-info"
+                    style={{ width: "26px", height: "26px" }}
+                  >
+                    <i className="ti ti-building-warehouse fs-14" />
+                  </div>
+                  <h6 className="mb-0 fw-bold fs-13 text-dark">
+                    Shipping From (Store / Warehouse)
+                  </h6>
+                </div>
+
+                <div className="row g-2">
+                  <div className="col-12">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">
+                      Store / Sender Name
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="e.g. GrowNaturals Main Store"
+                      value={tempShippingDetails.fromName}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, fromName: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">
+                      Contact Phone
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="e.g. +91 98765 43210"
+                      value={tempShippingDetails.fromPhone}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, fromPhone: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">
+                      Sender Address / Hub
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="e.g. Plot 42, Green Agro Park"
+                      value={tempShippingDetails.fromAddress}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, fromAddress: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="col-7">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">City</label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="e.g. Mumbai"
+                      value={tempShippingDetails.fromCity}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, fromCity: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="col-5">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">Pincode</label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="400001"
+                      value={tempShippingDetails.fromPincode}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, fromPincode: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Shipping To (Destination / Customer Details) */}
+              <div
+                className="p-3 rounded-3"
+                style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                  <div className="d-flex align-items-center gap-2">
+                    <div
+                      className="rounded-circle d-flex align-items-center justify-content-center bg-soft-success text-success"
+                      style={{ width: "26px", height: "26px" }}
+                    >
+                      <i className="ti ti-map-pin fs-14" />
+                    </div>
+                    <h6 className="mb-0 fw-bold fs-13 text-dark">
+                      Shipping To (Delivery Destination)
+                    </h6>
+                  </div>
+                  {selectedCustomer?.value !== "walkin" && (
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-link text-primary p-0 text-decoration-none fs-11 fw-semibold"
+                      onClick={() => {
+                        setTempShippingDetails((p) => ({
+                          ...p,
+                          toName: selectedCustomer?.name || selectedCustomer?.label?.split(" (")[0] || p.toName,
+                          toPhone: selectedCustomer?.phone || p.toPhone,
+                          toAddress: selectedCustomer?.address || p.toAddress,
+                        }));
+                      }}
+                    >
+                      <i className="ti ti-copy me-1" /> Autofill Customer
+                    </button>
+                  )}
+                </div>
+
+                <div className="row g-2">
+                  <div className="col-12">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">
+                      Recipient Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="e.g. Rajesh Kumar Sharma"
+                      value={tempShippingDetails.toName}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, toName: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">
+                      Recipient Phone <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="e.g. +91 98234 56789"
+                      value={tempShippingDetails.toPhone}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, toPhone: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">
+                      Delivery Address <span className="text-danger">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      className="form-control form-control-sm"
+                      placeholder="Street address, building, area landmark, city & pincode..."
+                      value={tempShippingDetails.toAddress}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, toAddress: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label fs-12 fw-medium text-muted mb-1">
+                      Delivery Instructions / Notes
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="e.g. Handle with care (Live plants), Call upon delivery"
+                      value={tempShippingDetails.notes}
+                      onChange={(e) =>
+                        setTempShippingDetails((p) => ({ ...p, notes: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Pinned Bottom Footer */}
@@ -8606,13 +10859,55 @@ const Pos: React.FC = () => {
             type="button"
             className="btn btn-primary d-flex align-items-center justify-content-center flex-fill fw-bold"
             onClick={() => {
-              setShippingCost(Math.max(0, Number(tempShipping) || 0));
-              setShippingDetails({ ...tempShippingDetails });
-              setShippingModalOpen(false);
-              showPosToast("Shipping details updated successfully!", "success");
+              if (shippingDrawerMode === "additional_charges") {
+                const validCharges = tempAdditionalCharges
+                  .filter((r) => r.name.trim() !== "" || (Number(r.amount) || 0) > 0)
+                  .map((r, i) => {
+                    const opt = r.gstOption ?? (r.taxType === "exempted" ? "exempted" : `${r.gstPercent ?? 18}`);
+                    const isExempt = opt === "exempted" || opt === "none";
+                    const gstNum = isExempt ? 0 : Number(opt);
+                    return {
+                      id: r.id || `charge_${Date.now()}_${i}`,
+                      name: r.name.trim() || "Additional Charge",
+                      amount: Math.max(0, Number(r.amount) || 0),
+                      gstOption: opt,
+                      taxType: isExempt ? ("exempted" as const) : ("taxable" as const),
+                      gstPercent: isNaN(gstNum) ? 0 : gstNum,
+                    };
+                  });
+                setAdditionalCharges(validCharges);
+
+                const newCour = Math.max(0, Number(tempCourierCharge) || 0);
+                setCourierCharge(newCour);
+                setShippingDetails({ ...tempShippingDetails });
+
+                // Save charge names to suggestion history
+                const newNames = validCharges.map((c) => c.name.trim()).filter(Boolean);
+                if (newNames.length > 0) {
+                  setChargeSuggestions((prev) => {
+                    const updated = Array.from(new Set([...prev, ...newNames]));
+                    try {
+                      localStorage.setItem("gn_charge_suggestions", JSON.stringify(updated));
+                    } catch {}
+                    return updated;
+                  });
+                }
+
+                setShippingModalOpen(false);
+                showPosToast("Additional charges updated successfully!", "success");
+              } else {
+                const newShip = Math.max(0, Number(tempShipping) || 0);
+                setShippingCost(newShip);
+                setShippingDetails({ ...tempShippingDetails });
+                if (newShip > 0) {
+                  setEnabledAddOns((prev) => ({ ...prev, shipping: true }));
+                }
+                setShippingModalOpen(false);
+                showPosToast("Shipping & delivery details updated!", "success");
+              }
             }}
           >
-            <i className="ti ti-check me-1" /> Update Shipping
+            <i className="ti ti-check me-1" /> {shippingDrawerMode === "shipping_details" ? "Save Details" : "Update Charges"}
           </button>
         </div>
       </div>
@@ -8623,6 +10918,128 @@ const Pos: React.FC = () => {
           onClick={() => setShippingModalOpen(false)}
           style={{ zIndex: 1060 }}
         />
+      )}
+
+      {/* Custom GST Rate Modal */}
+      {customGstModalOpen !== null && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          style={{ backgroundColor: "rgba(15, 23, 42, 0.45)", zIndex: 1100 }}
+        >
+          <div
+            className="bg-white rounded-3 p-3 shadow-lg"
+            style={{ width: "320px", maxWidth: "90%", border: "1px solid #e2e8f0" }}
+          >
+            <div className="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+              <h6 className="fw-bold mb-0 text-dark fs-14 d-flex align-items-center gap-1.5">
+                <i className="ti ti-percentage text-primary fs-16" />
+                Add Custom GST Rate
+              </h6>
+              <button
+                type="button"
+                className="btn-close-modal"
+                style={{ width: 24, height: 24, padding: 0, border: "none", background: "none", cursor: "pointer" }}
+                onClick={() => {
+                  setCustomGstModalOpen(null);
+                  setCustomGstInput("");
+                }}
+              >
+                <i className="ti ti-x fs-14 text-muted" />
+              </button>
+            </div>
+            <p className="text-muted fs-12 mb-3">
+              Enter the GST percentage for this charge (e.g. 28, 0.25):
+            </p>
+            <div className="input-group mb-3">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                autoFocus
+                className="form-control form-control-sm fs-14 fw-bold"
+                placeholder="e.g. 28"
+                value={customGstInput}
+                onChange={(e) => setCustomGstInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const num = parseFloat(customGstInput);
+                    if (!isNaN(num) && num >= 0) {
+                      if (!availableGstRates.includes(num)) {
+                        const updated = [...availableGstRates, num].sort((a, b) => a - b);
+                        setAvailableGstRates(updated);
+                        try {
+                          localStorage.setItem("gn_available_gst_rates", JSON.stringify(updated));
+                        } catch {}
+                      }
+                      const targetIdx = customGstModalOpen.rowIndex;
+                      setTempAdditionalCharges((prev) =>
+                        prev.map((item, i) =>
+                          i === targetIdx
+                            ? {
+                                ...item,
+                                gstOption: num.toString(),
+                                taxType: num === 0 ? "exempted" : "taxable",
+                                gstPercent: num,
+                              }
+                            : item
+                        )
+                      );
+                      setCustomGstModalOpen(null);
+                      setCustomGstInput("");
+                    }
+                  }
+                }}
+              />
+              <span className="input-group-text bg-white fw-bold">%</span>
+            </div>
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-light fs-12"
+                onClick={() => {
+                  setCustomGstModalOpen(null);
+                  setCustomGstInput("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary fs-12 fw-semibold"
+                onClick={() => {
+                  const num = parseFloat(customGstInput);
+                  if (!isNaN(num) && num >= 0) {
+                    if (!availableGstRates.includes(num)) {
+                      const updated = [...availableGstRates, num].sort((a, b) => a - b);
+                      setAvailableGstRates(updated);
+                      try {
+                        localStorage.setItem("gn_available_gst_rates", JSON.stringify(updated));
+                      } catch {}
+                    }
+                    const targetIdx = customGstModalOpen.rowIndex;
+                    setTempAdditionalCharges((prev) =>
+                      prev.map((item, i) =>
+                        i === targetIdx
+                          ? {
+                              ...item,
+                              gstOption: num.toString(),
+                              taxType: num === 0 ? "exempted" : "taxable",
+                              gstPercent: num,
+                            }
+                          : item
+                      )
+                    );
+                    setCustomGstModalOpen(null);
+                    setCustomGstInput("");
+                  }
+                }}
+              >
+                Add GST Rate
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 8.3. Slide Animated Gift Card Drawer (#giftcard_drawer) */}
@@ -9588,7 +12005,14 @@ const Pos: React.FC = () => {
                                   Free Gift (₹0)
                                 </span>
                                 {item.originalPrice && (
-                                  <span className="text-muted text-decoration-line-through fs-11">
+                                  <span
+                                    className="fs-11 fw-semibold"
+                                    style={{
+                                      textDecoration: "line-through",
+                                      color: "#000000",
+                                      textDecorationColor: "#000000",
+                                    }}
+                                  >
                                     {formatINR(item.originalPrice)}
                                   </span>
                                 )}
@@ -9704,6 +12128,7 @@ const Pos: React.FC = () => {
                               name: p.name,
                               type: "free",
                               price: 0,
+                              originalPrice: baseP,
                               category: p.category_name || p.category,
                               unit: p.unit,
                               image_url: p.image_url,
@@ -9769,9 +12194,37 @@ const Pos: React.FC = () => {
                       <span className="text-muted">× {c.quantity}</span>
                     </div>
                     <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                      <span className={`fw-bold ${c.unit_price === 0 ? "text-success" : "text-dark"}`}>
-                        {c.unit_price === 0 ? "Free (₹0)" : formatINR(c.unit_price * c.quantity)}
-                      </span>
+                      {c.unit_price === 0 ? (
+                        <div className="d-flex align-items-center gap-1.5">
+                          {(() => {
+                            let origP = c.original_price || c.selectedSize?.originalPrice || 0;
+                            if (!origP || origP === 0) {
+                              const cat = complimentaryCatalog.find((catItem) => catItem.id === c.product.id);
+                              origP =
+                                cat?.originalPrice ||
+                                (cat && cat.price > 0 ? cat.price : 0) ||
+                                c.product.price ||
+                                c.product.selling_price ||
+                                0;
+                            }
+                            return origP > 0 ? (
+                              <span
+                                style={{
+                                  textDecoration: "line-through",
+                                  color: "#000000",
+                                  textDecorationColor: "#000000",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {formatINR(origP * c.quantity)}
+                              </span>
+                            ) : null;
+                          })()}
+                          <span className="text-success fw-bold">Free (₹0)</span>
+                        </div>
+                      ) : (
+                        <span className="text-dark fw-bold">{formatINR(c.unit_price * c.quantity)}</span>
+                      )}
                       <button
                         type="button"
                         className="btn btn-link text-danger p-0"
@@ -9794,6 +12247,129 @@ const Pos: React.FC = () => {
               </div>
             </div>
           )}
+          {/* 5. Shipping & Delivery Destination Details for Complimentary */}
+          <div
+            className="p-3 rounded-3"
+            style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+          >
+            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+              <div className="d-flex align-items-center gap-2">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center bg-soft-success text-success"
+                  style={{ width: "26px", height: "26px" }}
+                >
+                  <i className="ti ti-map-pin fs-14" />
+                </div>
+                <div>
+                  <h6 className="mb-0 fw-bold fs-13 text-dark">
+                    Shipping &amp; Delivery Details
+                  </h6>
+                  <span className="text-muted fs-11">
+                    Delivery address for complimentary gifts &amp; packages
+                  </span>
+                </div>
+              </div>
+              {selectedCustomer?.value !== "walkin" && (
+                <button
+                  type="button"
+                  className="btn btn-xs btn-link text-primary p-0 text-decoration-none fs-11 fw-semibold"
+                  onClick={() => {
+                    setTempShippingDetails((p) => ({
+                      ...p,
+                      toName: selectedCustomer?.name || selectedCustomer?.label?.split(" (")[0] || p.toName,
+                      toPhone: selectedCustomer?.phone || p.toPhone,
+                      toAddress: selectedCustomer?.address || p.toAddress,
+                    }));
+                  }}
+                >
+                  <i className="ti ti-copy me-1" /> Autofill Customer
+                </button>
+              )}
+            </div>
+
+            <div className="row g-2">
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Recipient Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Rajesh Kumar Sharma"
+                  value={tempShippingDetails.toName}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, toName: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Recipient Phone <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. +91 98234 56789"
+                  value={tempShippingDetails.toPhone}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, toPhone: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Delivery Address <span className="text-danger">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  className="form-control form-control-sm"
+                  placeholder="Street address, building, area landmark, city & pincode..."
+                  value={tempShippingDetails.toAddress}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, toAddress: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-7">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">City</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Mumbai"
+                  value={tempShippingDetails.toCity}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, toCity: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-5">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">Pincode</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="400001"
+                  value={tempShippingDetails.toPincode}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, toPincode: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label fs-12 fw-medium text-muted mb-1">
+                  Delivery Instructions / Notes
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Handle with care (Live plants), Call upon delivery"
+                  value={tempShippingDetails.notes}
+                  onChange={(e) =>
+                    setTempShippingDetails((p) => ({ ...p, notes: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Pinned Bottom Footer */}
@@ -9805,7 +12381,11 @@ const Pos: React.FC = () => {
             type="button"
             className="btn btn-primary d-flex align-items-center justify-content-center px-4 fw-bold shadow-none"
             style={{ height: "40px", fontSize: "13px", borderRadius: "8px" }}
-            onClick={() => setComplimentaryModalOpen(false)}
+            onClick={() => {
+              setShippingDetails({ ...tempShippingDetails });
+              setComplimentaryModalOpen(false);
+              showPosToast("Complimentary & shipping details updated!", "success");
+            }}
           >
             <i className="ti ti-check me-1.5" /> Done / Back to POS
           </button>

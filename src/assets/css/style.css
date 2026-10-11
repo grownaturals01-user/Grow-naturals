@@ -58019,7 +58019,7 @@ label span {
 
 @media (min-width: 992px) {
   .pos-five .pos-categories {
-    height: calc(100vh - 132px);
+    height: calc(100vh - 65px);
   }
 }
 .pos-five .content-wrap {
@@ -58063,7 +58063,7 @@ label span {
 }
 @media (min-width: 992px) {
   .pos-five aside {
-    height: calc(100vh - 132px);
+    height: calc(100vh - 65px);
   }
 }
 .pos-five aside .card {
