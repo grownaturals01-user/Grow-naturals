@@ -175,6 +175,9 @@ export interface Product {
   stock_quantity: number;
   shop_stock?: number;
   warehouse_stock?: number;
+  unit?: string;
+  description?: string;
+  is_taxable?: boolean;
   low_stock_threshold: number;
   supplier_id?: string | null;
   supplier_name?: string;

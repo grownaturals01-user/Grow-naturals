@@ -448,6 +448,7 @@ router.post('/', async (req: Request, res: Response) => {
       payment_status,
       notes,
       terms,
+      split_payments,
       created_by
     } = req.body;
 
@@ -477,6 +478,9 @@ router.post('/', async (req: Request, res: Response) => {
     }
     if (round_off !== undefined && round_off !== null) {
       enrichedNotes += `\n[Round Off: ${round_off}]`;
+    }
+    if (split_payments && Array.isArray(split_payments) && split_payments.length > 0) {
+      enrichedNotes += `\n[Split Payments: ${JSON.stringify(split_payments)}]`;
     }
 
     let sumSubtotal = 0;
@@ -657,7 +661,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       payment_method,
       payment_status,
       notes,
-      terms
+      terms,
+      split_payments
     } = req.body;
 
     const db = await getDb();
@@ -709,6 +714,10 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
     if (round_off !== undefined && round_off !== null && !enrichedNotes.includes(`[Round Off: ${round_off}]`)) {
       enrichedNotes += `\n[Round Off: ${round_off}]`;
+    }
+    if (split_payments && Array.isArray(split_payments) && split_payments.length > 0) {
+      enrichedNotes = enrichedNotes.replace(/\[Split Payments:[^\]]+\]/gi, '').trim();
+      enrichedNotes += `\n[Split Payments: ${JSON.stringify(split_payments)}]`;
     }
 
     const calculatedSubtotal = Number(subtotal) || 0;
