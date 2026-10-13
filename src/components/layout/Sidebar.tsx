@@ -186,6 +186,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="nav-label">Add Product</span>
           </NavLink>
         </div>
+
+        {/* Section: SETTINGS */}
+        <div className="nav-section section-settings">
+          {!collapsed && (
+            <div className="nav-section-title">
+              <span className="nav-section-dot" />
+              <span>Settings</span>
+            </div>
+          )}
+          <NavLink to="/general-settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Settings">
+            <Settings className="nav-icon" />
+            <span className="nav-label">Settings</span>
+          </NavLink>
+        </div>
       </nav>
     </aside>
   );

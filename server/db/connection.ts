@@ -200,6 +200,7 @@ export async function initDb(): Promise<void> {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
     `ALTER TABLE inventory_modules ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'active';`,
     `ALTER TABLE categories ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT '';`,
     `ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
     `CREATE INDEX IF NOT EXISTS idx_inv_modules_biz ON inventory_modules(business_id);`,

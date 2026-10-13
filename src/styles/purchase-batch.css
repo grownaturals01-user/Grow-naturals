@@ -1,0 +1,476 @@
+/* ==========================================================================
+   PURCHASE & BATCH MANAGEMENT THEME STYLES (Clean Theme Consistent)
+   ========================================================================== */
+
+/* Stat Cards */
+.pb-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pb-stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .pb-stat-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.pb-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.pb-stat-content h6 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pb-stat-content h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0.2rem 0 0;
+}
+
+[data-theme="dark"] .pb-stat-content h3 {
+  color: #f1f5f9;
+}
+
+/* Badges */
+.pb-batch-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #1e293b;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+[data-theme="dark"] .pb-batch-badge {
+  background-color: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.pb-expense-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  border-radius: 4px;
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+/* Calculation summary panel (Clean Neutral Theme - NO green gradient) */
+.pb-calc-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin: 1.25rem 0;
+}
+
+[data-theme="dark"] .pb-calc-box {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.pb-calc-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[data-theme="dark"] .pb-calc-title {
+  color: #f1f5f9;
+}
+
+.pb-calc-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.pb-calc-metric-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+[data-theme="dark"] .pb-calc-metric-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.pb-calc-metric-item .sub {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.pb-calc-metric-item .val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 0.15rem;
+}
+
+[data-theme="dark"] .pb-calc-metric-item .val {
+  color: #f1f5f9;
+}
+
+/* Sub-table for product list */
+.product-batch-subtable-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 0.5rem 0 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .product-batch-subtable-container {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.product-batch-subtable-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.product-batch-subtable-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+[data-theme="dark"] .product-batch-subtable-title {
+  color: #94a3b8;
+}
+
+.product-batch-subtable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.825rem;
+}
+
+.product-batch-subtable th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  border-top: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .product-batch-subtable th {
+  background: #0f172a;
+  color: #94a3b8;
+  border-color: #334155;
+}
+
+.product-batch-subtable td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+[data-theme="dark"] .product-batch-subtable td {
+  border-bottom-color: #334155;
+  color: #cbd5e1;
+}
+
+/* "Add Batch" Action Button */
+.btn-add-batch-action {
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.775rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-add-batch-action:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #000000;
+}
+
+[data-theme="dark"] .btn-add-batch-action {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .btn-add-batch-action:hover {
+  background-color: #334155;
+}
+
+/* Dropdown styling */
+.custom-theme-select {
+  height: 38px;
+  border-radius: 0.35rem;
+  border: 1px solid #e6eaed;
+  background-color: #ffffff;
+  font-size: 13px;
+  font-weight: 400;
+  color: #212b36;
+  padding: 0 10px;
+  outline: none;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.custom-theme-select:focus {
+  border-color: #94a3b8;
+  box-shadow: none;
+}
+
+[data-theme="dark"] .custom-theme-select {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+/* Container & Header */
+.pb-wrapper {
+  padding-bottom: 2rem;
+}
+
+.pb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pb-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+[data-theme="dark"] .pb-title {
+  color: #f1f5f9;
+}
+
+.pb-subtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0.25rem 0 0;
+}
+
+[data-theme="dark"] .pb-subtitle {
+  color: #94a3b8;
+}
+
+/* Card structure */
+.pb-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .pb-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.pb-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+[data-theme="dark"] .pb-card-header {
+  border-bottom-color: #334155;
+}
+
+.pb-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[data-theme="dark"] .pb-card-title {
+  color: #f1f5f9;
+}
+
+.pb-card-body {
+  padding: 1.25rem;
+}
+
+/* Form inputs & grid */
+.pb-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.pb-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.pb-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+[data-theme="dark"] .pb-label {
+  color: #cbd5e1;
+}
+
+.pb-label .req {
+  color: #ef4444;
+}
+
+.pb-input,
+.pb-textarea {
+  width: 100%;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: #0f172a;
+  background-color: #ffffff;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.pb-input:focus,
+.pb-textarea:focus {
+  border-color: #f26522;
+  box-shadow: 0 0 0 2px rgba(242, 101, 34, 0.12);
+}
+
+[data-theme="dark"] .pb-input,
+[data-theme="dark"] .pb-textarea {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+/* Purchase Items Table */
+.pb-items-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.825rem;
+}
+
+.pb-items-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  border-top: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .pb-items-table th {
+  background: #0f172a;
+  color: #94a3b8;
+  border-color: #334155;
+}
+
+.pb-items-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+[data-theme="dark"] .pb-items-table td {
+  border-bottom-color: #334155;
+  color: #cbd5e1;
+}
+
+.pb-items-table tfoot td {
+  background: #f8fafc;
+  font-weight: 600;
+  border-top: 2px solid #e2e8f0;
+  border-bottom: none;
+}
+
+[data-theme="dark"] .pb-items-table tfoot td {
+  background: #0f172a;
+  border-top-color: #334155;
+}

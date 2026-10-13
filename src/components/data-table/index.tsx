@@ -27,6 +27,11 @@ interface Props {
   selectionMode?: 'single' | 'multiple' | 'checkbox' | 'radiobutton' | null;
   selection?: any;
   onSelectionChange?: (e: any) => void;
+  expandedRows?: any;
+  onRowToggle?: (e: any) => void;
+  rowExpansionTemplate?: (data: any) => React.ReactNode;
+  onRowClick?: (e: any) => void;
+  showExpander?: boolean;
 }
 
 const PrimeDataTable: React.FC<Props> = ({
@@ -44,6 +49,11 @@ const PrimeDataTable: React.FC<Props> = ({
   selection,
   onSelectionChange,
   searchQuery,
+  expandedRows,
+  onRowToggle,
+  rowExpansionTemplate,
+  onRowClick,
+  showExpander = false,
 }) => {
   const skeletonRows = Array(rows).fill({});
 
@@ -94,14 +104,18 @@ const PrimeDataTable: React.FC<Props> = ({
 
   // Prepare DataTable props based on selection mode
   const getDataTableProps = () => {
-    const baseProps = {
+    const baseProps: any = {
       value: paginatedData,
       className: "table custom-table datatable",
       totalRecords: filteredTotalRecords,
       paginator: false,
       emptyMessage: customEmptyMessage,
       footer: footer,
-      dataKey: "id"
+      dataKey: "id",
+      expandedRows: expandedRows,
+      onRowToggle: onRowToggle,
+      rowExpansionTemplate: rowExpansionTemplate,
+      onRowClick: onRowClick,
     };
 
     if (selectionMode && ['multiple', 'checkbox'].includes(selectionMode)) {
@@ -126,6 +140,9 @@ const PrimeDataTable: React.FC<Props> = ({
   return (
     <>
       <DataTable {...getDataTableProps()}>
+        {showExpander && (
+          <Column expander={true} style={{ width: '3rem' }} />
+        )}
         {selectionMode && ['multiple', 'checkbox'].includes(selectionMode) && (
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
         )}

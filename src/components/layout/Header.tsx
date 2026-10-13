@@ -57,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, openCustomizer, isSidebarCollapsed: isSidebarCollapsedContext, toggleSidebarCollapse } = useTheme();
-  const { businessId, businesses, switchBusiness } = useBusiness();
+  const { businessId, businesses, switchBusiness, isBizActive } = useBusiness();
   const location = useLocation();
   const navigate = useNavigate();
   const isFullscreenMode = isFullscreenPageRoute(location.pathname);
@@ -147,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   // Real Businesses List from Business Context
-  const allOption = { id: 'all', name: 'All Businesses', desc: 'Central Store View' };
+  const allOption = { id: 'all', name: 'All Businesses (Both Stores Active)', desc: 'Central Store View' };
   const baseStores = [
     allOption,
     { id: 'grow-naturals', name: 'Grow Naturals', desc: 'GST Taxable Store' },
@@ -263,6 +263,9 @@ export const Header: React.FC<HeaderProps> = ({
                         {getBusinessIcon(st.id)}
                       </div>
                       <span>{st.name}</span>
+                      <span className={`badge ms-2 ${st.id === 'all' || (isBizActive && isBizActive(st.id)) ? 'bg-success text-white' : 'bg-light text-muted'}`} style={{ fontSize: '10px' }}>
+                        {st.id === 'all' ? 'Both Active' : (isBizActive && isBizActive(st.id)) ? 'Active' : 'Inactive'}
+                      </span>
                       {st.id === businessId && <Check size={14} style={{ marginLeft: 'auto' }} />}
                     </button>
                   ))}

@@ -3413,6 +3413,92 @@ body.mini-sidebar:not(.layout-hovered) .sidebar .sidebar-logo #toggle_btn svg,
   }
 }
 
+/* Add/Edit Product Mobile Responsive Styling */
+@media (max-width: 767.98px) {
+  .add-product {
+    /* Stack label above input on mobile */
+    .d-flex.align-items-center.gap-2,
+    .d-flex.align-items-start.gap-2 {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 0.35rem !important;
+
+      > label,
+      > .form-label,
+      > div[style*="width: 130px"],
+      > div[style*="minWidth: 130px"],
+      > div[style*="width: 160px"],
+      > div[style*="minWidth: 160px"],
+      > div[style*="width: 185px"],
+      > div[style*="minWidth: 185px"] {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin-bottom: 0.25rem !important;
+        white-space: normal !important;
+      }
+
+      > .flex-grow-1,
+      > .position-relative {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+    }
+
+    /* Keep destination & selling type badges/checkboxes horizontal */
+    .d-flex.align-items-center.gap-2.flex-wrap {
+      flex-direction: column !important;
+      align-items: stretch !important;
+
+      > label,
+      > .form-label {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      > .flex-grow-1 {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+
+        > label {
+          width: auto !important;
+          min-width: 0 !important;
+        }
+      }
+    }
+
+    /* Keep card header icons and titles horizontal */
+    .card-header .d-flex.align-items-center.gap-2 {
+      flex-direction: row !important;
+      align-items: center !important;
+      width: auto !important;
+    }
+
+    /* Price input group (number input + tax dropdown) must stay horizontal */
+    .input-group {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      width: 100% !important;
+
+      .form-control {
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+      }
+    }
+
+    /* Ensure Select and containers take full width */
+    .react-select-container,
+    .w-100 {
+      width: 100% !important;
+    }
+  }
+}
+
 
 
 

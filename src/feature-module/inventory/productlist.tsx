@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Brand from "../../core/modals/inventory/brand";
 import { all_routes } from "../../routes/all_routes";
 import PrimeDataTable from "../../components/data-table";
+import { batchService, BatchRecord } from "../../services/batchService";
+import "../../styles/purchase-batch.css";
+import { Plus, Package, Search, ChevronRight, Info } from "lucide-react";
 import {
   expireProduct01,
   expireProduct02,
@@ -211,6 +214,7 @@ interface ProductItem {
 }
 
 const ProductList: React.FC = () => {
+  const navigate = useNavigate();
   const { businessId } = useBusiness();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
@@ -222,6 +226,147 @@ const ProductList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
+
+  // Batch Expansion and Add Batch Modal states
+  const [expandedRows, setExpandedRows] = useState<any>(null);
+  const [addBatchModalOpen, setAddBatchModalOpen] = useState(false);
+  const [selectedProductForBatch, setSelectedProductForBatch] = useState<ProductItem | null>(null);
+  const [availableBatches, setAvailableBatches] = useState<BatchRecord[]>([]);
+  const [batchSearchTerm, setBatchSearchTerm] = useState("");
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+
+  const handleOpenBatchModal = (product: ProductItem) => {
+    setSelectedProductForBatch(product);
+    const allBatches = batchService.getBatches();
+    setAvailableBatches(allBatches);
+    setSelectedBatchId(allBatches[0]?.id || null);
+    setBatchSearchTerm("");
+    setAddBatchModalOpen(true);
+  };
+
+  const handleProceedWithBatch = () => {
+    if (!selectedBatchId) {
+      if (selectedProductForBatch) {
+        navigate(
+          `${all_routes.addproduct}?product=${encodeURIComponent(
+            selectedProductForBatch.product
+          )}&sku=${encodeURIComponent(selectedProductForBatch.sku)}`
+        );
+      } else {
+        navigate(all_routes.addproduct);
+      }
+      setAddBatchModalOpen(false);
+      return;
+    }
+
+    const chosen = availableBatches.find((b) => b.id === selectedBatchId);
+    if (chosen && selectedProductForBatch) {
+      navigate(
+        `${all_routes.addproduct}?batchId=${chosen.id}&expensePercent=${
+          chosen.expensePercent
+        }&batchName=${encodeURIComponent(chosen.batchNo)}&product=${encodeURIComponent(
+          selectedProductForBatch.product
+        )}&sku=${encodeURIComponent(selectedProductForBatch.sku)}`
+      );
+    } else if (chosen) {
+      navigate(
+        `${all_routes.addproduct}?batchId=${chosen.id}&expensePercent=${
+          chosen.expensePercent
+        }&batchName=${encodeURIComponent(chosen.batchNo)}`
+      );
+    }
+    setAddBatchModalOpen(false);
+  };
+
+  const rowExpansionTemplate = (data: ProductItem) => {
+    const mappedBatches = batchService.getBatchesForProduct(data.id, data.sku, data.product);
+
+    return (
+      <div className="product-batch-subtable-container">
+        <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <h6 className="fw-bold fs-12 text-secondary text-uppercase mb-0 d-flex align-items-center gap-2">
+            <Package size={15} className="text-secondary" />
+            Mapped Purchase Batches for "{data.product}" ({mappedBatches.length})
+          </h6>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenBatchModal(data);
+            }}
+          >
+            <Plus size={13} /> Add Batch
+          </button>
+        </div>
+
+        {mappedBatches.length === 0 ? (
+          <div className="p-4 text-center bg-white rounded border text-muted fs-13">
+            <p className="mb-2">No purchase batches mapped to this product yet.</p>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenBatchModal(data);
+              }}
+            >
+              <Plus size={13} /> Add Batch
+            </button>
+          </div>
+        ) : (
+          <div className="table-responsive bg-white rounded border">
+            <table className="product-batch-subtable mb-0">
+              <thead>
+                <tr>
+                  <th>Batch Name</th>
+                  <th>Supplier Name</th>
+                  <th className="text-center">Stock Left in Batch</th>
+                  <th className="text-end">Purchase Price</th>
+                  <th className="text-center">Expense %</th>
+                  <th className="text-end">Actual Cost</th>
+                  <th className="text-end">Selling Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mappedBatches.map(({ batch, item }, idx) => (
+                  <tr key={`${batch.id}-${item.id || idx}`}>
+                    <td>
+                      <span className="badge bg-light text-dark border">{batch.batchNo}</span>
+                      <div className="text-muted fs-10 mt-1">{batch.purchaseDate}</div>
+                    </td>
+                    <td className="fw-semibold text-dark">{batch.supplierName}</td>
+                    <td className="text-center">
+                      <span className="badge bg-light text-dark border">
+                        {item.remainingQty} units
+                      </span>
+                    </td>
+                    <td className="text-end">
+                      ₹{Number(item.purchasePrice || 0).toFixed(2)}
+                    </td>
+                    <td className="text-center">
+                      <span className="badge bg-light text-secondary border">{batch.expensePercent}%</span>
+                    </td>
+                    <td className="text-end fw-bold text-dark">
+                      ₹
+                      {Number(
+                        item.actualCost ||
+                          Number(item.purchasePrice || 0) +
+                            (Number(item.purchasePrice || 0) * batch.expensePercent) / 100
+                      ).toFixed(2)}
+                    </td>
+                    <td className="text-end fw-semibold text-dark">
+                      ₹{Number(item.sellingPrice || 0).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -416,6 +561,25 @@ const ProductList: React.FC = () => {
         </div>
       ),
     },
+    {
+      header: "Add Batch",
+      field: "addBatch",
+      key: "addBatch",
+      sortable: false,
+      body: (row: ProductItem) => (
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenBatchModal(row);
+          }}
+          title="Map or select purchase batch"
+        >
+          <Plus size={13} /> Add Batch
+        </button>
+      ),
+    },
   ];
 
   return (
@@ -552,6 +716,21 @@ const ProductList: React.FC = () => {
                   selectionMode="checkbox"
                   selection={selectedProducts}
                   onSelectionChange={(e: any) => setSelectedProducts(e.value)}
+                  expandedRows={expandedRows}
+                  onRowToggle={(e: any) => setExpandedRows(e.data)}
+                  rowExpansionTemplate={rowExpansionTemplate}
+                  showExpander={true}
+                  onRowClick={(e: any) => {
+                    const rowId = e.data.id;
+                    setExpandedRows((prev: any) => {
+                      if (prev && prev[rowId]) {
+                        const next = { ...prev };
+                        delete next[rowId];
+                        return next;
+                      }
+                      return { ...prev, [rowId]: true };
+                    });
+                  }}
                 />
               </div>
             </div>
@@ -561,6 +740,161 @@ const ProductList: React.FC = () => {
         </div>
       </div>
       <DeleteModal onConfirm={handleDelete} />
+
+      {/* Add Batch Selection Modal */}
+      {addBatchModalOpen && selectedProductForBatch && (
+        <div
+          className="modal fade show d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header bg-light">
+                <div>
+                  <h5 className="modal-title fw-bold text-dark d-flex align-items-center gap-2">
+                    <Package size={20} className="text-secondary" />
+                    Select Purchase Batch for Product
+                  </h5>
+                  <span className="text-muted fs-12">
+                    Mapping product: <strong>{selectedProductForBatch.product}</strong> ({selectedProductForBatch.sku})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setAddBatchModalOpen(false)}
+                ></button>
+              </div>
+
+              <div className="modal-body p-4">
+                {availableBatches.length === 0 ? (
+                  <div className="text-center py-4">
+                    <Package size={42} className="text-muted mb-2 opacity-50" />
+                    <h6 className="fw-bold text-muted">No Batches Exist</h6>
+                    <p className="text-muted fs-13 mb-3">
+                      No purchase batches have been created yet on the Purchase page.
+                      You can create one now or proceed to Add Product with manual expense % entry.
+                    </p>
+                    <div className="d-flex justify-content-center gap-2">
+                      <Link
+                        to="/purchase-list"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => setAddBatchModalOpen(false)}
+                      >
+                        Create Batch on Purchase Page
+                      </Link>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        onClick={handleProceedWithBatch}
+                      >
+                        Proceed with Manual Entry
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-3">
+                      <div className="input-group input-group-sm">
+                        <span className="input-group-text bg-white border-end-0">
+                          <Search size={14} className="text-muted" />
+                        </span>
+                        <input
+                          type="text"
+                          className="form-control border-start-0"
+                          placeholder="Search batch name, supplier, or date..."
+                          value={batchSearchTerm}
+                          onChange={(e) => setBatchSearchTerm(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="table-responsive border rounded-3">
+                      <table className="table table-hover align-middle mb-0 fs-13">
+                        <thead className="table-light">
+                          <tr>
+                            <th style={{ width: "40px" }}></th>
+                            <th>Batch Name</th>
+                            <th>Date</th>
+                            <th>Supplier</th>
+                            <th className="text-center">Expense %</th>
+                            <th className="text-end">Total Purchase</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {availableBatches
+                            .filter(
+                              (b) =>
+                                !batchSearchTerm ||
+                                b.batchNo.toLowerCase().includes(batchSearchTerm.toLowerCase()) ||
+                                b.supplierName.toLowerCase().includes(batchSearchTerm.toLowerCase())
+                            )
+                            .map((b) => (
+                              <tr
+                                key={b.id}
+                                style={{ cursor: "pointer" }}
+                                className={selectedBatchId === b.id ? "table-active" : ""}
+                                onClick={() => setSelectedBatchId(b.id)}
+                              >
+                                <td>
+                                  <input
+                                    type="radio"
+                                    name="selectedBatch"
+                                    className="form-check-input"
+                                    checked={selectedBatchId === b.id}
+                                    onChange={() => setSelectedBatchId(b.id)}
+                                  />
+                                </td>
+                                <td>
+                                  <span className="pb-batch-badge">{b.batchNo}</span>
+                                </td>
+                                <td className="text-secondary">{b.purchaseDate}</td>
+                                <td className="fw-semibold text-dark">{b.supplierName}</td>
+                                <td className="text-center">
+                                  <span className="pb-expense-badge">{b.expensePercent}%</span>
+                                </td>
+                                <td className="text-end fw-semibold">
+                                  ₹{Number(b.totalPurchaseValue).toLocaleString("en-IN")}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mt-3 p-2 bg-light rounded border fs-12 text-muted d-flex align-items-center gap-2">
+                      <Info size={16} className="text-secondary flex-shrink-0" />
+                      <span>
+                        Selecting this batch will auto-fetch its <strong>Expense %</strong> into Step 3
+                        (Pricing &amp; Tax) of Add Product, with real-time actual cost &amp; selling price calculations.
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="modal-footer bg-light">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setAddBatchModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary d-inline-flex align-items-center gap-1"
+                  onClick={handleProceedWithBatch}
+                  disabled={availableBatches.length > 0 && !selectedBatchId}
+                >
+                  Proceed to Add Product <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

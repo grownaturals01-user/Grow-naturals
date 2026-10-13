@@ -8,7 +8,7 @@ router.get('/', async (_req: Request, res: Response) => {
   try {
     const db = await getDb();
     const result = await db.query(
-      `SELECT id, name, legal_name, gstin, address, phone, email, invoice_prefix, invoice_footer, logo_url, currency, default_low_stock, is_taxable, created_at
+      `SELECT id, name, legal_name, gstin, address, phone, email, invoice_prefix, invoice_footer, logo_url, currency, default_low_stock, is_taxable, status, created_at
        FROM businesses ORDER BY created_at ASC, id ASC`
     );
     res.json(result.rows);
@@ -50,7 +50,8 @@ router.post('/', async (req: Request, res: Response) => {
       logo_url,
       currency,
       default_low_stock,
-      is_taxable
+      is_taxable,
+      status
     } = req.body;
 
     if (!name || !name.trim()) {
@@ -74,8 +75,8 @@ router.post('/', async (req: Request, res: Response) => {
     const result = await db.query(
       `INSERT INTO businesses (
         id, name, legal_name, gstin, address, phone, email,
-        invoice_prefix, invoice_footer, logo_url, currency, default_low_stock, is_taxable
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        invoice_prefix, invoice_footer, logo_url, currency, default_low_stock, is_taxable, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *`,
       [
         finalId,
@@ -90,7 +91,8 @@ router.post('/', async (req: Request, res: Response) => {
         logo_url?.trim() || '',
         currency?.trim() || 'INR',
         Number(default_low_stock) || 5,
-        Boolean(is_taxable)
+        Boolean(is_taxable),
+        status === 'inactive' ? 'inactive' : 'active'
       ]
     );
 
@@ -135,7 +137,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       invoice_footer,
       currency,
       default_low_stock,
-      is_taxable
+      is_taxable,
+      status
     } = req.body;
 
     const db = await getDb();
@@ -151,8 +154,9 @@ router.put('/:id', async (req: Request, res: Response) => {
            invoice_footer = COALESCE($8, invoice_footer),
            currency = COALESCE($9, currency),
            default_low_stock = COALESCE($10, default_low_stock),
-           is_taxable = COALESCE($11, is_taxable)
-       WHERE id = $12
+           is_taxable = COALESCE($11, is_taxable),
+           status = COALESCE($12, status)
+       WHERE id = $13
        RETURNING *`,
       [
         name,
@@ -166,6 +170,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         currency,
         default_low_stock,
         is_taxable !== undefined ? Boolean(is_taxable) : null,
+        status !== undefined ? (status === 'inactive' ? 'inactive' : 'active') : null,
         id
       ]
     );
