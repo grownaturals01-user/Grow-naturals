@@ -55,7 +55,7 @@ export async function getDb(): Promise<DbClient> {
           try {
             fs.unlinkSync(fp);
             console.log(`[DB] Cleaned up stale lock file: ${sf}`);
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     }
@@ -200,6 +200,7 @@ export async function initDb(): Promise<void> {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
     `ALTER TABLE inventory_modules ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'active';`,
     `ALTER TABLE categories ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT '';`,
     `ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';`,
     `CREATE INDEX IF NOT EXISTS idx_inv_modules_biz ON inventory_modules(business_id);`,
@@ -373,7 +374,28 @@ export async function initDb(): Promise<void> {
        ('war-gn-2', 'grow-naturals', 'Artisan Ceramic Pot Warranty', 'Protects against cracks or manufacturing defects', '6', 'Month', 'Active'),
        ('war-gn-3', 'grow-naturals', 'Drip Irrigation Equipment Warranty', 'Complete replacement guarantee on pump and drippers', '1', 'Year', 'Active'),
        ('war-nn-1', 'nikhlesh-nursery', 'Fruit Sapling Survival Warranty', 'Guaranteed true-to-type sapling survival', '3', 'Month', 'Active')
-     ON CONFLICT (id) DO NOTHING;`
+     ON CONFLICT (id) DO NOTHING;`,
+    `CREATE TABLE IF NOT EXISTS variant_attributes (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      name VARCHAR(128) NOT NULL,
+      values TEXT NOT NULL DEFAULT '',
+      status VARCHAR(32) DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE INDEX IF NOT EXISTS idx_variant_attributes_biz ON variant_attributes(business_id);`,
+    `ALTER TABLE variant_attributes DROP CONSTRAINT IF EXISTS variant_attributes_business_id_fkey;`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS business_ids JSONB DEFAULT '[]'::jsonb;`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS patterns TEXT DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS pattern_images TEXT DEFAULT '{}';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS value_images TEXT DEFAULT '{}';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS attribute_type VARCHAR(32) DEFAULT 'general';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS product_id VARCHAR(64) DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS product_name VARCHAR(255) DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS sizes TEXT DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS varieties TEXT DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS variety_images TEXT DEFAULT '{}';`
   ];
 
   for (const m of migrations) {

@@ -36,6 +36,7 @@ import unitsRouter from './routes/units.js';
 import warrantiesRouter from './routes/warranties.js';
 import purchaseReturnsRouter from './routes/purchaseReturns.js';
 import stockAdjustmentsRouter from './routes/stockAdjustments.js';
+import variantAttributesRouter from './routes/variantAttributes.js';
 
 dotenv.config();
 
@@ -91,6 +92,7 @@ app.use('/api/units', unitsRouter);
 app.use('/api/warranties', warrantiesRouter);
 app.use('/api/purchase-returns', purchaseReturnsRouter);
 app.use('/api/stock-adjustments', stockAdjustmentsRouter);
+app.use('/api/variant-attributes', variantAttributesRouter);
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

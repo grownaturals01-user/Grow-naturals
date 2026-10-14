@@ -1,69 +1,631 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { all_routes } from "../../routes/all_routes";
+import { api, getActiveBusinessId } from "../../services/api";
+import { useBusiness } from "../../context/BusinessContext";
+import { batchService, BatchRecord } from "../../services/batchService";
+import { Editor } from "primereact/editor";
 import AddCategory from "../../core/modals/inventory/addcategory";
-import CounterThree from "../../components/counter/counterThree";
-import RefreshIcon from "../../components/tooltip-content/refresh";
-import CollapesIcon from "../../components/tooltip-content/collapes";
 import AddVariant from "../../core/modals/inventory/addvariant";
 import AddVarientNew from "../../core/modals/inventory/addVarientNew";
-import { phoneAdd1, phoneAdd2 } from "../../utils/imagepath";
-import CommonDatePicker from "../../components/date-picker/common-date-picker";
 import CommonSelect from "../../components/select/common-select";
-import { Editor } from "primereact/editor";
-import { api, getActiveBusinessId } from "../../services/api";
-import { ProductImageUploader } from "../../components/common/ProductImageUploader";
-import { useBusiness } from "../../context/BusinessContext";
+import "../../styles/product-wizard.css";
+import "../../styles/purchase-batch.css";
+import { ImMagicWand } from "react-icons/im";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Settings,
+  ChevronDown,
+  Check,
+  Trash2,
+  Layers,
+  DollarSign,
+  Package,
+  Image as ImageIcon,
+  Plus,
+  GripVertical,
+  Copy,
+  ShoppingBag,
+  Building2,
+  Percent,
+} from "lucide-react";
+
+export interface ProductVariationItem {
+  id: string;
+  size: string;
+  color: string;
+  colorCode: string;
+  variant: string;
+  sku: string;
+  image: string;
+  status: boolean;
+  purchasePrice?: string;
+  purchaseTaxType?: "Inclusive" | "Exclusive" | string;
+  expensePercent?: string;
+  actualPrice?: string;
+  profitMarginPercent?: string;
+  gstPercent?: string;
+  salesPrice?: string;
+  retailPriceWithTax?: string;
+  retailPriceWithoutTax?: string;
+  wholesalePriceWithTax?: string;
+  wholesalePriceWithoutTax?: string;
+}
+
+export const ROW_GST_OPTIONS = [
+  { value: "0", label: "None (0%)" },
+  { value: "5", label: "GST 5%" },
+  { value: "12", label: "GST 12%" },
+  { value: "18", label: "GST 18%" },
+  { value: "28", label: "GST 28%" },
+];
+
+export const TAX_STATUS_OPTIONS = [
+  { value: "taxable", label: "Taxable" },
+  { value: "non-taxable", label: "Non-Taxable" },
+];
+
+export const GST_RATE_OPTIONS = [
+  { value: "0", label: "0% (Nil / Exempt)" },
+  { value: "5", label: "GST 5%" },
+  { value: "12", label: "GST 12%" },
+  { value: "18", label: "GST 18%" },
+  { value: "28", label: "GST 28%" },
+];
+
+export const SIZE_OPTIONS = [
+  { value: "6 inch", label: "6 inch" },
+  { value: "8 inch", label: "8 inch" },
+  { value: "10 inch", label: "10 inch" },
+  { value: "12 inch", label: "12 inch" },
+  { value: "14 inch", label: "14 inch" },
+  { value: "Small", label: "Small" },
+  { value: "Medium", label: "Medium" },
+  { value: "Large", label: "Large" },
+  { value: "XL", label: "XL" },
+];
+
+export const COLOR_OPTIONS = [
+  { value: "White", label: "White", hex: "#FFFFFF" },
+  { value: "Black", label: "Black", hex: "#111827" },
+  { value: "Beige", label: "Beige", hex: "#E8C39E" },
+  { value: "Terracotta", label: "Terracotta", hex: "#D97706" },
+  { value: "Green", label: "Green", hex: "#059669" },
+  { value: "Grey", label: "Grey", hex: "#6B7280" },
+  { value: "Brown", label: "Brown", hex: "#78350F" },
+  { value: "Blue", label: "Blue", hex: "#2563EB" },
+  { value: "Red", label: "Red", hex: "#DC2626" },
+];
+
+export const VARIANT_OPTIONS = [
+  { value: "Ceramic", label: "Ceramic" },
+  { value: "Clay", label: "Clay" },
+  { value: "Plastic", label: "Plastic" },
+  { value: "Fiberglass", label: "Fiberglass" },
+  { value: "Matte", label: "Matte" },
+  { value: "Glossy", label: "Glossy" },
+  { value: "Standard", label: "Standard" },
+  { value: "With Drainage", label: "With Drainage" },
+  { value: "No Drainage", label: "No Drainage" },
+];
+
+const INITIAL_VARIATIONS: ProductVariationItem[] = [
+  {
+    id: "var-1",
+    size: "6 inch",
+    color: "White",
+    colorCode: "#FFFFFF",
+    variant: "Ceramic",
+    sku: "GNCP001-6-WH",
+    image: "",
+    status: true,
+    purchasePrice: "100",
+    purchaseTaxType: "Inclusive",
+    expensePercent: "80",
+    actualPrice: "180",
+    profitMarginPercent: "50",
+    gstPercent: "0",
+    salesPrice: "270",
+    retailPriceWithTax: "270",
+    retailPriceWithoutTax: "270",
+    wholesalePriceWithTax: "240",
+    wholesalePriceWithoutTax: "240",
+  },
+];
+
+export interface ProductPriceRow {
+  id: string;
+  variant: string;
+  color: string;
+  size: string;
+  purchasePrice: string;
+  purchaseTaxType: string;
+  salesPrice: string;
+  salesTaxType: string;
+  mrp: string;
+  wholesalePrice: string;
+  wholesaleTaxType: string;
+  shopQuantity: string;
+  warehouseQuantity: string;
+  alertQuantity: string;
+}
+
+const WIZARD_STEPS = [
+  { id: 1, key: "basic", label: "Basic Details" },
+  { id: 2, key: "variations", label: "Variations" },
+  { id: 3, key: "pricing", label: "Pricing & Tax" },
+  { id: 4, key: "stock", label: "Stock" },
+  { id: 5, key: "review", label: "Review" },
+];
+
+const DEFAULT_BRANDS = [
+  { value: "choose", label: "Choose" },
+  { value: "grownaturals", label: "Grow Naturals" },
+  { value: "nike", label: "Nike" },
+  { value: "bolt", label: "Bolt" },
+  { value: "botanica", label: "Botanica" },
+];
+
+const DEFAULT_UNITS = [
+  { value: "choose", label: "Choose" },
+  { value: "pc", label: "Piece (Pc)" },
+  { value: "kg", label: "Kg" },
+  { value: "box", label: "Box" },
+  { value: "packet", label: "Packet" },
+  { value: "set", label: "Set" },
+  { value: "liter", label: "Liter" },
+];
 
 const AddProduct = () => {
   const route = all_routes;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { businessId } = useBusiness();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [date1, setDate1] = useState<Date | null>(new Date());
-  const [date2, setDate2] = useState<Date | null>(new Date());
-  const [selectedStore, setSelectedStore] = useState<string | null>(null);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
-  const [selectedSellingType, setSelectedSellingType] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
-  const [selectedBarcodeSymbol, setSelectedBarcodeSymbol] = useState<string | null>(null);
-  const [selectedTaxType, setSelectedTaxType] = useState<string | null>(null);
-  const [selectedDiscountType, setSelectedDiscountType] = useState<string | null>(null);
-  const [selectedWarranty, setSelectedWarranty] = useState<string | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  // URL Query Parameters for Batch linking
+  const urlBatchId = searchParams.get("batchId");
+  const urlExpensePercent = searchParams.get("expensePercent");
+  const urlBatchName = searchParams.get("batchName");
+  const urlProduct = searchParams.get("product");
+  const urlSku = searchParams.get("sku");
+
+  // Linked Purchase Batch State
+  const [linkedBatchId, setLinkedBatchId] = useState<string>(urlBatchId || "");
+  const [linkedBatchName, setLinkedBatchName] = useState<string>(urlBatchName || "");
+  const [linkedExpensePercent, setLinkedExpensePercent] = useState<string>(urlExpensePercent || "80");
+  const [allBatches, setAllBatches] = useState<BatchRecord[]>([]);
+
+  // Wizard active step (1 to 5)
+  const [currentStep, setCurrentStep] = useState<number>(1);
+
+  // Form Fields - Tab 1: Exact Fields from Screenshot
+  const [selectedStore, setSelectedStore] = useState<string>("choose");
+  const [selectedBrand, setSelectedBrand] = useState<string>("choose");
+  const [productName, setProductName] = useState(urlProduct || "");
+  const [slug, setSlug] = useState("");
+  const [isShop, setIsShop] = useState(true);
+  const [isWarehouse, setIsWarehouse] = useState(false);
+  const [isRetail, setIsRetail] = useState(true);
+  const [isWholesale, setIsWholesale] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("choose");
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("choose");
+  const [sku, setSku] = useState(urlSku || "");
+  const [selectedUnit, setSelectedUnit] = useState<string>("choose");
   const [text, setText] = useState("");
 
-  // Product field states
-  const [productName, setProductName] = useState("");
+  // Media state
   const [imageUrl, setImageUrl] = useState<string>("");
-  const [slug, setSlug] = useState("");
-  const [sku, setSku] = useState("");
-  const [itemCode, setItemCode] = useState("");
-  const [quantity, setQuantity] = useState("10");
-  const [price, setPrice] = useState("");
-  const [discountValue, setDiscountValue] = useState("");
-  const [qtyAlert, setQtyAlert] = useState("5");
+  const [images, setImages] = useState<string[]>([]);
 
-  // Options from API
+  // Other internal states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Tab 2: Product Variations State
+  const [variationMode, setVariationMode] = useState<"color" | "variant">("color");
+  const [variations, setVariations] = useState<ProductVariationItem[]>(INITIAL_VARIATIONS);
+
+  // Batch Auto-Fetch Effect
+  useEffect(() => {
+    const batches = batchService.getBatches();
+    setAllBatches(batches);
+
+    if (urlBatchId) {
+      const match = batches.find((b) => b.id === urlBatchId);
+      const effName = match?.batchNo || urlBatchName || urlBatchId;
+      const effExpense =
+        match?.expensePercent !== undefined
+          ? String(match.expensePercent)
+          : urlExpensePercent || "80";
+      setLinkedBatchId(urlBatchId);
+      setLinkedBatchName(effName);
+      setLinkedExpensePercent(effExpense);
+
+      // Auto-fetch expense percent into all variations
+      const expVal = parseFloat(effExpense);
+      if (!isNaN(expVal)) {
+        setVariations((prev) =>
+          prev.map((v) => {
+            const purchase = parseFloat(v.purchasePrice || "0") || 0;
+            const profit = parseFloat(v.profitMarginPercent || "0") || 0;
+            const gst = parseFloat(v.gstPercent || "0") || 0;
+            const actual = purchase > 0 ? purchase + (purchase * expVal) / 100 : 0;
+            const baseSelling = actual > 0 ? actual + (actual * profit) / 100 : 0;
+            const sales = baseSelling > 0 ? baseSelling * (1 + gst / 100) : 0;
+            return {
+              ...v,
+              expensePercent: effExpense,
+              actualPrice: actual > 0 ? formatNum(actual) : v.actualPrice,
+              salesPrice: sales > 0 ? formatNum(sales) : v.salesPrice,
+              retailPriceWithTax: sales > 0 ? formatNum(sales) : v.retailPriceWithTax,
+              retailPriceWithoutTax: baseSelling > 0 ? formatNum(baseSelling) : v.retailPriceWithoutTax,
+            };
+          })
+        );
+      }
+    }
+
+    if (urlProduct) {
+      setProductName((prev) => prev || urlProduct);
+    }
+    if (urlSku) {
+      setSku((prev) => prev || urlSku);
+    }
+  }, [urlBatchId, urlExpensePercent, urlBatchName, urlProduct, urlSku]);
+
+  const handleSelectBatch = (batchId: string) => {
+    if (!batchId) {
+      setLinkedBatchId("");
+      setLinkedBatchName("");
+      setLinkedExpensePercent("");
+      return;
+    }
+    const found = allBatches.find((b) => b.id === batchId);
+    if (found) {
+      setLinkedBatchId(found.id);
+      setLinkedBatchName(found.batchNo);
+      const expStr = String(found.expensePercent);
+      setLinkedExpensePercent(expStr);
+
+      const expVal = found.expensePercent;
+      setVariations((prev) =>
+        prev.map((v) => {
+          const purchase = parseFloat(v.purchasePrice || "0") || 0;
+          const profit = parseFloat(v.profitMarginPercent || "0") || 0;
+          const gst = parseFloat(v.gstPercent || "0") || 0;
+          const actual = purchase > 0 ? purchase + (purchase * expVal) / 100 : 0;
+          const baseSelling = actual > 0 ? actual + (actual * profit) / 100 : 0;
+          const sales = baseSelling > 0 ? baseSelling * (1 + gst / 100) : 0;
+          return {
+            ...v,
+            expensePercent: expStr,
+            actualPrice: actual > 0 ? formatNum(actual) : v.actualPrice,
+            salesPrice: sales > 0 ? formatNum(sales) : v.salesPrice,
+            retailPriceWithTax: sales > 0 ? formatNum(sales) : v.retailPriceWithTax,
+            retailPriceWithoutTax: baseSelling > 0 ? formatNum(baseSelling) : v.retailPriceWithoutTax,
+          };
+        })
+      );
+    }
+  };
+
+  const handleAddVariation = () => {
+    const newId = `var-${Date.now()}`;
+    const basePrefix = sku.trim() || "GNCP001";
+    const defaultSize = "10 inch";
+    const defaultColor = "Green";
+    const defaultHex = "#059669";
+    const defaultVariant = "Plastic";
+    const suffix = variationMode === "color" ? "GR" : "PL";
+    const autoSku = `${basePrefix}-${variations.length + 1}-${suffix}`;
+    const lastItem = variations[variations.length - 1];
+
+    const expStr = linkedExpensePercent || lastItem?.expensePercent || "80";
+    const purchase = parseFloat(lastItem?.purchasePrice || "100") || 100;
+    const expVal = parseFloat(expStr) || 0;
+    const profit = parseFloat(lastItem?.profitMarginPercent || "50") || 50;
+    const gst =
+      parseFloat(lastItem?.gstPercent || (retailTaxType === "taxable" ? retailGstRate : "0")) || 0;
+
+    const actual = purchase > 0 ? purchase + (purchase * expVal) / 100 : 0;
+    const baseSelling = actual > 0 ? actual + (actual * profit) / 100 : 0;
+    const sales = baseSelling > 0 ? baseSelling * (1 + gst / 100) : 0;
+
+    setVariations((prev) => [
+      ...prev,
+      {
+        id: newId,
+        size: defaultSize,
+        color: defaultColor,
+        colorCode: defaultHex,
+        variant: defaultVariant,
+        sku: autoSku,
+        image: "",
+        status: true,
+        purchasePrice: formatNum(purchase),
+        purchaseTaxType: lastItem?.purchaseTaxType || "Inclusive",
+        expensePercent: expStr,
+        actualPrice: actual > 0 ? formatNum(actual) : "180",
+        profitMarginPercent: formatNum(profit),
+        gstPercent: formatNum(gst),
+        salesPrice: sales > 0 ? formatNum(sales) : "270",
+        retailPriceWithTax: sales > 0 ? formatNum(sales) : "270",
+        retailPriceWithoutTax: baseSelling > 0 ? formatNum(baseSelling) : "270",
+        wholesalePriceWithTax: lastItem?.wholesalePriceWithTax || "240",
+        wholesalePriceWithoutTax: lastItem?.wholesalePriceWithoutTax || "240",
+      },
+    ]);
+  };
+
+  const handleDeleteVariation = (id: string) => {
+    setVariations((prev) => prev.filter((v) => v.id !== id));
+  };
+
+  const handleDuplicateVariation = (item: ProductVariationItem) => {
+    const newId = `var-${Date.now()}`;
+    setVariations((prev) => [
+      ...prev,
+      {
+        ...item,
+        id: newId,
+        sku: `${item.sku}-copy`,
+      },
+    ]);
+  };
+
+  const handleToggleStatus = (id: string) => {
+    setVariations((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, status: !v.status } : v))
+    );
+  };
+
+  const handleUpdateVariation = (id: string, field: keyof ProductVariationItem, value: any) => {
+    setVariations((prev) =>
+      prev.map((v) => {
+        if (v.id !== id) return v;
+        const updated = { ...v, [field]: value };
+        if (field === "color") {
+          const found = COLOR_OPTIONS.find((c) => c.value === value);
+          if (found) updated.colorCode = found.hex;
+        }
+        return updated;
+      })
+    );
+  };
+
+  const generateVariationSku = (id: string, index?: number) => {
+    const base = (sku.trim() || productName.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "GNCP001").toUpperCase();
+    const item = variations.find((v) => v.id === id);
+    const rowNum = (index !== undefined ? index : variations.findIndex((v) => v.id === id)) + 1;
+    let suffix = "";
+    if (variationMode === "color") {
+      const colorCode = item?.color ? item.color.slice(0, 2).toUpperCase() : "WH";
+      suffix = colorCode;
+    } else {
+      const variantCode = item?.variant ? item.variant.slice(0, 3).toUpperCase() : "VAR";
+      suffix = variantCode;
+    }
+    const sizeCode = item?.size ? item.size.replace(/[^0-9A-Za-z]/g, "").toUpperCase() : `${rowNum}`;
+    const generated = `${base}-${sizeCode}-${suffix}`;
+    handleUpdateVariation(id, "sku", generated);
+  };
+
+  const handleVariationImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    handleUpdateVariation(id, "image", objectUrl);
+  };
+
+  // Tab 3: Pricing & Tax State & Calculations
+  const [priceDisplay, setPriceDisplay] = useState<"inclusive" | "exclusive">("inclusive");
+  const [retailTaxType, setRetailTaxType] = useState<"taxable" | "non-taxable">("taxable");
+  const [retailGstRate, setRetailGstRate] = useState<string>("12");
+  const [wholesaleTaxType, setWholesaleTaxType] = useState<"taxable" | "non-taxable">("taxable");
+  const [wholesaleGstRate, setWholesaleGstRate] = useState<string>("12");
+
+  const getEffectiveTaxRate = (taxType: "taxable" | "non-taxable", rateStr: string): number => {
+    if (taxType === "non-taxable") return 0;
+    const parsed = parseFloat(rateStr);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const calcPriceWithoutTax = (withTaxVal: number, rate: number): string => {
+    if (isNaN(withTaxVal) || withTaxVal <= 0) return "";
+    if (rate <= 0) return withTaxVal.toFixed(2);
+    const withoutTax = withTaxVal / (1 + rate / 100);
+    return withoutTax.toFixed(2);
+  };
+
+  const calcPriceWithTax = (withoutTaxVal: number, rate: number): string => {
+    if (isNaN(withoutTaxVal) || withoutTaxVal <= 0) return "";
+    if (rate <= 0) return withoutTaxVal.toFixed(2);
+    const withTax = withoutTaxVal * (1 + rate / 100);
+    return withTax.toFixed(2);
+  };
+
+  const formatNum = (num: number): string => {
+    if (num <= 0 || isNaN(num)) return "";
+    return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+  };
+
+  const handleRowPricingChange = (
+    id: string,
+    field:
+      | "purchasePrice"
+      | "purchaseTaxType"
+      | "expensePercent"
+      | "actualPrice"
+      | "profitMarginPercent"
+      | "gstPercent"
+      | "salesPrice",
+    val: string
+  ) => {
+    setVariations((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const updated = { ...item, [field]: val };
+
+        if (
+          field === "purchasePrice" ||
+          field === "expensePercent" ||
+          field === "profitMarginPercent" ||
+          field === "gstPercent"
+        ) {
+          const purchase = parseFloat(field === "purchasePrice" ? val : updated.purchasePrice || "0") || 0;
+          const expense = parseFloat(field === "expensePercent" ? val : updated.expensePercent || "0") || 0;
+          const profit = parseFloat(field === "profitMarginPercent" ? val : updated.profitMarginPercent || "0") || 0;
+          const gst = parseFloat(field === "gstPercent" ? val : updated.gstPercent || "0") || 0;
+
+          const actual = purchase > 0 ? purchase + (purchase * expense) / 100 : 0;
+          const baseSelling = actual > 0 ? actual + (actual * profit) / 100 : 0;
+          const sales = baseSelling > 0 ? baseSelling * (1 + gst / 100) : 0;
+
+          updated.actualPrice = actual > 0 ? formatNum(actual) : "";
+          updated.salesPrice = sales > 0 ? formatNum(sales) : "";
+          updated.retailPriceWithTax = updated.salesPrice;
+          updated.retailPriceWithoutTax = baseSelling > 0 ? formatNum(baseSelling) : "";
+        } else if (field === "actualPrice") {
+          const actual = parseFloat(val) || 0;
+          const purchase = parseFloat(updated.purchasePrice || "0") || 0;
+          if (purchase > 0 && actual > 0) {
+            const expense = ((actual - purchase) / purchase) * 100;
+            updated.expensePercent = formatNum(expense);
+          }
+          const profit = parseFloat(updated.profitMarginPercent || "0") || 0;
+          const gst = parseFloat(updated.gstPercent || "0") || 0;
+          const baseSelling = actual > 0 ? actual + (actual * profit) / 100 : 0;
+          const sales = baseSelling > 0 ? baseSelling * (1 + gst / 100) : 0;
+
+          updated.salesPrice = sales > 0 ? formatNum(sales) : "";
+          updated.retailPriceWithTax = updated.salesPrice;
+          updated.retailPriceWithoutTax = baseSelling > 0 ? formatNum(baseSelling) : "";
+        } else if (field === "salesPrice") {
+          const sales = parseFloat(val) || 0;
+          const actual = parseFloat(updated.actualPrice || "0") || 0;
+          const gst = parseFloat(updated.gstPercent || "0") || 0;
+          if (actual > 0 && sales > 0) {
+            const baseSelling = sales / (1 + gst / 100);
+            const profit = ((baseSelling - actual) / actual) * 100;
+            updated.profitMarginPercent = formatNum(profit);
+            updated.retailPriceWithTax = val;
+            updated.retailPriceWithoutTax = formatNum(baseSelling);
+          }
+        }
+        return updated;
+      })
+    );
+  };
+
+  const handleRetailTaxChange = (newType: "taxable" | "non-taxable", newRate: string) => {
+    setRetailTaxType(newType);
+    setRetailGstRate(newRate);
+    const rate = getEffectiveTaxRate(newType, newRate);
+    const effectiveGst = newType === "non-taxable" ? "0" : newRate;
+
+    setVariations((prev) =>
+      prev.map((v) => {
+        const purchase = parseFloat(v.purchasePrice || "0") || 0;
+        const expense = parseFloat(v.expensePercent || "0") || 0;
+        const profit = parseFloat(v.profitMarginPercent || "0") || 0;
+        const gst = parseFloat(effectiveGst) || 0;
+
+        const actual = purchase > 0 ? purchase + (purchase * expense) / 100 : 0;
+        const baseSelling = actual > 0 ? actual + (actual * profit) / 100 : 0;
+        const sales = baseSelling > 0 ? baseSelling * (1 + gst / 100) : 0;
+
+        return {
+          ...v,
+          gstPercent: effectiveGst,
+          actualPrice: actual > 0 ? formatNum(actual) : v.actualPrice,
+          salesPrice: sales > 0 ? formatNum(sales) : v.salesPrice,
+          retailPriceWithTax: sales > 0 ? formatNum(sales) : v.retailPriceWithTax,
+          retailPriceWithoutTax: baseSelling > 0 ? formatNum(baseSelling) : v.retailPriceWithoutTax,
+        };
+      })
+    );
+  };
+
+  const handleWholesaleTaxChange = (newType: "taxable" | "non-taxable", newRate: string) => {
+    setWholesaleTaxType(newType);
+    setWholesaleGstRate(newRate);
+    const rate = getEffectiveTaxRate(newType, newRate);
+
+    setVariations((prev) =>
+      prev.map((v) => {
+        if (priceDisplay === "inclusive") {
+          const withTaxNum = parseFloat(v.wholesalePriceWithTax || "0");
+          return {
+            ...v,
+            wholesalePriceWithoutTax: withTaxNum > 0 ? calcPriceWithoutTax(withTaxNum, rate) : v.wholesalePriceWithoutTax,
+          };
+        } else {
+          const withoutTaxNum = parseFloat(v.wholesalePriceWithoutTax || "0");
+          return {
+            ...v,
+            wholesalePriceWithTax: withoutTaxNum > 0 ? calcPriceWithTax(withoutTaxNum, rate) : v.wholesalePriceWithTax,
+          };
+        }
+      })
+    );
+  };
+
+  const handleVariationPriceChange = (
+    id: string,
+    field: "retailWithTax" | "retailWithoutTax" | "wholesaleWithTax" | "wholesaleWithoutTax",
+    rawVal: string
+  ) => {
+    const retailRate = getEffectiveTaxRate(retailTaxType, retailGstRate);
+    const wholesaleRate = getEffectiveTaxRate(wholesaleTaxType, wholesaleGstRate);
+
+    setVariations((prev) =>
+      prev.map((v) => {
+        if (v.id !== id) return v;
+        const num = parseFloat(rawVal);
+
+        if (field === "retailWithTax") {
+          return {
+            ...v,
+            retailPriceWithTax: rawVal,
+            retailPriceWithoutTax: !rawVal || isNaN(num) ? "" : calcPriceWithoutTax(num, retailRate),
+          };
+        } else if (field === "retailWithoutTax") {
+          return {
+            ...v,
+            retailPriceWithoutTax: rawVal,
+            retailPriceWithTax: !rawVal || isNaN(num) ? "" : calcPriceWithTax(num, retailRate),
+          };
+        } else if (field === "wholesaleWithTax") {
+          return {
+            ...v,
+            wholesalePriceWithTax: rawVal,
+            wholesalePriceWithoutTax: !rawVal || isNaN(num) ? "" : calcPriceWithoutTax(num, wholesaleRate),
+          };
+        } else if (field === "wholesaleWithoutTax") {
+          return {
+            ...v,
+            wholesalePriceWithoutTax: rawVal,
+            wholesalePriceWithTax: !rawVal || isNaN(num) ? "" : calcPriceWithTax(num, wholesaleRate),
+          };
+        }
+        return v;
+      })
+    );
+  };
+
+  // Dynamic Options from API
   const [storeOptions, setStoreOptions] = useState<Array<{ value: string; label: string }>>([
     { value: "choose", label: "Choose" },
     { value: "main", label: "Grow Naturals Main" },
     { value: "nikhlesh", label: "Nikhlesh Nursery" },
   ]);
 
-  const [warehouseOptions, setWarehouseOptions] = useState<Array<{ value: string; label: string }>>([
-    { value: "choose", label: "Choose" },
-    { value: "wh-1", label: "Central Depot" },
-    { value: "wh-2", label: "Nursery Storage" },
-  ]);
-
   const [categoryOptions, setCategoryOptions] = useState<Array<{ value: string; label: string }>>([
     { value: "choose", label: "Choose" },
     { value: "plants", label: "Plants" },
-    { value: "electronics", label: "Electronics" },
+    { value: "pots-planters", label: "Pots & Planters" },
     { value: "fertilizers", label: "Fertilizers" },
   ]);
 
@@ -73,1160 +635,1237 @@ const AddProduct = () => {
     { value: "outdoor", label: "Outdoor Plants" },
   ]);
 
+  const [brandOptions] = useState(DEFAULT_BRANDS);
+  const [unitOptions] = useState(DEFAULT_UNITS);
+
+  // Unified Pricing & Stock Rows (preserved for step 3 & 4)
+  const [priceRows] = useState<ProductPriceRow[]>([
+    {
+      id: "row-1",
+      variant: "Standard",
+      color: "None",
+      size: "None",
+      purchasePrice: "",
+      purchaseTaxType: "Inclusive",
+      salesPrice: "",
+      salesTaxType: "Exclusive",
+      mrp: "",
+      wholesalePrice: "",
+      wholesaleTaxType: "Exclusive",
+      shopQuantity: "10",
+      warehouseQuantity: "0",
+      alertQuantity: "5",
+    },
+  ]);
+
+  // Fetch live stores, categories, and subcategories
   useEffect(() => {
     const currentBiz = businessId || getActiveBusinessId();
 
-    // Fetch live businesses
-    api.get<any[]>("/businesses").then((res) => {
-      if (Array.isArray(res) && res.length > 0) {
-        setStoreOptions([
-          { value: "choose", label: "Choose" },
-          ...res.map((b) => ({ value: b.id, label: b.name })),
-        ]);
-        if (!selectedStore) setSelectedStore(currentBiz !== "all" ? currentBiz : res[0].id);
-      }
-    }).catch(() => {});
+    api
+      .get<any[]>("/businesses")
+      .then((res) => {
+        if (Array.isArray(res) && res.length > 0) {
+          setStoreOptions([
+            { value: "choose", label: "Choose" },
+            ...res.map((b) => ({ value: b.id, label: b.name })),
+          ]);
+          if (selectedStore === "choose") {
+            setSelectedStore(currentBiz !== "all" ? currentBiz : res[0].id);
+          }
+        }
+      })
+      .catch(() => {});
 
-    // Fetch live warehouses
-    api.get<any[]>("/warehouses", { business_id: currentBiz }).then((res) => {
-      if (Array.isArray(res) && res.length > 0) {
-        setWarehouseOptions([
-          { value: "choose", label: "Choose" },
-          ...res.map((w) => ({ value: w.id, label: w.name })),
-        ]);
-      }
-    }).catch(() => {});
+    api
+      .get<any[]>("/categories", { business_id: currentBiz })
+      .then((res) => {
+        if (Array.isArray(res) && res.length > 0) {
+          setCategoryOptions([
+            { value: "choose", label: "Choose" },
+            ...res.map((c) => ({ value: c.id, label: c.name || c.id })),
+          ]);
+        }
+      })
+      .catch(() => {});
 
-    // Fetch live categories
-    api.get<any[]>("/categories", { business_id: currentBiz }).then((res) => {
-      if (Array.isArray(res) && res.length > 0) {
-        setCategoryOptions([
-          { value: "choose", label: "Choose" },
-          ...res.map((c) => ({ value: c.id, label: c.name })),
-        ]);
-      }
-    }).catch(() => {});
-
-    // Fetch live subcategories
-    api.get<any[]>("/subcategories", { business_id: currentBiz }).then((res) => {
-      if (Array.isArray(res) && res.length > 0) {
-        setSubCategoryOptions([
-          { value: "choose", label: "Choose" },
-          ...res.map((sc) => ({ value: sc.id, label: sc.name })),
-        ]);
-      }
-    }).catch(() => {});
+    api
+      .get<any[]>("/subcategories", { business_id: currentBiz })
+      .then((res) => {
+        if (Array.isArray(res) && res.length > 0) {
+          setSubCategoryOptions([
+            { value: "choose", label: "Choose" },
+            ...res.map((sc) => ({ value: sc.id, label: sc.name || sc.id })),
+          ]);
+        }
+      })
+      .catch(() => {});
   }, [businessId]);
 
-  const generateSku = (e: React.MouseEvent) => {
-    e.preventDefault();
+  // Handle Image Upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size exceeds 5MB limit. Please choose a smaller file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setImageUrl(dataUrl);
+      setImages((prev) => [dataUrl, ...prev.filter((item) => item !== dataUrl)]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Generate SKU
+  const generateSku = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     const rand = Math.floor(1000 + Math.random() * 9000);
     setSku(`GN-${rand}`);
   };
 
-  const generateItemCode = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const rand = Math.floor(100000 + Math.random() * 900000);
-    setItemCode(`BAR-${rand}`);
-  };
-
+  // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const finalName = productName.trim() || "New Product";
+    const finalSku = sku.trim() || `GN-${Date.now().toString().slice(-4)}`;
+
+    setIsSubmitting(true);
+    setStatusMessage(null);
+
     try {
-      const parsedPrice = parseFloat(price) || 0;
-      const parsedQty = parseInt(quantity, 10) || 0;
-      const parsedAlert = parseInt(qtyAlert, 10) || 5;
+      const firstRow = priceRows[0] || ({} as Partial<ProductPriceRow>);
+      const parsedPurchase = parseFloat(firstRow.purchasePrice || "") || 0;
+      const parsedSales = parseFloat(firstRow.salesPrice || "") || parsedPurchase * 1.3 || 0;
+      const parsedMrp = parseFloat(firstRow.mrp || "") || parsedSales || 0;
+      const parsedWholesale = parseFloat(firstRow.wholesalePrice || "") || 0;
+      const parsedAlert = parseInt(firstRow.alertQuantity || "5", 10) || 5;
+
+      const destination =
+        isShop && isWarehouse ? "both" : isShop ? "shop" : isWarehouse ? "warehouse" : "shop";
+      const sellingType =
+        isRetail && isWholesale ? "both" : isRetail ? "retail" : isWholesale ? "wholesale" : "retail";
+
+      const customAttributes = {
+        is_shop: isShop,
+        is_warehouse: isWarehouse,
+        destination,
+        is_retail: isRetail,
+        is_wholesale: isWholesale,
+        selling_type: sellingType,
+        store: selectedStore,
+        brand: selectedBrand,
+        slug,
+        category: selectedCategory,
+        sub_category: selectedSubCategory,
+        unit: selectedUnit,
+        shop_price: parsedPurchase,
+        shop_cost_price: parsedSales,
+        shop_mrp: parsedMrp,
+        shop_wholesale_price: parsedWholesale,
+        shop_alert: parsedAlert,
+        pricing_rows: priceRows,
+        variations,
+        variation_mode: variationMode,
+        images,
+        batch_id: linkedBatchId || undefined,
+        batch_name: linkedBatchName || undefined,
+        expense_percent: linkedExpensePercent || undefined,
+      };
+
+      const primaryCover = imageUrl || images[0] || "";
 
       await api.post("/products", {
-        name: productName || "New Product",
-        sku: sku || `GN-${Date.now().toString().slice(-4)}`,
+        name: finalName,
+        sku: finalSku,
         business_id: selectedStore && selectedStore !== "choose" ? selectedStore : getActiveBusinessId(),
         category_id: selectedCategory && selectedCategory !== "choose" ? selectedCategory : undefined,
-        sale_price: parsedPrice,
-        selling_price: parsedPrice,
-        price: parsedPrice,
-        cost_price: parsedPrice ? parsedPrice * 0.7 : 0,
-        stock_quantity: parsedQty,
-        quantity: parsedQty,
+        sale_price: parsedSales,
+        selling_price: parsedSales,
+        price: parsedSales,
+        cost_price: parsedPurchase,
+        mrp: parsedMrp,
+        wholesale_price: parsedWholesale,
+        stock_quantity: 10,
+        quantity: 10,
         low_stock_threshold: parsedAlert,
-        unit: selectedUnit && selectedUnit !== "choose" ? selectedUnit : "Pc",
-        barcode: itemCode || sku || undefined,
-        image_url: imageUrl || "",
-        description: text || "",
+        unit: selectedUnit && selectedUnit !== "choose" ? selectedUnit : "pc",
+        image_url: primaryCover,
+        images,
+        description: text,
+        is_shop: isShop,
+        is_warehouse: isWarehouse,
+        destination,
+        is_retail: isRetail,
+        is_wholesale: isWholesale,
+        selling_type: sellingType,
+        attributes: customAttributes,
       });
-      navigate(route.productlist);
+
+      setStatusMessage({ type: "success", text: "Product created successfully!" });
+      setTimeout(() => {
+        navigate(route.productlist);
+      }, 700);
     } catch (err: any) {
       console.warn("Product create warning:", err);
       navigate(route.productlist);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const brand = [
-    { value: "choose", label: "Choose" },
-    { value: "nike", label: "Nike" },
-    { value: "bolt", label: "Bolt" },
-    { value: "grownaturals", label: "Grow Naturals" },
-  ];
-  const unit = [
-    { value: "choose", label: "Choose" },
-    { value: "kg", label: "Kg" },
-    { value: "pc", label: "Pc" },
-  ];
-  const sellingtype = [
-    { value: "choose", label: "Choose" },
-    { value: "transactionalSelling", label: "Transactional selling" },
-    { value: "solutionSelling", label: "Solution selling" },
-  ];
-  const barcodesymbol = [
-    { value: "choose", label: "Choose" },
-    { value: "code34", label: "Code34" },
-    { value: "code35", label: "Code35" },
-    { value: "code36", label: "Code36" },
-  ];
-  const taxtype = [
-    { value: "exclusive", label: "Exclusive" },
-    { value: "salesTax", label: "Sales Tax" },
-  ];
-  const discounttype = [
-    { value: "choose", label: "Choose" },
-    { value: "percentage", label: "Percentage" },
-    { value: "cash", label: "Cash" },
-  ];
-
-  const warrenty = [
-    { value: "choose", label: "Choose" },
-    { value: "Replacement Warranty", label: "Replacement Warranty" },
-    { value: "On-Site Warranty", label: "On-Site Warranty" },
-    {
-      value: "Accidental Protection Plan",
-      label: "Accidental Protection Plan",
-    },
-  ];
-  const Variant = [
-    { value: "choose", label: "Choose" },
-    { value: "Color", label: "Color" },
-    { value: "Red", label: "Red" },
-    { value: "Black", label: "Black" },
-  ];
-  const [isImageVisible, setIsImageVisible] = useState(true);
-
-  const handleRemoveProduct = () => {
-    setIsImageVisible(false);
-  };
-  const [isImageVisible1, setIsImageVisible1] = useState(true);
-
-  const handleRemoveProduct1 = () => {
-    setIsImageVisible1(false);
-  };
   return (
-    <>
-      <div className="page-wrapper">
-        <div className="content">
-          <div className="page-header">
-            <div className="add-item d-flex">
-              <div className="page-title">
-                <h4>Create Product</h4>
-                <h6>Create new product</h6>
-              </div>
-            </div>
-            <ul className="table-top-head">
-              <RefreshIcon />
-              <CollapesIcon />
-              <li>
-                <div className="page-btn">
-                  <Link to={route.productlist} className="btn btn-secondary">
-                    <i className="feather icon-arrow-left me-2" />
-                    Back to Product
-                  </Link>
-                </div>
-              </li>
-            </ul>
-          </div>
-          {/* /add */}
-          <form className="add-product-form" onSubmit={handleSubmit}>
-            <div className="add-product">
-              <div
-                className="accordions-items-seperate"
-                id="accordionSpacingExample"
+    <div className="page-wrapper">
+      <div className="pw-wrapper">
+        {/* Header with Back button and Page Title */}
+        <div className="pw-header">
+          <Link to={route.productlist} className="pw-back-link">
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </Link>
+          <h1 className="pw-title">Add New Product</h1>
+        </div>
+
+        {/* 5-Step Stepper Bar */}
+        <div className="pw-stepper-card">
+          {WIZARD_STEPS.map((step) => {
+            const isActive = currentStep === step.id;
+            const isCompleted = currentStep > step.id;
+            const statusClass = isActive ? "active" : isCompleted ? "completed" : "inactive";
+
+            return (
+              <button
+                type="button"
+                key={step.id}
+                className={`pw-step-item ${statusClass}`}
+                onClick={() => setCurrentStep(step.id)}
               >
-                <div className="accordion-item border mb-4">
-                  <h2 className="accordion-header" id="headingSpacingOne">
-                    <div
-                      className="accordion-button collapsed bg-white"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#SpacingOne"
-                      aria-expanded="true"
-                      aria-controls="SpacingOne"
-                    >
-                      <div className="d-flex align-items-center justify-content-between flex-fill">
-                        <h5 className="d-flex align-items-center">
-                          <i className="feather icon-info text-primary me-2" />
-                          <span>Product Information</span>
-                        </h5>
-                      </div>
-                    </div>
-                  </h2>
-                  <div
-                    id="SpacingOne"
-                    className="accordion-collapse collapse show"
-                    aria-labelledby="headingSpacingOne"
-                  >
-                    <div className="accordion-body border-top">
-                      <div className="row">
-                        <div className="col-sm-6 col-12">
-                          <div className="mb-3">
-                            <label className="form-label">
-                              Store<span className="text-danger ms-1">*</span>
-                            </label>
-                            <CommonSelect
-                              className="w-100"
-                              options={storeOptions}
-                              value={selectedStore}
-                              onChange={(e) => setSelectedStore(e.value)}
-                              placeholder="Choose"
-                              filter={false}
-                            />
-                          </div>
-                        </div>
-                        <div className="col-sm-6 col-12">
-                          <div className="mb-3">
-                            <label className="form-label">
-                              Warehouse
-                              <span className="text-danger ms-1">*</span>
-                            </label>
-                            <CommonSelect
-                              className="w-100"
-                              options={warehouseOptions}
-                              value={selectedWarehouse}
-                              onChange={(e) => setSelectedWarehouse(e.value)}
-                              placeholder="Choose"
-                              filter={false}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="row">
-                        <div className="col-sm-6 col-12">
-                          <div className="mb-3">
-                            <label className="form-label">
-                              Product Name
-                              <span className="text-danger ms-1">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              value={productName}
-                              onChange={(e) => {
-                                setProductName(e.target.value);
-                                setSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
-                              }}
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div className="col-sm-6 col-12">
-                          <div className="mb-3">
-                            <label className="form-label">
-                              Slug<span className="text-danger ms-1">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              value={slug}
-                              onChange={(e) => setSlug(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="row">
-                        <div className="col-sm-6 col-12">
-                          <div className="mb-3 list position-relative">
-                            <label className="form-label">
-                              SKU<span className="text-danger ms-1">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              className="form-control list"
-                              value={sku}
-                              onChange={(e) => setSku(e.target.value)}
-                            />
-                            <button
-                              type="button"
-                              className="btn btn-primaryadd"
-                              onClick={generateSku}
-                            >
-                              Generate
-                            </button>
-                          </div>
-                        </div>
-                        <div className="col-sm-6 col-12">
-                          <div className="mb-3">
-                            <label className="form-label">
-                              Selling Type
-                              <span className="text-danger ms-1">*</span>
-                            </label>
-                            <CommonSelect
-                              className="w-100"
-                              options={sellingtype}
-                              value={selectedSellingType}
-                              onChange={(e) => setSelectedSellingType(e.value)}
-                              placeholder="Choose"
-                              filter={false}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="addservice-info">
-                        <div className="row">
-                          <div className="col-sm-6 col-12">
-                            <div className="mb-3">
-                              <div className="add-newplus">
-                                <label className="form-label">
-                                  Category
-                                  <span className="text-danger ms-1">*</span>
-                                </label>
-                                <Link
-                                  to="#"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#add-units-category"
-                                >
-                                  <i className="feather icon-plus-circle plus-down-add" />
-                                  <span>Add New</span>
-                                </Link>
-                              </div>
-                              <CommonSelect
-                                className="w-100"
-                                options={categoryOptions}
-                                value={selectedCategory}
-                                onChange={(e) => setSelectedCategory(e.value)}
-                                placeholder="Choose"
-                                filter={false}
-                              />
-                            </div>
-                          </div>
-                          <div className="col-sm-6 col-12">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                Sub Category
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <CommonSelect
-                                className="w-100"
-                                options={subCategoryOptions}
-                                value={selectedSubCategory}
-                                onChange={(e) =>
-                                  setSelectedSubCategory(e.value)
-                                }
-                                placeholder="Choose"
-                                filter={false}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="add-product-new">
-                        <div className="row">
-                          <div className="col-sm-6 col-12">
-                            <div className="mb-3">
-                              <div className="add-newplus">
-                                <label className="form-label">
-                                  Brand
-                                  <span className="text-danger ms-1">*</span>
-                                </label>
-                              </div>
-                              <CommonSelect
-                                className="w-100"
-                                options={brand}
-                                value={selectedBrand}
-                                onChange={(e) => setSelectedBrand(e.value)}
-                                placeholder="Choose"
-                                filter={false}
-                              />
-                            </div>
-                          </div>
-                          <div className="col-sm-6 col-12">
-                            <div className="mb-3">
-                              <div className="add-newplus">
-                                <label className="form-label">
-                                  Unit
-                                  <span className="text-danger ms-1">*</span>
-                                </label>
-                              </div>
-                              <CommonSelect
-                                className="w-100"
-                                options={unit}
-                                value={selectedUnit}
-                                onChange={(e) => setSelectedUnit(e.value)}
-                                placeholder="Choose"
-                                filter={false}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="row">
-                        <div className="col-lg-6 col-sm-6 col-12">
-                          <div className="mb-3">
-                            <label className="form-label">
-                              Barcode Symbology
-                              <span className="text-danger ms-1">*</span>
-                            </label>
-                            <CommonSelect
-                              className="w-100"
-                              options={barcodesymbol}
-                              value={selectedBarcodeSymbol}
-                              onChange={(e) =>
-                                setSelectedBarcodeSymbol(e.value)
-                              }
-                              placeholder="Choose"
-                              filter={false}
-                            />
-                          </div>
-                        </div>
-                        <div className="col-lg-6 col-sm-6 col-12">
-                          <div className="mb-3 list position-relative">
-                            <label className="form-label">
-                              Item Code
-                              <span className="text-danger ms-1">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              className="form-control list"
-                              value={itemCode}
-                              onChange={(e) => setItemCode(e.target.value)}
-                            />
-                            <button
-                              type="button"
-                              className="btn btn-primaryadd"
-                              onClick={generateItemCode}
-                            >
-                              Generate
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Editor */}
-                      <div className="col-lg-12">
-                        <div className="summer-description-box">
-                          <label className="form-label">Description</label>
-                          <Editor
-                            value={text}
-                            onTextChange={(e: any) => setText(e.htmlValue)}
-                            style={{ height: "200px" }}
-                          />
-                          <p className="fs-14 mt-1">Maximum 60 Words</p>
-                        </div>
-                      </div>
-                      {/* /Editor */}
-                    </div>
-                  </div>
+                <div className="pw-step-badge">
+                  {isCompleted ? <Check size={14} /> : step.id}
                 </div>
-                <div className="accordion-item border mb-4">
-                  <h2 className="accordion-header" id="headingSpacingTwo">
-                    <div
-                      className="accordion-button collapsed bg-white"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#SpacingTwo"
-                      aria-expanded="true"
-                      aria-controls="SpacingTwo"
-                    >
-                      <div className="d-flex align-items-center justify-content-between flex-fill">
-                        <h5 className="d-flex align-items-center">
-                          <i className="feather icon-life-buoy text-primary me-2" />
-                          <span>Pricing &amp; Stocks</span>
-                        </h5>
+                <span className="pw-step-label">{step.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {statusMessage && (
+          <div
+            className={`alert ${
+              statusMessage.type === "success" ? "alert-success" : "alert-danger"
+            } mb-3`}
+            role="alert"
+          >
+            {statusMessage.text}
+          </div>
+        )}
+
+        {/* Tab 1: Basic Details (Exact Input Fields from Screenshot + Left Image Placeholder) */}
+        {currentStep === 1 && (
+          <div className="pw-card">
+            <div className="pw-card-header">
+              <h2 className="pw-card-title">Product Information</h2>
+            </div>
+
+            <div className="pw-basic-layout">
+              {/* Left Column: Product Image Placeholder */}
+              <div className="pw-image-column">
+                <div
+                  className={`pw-image-box ${imageUrl ? "has-image" : ""}`}
+                  onClick={() => fileInputRef.current?.click()}
+                  title={imageUrl ? "Click to change image" : "Click to upload image"}
+                >
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={productName || "Product Preview"}
+                      className="pw-image-preview"
+                      onError={() => setImageUrl("")}
+                    />
+                  ) : (
+                    <div className="pw-image-placeholder">
+                      <div className="pw-image-placeholder-icon-wrap">
+                        <ImageIcon size={26} />
                       </div>
+                      <span className="pw-image-placeholder-text">Upload Image</span>
+                      <span className="pw-image-placeholder-sub">Click to browse</span>
                     </div>
-                  </h2>
-                  <div
-                    id="SpacingTwo"
-                    className="accordion-collapse collapse show"
-                    aria-labelledby="headingSpacingTwo"
-                  >
-                    <div className="accordion-body border-top">
-                      <div className="mb-3s">
-                        <label className="form-label">
-                          Product Type
-                          <span className="text-danger ms-1">*</span>
-                        </label>
-                        <div className="single-pill-product mb-3">
-                          <ul
-                            className="nav nav-pills"
-                            id="pills-tab1"
-                            role="tablist"
-                          >
-                            <li className="nav-item" role="presentation">
-                              <span
-                                className="custom_radio me-4 mb-0 active"
-                                id="pills-home-tab"
-                                data-bs-toggle="pill"
-                                data-bs-target="#pills-home"
-                                role="tab"
-                                aria-controls="pills-home"
-                                aria-selected="true"
-                              >
-                                <input
-                                  type="radio"
-                                  className="form-control"
-                                  name="payment"
-                                  defaultChecked
-                                />
-                                <span className="checkmark" /> Single Product
-                              </span>
-                            </li>
-                            <li className="nav-item" role="presentation">
-                              <span
-                                className="custom_radio me-2 mb-0"
-                                id="pills-profile-tab"
-                                data-bs-toggle="pill"
-                                data-bs-target="#pills-profile"
-                                role="tab"
-                                aria-controls="pills-profile"
-                                aria-selected="false"
-                              >
-                                <input
-                                  type="radio"
-                                  className="form-control"
-                                  name="payment"
-                                />
-                                <span className="checkmark" /> Variable Product
-                              </span>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                      <div className="tab-content" id="pills-tabContent">
-                        <div
-                          className="tab-pane fade show active"
-                          id="pills-home"
-                          role="tabpanel"
-                          aria-labelledby="pills-home-tab"
-                        >
-                          <div className="single-product">
-                            <div className="row">
-                              <div className="col-lg-4 col-sm-6 col-12">
-                                <div className="mb-3">
-                                  <label className="form-label">
-                                    Quantity
-                                    <span className="text-danger ms-1">*</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={quantity}
-                                    onChange={(e) => setQuantity(e.target.value)}
-                                  />
-                                </div>
-                              </div>
-                              <div className="col-lg-4 col-sm-6 col-12">
-                                <div className="mb-3">
-                                  <label className="form-label">
-                                    Price
-                                    <span className="text-danger ms-1">*</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={price}
-                                    onChange={(e) => setPrice(e.target.value)}
-                                    placeholder="0.00"
-                                    required
-                                  />
-                                </div>
-                              </div>
-                              <div className="col-lg-4 col-sm-6 col-12">
-                                <div className="mb-3">
-                                  <label className="form-label">
-                                    Tax Type
-                                    <span className="text-danger ms-1">*</span>
-                                  </label>
-                                  <CommonSelect
-                                    className="w-100"
-                                    options={taxtype}
-                                    value={selectedTaxType}
-                                    onChange={(e) =>
-                                      setSelectedTaxType(e.value)
-                                    }
-                                    placeholder="Select Option"
-                                    filter={false}
-                                  />
-                                </div>
-                              </div>
-                              <div className="col-lg-4 col-sm-6 col-12">
-                                <div className="mb-3">
-                                  <label className="form-label">
-                                    Discount Type
-                                    <span className="text-danger ms-1">*</span>
-                                  </label>
-                                  <CommonSelect
-                                    className="w-100"
-                                    options={discounttype}
-                                    value={selectedDiscountType}
-                                    onChange={(e) =>
-                                      setSelectedDiscountType(e.value)
-                                    }
-                                    placeholder="Choose"
-                                    filter={false}
-                                  />
-                                </div>
-                              </div>
-                              <div className="col-lg-4 col-sm-6 col-12">
-                                <div className="mb-3">
-                                  <label className="form-label">
-                                    Discount Value
-                                    <span className="text-danger ms-1">*</span>
-                                  </label>
-                                  <input
-                                    className="form-control"
-                                    type="text"
-                                    value={discountValue}
-                                    onChange={(e) => setDiscountValue(e.target.value)}
-                                  />
-                                </div>
-                              </div>
-                              <div className="col-lg-4 col-sm-6 col-12">
-                                <div className="mb-3">
-                                  <label className="form-label">
-                                    Quantity Alert
-                                    <span className="text-danger ms-1">*</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={qtyAlert}
-                                    onChange={(e) => setQtyAlert(e.target.value)}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className="tab-pane fade"
-                          id="pills-profile"
-                          role="tabpanel"
-                          aria-labelledby="pills-profile-tab"
-                        >
-                          <div className="row select-color-add">
-                            <div className="col-lg-6 col-sm-6 col-12">
-                              <div className="mb-3">
-                                <label className="form-label">
-                                  Variant Attribute{" "}
-                                  <span className="text-danger ms-1">*</span>
-                                </label>
-                                <div className="row">
-                                  <div className="col-lg-10 col-sm-10 col-10">
-                                    <CommonSelect
-                                      onChange={(e) =>
-                                        setSelectedVariant(e.value)
-                                      }
-                                      className="w-100"
-                                      options={Variant}
-                                      value={selectedVariant}
-                                      placeholder="Choose"
-                                      filter={false}
-                                    />
-                                  </div>
-                                  <div className="col-lg-2 col-sm-2 col-2 ps-0">
-                                    <div className="add-icon tab">
-                                      <Link
-                                        to="#"
-                                        className="btn btn-filter"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#add-product-category"
-                                      >
-                                        <i className="feather feather-plus-circle" />
-                                      </Link>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className="selected-hide-color"
-                                id="input-show"
-                              >
-                                <label className="form-label">
-                                  Variant Attribute{" "}
-                                  <span className="text-danger ms-1">*</span>
-                                </label>
-                                <div className="row align-items-center">
-                                  <div className="col-lg-10 col-sm-10 col-10">
-                                    <div className="mb-3">
-                                      <input
-                                        className="input-tags form-control"
-                                        id="inputBox"
-                                        type="text"
-                                        data-role="tagsinput"
-                                        name="specialist"
-                                        defaultValue="red, black"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="col-lg-2 col-sm-2 col-2 ps-0">
-                                    <div className="mb-3 ">
-                                      <Link to="#" className="remove-color">
-                                        <i className="far fa-trash-alt" />
-                                      </Link>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div
-                            className="modal-body-table border"
-                            id="variant-table"
-                          >
-                            <div className="table-responsive">
-                              <table className="table border">
-                                <thead>
-                                  <tr>
-                                    <th>Variantion</th>
-                                    <th>Variant Value</th>
-                                    <th>SKU</th>
-                                    <th>Quantity</th>
-                                    <th>Price</th>
-                                    <th className="no-sort" />
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  <tr>
-                                    <td>
-                                      <div className="add-product">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          defaultValue="color"
-                                        />
-                                      </div>
-                                    </td>
-                                    <td>
-                                      <div className="add-product">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          defaultValue="red"
-                                        />
-                                      </div>
-                                    </td>
-                                    <td>
-                                      <div className="add-product">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          defaultValue={1234}
-                                        />
-                                      </div>
-                                    </td>
-                                    <td>
-                                      <CounterThree />
-                                    </td>
-                                    <td>
-                                      <div className="add-product">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          defaultValue={50000}
-                                        />
-                                      </div>
-                                    </td>
-                                    <td className="action-table-data">
-                                      <div className="edit-delete-action">
-                                        <div className="input-block add-lists">
-                                          <label className="checkboxs">
-                                            <input
-                                              type="checkbox"
-                                              defaultChecked
-                                            />
-                                            <span className="checkmarks" />
-                                          </label>
-                                        </div>
-                                        <Link
-                                          className="me-2 p-2"
-                                          to="#"
-                                          data-bs-toggle="modal"
-                                          data-bs-target="#add-variation"
-                                        >
-                                          <i
-                                            data-feather="plus"
-                                            className="feather-edit"
-                                          />
-                                        </Link>
-                                        <Link
-                                          data-bs-toggle="modal"
-                                          data-bs-target="#delete-modal"
-                                          className="p-2"
-                                          to="#"
-                                        >
-                                          <i
-                                            data-feather="trash-2"
-                                            className="feather-trash-2"
-                                          />
-                                        </Link>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td>
-                                      <div className="add-product">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          defaultValue="color"
-                                        />
-                                      </div>
-                                    </td>
-                                    <td>
-                                      <div className="add-product">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          defaultValue="black"
-                                        />
-                                      </div>
-                                    </td>
-                                    <td>
-                                      <div className="add-product">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          defaultValue={2345}
-                                        />
-                                      </div>
-                                    </td>
-                                    <td>
-                                      <CounterThree />
-                                    </td>
-                                    <td>
-                                      <div className="add-product">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          defaultValue={50000}
-                                        />
-                                      </div>
-                                    </td>
-                                    <td className="action-table-data">
-                                      <div className="edit-delete-action">
-                                        <div className="input-block add-lists">
-                                          <label className="checkboxs">
-                                            <input
-                                              type="checkbox"
-                                              defaultChecked
-                                            />
-                                            <span className="checkmarks" />
-                                          </label>
-                                        </div>
-                                        <Link
-                                          className="me-2 p-2"
-                                          to="#"
-                                          data-bs-toggle="modal"
-                                          data-bs-target="#add-variation"
-                                        >
-                                          <i
-                                            data-feather="plus"
-                                            className="feather-edit"
-                                          />
-                                        </Link>
-                                        <Link
-                                          data-bs-toggle="modal"
-                                          data-bs-target="#delete-modal"
-                                          className="p-2"
-                                          to="#"
-                                        >
-                                          <i
-                                            data-feather="trash-2"
-                                            className="feather-trash-2"
-                                          />
-                                        </Link>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
-                <div className="accordion-item border mb-4">
-                  <h2 className="accordion-header" id="headingSpacingThree">
-                    <div
-                      className="accordion-button collapsed bg-white"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#SpacingThree"
-                      aria-expanded="true"
-                      aria-controls="SpacingThree"
-                    >
-                      <div className="d-flex align-items-center justify-content-between flex-fill">
-                        <h5 className="d-flex align-items-center">
-                          <i className="feather icon-image text-primary me-2" />
-                          <span>Images</span>
-                        </h5>
-                      </div>
-                    </div>
-                  </h2>
-                  <div
-                    id="SpacingThree"
-                    className="accordion-collapse collapse show"
-                    aria-labelledby="headingSpacingThree"
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: "none" }}
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  onChange={handleImageUpload}
+                />
+
+                <div className="d-flex align-items-center gap-2 w-100">
+                  <button
+                    type="button"
+                    className="pw-change-image-btn"
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <div className="accordion-body border-top p-4">
-                      <ProductImageUploader
-                        value={imageUrl}
-                        onChange={setImageUrl}
-                        label="Product Photo / Media"
-                        productType={selectedCategory || "plants"}
+                    <Settings size={15} />
+                    <span>{imageUrl ? "Change Image" : "Upload Image"}</span>
+                  </button>
+                  {imageUrl && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm p-1"
+                      style={{ borderRadius: "8px", height: "36px", marginTop: "0.85rem", flexShrink: 0 }}
+                      title="Remove image"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImageUrl("");
+                        setImages([]);
+                      }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+                <span className="pw-image-hint">JPG, PNG (Max 5MB)</span>
+              </div>
+
+              {/* Right Column: Exact Form Fields */}
+              <div className="pw-form-column">
+                <div className="pw-fields-grid">
+                  {/* Row 1: Store * & Brand * */}
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Store <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-field-control">
+                      <CommonSelect
+                        className="w-100"
+                        options={storeOptions}
+                        value={selectedStore}
+                        onChange={(e) => setSelectedStore(e.value)}
+                        placeholder="Choose"
+                        filter={false}
                       />
                     </div>
                   </div>
-                </div>
-                <div className="accordion-item border mb-4">
-                  <h2 className="accordion-header" id="headingSpacingFour">
-                    <div
-                      className="accordion-button collapsed bg-white"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#SpacingFour"
-                      aria-expanded="true"
-                      aria-controls="SpacingFour"
-                    >
-                      <div className="d-flex align-items-center justify-content-between flex-fill">
-                        <h5 className="d-flex align-items-center">
-                          <i className="feather icon-list text-primary me-2" />
-                          <span>Custom Fields</span>
-                        </h5>
-                      </div>
+
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Brand <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-field-control">
+                      <CommonSelect
+                        className="w-100"
+                        options={brandOptions}
+                        value={selectedBrand}
+                        onChange={(e) => setSelectedBrand(e.value)}
+                        placeholder="Choose"
+                        filter={false}
+                      />
                     </div>
-                  </h2>
-                  <div
-                    id="SpacingFour"
-                    className="accordion-collapse collapse show"
-                    aria-labelledby="headingSpacingFour"
-                  >
-                    <div className="accordion-body border-top">
-                      <div>
-                        <div className="p-3 bg-light rounded d-flex align-items-center border mb-3">
-                          <div className=" d-flex align-items-center">
-                            <div className="form-check form-check-inline">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                id="warranties"
-                                defaultValue="option1"
-                              />
-                              <label
-                                className="form-check-label"
-                                htmlFor="warranties"
-                              >
-                                Warranties
-                              </label>
-                            </div>
-                            <div className="form-check form-check-inline">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                id="manufacturer"
-                                defaultValue="option2"
-                              />
-                              <label
-                                className="form-check-label"
-                                htmlFor="manufacturer"
-                              >
-                                Manufacturer
-                              </label>
-                            </div>
-                            <div className="form-check form-check-inline">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                id="expiry"
-                                defaultValue="option2"
-                              />
-                              <label
-                                className="form-check-label"
-                                htmlFor="expiry"
-                              >
-                                Expiry
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="row">
-                          <div className="col-sm-6 col-12">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                Warranty
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <CommonSelect
-                                className="w-100"
-                                options={warrenty}
-                                value={selectedWarranty}
-                                onChange={(e) => setSelectedWarranty(e.value)}
-                                placeholder="Choose"
-                                filter={false}
-                              />
-                            </div>
-                          </div>
-                          <div className="col-sm-6 col-12">
-                            <div className="mb-3 add-product">
-                              <label className="form-label">
-                                Manufacturer
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <input type="text" className="form-control" />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="row">
-                          <div className="col-sm-6 col-12">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                Manufactured Date
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <div className="input-groupicon calender-input">
-                                <i className="feather icon-calendar info-img" />
-                                <CommonDatePicker
-                                  value={date1}
-                                  onChange={setDate1}
-                                  className="w-100"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="col-sm-6 col-12">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                Expiry On
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <div className="input-groupicon calender-input">
-                                <i className="feather icon-calendar info-img" />
-                                <CommonDatePicker
-                                  value={date2}
-                                  onChange={setDate2}
-                                  className="w-100"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                  </div>
+
+                  {/* Row 2: Product Name * & Short Name * */}
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Product Name <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-field-control">
+                      <input
+                        type="text"
+                        className="pw-input"
+                        value={productName}
+                        onChange={(e) => {
+                          setProductName(e.target.value);
+                          setSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Short Name <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-field-control">
+                      <input
+                        type="text"
+                        className="pw-input"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 3: Add Product For * & Selling Type * (No background, No border checkboxes) */}
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Add Product For <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-checkboxes-row pw-field-control">
+                      <label className="pw-checkbox-item" htmlFor="chkShop">
+                        <input
+                          type="checkbox"
+                          id="chkShop"
+                          checked={isShop}
+                          onChange={(e) => setIsShop(e.target.checked)}
+                        />
+                        <span>Shop</span>
+                      </label>
+                      <label className="pw-checkbox-item" htmlFor="chkWarehouse">
+                        <input
+                          type="checkbox"
+                          id="chkWarehouse"
+                          checked={isWarehouse}
+                          onChange={(e) => setIsWarehouse(e.target.checked)}
+                        />
+                        <span>Warehouse</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Selling Type <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-checkboxes-row pw-field-control">
+                      <label className="pw-checkbox-item" htmlFor="chkRetail">
+                        <input
+                          type="checkbox"
+                          id="chkRetail"
+                          checked={isRetail}
+                          onChange={(e) => setIsRetail(e.target.checked)}
+                        />
+                        <span>Retail</span>
+                      </label>
+                      <label className="pw-checkbox-item" htmlFor="chkWholesale">
+                        <input
+                          type="checkbox"
+                          id="chkWholesale"
+                          checked={isWholesale}
+                          onChange={(e) => setIsWholesale(e.target.checked)}
+                        />
+                        <span>Wholesale</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Row 4: Category * & Sub Category * */}
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Category <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-field-control">
+                      <CommonSelect
+                        className="w-100"
+                        options={categoryOptions}
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.value)}
+                        placeholder="Choose"
+                        filter={false}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Sub Category <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-field-control">
+                      <CommonSelect
+                        className="w-100"
+                        options={subCategoryOptions}
+                        value={selectedSubCategory}
+                        onChange={(e) => setSelectedSubCategory(e.value)}
+                        placeholder="Choose"
+                        filter={false}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 5: SKU * (with Generate button) & Unit * */}
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      SKU <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-input-action-wrap pw-field-control">
+                      <input
+                        type="text"
+                        className="pw-input"
+                        value={sku}
+                        onChange={(e) => setSku(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="pw-btn-generate"
+                        onClick={generateSku}
+                      >
+                        Generate
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pw-field-group">
+                    <label className="pw-label">
+                      Unit <span className="pw-req">*</span>
+                    </label>
+                    <div className="pw-field-control">
+                      <CommonSelect
+                        className="w-100"
+                        options={unitOptions}
+                        value={selectedUnit}
+                        onChange={(e) => setSelectedUnit(e.value)}
+                        placeholder="Choose"
+                        filter={false}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 6: Description (Full Width Editor) */}
+                  <div className="pw-field-group full-width">
+                    <label className="pw-label">Description</label>
+                    <div className="pw-field-control">
+                      <Editor
+                        value={text}
+                        onTextChange={(e: any) => setText(e.htmlValue)}
+                        style={{ height: "130px" }}
+                      />
+                      <small className="text-muted d-block mt-1">Maximum 60 Words</small>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="col-lg-12">
-              <div className="d-flex align-items-center justify-content-end mb-4">
-                <Link to={route.productlist} className="btn btn-secondary me-2">
-                  Cancel
-                </Link>
-                <button type="submit" className="btn btn-primary">
-                  Add Product
-                </button>
-              </div>
-            </div>
-          </form>
-          {/* /add */}
-        </div>
-        <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-          <p className="mb-0 text-gray-9">
-            2014 - 2025 © DreamsPOS. All Right Reserved
-          </p>
-          <p>
-            Designed &amp; Developed by{" "}
-            <Link to="#" className="text-primary">
-              Dreams
-            </Link>
-          </p>
-        </div>
-      </div>
 
-      {/* Add Category */}
-      <div className="modal fade" id="add-product-category">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="page-title">
-                <h4>Add Category</h4>
-              </div>
+            {/* Bottom Right: Next Button */}
+            <div className="pw-footer-actions">
               <button
                 type="button"
-                className="close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
+                className="pw-btn-next"
+                onClick={() => setCurrentStep(2)}
               >
-                <span aria-hidden="true">×</span>
+                <span>Next</span>
+                <ArrowRight size={16} />
               </button>
             </div>
-            <div className="modal-body">
-              <label className="form-label">
-                Category<span className="ms-1 text-danger">*</span>
-              </label>
-              <input type="text" className="form-control" />
-            </div>
-            <div className="modal-footer">
-              <Link
-                to="#"
-                className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none"
-                data-bs-dismiss="modal"
-              >
-                Cancel
-              </Link>
-              <Link
-                to={all_routes.addproduct}
-                className="btn btn-primary text-white fs-13 fw-medium p-2 px-3"
-              >
-                Submit
-              </Link>
-            </div>
           </div>
-        </div>
-      </div>
-      {/* /Add Category */}
+        )}
 
-      {/* delete modal */}
-      <div className="modal fade" id="delete-modal">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="page-wrapper-new p-0">
-              <div className="content p-5 px-3 text-center">
-                <span className="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2">
-                  <i className="ti ti-trash fs-24 text-danger" />
-                </span>
-                <h4 className="fs-20 fw-bold mb-2 mt-1">Delete Attribute</h4>
-                <p className="mb-0 fs-16">
-                  Are you sure you want to delete Attribute?
-                </p>
-                <div className="modal-footer-btn mt-3 d-flex justify-content-center">
-                  <button
-                    type="button"
-                    className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none"
-                    data-bs-dismiss="modal"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary fs-13 fw-medium p-2 px-3"
-                  >
-                    Yes Delete
-                  </button>
+        {/* Tab 2: Variations */}
+        {currentStep === 2 && (
+          <div className="pw-card">
+            <div className="pw-card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div>
+                <h2 className="pw-card-title">
+                  {variationMode === "color" ? "Size & Color Variations" : "Size & Attribute Variations"}
+                </h2>
+                {/* <p className="pw-card-subtitle text-muted mb-0 mt-1 fs-13">
+                  {variationMode === "color"
+                    ? "Add sizes and colors for this product. You can add multiple combinations."
+                    : "Add sizes and attribute variants for this product. You can add multiple combinations."}
+                </p> */}
+              </div>
+
+              <div className="d-flex align-items-center flex-wrap gap-3">
+                {/* Radio selection for Color vs Variety */}
+                <div className="pw-variation-radio-group">
+                  <label className={`pw-radio-option ${variationMode === "color" ? "active" : ""}`}>
+                    <input
+                      type="radio"
+                      name="variationMode"
+                      value="color"
+                      checked={variationMode === "color"}
+                      onChange={() => setVariationMode("color")}
+                    />
+                    <span>Color</span>
+                  </label>
+                  <label className={`pw-radio-option ${variationMode === "variant" ? "active" : ""}`}>
+                    <input
+                      type="radio"
+                      name="variationMode"
+                      value="variant"
+                      checked={variationMode === "variant"}
+                      onChange={() => setVariationMode("variant")}
+                    />
+                    <span>Variety</span>
+                  </label>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <AddCategory />
-      <AddVariant />
-      <AddVarientNew />
-    </>
+            {/* Variations Table */}
+            <div className="pw-variations-table-wrap">
+              <table className="pw-variations-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "42px", textAlign: "center" }}></th>
+                    <th style={{ width: "20%" }}>Size</th>
+                    <th style={{ width: "22%" }}>{variationMode === "color" ? "Color" : "Variety"}</th>
+                    <th style={{ width: "24%" }}>SKU (Auto)</th>
+                    <th style={{ width: "10%", textAlign: "center" }}>Image</th>
+                    <th style={{ width: "10%", textAlign: "center" }}>Status</th>
+                    <th style={{ width: "14%", textAlign: "center" }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variations.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-4 text-muted">
+                        No variations added yet.{" "}
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-success ms-2"
+                          onClick={handleAddVariation}
+                        >
+                          <Plus size={14} className="me-1" />
+                          Add Variation
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                    variations.map((item, index) => (
+                      <tr key={item.id}>
+                        {/* Drag Handle */}
+                        <td style={{ textAlign: "center" }}>
+                          <GripVertical size={16} className="text-muted" style={{ cursor: "grab" }} />
+                        </td>
+
+                        {/* Size Dropdown */}
+                        <td>
+                          <CommonSelect
+                            className="w-100"
+                            options={SIZE_OPTIONS}
+                            value={item.size}
+                            onChange={(e) => handleUpdateVariation(item.id, "size", e.value)}
+                            placeholder="Select Size"
+                            filter={false}
+                          />
+                        </td>
+
+                        {/* Color or Variety Dropdown based on radio selection */}
+                        <td>
+                          {variationMode === "color" ? (
+                            <CommonSelect
+                              className="w-100"
+                              options={COLOR_OPTIONS}
+                              value={item.color}
+                              onChange={(e) => handleUpdateVariation(item.id, "color", e.value)}
+                              placeholder="Select Color"
+                              filter={false}
+                              formatOptionLabel={(option: any) => (
+                                <div className="d-flex align-items-center gap-2">
+                                  <span
+                                    style={{
+                                      width: 14,
+                                      height: 14,
+                                      borderRadius: "50%",
+                                      backgroundColor: option.hex || "#ccc",
+                                      border: "1px solid rgba(0,0,0,0.18)",
+                                      display: "inline-block",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <span>{option.label}</span>
+                                </div>
+                              )}
+                            />
+                          ) : (
+                            <CommonSelect
+                              className="w-100"
+                              options={VARIANT_OPTIONS}
+                              value={item.variant}
+                              onChange={(e) => handleUpdateVariation(item.id, "variant", e.value)}
+                              placeholder="Select Variety"
+                              filter={false}
+                            />
+                          )}
+                        </td>
+
+                        {/* SKU (Auto) with Generate Button */}
+                        <td>
+                          <div className="pw-table-sku-wrap">
+                            <input
+                              type="text"
+                              className="pw-table-input"
+                              value={item.sku}
+                              onChange={(e) => handleUpdateVariation(item.id, "sku", e.target.value)}
+                              placeholder="SKU"
+                            />
+                            <button
+                              type="button"
+                              className="pw-btn-table-generate"
+                              onClick={() => generateVariationSku(item.id, index)}
+                              title="Generate SKU for this variation"
+                            >
+                              <ImMagicWand size={15} />
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* Image Thumbnail with Upload Trigger */}
+                        <td style={{ textAlign: "center" }}>
+                          <label className="pw-table-image-box" title="Click to upload image for this variation">
+                            {item.image ? (
+                              <img src={item.image} alt={item.sku} className="pw-table-image-preview" />
+                            ) : (
+                              <ImageIcon size={18} className="text-muted" />
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              onChange={(e) => handleVariationImageUpload(item.id, e)}
+                            />
+                          </label>
+                        </td>
+
+                        {/* Status Toggle Switch */}
+                        <td style={{ textAlign: "center" }}>
+                          <div className="d-flex justify-content-center">
+                            <label className="pw-toggle-switch" title={item.status ? "Active" : "Inactive"}>
+                              <input
+                                type="checkbox"
+                                checked={item.status}
+                                onChange={() => handleToggleStatus(item.id)}
+                              />
+                              <span className="pw-toggle-slider" />
+                            </label>
+                          </div>
+                        </td>
+
+                        {/* Actions: Add, Duplicate & Delete */}
+                        <td style={{ textAlign: "center" }}>
+                          <div className="d-flex align-items-center justify-content-center gap-2">
+                            <button
+                              type="button"
+                              className="pw-action-icon-btn text-success"
+                              title="Add variation row"
+                              onClick={handleAddVariation}
+                            >
+                              <Plus size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              className="pw-action-icon-btn"
+                              title="Duplicate variation"
+                              onClick={() => handleDuplicateVariation(item)}
+                            >
+                              <Copy size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              className="pw-action-icon-btn text-danger"
+                              title="Delete variation"
+                              onClick={() => handleDeleteVariation(item.id)}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer Navigation Buttons */}
+            <div className="pw-footer-actions">
+              <button
+                type="button"
+                className="pw-btn-prev"
+                onClick={() => setCurrentStep(1)}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                className="pw-btn-next"
+                onClick={() => setCurrentStep(3)}
+              >
+                <span>Next</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Pricing & Tax */}
+        {currentStep === 3 && (
+          <div className="pw-card">
+            <div className="pw-card-header">
+              <h2 className="pw-card-title">Pricing &amp; Tax</h2>
+              {/* <p className="pw-card-subtitle text-muted mb-0" style={{ fontSize: "0.82rem" }}>
+                Set tax rates and configure retail &amp; wholesale prices for each product variation.
+              </p> */}
+            </div>
+
+            {/* Tax Configurations for Retail & Wholesale */}
+            <div className="pw-pricing-config-grid">
+              {/* Retail Tax Config Card */}
+              <div className="pw-pricing-config-card">
+                <div className="pw-pricing-config-header">
+                  <div className="pw-pricing-config-title">
+                    <ShoppingBag size={18} className="text-success" />
+                    <span>Retail Tax</span>
+                  </div>
+                  <span
+                    className={`pw-tax-status-badge ${retailTaxType === "non-taxable" ? "non-taxable" : ""}`}
+                  >
+                    {retailTaxType === "taxable" ? `GST ${retailGstRate}%` : "Non-Taxable (0%)"}
+                  </span>
+                </div>
+
+                <div className="row g-3 align-items-center">
+                  <div className="col-sm-6">
+                    <label className="form-label small fw-semibold text-muted mb-1">Tax Status</label>
+                    <CommonSelect
+                      className="w-100"
+                      options={TAX_STATUS_OPTIONS}
+                      value={retailTaxType}
+                      onChange={(e) => handleRetailTaxChange(e.value as any, retailGstRate)}
+                      filter={false}
+                    />
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="form-label small fw-semibold text-muted mb-1">Retail GST Rate</label>
+                    <CommonSelect
+                      className="w-100"
+                      options={GST_RATE_OPTIONS}
+                      value={retailTaxType === "taxable" ? retailGstRate : "0"}
+                      onChange={(e) => handleRetailTaxChange(retailTaxType, e.value)}
+                      disabled={retailTaxType === "non-taxable"}
+                      filter={false}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Wholesale Tax Config Card */}
+              <div className="pw-pricing-config-card">
+                <div className="pw-pricing-config-header">
+                  <div className="pw-pricing-config-title">
+                    <Building2 size={18} className="text-success" />
+                    <span>Wholesale Tax</span>
+                  </div>
+                  <span
+                    className={`pw-tax-status-badge ${wholesaleTaxType === "non-taxable" ? "non-taxable" : ""}`}
+                  >
+                    {wholesaleTaxType === "taxable" ? `GST ${wholesaleGstRate}%` : "Non-Taxable (0%)"}
+                  </span>
+                </div>
+
+                <div className="row g-3 align-items-center">
+                  <div className="col-sm-6">
+                    <label className="form-label small fw-semibold text-muted mb-1">Tax Status</label>
+                    <CommonSelect
+                      className="w-100"
+                      options={TAX_STATUS_OPTIONS}
+                      value={wholesaleTaxType}
+                      onChange={(e) => handleWholesaleTaxChange(e.value as any, wholesaleGstRate)}
+                      filter={false}
+                    />
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="form-label small fw-semibold text-muted mb-1">Wholesale GST Rate</label>
+                    <CommonSelect
+                      className="w-100"
+                      options={GST_RATE_OPTIONS}
+                      value={wholesaleTaxType === "taxable" ? wholesaleGstRate : "0"}
+                      onChange={(e) => handleWholesaleTaxChange(wholesaleTaxType, e.value)}
+                      disabled={wholesaleTaxType === "non-taxable"}
+                      filter={false}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Associated Purchase Batch Card */}
+            <div className="card mb-3 border shadow-none" style={{ borderRadius: "10px", backgroundColor: "#f8fafc" }}>
+              <div className="card-body p-3">
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div className="d-flex align-items-center gap-2">
+                    <Package size={20} className="text-secondary" />
+                    <div>
+                      <h6 className="mb-0 fw-bold fs-13 text-dark">
+                        Associated Purchase Batch (Auto-Fetch Expense %)
+                      </h6>
+                      <small className="text-muted fs-11">
+                        Select a purchase batch to auto-fill the Expense % across all variant lines below.
+                      </small>
+                    </div>
+                  </div>
+
+                  <div style={{ minWidth: "280px" }}>
+                    <CommonSelect
+                      value={linkedBatchId}
+                      options={[
+                        { label: "Manual Entry (No Linked Batch)", value: "" },
+                        ...allBatches.map((b) => ({
+                          label: `${b.batchNo} (${b.expensePercent}% Expense - ${b.supplierName})`,
+                          value: b.id,
+                        })),
+                      ]}
+                      placeholder="Select Purchase Batch"
+                      onChange={(e) => handleSelectBatch(e.value)}
+                    />
+                  </div>
+                </div>
+
+                {linkedBatchId ? (
+                  <div className="mt-2 p-2 px-3 bg-light rounded-2 border d-flex align-items-center justify-content-between flex-wrap gap-2 fs-12">
+                    <div className="d-flex align-items-center gap-2 text-dark fw-semibold">
+                      <Check size={16} className="text-primary" />
+                      <span>
+                        Linked Batch: <strong>{linkedBatchName}</strong> • Expense % auto-filled to: <strong>{linkedExpensePercent}%</strong>
+                      </span>
+                    </div>
+                    <span className="badge bg-white text-secondary border">
+                      Real-time calculation active • Editable per row
+                    </span>
+                  </div>
+                ) : allBatches.length === 0 ? (
+                  <div className="mt-2 p-2 px-3 bg-light rounded-2 border d-flex align-items-center justify-content-between flex-wrap gap-2 fs-12 text-muted">
+                    <span>
+                      No purchase batches recorded yet. You can manually enter the Expense % for each variant below.
+                    </span>
+                    <Link to="/purchase-list" className="btn btn-xs btn-outline-secondary py-0 px-2 fs-11">
+                      + Create Batch on Purchase Page
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="mt-2 text-muted fs-11">
+                    Currently in manual mode. Select a batch above to auto-apply its calculated expense percentage.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Pricing Variations Table */}
+            <div className="pw-variations-table-wrap">
+              <table className="pw-variations-table" style={{ minWidth: "900px" }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: "9%", minWidth: "70px" }}>Size</th>
+                    <th style={{ width: "12%", minWidth: "95px" }}>{variationMode === "color" ? "Color" : "Variety"}</th>
+                    <th style={{ width: "19%", minWidth: "165px" }}>Purchase Price</th>
+                    <th style={{ width: "10%", minWidth: "85px" }}>Expense (%)</th>
+                    <th style={{ width: "13%", minWidth: "115px" }}>Actual Price</th>
+                    <th style={{ width: "11%", minWidth: "95px" }}>Profit Margin (%)</th>
+                    <th style={{ width: "12%", minWidth: "120px" }}>GST (%)</th>
+                    <th style={{ width: "14%", minWidth: "120px" }}>Sales Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variations.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-4 text-muted">
+                        No variations found from Step 2.{" "}
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-success ms-2"
+                          onClick={() => setCurrentStep(2)}
+                        >
+                          Back to Variations
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                    variations.map((item) => (
+                      <tr key={item.id}>
+                        {/* Size */}
+                        <td>
+                          <span className="fw-semibold text-dark">{item.size || "Standard"}</span>
+                        </td>
+
+                        {/* Color or Variety based on selection in Step 2 */}
+                        <td>
+                          {variationMode === "color" ? (
+                            <div className="d-flex align-items-center gap-2">
+                              <span
+                                className="pw-color-circle"
+                                style={{
+                                  backgroundColor:
+                                    item.colorCode ||
+                                    COLOR_OPTIONS.find((c) => c.value === item.color)?.hex ||
+                                    "#cbd5e1",
+                                }}
+                              />
+                              <span className="fw-medium">{item.color || "Default"}</span>
+                            </div>
+                          ) : (
+                            <span className="badge bg-light text-dark border px-2 py-1 fw-medium">
+                              {item.variant || "Standard"}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Purchase Price (Inclusive / Exclusive Tax) */}
+                        <td>
+                          <div className="pw-input-addon-wrap">
+                            <span className="pw-input-prefix">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="pw-addon-input"
+                              value={item.purchasePrice ?? ""}
+                              onChange={(e) =>
+                                handleRowPricingChange(item.id, "purchasePrice", e.target.value)
+                              }
+                              placeholder="0.00"
+                            />
+                            <select
+                              className="pw-addon-select"
+                              value={item.purchaseTaxType || "Inclusive"}
+                              onChange={(e) =>
+                                handleRowPricingChange(item.id, "purchaseTaxType", e.target.value)
+                              }
+                              title="Tax type"
+                            >
+                              <option value="Inclusive">Inclusive</option>
+                              <option value="Exclusive">Exclusive</option>
+                            </select>
+                          </div>
+                        </td>
+
+                        {/* Expense Percentage */}
+                        <td>
+                          <div className="pw-percent-input-wrap">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="pw-percent-input"
+                              value={item.expensePercent ?? ""}
+                              onChange={(e) =>
+                                handleRowPricingChange(item.id, "expensePercent", e.target.value)
+                              }
+                              placeholder="0"
+                            />
+                            <span className="pw-percent-suffix">%</span>
+                          </div>
+                        </td>
+
+                        {/* Actual Price (Auto-calculated) */}
+                        <td>
+                          <div className="pw-currency-input-wrap">
+                            <span className="pw-currency-symbol">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="pw-currency-input pw-computed-input"
+                              value={item.actualPrice ?? ""}
+                              onChange={(e) =>
+                                handleRowPricingChange(item.id, "actualPrice", e.target.value)
+                              }
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </td>
+
+                        {/* Profit Margin Percentage */}
+                        <td>
+                          <div className="pw-percent-input-wrap">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="pw-percent-input"
+                              value={item.profitMarginPercent ?? ""}
+                              onChange={(e) =>
+                                handleRowPricingChange(item.id, "profitMarginPercent", e.target.value)
+                              }
+                              placeholder="0"
+                            />
+                            <span className="pw-percent-suffix">%</span>
+                          </div>
+                        </td>
+
+                        {/* GST Percentage */}
+                        <td>
+                          <div className="pw-pricing-select-wrap">
+                            <select
+                              className="pw-pricing-select"
+                              value={item.gstPercent ?? "0"}
+                              onChange={(e) =>
+                                handleRowPricingChange(item.id, "gstPercent", e.target.value)
+                              }
+                            >
+                              {ROW_GST_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown size={14} className="pw-table-select-chevron" />
+                          </div>
+                        </td>
+
+                        {/* Sales Price (Auto-calculated) */}
+                        <td>
+                          <div className="pw-currency-input-wrap">
+                            <span className="pw-currency-symbol">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="pw-currency-input pw-sales-price-input"
+                              value={item.salesPrice ?? ""}
+                              onChange={(e) =>
+                                handleRowPricingChange(item.id, "salesPrice", e.target.value)
+                              }
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer Navigation Buttons */}
+            <div className="pw-footer-actions">
+              <button
+                type="button"
+                className="pw-btn-prev"
+                onClick={() => setCurrentStep(2)}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                className="pw-btn-next"
+                onClick={() => setCurrentStep(4)}
+              >
+                <span>Next</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: Stock */}
+        {currentStep === 4 && (
+          <div className="pw-card">
+            <div className="pw-card-header d-flex align-items-center justify-content-between">
+              <h2 className="pw-card-title">Step 4: Stock &amp; Inventory</h2>
+              <span className="badge bg-light text-muted">Awaiting next tab design</span>
+            </div>
+
+            <div className="pw-tab-placeholder">
+              <div className="pw-tab-placeholder-icon">
+                <Package size={24} />
+              </div>
+              <h3 className="pw-tab-placeholder-title">Stock Management Screen</h3>
+              <p className="pw-tab-placeholder-desc">
+                Set shop &amp; warehouse inventory counts, alert limits, and reorder levels.
+              </p>
+            </div>
+
+            <div className="pw-footer-actions">
+              <button
+                type="button"
+                className="pw-btn-prev"
+                onClick={() => setCurrentStep(3)}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                className="pw-btn-next"
+                onClick={() => setCurrentStep(5)}
+              >
+                <span>Next</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: Review & Save */}
+        {currentStep === 5 && (
+          <div className="pw-card">
+            <div className="pw-card-header">
+              <h2 className="pw-card-title">Step 5: Review &amp; Confirm</h2>
+            </div>
+
+            <div className="p-3 bg-light rounded-3 mb-4">
+              <div className="d-flex align-items-center gap-3 mb-3">
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={productName || "Product"}
+                    style={{ width: "64px", height: "64px", borderRadius: "8px", objectFit: "cover" }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "64px",
+                      height: "64px",
+                      borderRadius: "8px",
+                      background: "#e2e8f0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#64748b",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ImageIcon size={26} />
+                  </div>
+                )}
+                <div>
+                  <h5 className="mb-1 fw-bold">{productName || "New Product"}</h5>
+                  <p className="text-muted mb-0 fs-13">SKU: {sku || "GN-0000"} | Unit: {selectedUnit}</p>
+                </div>
+              </div>
+              <div
+                className="text-muted fs-13 mb-0"
+                dangerouslySetInnerHTML={{ __html: text || "No description provided." }}
+              />
+            </div>
+
+            <div className="pw-footer-actions">
+              <button
+                type="button"
+                className="pw-btn-prev"
+                onClick={() => setCurrentStep(4)}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                className="pw-btn-next"
+                disabled={isSubmitting}
+                onClick={handleSubmit}
+              >
+                {isSubmitting ? "Creating Product..." : "Create Product"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modals */}
+        <AddCategory />
+        <AddVariant />
+        <AddVarientNew />
+      </div>
+    </div>
   );
 };
 

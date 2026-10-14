@@ -5,11 +5,11 @@ const CommonFooter = () => {
   return (
     <div>
       <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-        <p className="mb-0">2014 - {new Date().getFullYear()} © DreamsPOS. All Right Reserved</p>
+        <p className="mb-0">2017 - {new Date().getFullYear()} © Grow Naturals. All Right Reserved</p>
         <p>
           Designed &amp; Developed by{" "}
           <Link to="#" className="text-primary">
-            Dreams
+            Grow together Solutions
           </Link>
         </p>
       </div>

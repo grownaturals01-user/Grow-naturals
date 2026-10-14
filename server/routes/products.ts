@@ -15,6 +15,21 @@ function mapProductRow(row: any) {
   const stockQty = Number(row.stock_quantity) || 0;
   const lowStock = Number(row.low_stock_threshold) || 5;
   const gstRate = Number(row.gst_rate) || 0;
+  const shopStock = Number(row.shop_stock ?? row.stock_quantity ?? 0);
+  const warehouseStock = Number(row.warehouse_stock ?? 0);
+
+  let parsedAttr: any = row.attributes;
+  if (typeof parsedAttr === 'string') {
+    try {
+      parsedAttr = JSON.parse(parsedAttr);
+    } catch {
+      parsedAttr = {};
+    }
+  } else if (!parsedAttr || typeof parsedAttr !== 'object') {
+    parsedAttr = {};
+  }
+  const rawImgs = row.images || parsedAttr.images || parsedAttr.gallery || (row.image_url ? [row.image_url] : []);
+  const images = Array.isArray(rawImgs) ? rawImgs : [rawImgs].filter(Boolean);
 
   return {
     ...row,
@@ -27,9 +42,12 @@ function mapProductRow(row: any) {
     stock_quantity: stockQty,
     stock: stockQty,
     quantity: stockQty,
+    shop_stock: shopStock,
+    warehouse_stock: warehouseStock,
     low_stock_threshold: lowStock,
     gst_rate: gstRate,
     tax_rate: gstRate,
+    images: images,
   };
 }
 
@@ -275,6 +293,18 @@ router.post('/', async (req: Request, res: Response) => {
       );
     }
 
+    // Upsert warehouse stock if provided
+    if (req.body.warehouse_quantity !== undefined || req.body.warehouse_stock !== undefined) {
+      const whQty = Number(req.body.warehouse_quantity ?? req.body.warehouse_stock) || 0;
+      await db.query(
+        `INSERT INTO warehouse_stocks (id, business_id, product_id, stock_quantity)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (business_id, product_id)
+         DO UPDATE SET stock_quantity = $4, updated_at = CURRENT_TIMESTAMP`,
+        [`ws-${Date.now()}`, businessId, id, whQty]
+      );
+    }
+
     res.status(201).json(mapProductRow(result.rows[0]));
   } catch (error: any) {
     console.error('Create product error:', error);
@@ -438,7 +468,30 @@ router.put('/:id', async (req: Request, res: Response) => {
       );
     }
 
-    res.json(mapProductRow(result.rows[0]));
+    // Update warehouse_stocks if warehouse_quantity was provided
+    if (req.body.warehouse_quantity !== undefined || req.body.warehouse_stock !== undefined) {
+      const whQty = Number(req.body.warehouse_quantity ?? req.body.warehouse_stock) || 0;
+      await db.query(
+        `INSERT INTO warehouse_stocks (id, business_id, product_id, stock_quantity)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (business_id, product_id)
+         DO UPDATE SET stock_quantity = $4, updated_at = CURRENT_TIMESTAMP`,
+        [`ws-${Date.now()}`, oldProduct.business_id, id, whQty]
+      );
+    }
+
+    // Get latest warehouse stock
+    const whStockRes = await db.query(
+      `SELECT stock_quantity FROM warehouse_stocks WHERE product_id = $1 AND business_id = $2`,
+      [id, oldProduct.business_id]
+    );
+    const updatedWarehouseStock = whStockRes.rows.length > 0 ? Number(whStockRes.rows[0].stock_quantity) : 0;
+
+    res.json(mapProductRow({
+      ...result.rows[0],
+      shop_stock: result.rows[0].stock_quantity,
+      warehouse_stock: updatedWarehouseStock
+    }));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

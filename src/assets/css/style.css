@@ -12696,9 +12696,7 @@ table.dataTable {
 .page-wrapper-new .card {
   border: none;
 }
-.page-wrapper-new .card .card-body {
-  border-top: 1px solid #d3d5d7;
-}
+
 .page-wrapper-new .page-header {
   margin-bottom: 40px;
 }
@@ -58019,7 +58017,7 @@ label span {
 
 @media (min-width: 992px) {
   .pos-five .pos-categories {
-    height: calc(100vh - 132px);
+    height: calc(100vh - 65px);
   }
 }
 .pos-five .content-wrap {
@@ -58063,7 +58061,7 @@ label span {
 }
 @media (min-width: 992px) {
   .pos-five aside {
-    height: calc(100vh - 132px);
+    height: calc(100vh - 65px);
   }
 }
 .pos-five aside .card {

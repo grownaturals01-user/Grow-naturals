@@ -37,6 +37,21 @@ export const SidebarData1 = [
     ],
   },
   {
+    tittle: "Purchases",
+    hasSubRoute: true,
+    icon: "shopping-bag",
+    showSubRoute: false,
+    subRoutes: [
+      {
+        tittle: "Purchase & Batches",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/purchase-list",
+        subRoutes: [],
+      },
+    ],
+  },
+  {
     tittle: "Inventory",
     hasSubRoute: true,
     icon: "box",
@@ -70,6 +85,13 @@ export const SidebarData1 = [
         route: "/sub-categories",
         subRoutes: [],
       },
+      {
+        tittle: "Variant Attributes",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/variant-attributes",
+        subRoutes: [],
+      },
     ],
   },
   {
@@ -83,6 +105,50 @@ export const SidebarData1 = [
         hasSubRoute: false,
         showSubRoute: false,
         route: "/customers",
+        subRoutes: [],
+      },
+    ],
+  },
+  {
+    tittle: "Settings",
+    hasSubRoute: true,
+    icon: "settings",
+    showSubRoute: false,
+    subRoutes: [
+      {
+        tittle: "General Settings",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/general-settings",
+        subRoutes: [],
+      },
+      {
+        tittle: "Business List",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/business-list",
+        subRoutes: [],
+      },
+
+      {
+        tittle: "App Settings",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/invoice-settings",
+        subRoutes: [],
+      },
+      {
+        tittle: "Financial Settings",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/bank-settings-grid",
+        subRoutes: [],
+      },
+      {
+        tittle: "Other Settings",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/storage-settings",
         subRoutes: [],
       },
     ],

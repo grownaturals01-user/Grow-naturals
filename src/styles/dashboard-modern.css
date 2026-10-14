@@ -190,6 +190,47 @@
   flex-shrink: 0;
 }
 
+.dash-biz-active-indicator {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  margin-left: 4px;
+}
+
+.dash-biz-status-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.dash-biz-status-pill.active {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.dash-biz-status-pill.inactive {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.dash-biz-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+
 /* Header Buttons: Add New & POS */
 .dash-add-new-wrap {
   position: relative;

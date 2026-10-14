@@ -50,10 +50,10 @@ const CategoryList: React.FC = () => {
           description: c.description || "",
           createdon: c.created_at
             ? new Date(c.created_at).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
             : "Today",
           status: c.status || "Active",
           product_count: Number(c.product_count || 0),
@@ -221,9 +221,8 @@ const CategoryList: React.FC = () => {
       sortable: true,
       body: (data: CategoryItem) => (
         <span
-          className={`badge ${
-            data.status === "Active" ? "bg-success" : "bg-danger"
-          } fw-medium fs-11 px-2 py-1 rounded-pill`}
+          className={`badge ${data.status === "Active" ? "bg-success" : "bg-danger"
+            } fw-medium fs-11 px-2 py-1 rounded-pill`}
         >
           {data.status}
         </span>

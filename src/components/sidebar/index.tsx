@@ -202,13 +202,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                         });
                         title.links = link_array;
 
-                        const isTitleActive = title?.links?.includes(
-                          Location.pathname
-                        );
-                        const isTitleOpen = subOpen === title?.label;
                         const hasNoSubmenu = !title?.submenu;
                         const isDirectActive =
                           hasNoSubmenu && Location.pathname === title?.link;
+
+                        const isTitleActive =
+                          title?.links?.includes(Location.pathname) ||
+                          (hasNoSubmenu && isDirectActive);
+                        const isTitleOpen =
+                          subOpen === title?.label ||
+                          title?.links?.includes(Location.pathname);
 
                         return (
                           <React.Fragment key={i}>

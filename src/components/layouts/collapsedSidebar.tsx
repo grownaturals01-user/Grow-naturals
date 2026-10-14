@@ -277,7 +277,7 @@ const CollapsedSidebar = () => {
                 </Link>
               </li>
               <li>
-                <Link to="varriant-attributes">
+                <Link to="variant-attributes">
                   <span>Variant Attributes</span>
                 </Link>
               </li>

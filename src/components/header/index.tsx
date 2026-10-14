@@ -31,7 +31,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { businessId, businesses, activeBusiness, switchBusiness } = useBusiness();
+  const { businessId, businesses, activeBusiness, switchBusiness, isBizActive } = useBusiness();
   const { user, logout } = useAuth();
 
   const [toggle, SetToggle] = useState(false);
@@ -212,7 +212,9 @@ const Header = () => {
     navigate(route.signin || "/signin");
   };
 
-  const activeStoreName = activeBusiness?.name || (businessId === "all" ? "All Businesses" : "Grow Naturals");
+  const activeStoreName = businessId === "all"
+    ? "All Businesses (Both Stores Active)"
+    : activeBusiness?.name || "Grow Naturals";
   const storeLogo = businessId === "nikhlesh-nursery" ? store_02 : store_01;
 
   return (
@@ -384,36 +386,47 @@ const Header = () => {
                   </span>
                 </span>
               </Link>
-              <div className="dropdown-menu dropdown-menu-right">
+              <div className="dropdown-menu dropdown-menu-right" style={{ minWidth: "260px" }}>
                 <Link
                   to="#"
-                  className={`dropdown-item ${businessId === "all" ? "active" : ""}`}
+                  className={`dropdown-item d-flex align-items-center justify-content-between ${businessId === "all" ? "active" : ""}`}
                   onClick={(e) => {
                     e.preventDefault();
                     switchBusiness("all");
                   }}
                 >
-                  <img src={store_01} alt="Store Logo" className="img-fluid" />
-                  All Businesses
+                  <div className="d-flex align-items-center">
+                    <img src={store_01} alt="Store Logo" className="img-fluid me-2" />
+                    <span>All Businesses</span>
+                  </div>
+                  <span className="badge bg-success ms-2 fs-10">Both Active</span>
                 </Link>
-                {businesses.map((b, idx) => (
-                  <Link
-                    key={b.id}
-                    to="#"
-                    className={`dropdown-item ${businessId === b.id ? "active" : ""}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      switchBusiness(b.id);
-                    }}
-                  >
-                    <img
-                      src={idx % 2 === 0 ? store_01 : store_02}
-                      alt="Store Logo"
-                      className="img-fluid"
-                    />
-                    {b.name}
-                  </Link>
-                ))}
+                {businesses.map((b, idx) => {
+                  const active = isBizActive(b);
+                  return (
+                    <Link
+                      key={b.id}
+                      to="#"
+                      className={`dropdown-item d-flex align-items-center justify-content-between ${businessId === b.id ? "active" : ""}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        switchBusiness(b.id);
+                      }}
+                    >
+                      <div className="d-flex align-items-center">
+                        <img
+                          src={idx % 2 === 0 ? store_01 : store_02}
+                          alt="Store Logo"
+                          className="img-fluid me-2"
+                        />
+                        <span>{b.name}</span>
+                      </div>
+                      <span className={`badge ${active ? 'bg-success-light text-success' : 'bg-light text-muted'} ms-2 fs-10`}>
+                        {active ? 'Active' : 'Inactive'}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </li>
             {/* /Select Store */}

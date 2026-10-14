@@ -15,9 +15,9 @@ const EmployeesList = () => {
   const dataSource = employeeListData;
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rows, setRows] = useState<number>(10);
-    const [_searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
-    const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-    
+  const [_searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+
   const handleSearch = (value: any) => {
     setSearchQuery(value);
   };
@@ -84,9 +84,8 @@ const EmployeesList = () => {
       key: "Status",
       body: (rowData: any) => (
         <span
-          className={`badge  ${
-            rowData.Status === "Active" ? "badge-success" : "badge-danger"
-          } d-inline-flex align-items-center badge-xs`}
+          className={`badge  ${rowData.Status === "Active" ? "badge-success" : "badge-danger"
+            } d-inline-flex align-items-center badge-xs`}
         >
           <i className="ti ti-point-filled me-1" />
           {rowData.Status}
@@ -225,7 +224,7 @@ const EmployeesList = () => {
         <div className="card table-list-card employee-table">
           <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3 ">
             <div className="search-set">
-                <SearchFromApi
+              <SearchFromApi
                 callback={handleSearch}
                 rows={rows}
                 setRows={setRows}
@@ -380,11 +379,11 @@ const EmployeesList = () => {
         {/* /product list */}
       </div>
       <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-        <p className="mb-0">2014 - {new Date().getFullYear()} © DreamsPOS. All Right Reserved</p>
+        <p className="mb-0">2017 - {new Date().getFullYear()} © Grow Naturals. All Right Reserved</p>
         <p>
-          Designed &amp; Developed By{" "}
+          Designed &amp; Developed by{" "}
           <Link to="#" className="text-primary">
-            Dreams
+            Grow together Solutions
           </Link>
         </p>
       </div>

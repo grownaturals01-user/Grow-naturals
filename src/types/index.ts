@@ -18,11 +18,28 @@ export interface Business {
   currency: string;
   default_low_stock: number;
   is_taxable?: boolean;
+  status?: 'active' | 'inactive';
+  is_active?: boolean;
   bank_account_number?: string;
   bank_ifsc?: string;
   bank_name?: string;
   upi_id?: string;
   created_at?: string;
+  city?: string;
+  pincode?: string;
+  state?: string;
+  country?: string;
+  website?: string;
+  fax?: string;
+  company_icon?: string;
+  favicon?: string;
+  dark_logo_url?: string;
+  signature_url?: string;
+  business_type?: string;
+  industry_type?: string;
+  registration_type?: string;
+  pan_number?: string;
+  custom_details?: any[];
 }
 
 export type UserRole = 'admin' | 'manager' | 'cashier' | 'staff' | 'supervisor';

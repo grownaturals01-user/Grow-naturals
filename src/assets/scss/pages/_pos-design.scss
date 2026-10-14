@@ -1285,7 +1285,7 @@ label span {
 .pos-five {
     .pos-categories {
         @include mixins.respond-above(lg) {
-            height: calc(100vh - 132px);
+            height: calc(100vh - 65px);
         }
     }
     .content-wrap {
@@ -1326,7 +1326,7 @@ label span {
     }
     aside {
         @include mixins.respond-above(lg) {
-            height: calc(100vh - 132px);
+            height: calc(100vh - 65px);
         }
         .card {
             margin-bottom: 20px;

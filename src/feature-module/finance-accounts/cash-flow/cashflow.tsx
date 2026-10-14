@@ -65,16 +65,16 @@ const Cashflow = () => {
               <h6>View Your Cashflows </h6>
             </div>
           </div>
-         <TableTopHead />
+          <TableTopHead />
         </div>
         {/* /product list */}
         <div className="card table-list-card">
           <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
             <SearchFromApi
-                callback={handleSearch}
-                rows={rows}
-                setRows={setRows}
-              />
+              callback={handleSearch}
+              rows={rows}
+              setRows={setRows}
+            />
             <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
               <div className="dropdown">
                 <Link
@@ -129,9 +129,9 @@ const Cashflow = () => {
           2014 - {new Date().getFullYear()} © DreamsPOS. All Right Reserved
         </p>
         <p>
-          Designed &amp; Developed By{" "}
+          Designed &amp; Developed by{" "}
           <Link to="#" className="text-primary">
-            Dreams
+            Grow together Solutions
           </Link>
         </p>
       </div>

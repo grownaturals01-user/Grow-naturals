@@ -17,12 +17,15 @@ interface BusinessContextType {
   reloadBusinesses: () => Promise<void>;
   createBusiness: (data: Partial<Business>) => Promise<Business>;
   deleteBusiness: (id: string) => Promise<void>;
+  isBizActive: (bizOrId: Business | string) => boolean;
+  setBusinessStatus: (id: string, status: 'active' | 'inactive') => Promise<void>;
+  activateAllBusinesses: () => Promise<void>;
 }
 
 const allBusinessObj: Business = {
   id: 'all',
   name: 'All Businesses',
-  legal_name: 'All Combined Businesses',
+  legal_name: 'All Combined Businesses (Both Stores Active)',
   gstin: '',
   address: 'Central Aggregated System',
   phone: '',
@@ -32,7 +35,30 @@ const allBusinessObj: Business = {
   logo_url: '',
   currency: 'INR',
   default_low_stock: 10,
-  is_taxable: true
+  is_taxable: true,
+  status: 'active',
+  is_active: true
+};
+
+const STATUS_STORAGE_KEY = 'gn_business_statuses';
+
+const getStoredStatuses = (): Record<string, 'active' | 'inactive'> => {
+  try {
+    const raw = localStorage.getItem(STATUS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const setStoredStatus = (id: string, status: 'active' | 'inactive') => {
+  try {
+    const current = getStoredStatuses();
+    current[id] = status;
+    localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(current));
+  } catch (e) {
+    console.warn('Failed to save status to localStorage:', e);
+  }
 };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -45,19 +71,56 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [business, setBusiness] = useState<Business | null>(null);
 
+  const isBizActive = useCallback((bizOrId: Business | string): boolean => {
+    const id = typeof bizOrId === 'string' ? bizOrId : bizOrId.id;
+    if (id === 'all') return true;
+
+    const stored = getStoredStatuses();
+    if (stored[id] !== undefined) {
+      return stored[id] === 'active';
+    }
+
+    if (typeof bizOrId !== 'string') {
+      return bizOrId.status !== 'inactive' && bizOrId.is_active !== false;
+    }
+
+    const found = businesses.find(b => b.id === id);
+    if (found) {
+      return found.status !== 'inactive' && found.is_active !== false;
+    }
+
+    // Default to active for standard seed businesses and all registered stores
+    return true;
+  }, [businesses]);
+
   const fetchBusinesses = useCallback(async () => {
     try {
       const list: Business[] = await api.get('/businesses');
-      setBusinesses(list);
+      const stored = getStoredStatuses();
+
+      // Ensure every business has an explicit status (defaulting to active)
+      const normalizedList = list.map((b) => {
+        const localStatus = stored[b.id];
+        const status = localStatus !== undefined
+          ? localStatus
+          : (b.status === 'inactive' ? 'inactive' : 'active');
+        return {
+          ...b,
+          status: status as 'active' | 'inactive',
+          is_active: status === 'active',
+        };
+      });
+
+      setBusinesses(normalizedList);
 
       if (businessId === 'all') {
         setBusiness(allBusinessObj);
         return;
       }
 
-      let current = list.find((b: Business) => b.id === businessId);
-      if (!current && list.length > 0) {
-        current = list[0];
+      let current = normalizedList.find((b: Business) => b.id === businessId);
+      if (!current && normalizedList.length > 0) {
+        current = normalizedList[0];
         setBusinessIdState(current.id);
         setActiveBusinessId(current.id);
       }
@@ -91,8 +154,61 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await fetchBusinesses();
   };
 
+  const setBusinessStatus = async (id: string, status: 'active' | 'inactive') => {
+    setStoredStatus(id, status);
+    setBusinesses((prev) =>
+      prev.map((b) =>
+        b.id === id ? { ...b, status, is_active: status === 'active' } : b
+      )
+    );
+
+    try {
+      const target = businesses.find((b) => b.id === id);
+      if (target) {
+        await api.put(`/businesses/${id}`, {
+          ...target,
+          status,
+          is_active: status === 'active',
+        });
+      }
+    } catch (err) {
+      console.warn('Could not persist status to backend API, kept in local storage:', err);
+    }
+
+    await fetchBusinesses();
+  };
+
+  const activateAllBusinesses = async () => {
+    for (const b of businesses) {
+      setStoredStatus(b.id, 'active');
+    }
+    setBusinesses((prev) =>
+      prev.map((b) => ({ ...b, status: 'active', is_active: true }))
+    );
+
+    try {
+      for (const b of businesses) {
+        await api.put(`/businesses/${b.id}`, {
+          ...b,
+          status: 'active',
+          is_active: true,
+        });
+      }
+    } catch (err) {
+      console.warn('Could not persist all statuses to API:', err);
+    }
+
+    await fetchBusinesses();
+  };
+
   const createBusiness = async (data: Partial<Business>): Promise<Business> => {
-    const created: Business = await api.post('/businesses', data);
+    const payload = {
+      ...data,
+      status: data.status || 'active',
+      is_active: data.status !== 'inactive',
+    };
+    const created: Business = await api.post('/businesses', payload);
+    setStoredStatus(created.id, 'active');
     await fetchBusinesses();
     switchBusiness(created.id);
     return created;
@@ -127,7 +243,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       logo_url: '',
       currency: 'INR',
       default_low_stock: 10,
-      is_taxable: businessId === 'grow-naturals'
+      is_taxable: businessId === 'grow-naturals',
+      status: 'active',
+      is_active: true
     };
   }, [business, businessId, businesses]);
 
@@ -148,6 +266,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         reloadBusinesses: refreshBusiness,
         createBusiness,
         deleteBusiness,
+        isBizActive,
+        setBusinessStatus,
+        activateAllBusinesses,
       }}
     >
       {children}

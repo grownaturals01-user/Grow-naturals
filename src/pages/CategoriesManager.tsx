@@ -472,7 +472,7 @@ export const CategoriesManager: React.FC = () => {
           <div className="prod-page-header">
             <div className="prod-page-title-group">
               <h1>Category</h1>
-              <p>Manage your categories</p>
+              <p> </p>
             </div>
 
             <div className="prod-header-actions">

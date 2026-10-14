@@ -179,6 +179,9 @@ const ProfitLoss = lazy(() => import("../feature-module/Reports/profitloss"));
 const GeneralSettings = lazy(
   () => import("../feature-module/settings/generalsettings/generalsettings")
 );
+const BusinessList = lazy(
+  () => import("../feature-module/settings/generalsettings/businesslist")
+);
 const SecuritySettings = lazy(
   () => import("../feature-module/settings/generalsettings/securitysettings")
 );
@@ -832,6 +835,13 @@ export const authRoutes = [
     route: Route,
   },
   {
+    id: 6801,
+    path: routes.purchases,
+    name: "purchases",
+    element: <PurchasesList />,
+    route: Route,
+  },
+  {
     id: 69,
     path: routes.purchaseorderreport,
     name: "purchaseorderreport",
@@ -1056,6 +1066,13 @@ export const authRoutes = [
     route: Route,
   },
   {
+    id: 8901,
+    path: routes.businesslist,
+    name: "businesslist",
+    element: <BusinessList />,
+    route: Route,
+  },
+  {
     id: 90,
     path: routes.securitysettings,
     name: "securitysettings",
@@ -1088,6 +1105,13 @@ export const authRoutes = [
     path: routes.companysettings,
     name: "companysettings",
     element: <CompanySettings />,
+    route: Route,
+  },
+  {
+    id: 9400,
+    path: "/settings",
+    name: "settings",
+    element: <GeneralSettings />,
     route: Route,
   },
   {

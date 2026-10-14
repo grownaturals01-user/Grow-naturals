@@ -475,3 +475,26 @@ CREATE INDEX IF NOT EXISTS idx_refunds_business ON refunds(business_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_prod ON stock_movements(product_id);
 CREATE INDEX IF NOT EXISTS idx_inv_modules_biz ON inventory_modules(business_id);
 CREATE INDEX IF NOT EXISTS idx_inv_modules_slug ON inventory_modules(slug);
+
+-- 28. Variant Attributes (Can map to single business or both)
+CREATE TABLE IF NOT EXISTS variant_attributes (
+  id VARCHAR(64) PRIMARY KEY,
+  business_id VARCHAR(64) NOT NULL,
+  business_ids JSONB DEFAULT '[]'::jsonb,
+  name VARCHAR(128) NOT NULL,
+  values TEXT NOT NULL DEFAULT '',
+  patterns TEXT DEFAULT '',
+  pattern_images TEXT DEFAULT '{}',
+  value_images TEXT DEFAULT '{}',
+  attribute_type VARCHAR(32) DEFAULT 'general',
+  product_id VARCHAR(64) DEFAULT '',
+  product_name VARCHAR(255) DEFAULT '',
+  sizes TEXT DEFAULT '',
+  varieties TEXT DEFAULT '',
+  variety_images TEXT DEFAULT '{}',
+  status VARCHAR(32) DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_variant_attributes_biz ON variant_attributes(business_id);
+

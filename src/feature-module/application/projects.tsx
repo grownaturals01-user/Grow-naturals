@@ -404,26 +404,24 @@ const Projects = () => {
                                     <div className="d-flex align-items-center justify-content-between">
                                       <div className="d-flex align-items-center">
                                         <span
-                                          className={`${
-                                            column.title === "New"
+                                          className={`${column.title === "New"
                                               ? "bg-soft-pink"
                                               : column.title === "Inprogress"
-                                              ? "bg-soft-skyblue"
-                                              : column.title === "Completed"
-                                              ? "bg-soft-success"
-                                              : "bg-soft-danger"
-                                          } p-1 d-flex rounded-circle me-2`}
+                                                ? "bg-soft-skyblue"
+                                                : column.title === "Completed"
+                                                  ? "bg-soft-success"
+                                                  : "bg-soft-danger"
+                                            } p-1 d-flex rounded-circle me-2`}
                                         >
                                           <span
-                                            className={`${
-                                              column.title === "New"
+                                            className={`${column.title === "New"
                                                 ? "bg-pink"
                                                 : column.title === "Inprogress"
-                                                ? "bg-skyblue"
-                                                : column.title === "Completed"
-                                                ? "bg-success"
-                                                : "bg-danger"
-                                            } rounded-circle d-block p-1`}
+                                                  ? "bg-skyblue"
+                                                  : column.title === "Completed"
+                                                    ? "bg-success"
+                                                    : "bg-danger"
+                                              } rounded-circle d-block p-1`}
                                           />
                                         </span>
                                         <h5 className="me-2">{column.title}</h5>
@@ -487,14 +485,13 @@ const Projects = () => {
                                                     Web Layout
                                                   </span>
                                                   <span
-                                                    className={`badge ${
-                                                      task.priority === "Low"
+                                                    className={`badge ${task.priority === "Low"
                                                         ? "bg-success"
                                                         : task.priority ===
                                                           "Medium"
-                                                        ? "bg-warning"
-                                                        : "bg-purple"
-                                                    }  badge-xs d-flex align-items-center justify-content-center`}
+                                                          ? "bg-warning"
+                                                          : "bg-purple"
+                                                      }  badge-xs d-flex align-items-center justify-content-center`}
                                                   >
                                                     <i className="fas fa-circle fs-6 me-1" />
                                                     {task.priority}
@@ -685,26 +682,24 @@ const Projects = () => {
                                     <div className="d-flex align-items-center justify-content-between">
                                       <div className="d-flex align-items-center">
                                         <span
-                                          className={`${
-                                            column2.title === "New"
+                                          className={`${column2.title === "New"
                                               ? "bg-soft-pink"
                                               : column2.title === "Inprogress"
-                                              ? "bg-soft-skyblue"
-                                              : column2.title === "Completed"
-                                              ? "bg-soft-success"
-                                              : "bg-soft-danger"
-                                          } p-1 d-flex rounded-circle me-2`}
+                                                ? "bg-soft-skyblue"
+                                                : column2.title === "Completed"
+                                                  ? "bg-soft-success"
+                                                  : "bg-soft-danger"
+                                            } p-1 d-flex rounded-circle me-2`}
                                         >
                                           <span
-                                            className={`${
-                                              column2.title === "New"
+                                            className={`${column2.title === "New"
                                                 ? "bg-pink"
                                                 : column2.title === "Inprogress"
-                                                ? "bg-skyblue"
-                                                : column2.title === "Completed"
-                                                ? "bg-success"
-                                                : "bg-danger"
-                                            } rounded-circle d-block p-1`}
+                                                  ? "bg-skyblue"
+                                                  : column2.title === "Completed"
+                                                    ? "bg-success"
+                                                    : "bg-danger"
+                                              } rounded-circle d-block p-1`}
                                           />
                                         </span>
                                         <h5 className="me-2">
@@ -770,14 +765,13 @@ const Projects = () => {
                                                     Web Layout
                                                   </span>
                                                   <span
-                                                    className={`badge ${
-                                                      task.priority === "Low"
+                                                    className={`badge ${task.priority === "Low"
                                                         ? "bg-success"
                                                         : task.priority ===
                                                           "Medium"
-                                                        ? "bg-warning"
-                                                        : "bg-purple"
-                                                    }  badge-xs d-flex align-items-center justify-content-center`}
+                                                          ? "bg-warning"
+                                                          : "bg-purple"
+                                                      }  badge-xs d-flex align-items-center justify-content-center`}
                                                   >
                                                     <i className="fas fa-circle fs-6 me-1" />
                                                     {task.priority}
@@ -968,26 +962,24 @@ const Projects = () => {
                                     <div className="d-flex align-items-center justify-content-between">
                                       <div className="d-flex align-items-center">
                                         <span
-                                          className={`${
-                                            column3.title === "New"
+                                          className={`${column3.title === "New"
                                               ? "bg-soft-pink"
                                               : column3.title === "Inprogress"
-                                              ? "bg-soft-skyblue"
-                                              : column3.title === "Completed"
-                                              ? "bg-soft-success"
-                                              : "bg-soft-danger"
-                                          } p-1 d-flex rounded-circle me-2`}
+                                                ? "bg-soft-skyblue"
+                                                : column3.title === "Completed"
+                                                  ? "bg-soft-success"
+                                                  : "bg-soft-danger"
+                                            } p-1 d-flex rounded-circle me-2`}
                                         >
                                           <span
-                                            className={`${
-                                              column3.title === "New"
+                                            className={`${column3.title === "New"
                                                 ? "bg-pink"
                                                 : column3.title === "Inprogress"
-                                                ? "bg-skyblue"
-                                                : column3.title === "Completed"
-                                                ? "bg-success"
-                                                : "bg-danger"
-                                            } rounded-circle d-block p-1`}
+                                                  ? "bg-skyblue"
+                                                  : column3.title === "Completed"
+                                                    ? "bg-success"
+                                                    : "bg-danger"
+                                              } rounded-circle d-block p-1`}
                                           />
                                         </span>
                                         <h5 className="me-2">
@@ -1053,14 +1045,13 @@ const Projects = () => {
                                                     Web Layout
                                                   </span>
                                                   <span
-                                                    className={`badge ${
-                                                      task.priority === "Low"
+                                                    className={`badge ${task.priority === "Low"
                                                         ? "bg-success"
                                                         : task.priority ===
                                                           "Medium"
-                                                        ? "bg-warning"
-                                                        : "bg-purple"
-                                                    }  badge-xs d-flex align-items-center justify-content-center`}
+                                                          ? "bg-warning"
+                                                          : "bg-purple"
+                                                      }  badge-xs d-flex align-items-center justify-content-center`}
                                                   >
                                                     <i className="fas fa-circle fs-6 me-1" />
                                                     {task.priority}
@@ -1251,26 +1242,24 @@ const Projects = () => {
                                     <div className="d-flex align-items-center justify-content-between">
                                       <div className="d-flex align-items-center">
                                         <span
-                                          className={`${
-                                            column4.title === "New"
+                                          className={`${column4.title === "New"
                                               ? "bg-soft-pink"
                                               : column4.title === "Inprogress"
-                                              ? "bg-soft-skyblue"
-                                              : column4.title === "Completed"
-                                              ? "bg-soft-success"
-                                              : "bg-soft-danger"
-                                          } p-1 d-flex rounded-circle me-2`}
+                                                ? "bg-soft-skyblue"
+                                                : column4.title === "Completed"
+                                                  ? "bg-soft-success"
+                                                  : "bg-soft-danger"
+                                            } p-1 d-flex rounded-circle me-2`}
                                         >
                                           <span
-                                            className={`${
-                                              column4.title === "New"
+                                            className={`${column4.title === "New"
                                                 ? "bg-pink"
                                                 : column4.title === "Inprogress"
-                                                ? "bg-skyblue"
-                                                : column4.title === "Completed"
-                                                ? "bg-success"
-                                                : "bg-danger"
-                                            } rounded-circle d-block p-1`}
+                                                  ? "bg-skyblue"
+                                                  : column4.title === "Completed"
+                                                    ? "bg-success"
+                                                    : "bg-danger"
+                                              } rounded-circle d-block p-1`}
                                           />
                                         </span>
                                         <h5 className="me-2">
@@ -1336,14 +1325,13 @@ const Projects = () => {
                                                     Web Layout
                                                   </span>
                                                   <span
-                                                    className={`badge ${
-                                                      task.priority === "Low"
+                                                    className={`badge ${task.priority === "Low"
                                                         ? "bg-success"
                                                         : task.priority ===
                                                           "Medium"
-                                                        ? "bg-warning"
-                                                        : "bg-purple"
-                                                    }  badge-xs d-flex align-items-center justify-content-center`}
+                                                          ? "bg-warning"
+                                                          : "bg-purple"
+                                                      }  badge-xs d-flex align-items-center justify-content-center`}
                                                   >
                                                     <i className="fas fa-circle fs-6 me-1" />
                                                     {task.priority}
@@ -1526,7 +1514,7 @@ const Projects = () => {
         <p>
           Designed &amp; Developed by{" "}
           <Link to="#" className="text-primary">
-            Dreams
+            Grow together Solutions
           </Link>
         </p>
       </div>
