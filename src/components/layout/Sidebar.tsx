@@ -35,6 +35,7 @@ import {
   Plus,
   PlusCircle,
   FilePlus2,
+  Layers,
   X
 } from 'lucide-react';
 import { renderModuleIcon } from '../common/CategoryIcons';
@@ -184,6 +185,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <NavLink to="/add-product" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Add Product">
             <PlusCircle className="nav-icon" />
             <span className="nav-label">Add Product</span>
+          </NavLink>
+          <NavLink to="/variant-attributes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick} title="Variant Attributes">
+            <Layers className="nav-icon" />
+            <span className="nav-label">Variant Attributes</span>
           </NavLink>
         </div>
 

@@ -55,7 +55,10 @@ const PrimeDataTable: React.FC<Props> = ({
   onRowClick,
   showExpander = false,
 }) => {
-  const skeletonRows = Array(rows).fill({});
+  const skeletonRows = useMemo(
+    () => Array.from({ length: rows }, (_, i) => ({ id: `__skeleton_${i}` })),
+    [rows]
+  );
 
   // Filter data based on search query
   const filteredData = useMemo(() => {

@@ -91,6 +91,13 @@ export const SidebarData = [
         showSubRoute: false,
         submenu: false,
       },
+      {
+        label: "Variant Attributes",
+        link: route.variantattributes,
+        icon: "layers-intersect",
+        showSubRoute: false,
+        submenu: false,
+      },
     ],
   },
   {

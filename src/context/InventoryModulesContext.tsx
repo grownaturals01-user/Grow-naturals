@@ -38,7 +38,7 @@ export const InventoryModulesProvider: React.FC<{ children: React.ReactNode }> =
         setModules(data);
         try {
           localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${businessId}`, JSON.stringify(data));
-        } catch {}
+        } catch { }
       }
     } catch (err) {
       console.warn('[InventoryModules] Failed to fetch modules from server, using cached if available:', err);
@@ -55,7 +55,7 @@ export const InventoryModulesProvider: React.FC<{ children: React.ReactNode }> =
       } else {
         setModules([]);
       }
-    } catch {}
+    } catch { }
     fetchModules();
   }, [businessId, fetchModules]);
 
@@ -92,7 +92,7 @@ export const InventoryModulesProvider: React.FC<{ children: React.ReactNode }> =
       const updated = [...prev.filter((m) => m.slug !== newModule.slug), newModule];
       try {
         localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${businessId}`, JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
 
@@ -110,7 +110,7 @@ export const InventoryModulesProvider: React.FC<{ children: React.ReactNode }> =
       const updated = prev.filter((m) => m.id !== id);
       try {
         localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${businessId}`, JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
   };
@@ -126,7 +126,7 @@ export const InventoryModulesProvider: React.FC<{ children: React.ReactNode }> =
       const updated = prev.map((m) => (m.id === id ? { ...m, ...moduleData, name: moduleData.name.trim(), caption: moduleData.caption?.trim() || '' } : m));
       try {
         localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${businessId}`, JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
   };

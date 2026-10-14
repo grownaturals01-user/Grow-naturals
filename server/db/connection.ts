@@ -55,7 +55,7 @@ export async function getDb(): Promise<DbClient> {
           try {
             fs.unlinkSync(fp);
             console.log(`[DB] Cleaned up stale lock file: ${sf}`);
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     }
@@ -374,7 +374,20 @@ export async function initDb(): Promise<void> {
        ('war-gn-2', 'grow-naturals', 'Artisan Ceramic Pot Warranty', 'Protects against cracks or manufacturing defects', '6', 'Month', 'Active'),
        ('war-gn-3', 'grow-naturals', 'Drip Irrigation Equipment Warranty', 'Complete replacement guarantee on pump and drippers', '1', 'Year', 'Active'),
        ('war-nn-1', 'nikhlesh-nursery', 'Fruit Sapling Survival Warranty', 'Guaranteed true-to-type sapling survival', '3', 'Month', 'Active')
-     ON CONFLICT (id) DO NOTHING;`
+     ON CONFLICT (id) DO NOTHING;`,
+    `CREATE TABLE IF NOT EXISTS variant_attributes (
+      id VARCHAR(64) PRIMARY KEY,
+      business_id VARCHAR(64) NOT NULL REFERENCES businesses(id),
+      name VARCHAR(128) NOT NULL,
+      values TEXT NOT NULL DEFAULT '',
+      status VARCHAR(32) DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE INDEX IF NOT EXISTS idx_variant_attributes_biz ON variant_attributes(business_id);`,
+    `ALTER TABLE variant_attributes DROP CONSTRAINT IF EXISTS variant_attributes_business_id_fkey;`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS business_ids JSONB DEFAULT '[]'::jsonb;`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS patterns TEXT DEFAULT '';`
   ];
 
   for (const m of migrations) {

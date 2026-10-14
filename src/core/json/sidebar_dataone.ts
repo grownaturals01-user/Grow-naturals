@@ -85,6 +85,13 @@ export const SidebarData1 = [
         route: "/sub-categories",
         subRoutes: [],
       },
+      {
+        tittle: "Variant Attributes",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/variant-attributes",
+        subRoutes: [],
+      },
     ],
   },
   {
