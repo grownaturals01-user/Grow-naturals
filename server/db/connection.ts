@@ -388,7 +388,14 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE variant_attributes DROP CONSTRAINT IF EXISTS variant_attributes_business_id_fkey;`,
     `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS business_ids JSONB DEFAULT '[]'::jsonb;`,
     `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS patterns TEXT DEFAULT '';`,
-    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS pattern_images TEXT DEFAULT '{}';`
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS pattern_images TEXT DEFAULT '{}';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS value_images TEXT DEFAULT '{}';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS attribute_type VARCHAR(32) DEFAULT 'general';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS product_id VARCHAR(64) DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS product_name VARCHAR(255) DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS sizes TEXT DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS varieties TEXT DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS variety_images TEXT DEFAULT '{}';`
   ];
 
   for (const m of migrations) {

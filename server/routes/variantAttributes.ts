@@ -55,12 +55,40 @@ router.get('/', async (req: Request, res: Response) => {
         }
       }
 
+      let vImages: Record<string, string> = {};
+      if (row.value_images) {
+        if (typeof row.value_images === 'object' && row.value_images !== null) {
+          vImages = row.value_images;
+        } else if (typeof row.value_images === 'string') {
+          try {
+            vImages = JSON.parse(row.value_images);
+          } catch {
+            vImages = {};
+          }
+        }
+      }
+
+      let varImages: Record<string, string> = {};
+      if (row.variety_images) {
+        if (typeof row.variety_images === 'object' && row.variety_images !== null) {
+          varImages = row.variety_images;
+        } else if (typeof row.variety_images === 'string') {
+          try {
+            varImages = JSON.parse(row.variety_images);
+          } catch {
+            varImages = {};
+          }
+        }
+      }
+
       const isMappedToBoth = row.business_id === 'all' || bIds.length >= 2;
 
       return {
         ...row,
         business_ids: bIds,
         pattern_images: pImages,
+        value_images: vImages,
+        variety_images: Object.keys(varImages).length > 0 ? varImages : vImages,
         is_mapped_to_both: isMappedToBoth,
         display_business: isMappedToBoth ? 'Both Businesses' : (row.business_name || (bIds[0] === 'nikhlesh-nursery' ? 'Nikhlesh Nursery' : 'Grow Naturals'))
       };
@@ -115,10 +143,38 @@ router.get('/:id', async (req: Request, res: Response) => {
       }
     }
 
+    let vImages: Record<string, string> = {};
+    if (row.value_images) {
+      if (typeof row.value_images === 'object' && row.value_images !== null) {
+        vImages = row.value_images;
+      } else if (typeof row.value_images === 'string') {
+        try {
+          vImages = JSON.parse(row.value_images);
+        } catch {
+          vImages = {};
+        }
+      }
+    }
+
+    let varImages: Record<string, string> = {};
+    if (row.variety_images) {
+      if (typeof row.variety_images === 'object' && row.variety_images !== null) {
+        varImages = row.variety_images;
+      } else if (typeof row.variety_images === 'string') {
+        try {
+          varImages = JSON.parse(row.variety_images);
+        } catch {
+          varImages = {};
+        }
+      }
+    }
+
     res.json({
       ...row,
       business_ids: bIds,
       pattern_images: pImages,
+      value_images: vImages,
+      variety_images: Object.keys(varImages).length > 0 ? varImages : vImages,
       is_mapped_to_both: row.business_id === 'all' || bIds.length >= 2
     });
   } catch (error: any) {
@@ -129,11 +185,29 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/variant-attributes
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, values, patterns, pattern_images, status, business_ids, business_id } = req.body;
+    const {
+      name,
+      values,
+      patterns,
+      pattern_images,
+      value_images,
+      attribute_type,
+      product_id,
+      product_name,
+      sizes,
+      varieties,
+      variety_images,
+      status,
+      business_ids,
+      business_id
+    } = req.body;
+
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Variant attribute name is required' });
     }
-    if (!values || !values.trim()) {
+
+    const effectiveValues = (values && values.trim()) || (varieties && varieties.trim()) || '';
+    if (!effectiveValues && (!sizes || !sizes.trim())) {
       return res.status(400).json({ error: 'Variant values are required' });
     }
 
@@ -162,11 +236,13 @@ router.post('/', async (req: Request, res: Response) => {
     const id = `va-${primaryBizId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     // Normalize comma-separated values (clean whitespace)
-    const normalizedValues = values
-      .split(',')
-      .map((v: string) => v.trim())
-      .filter((v: string) => v.length > 0)
-      .join(', ');
+    const normalizedValues = effectiveValues
+      ? effectiveValues
+          .split(',')
+          .map((v: string) => v.trim())
+          .filter((v: string) => v.length > 0)
+          .join(', ')
+      : '';
 
     const normalizedPatterns = patterns
       ? patterns
@@ -180,18 +256,56 @@ router.post('/', async (req: Request, res: Response) => {
       ? JSON.stringify(pattern_images)
       : (typeof pattern_images === 'string' ? pattern_images : '{}');
 
+    const normalizedValueImages = value_images && typeof value_images === 'object'
+      ? JSON.stringify(value_images)
+      : (typeof value_images === 'string' ? value_images : '{}');
+
+    const normalizedSizes = sizes
+      ? sizes
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0)
+          .join(', ')
+      : '';
+
+    const normalizedVarieties = varieties
+      ? varieties
+          .split(',')
+          .map((v: string) => v.trim())
+          .filter((v: string) => v.length > 0)
+          .join(', ')
+      : normalizedValues;
+
+    const normalizedVarietyImages = variety_images && typeof variety_images === 'object'
+      ? JSON.stringify(variety_images)
+      : (typeof variety_images === 'string' ? variety_images : normalizedValueImages);
+
+    const finalAttrType = attribute_type === 'product_based' ? 'product_based' : 'general';
+    const finalProductId = product_id ? String(product_id).trim() : '';
+    const finalProductName = product_name ? String(product_name).trim() : '';
+
     const result = await db.query(
-      `INSERT INTO variant_attributes (id, business_id, business_ids, name, values, patterns, pattern_images, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO variant_attributes (
+        id, business_id, business_ids, name, values, patterns, pattern_images, value_images,
+        attribute_type, product_id, product_name, sizes, varieties, variety_images, status
+      )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [
         id,
         primaryBizId,
         JSON.stringify(finalBizIds),
         name.trim(),
-        normalizedValues || values.trim(),
+        normalizedValues,
         normalizedPatterns,
         normalizedPatternImages,
+        normalizedValueImages,
+        finalAttrType,
+        finalProductId,
+        finalProductName,
+        normalizedSizes,
+        normalizedVarieties,
+        normalizedVarietyImages,
         status || 'Active'
       ]
     );
@@ -200,6 +314,8 @@ router.post('/', async (req: Request, res: Response) => {
       ...result.rows[0],
       business_ids: finalBizIds,
       pattern_images: pattern_images || {},
+      value_images: value_images || {},
+      variety_images: variety_images || value_images || {},
       is_mapped_to_both: isBoth
     });
   } catch (error: any) {
@@ -211,7 +327,22 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, values, patterns, pattern_images, status, business_ids, business_id } = req.body;
+    const {
+      name,
+      values,
+      patterns,
+      pattern_images,
+      value_images,
+      attribute_type,
+      product_id,
+      product_name,
+      sizes,
+      varieties,
+      variety_images,
+      status,
+      business_ids,
+      business_id
+    } = req.body;
     const db = await getDb();
 
     let normalizedValues: string | undefined = undefined;
@@ -239,6 +370,38 @@ router.put('/:id', async (req: Request, res: Response) => {
         : String(pattern_images);
     }
 
+    let normalizedValueImages: string | undefined = undefined;
+    if (value_images !== undefined) {
+      normalizedValueImages = typeof value_images === 'object'
+        ? JSON.stringify(value_images)
+        : String(value_images);
+    }
+
+    let normalizedSizes: string | undefined = undefined;
+    if (sizes !== undefined) {
+      normalizedSizes = sizes
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0)
+        .join(', ');
+    }
+
+    let normalizedVarieties: string | undefined = undefined;
+    if (varieties !== undefined) {
+      normalizedVarieties = varieties
+        .split(',')
+        .map((v: string) => v.trim())
+        .filter((v: string) => v.length > 0)
+        .join(', ');
+    }
+
+    let normalizedVarietyImages: string | undefined = undefined;
+    if (variety_images !== undefined) {
+      normalizedVarietyImages = typeof variety_images === 'object'
+        ? JSON.stringify(variety_images)
+        : String(variety_images);
+    }
+
     let primaryBizId: string | undefined = undefined;
     let finalBizIdsStr: string | undefined = undefined;
 
@@ -259,17 +422,31 @@ router.put('/:id', async (req: Request, res: Response) => {
         values = COALESCE($2, values),
         patterns = COALESCE($3, patterns),
         pattern_images = COALESCE($4, pattern_images),
-        status = COALESCE($5, status),
-        business_id = COALESCE($6, business_id),
-        business_ids = COALESCE($7, business_ids),
+        value_images = COALESCE($5, value_images),
+        attribute_type = COALESCE($6, attribute_type),
+        product_id = COALESCE($7, product_id),
+        product_name = COALESCE($8, product_name),
+        sizes = COALESCE($9, sizes),
+        varieties = COALESCE($10, varieties),
+        variety_images = COALESCE($11, variety_images),
+        status = COALESCE($12, status),
+        business_id = COALESCE($13, business_id),
+        business_ids = COALESCE($14, business_ids),
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $8
+       WHERE id = $15
        RETURNING *`,
       [
         name ? name.trim() : undefined,
         normalizedValues !== undefined ? normalizedValues : undefined,
         normalizedPatterns !== undefined ? normalizedPatterns : undefined,
         normalizedPatternImages !== undefined ? normalizedPatternImages : undefined,
+        normalizedValueImages !== undefined ? normalizedValueImages : undefined,
+        attribute_type !== undefined ? attribute_type : undefined,
+        product_id !== undefined ? String(product_id).trim() : undefined,
+        product_name !== undefined ? String(product_name).trim() : undefined,
+        normalizedSizes !== undefined ? normalizedSizes : undefined,
+        normalizedVarieties !== undefined ? normalizedVarieties : undefined,
+        normalizedVarietyImages !== undefined ? normalizedVarietyImages : undefined,
         status !== undefined ? status : undefined,
         primaryBizId,
         finalBizIdsStr,
@@ -289,9 +466,29 @@ router.put('/:id', async (req: Request, res: Response) => {
       bIds = [updated.business_id];
     }
 
+    let pImages: Record<string, string> = {};
+    if (updated.pattern_images) {
+      try {
+        pImages = typeof updated.pattern_images === 'object' ? updated.pattern_images : JSON.parse(updated.pattern_images);
+      } catch {
+        pImages = {};
+      }
+    }
+
+    let vImages: Record<string, string> = {};
+    if (updated.value_images) {
+      try {
+        vImages = typeof updated.value_images === 'object' ? updated.value_images : JSON.parse(updated.value_images);
+      } catch {
+        vImages = {};
+      }
+    }
+
     res.json({
       ...updated,
       business_ids: bIds,
+      pattern_images: pImages,
+      value_images: vImages,
       is_mapped_to_both: updated.business_id === 'all' || (Array.isArray(bIds) && bIds.length >= 2)
     });
   } catch (error: any) {

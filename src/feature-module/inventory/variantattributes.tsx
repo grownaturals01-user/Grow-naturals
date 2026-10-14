@@ -18,6 +18,16 @@ interface VariantAttributeItem {
   patterns?: string;
   patterns_array?: string[];
   pattern_images?: Record<string, string>;
+  value_images?: Record<string, string>;
+  sizes?: string;
+  sizes_array?: string[];
+  varieties?: string;
+  varieties_array?: string[];
+  variety_images?: Record<string, string>;
+  attribute_type?: string;
+  category?: string;
+  product_id?: string;
+  product_name?: string;
   createdon: string;
   status: string;
   business_id?: string;
@@ -31,14 +41,67 @@ interface VariantAttributeItem {
 export const isColorVariant = (name: string): boolean => {
   if (!name) return false;
   const clean = name.trim().toLowerCase();
-  return (
-    clean === "colour" ||
-    clean === "colours" ||
-    clean === "color" ||
-    clean === "colors" ||
-    clean.startsWith("colour") ||
-    clean.startsWith("color")
+  return clean.includes("color") || clean.includes("colour");
+};
+
+export const isSizeVariant = (name: string): boolean => {
+  if (!name) return false;
+  const clean = name.trim().toLowerCase();
+  return clean.includes("size");
+};
+
+export const isVarietyVariant = (name: string): boolean => {
+  if (!name) return false;
+  const clean = name.trim().toLowerCase();
+  return clean.includes("variet");
+};
+
+export const isNikhleshNurseryOnly = (
+  bizIds: string[],
+  availableBusinesses: { id: string; name?: string }[]
+): boolean => {
+  if (!bizIds || bizIds.length !== 1) return false;
+  const id = bizIds[0].toLowerCase();
+  if (id === "nikhlesh-nursery") return true;
+  const matched = availableBusinesses.find(
+    (b) => b.id.toLowerCase() === id || (b.name && b.name.toLowerCase().includes("nikhlesh"))
   );
+  return !!matched && (matched.id === "nikhlesh-nursery" || (matched.name?.toLowerCase().includes("nikhlesh") ?? false));
+};
+
+export const isGrowNaturals = (
+  bizIds: string[],
+  availableBusinesses: { id: string; name?: string }[]
+): boolean => {
+  if (!bizIds || bizIds.length === 0) return true; // Default store is Grow Naturals
+  return bizIds.some((id) => {
+    const cleanId = id.toLowerCase();
+    if (cleanId === "grow-naturals" || cleanId.includes("grow")) return true;
+    const matched = availableBusinesses.find(
+      (b) => b.id.toLowerCase() === cleanId || (b.name && b.name.toLowerCase().includes("grow"))
+    );
+    return !!matched;
+  });
+};
+
+export const getVariantNameOptions = (
+  bizIds: string[],
+  availableBusinesses: { id: string; name?: string }[]
+): string[] => {
+  const isNN = isNikhleshNurseryOnly(bizIds, availableBusinesses);
+  const isGN = isGrowNaturals(bizIds, availableBusinesses);
+  if (isNN) return ["Size", "Variety", "Custom"];
+  if (isGN) return ["Size", "Colors", "Custom"];
+  return ["Size", "Colors", "Variety", "Custom"];
+};
+
+export const formatVariantName = (name: string): string => {
+  if (!name) return "";
+  const lower = name.trim().toLowerCase();
+  if (lower === "color" || lower === "colors" || lower === "colour" || lower === "colours") return "Colors";
+  if (lower === "size" || lower === "sizes") return "Size";
+  if (lower === "variety" || lower === "varieties") return "Variety";
+  return name.trim();
 };
 
 export const canUploadPatternImage = (
@@ -79,28 +142,64 @@ const VariantAttributes: React.FC = () => {
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string>("All");
-  const [businessFilter, setBusinessFilter] = useState<string>("all");
+  const [businessFilter, setBusinessFilter] = useState<string>(() => {
+    if (currentActiveBiz && currentActiveBiz !== "all" && currentActiveBiz !== "combined") {
+      return currentActiveBiz;
+    }
+    return "grow-naturals";
+  });
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
 
+  // Keep businessFilter synced with available businesses
+  useEffect(() => {
+    if (businessFilter === "all" || !availableBusinesses.some((b) => b.id === businessFilter)) {
+      if (availableBusinesses.length > 0) {
+        setBusinessFilter(availableBusinesses[0].id);
+      }
+    }
+  }, [availableBusinesses, businessFilter]);
+
   // Add Form state
-  const [variantName, setVariantName] = useState("");
+  const [variantName, setVariantName] = useState("Size");
+  const [variantNameType, setVariantNameType] = useState<string>("Size");
+  const addVariantInputRef = useRef<HTMLInputElement | null>(null);
+  const [addProductName, setAddProductName] = useState("");
+  const [addSizesList, setAddSizesList] = useState<string[]>([]);
+  const [addSingleSizeInput, setAddSingleSizeInput] = useState("");
   const [addValuesList, setAddValuesList] = useState<string[]>([]);
   const [addSingleValueInput, setAddSingleValueInput] = useState("");
+  const [addValueImages, setAddValueImages] = useState<Record<string, string>>({});
+  const [addCurrentValueImage, setAddCurrentValueImage] = useState<string | null>(null);
+  const addValueFileInputRef = useRef<HTMLInputElement | null>(null);
   const [addPatternsList, setAddPatternsList] = useState<string[]>([]);
   const [addSinglePatternInput, setAddSinglePatternInput] = useState("");
   const [addPatternImages, setAddPatternImages] = useState<Record<string, string>>({});
   const [addCurrentPatternImage, setAddCurrentPatternImage] = useState<string | null>(null);
   const addPatternFileInputRef = useRef<HTMLInputElement | null>(null);
   const [variantStatus, setVariantStatus] = useState(true);
-  const [selectedBizIds, setSelectedBizIds] = useState<string[]>([]);
+  const [selectedBizIds, setSelectedBizIds] = useState<string[]>(() => {
+    if (currentActiveBiz && currentActiveBiz !== "all" && currentActiveBiz !== "combined") {
+      return [currentActiveBiz];
+    }
+    return ["grow-naturals"];
+  });
+  const [addAttributeType, setAddAttributeType] = useState<"general" | "product_based">("general");
   const [addError, setAddError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
   // Edit Form state
   const [editingVariant, setEditingVariant] = useState<any>(null);
-  const [editVariantName, setEditVariantName] = useState("");
+  const [editVariantName, setEditVariantName] = useState("Size");
+  const [editVariantNameType, setEditVariantNameType] = useState<string>("Size");
+  const editVariantInputRef = useRef<HTMLInputElement | null>(null);
+  const [editProductName, setEditProductName] = useState("");
+  const [editSizesList, setEditSizesList] = useState<string[]>([]);
+  const [editSingleSizeInput, setEditSingleSizeInput] = useState("");
   const [editValuesList, setEditValuesList] = useState<string[]>([]);
   const [editSingleValueInput, setEditSingleValueInput] = useState("");
+  const [editValueImages, setEditValueImages] = useState<Record<string, string>>({});
+  const [editCurrentValueImage, setEditCurrentValueImage] = useState<string | null>(null);
+  const editValueFileInputRef = useRef<HTMLInputElement | null>(null);
   const [editPatternsList, setEditPatternsList] = useState<string[]>([]);
   const [editSinglePatternInput, setEditSinglePatternInput] = useState("");
   const [editPatternImages, setEditPatternImages] = useState<Record<string, string>>({});
@@ -108,6 +207,7 @@ const VariantAttributes: React.FC = () => {
   const editPatternFileInputRef = useRef<HTMLInputElement | null>(null);
   const [editVariantStatus, setEditVariantStatus] = useState(true);
   const [editSelectedBizIds, setEditSelectedBizIds] = useState<string[]>([]);
+  const [editAttributeType, setEditAttributeType] = useState<"general" | "product_based">("general");
   const [editError, setEditError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -115,6 +215,13 @@ const VariantAttributes: React.FC = () => {
   const [deleteVariantId, setDeleteVariantId] = useState<string | null>(null);
 
   const activeBusiness = currentActiveBiz || getActiveBusinessId() || "all";
+
+  // Check if Pattern / Finish section should be shown (NOT for Grow Naturals)
+  const showAddPatterns =
+    !isGrowNaturals(selectedBizIds, availableBusinesses) && isColorVariant(variantName);
+
+  const showEditPatterns =
+    !isGrowNaturals(editSelectedBizIds, availableBusinesses) && isColorVariant(editVariantName);
 
   // Helper: check if a variant attribute belongs to a business
   const isMappedToBiz = useCallback((item: VariantAttributeItem, bizId: string) => {
@@ -161,14 +268,60 @@ const VariantAttributes: React.FC = () => {
           }
         }
 
+        let vImages: Record<string, string> = {};
+        if (va.value_images) {
+          if (typeof va.value_images === "object" && va.value_images !== null) {
+            vImages = va.value_images;
+          } else if (typeof va.value_images === "string") {
+            try {
+              vImages = JSON.parse(va.value_images);
+            } catch {
+              vImages = {};
+            }
+          }
+        }
+
+        let vrImages: Record<string, string> = {};
+        if (va.variety_images) {
+          if (typeof va.variety_images === "object" && va.variety_images !== null) {
+            vrImages = va.variety_images;
+          } else if (typeof va.variety_images === "string") {
+            try {
+              vrImages = JSON.parse(va.variety_images);
+            } catch {
+              vrImages = {};
+            }
+          }
+        }
+
+        const sizesStr = va.sizes || "";
+        const sizesArr = sizesStr
+          ? sizesStr.split(",").map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+          : [];
+
+        const varietiesStr = va.varieties || "";
+        const varietiesArr = varietiesStr
+          ? varietiesStr.split(",").map((v: string) => v.trim()).filter((v: string) => v.length > 0)
+          : [];
+
         return {
           id: va.id,
-          variant: va.name || "",
+          variant: formatVariantName(va.name || ""),
           values: valStr,
           values_array: valArr,
           patterns: patStr,
           patterns_array: patArr,
           pattern_images: pImages,
+          value_images: Object.keys(vImages).length > 0 ? vImages : vrImages,
+          sizes: sizesStr,
+          sizes_array: sizesArr,
+          varieties: varietiesStr,
+          varieties_array: varietiesArr,
+          variety_images: Object.keys(vrImages).length > 0 ? vrImages : vImages,
+          attribute_type: va.attribute_type || "general",
+          category: va.attribute_type === "product_based" ? "Product Based" : "General",
+          product_id: va.product_id || "",
+          product_name: va.product_name || "",
           createdon: va.created_at
             ? new Date(va.created_at).toLocaleDateString("en-GB", {
                 day: "2-digit",
@@ -225,6 +378,80 @@ const VariantAttributes: React.FC = () => {
     return () => window.removeEventListener("resize", updateIndicator);
   }, [updateIndicator]);
 
+  // Animated underline tab indicator for Add Modal Choose Store
+  const addTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [addIndicatorStyle, setAddIndicatorStyle] = useState<{ left: number; width: number; ready: boolean }>({
+    left: 0,
+    width: 0,
+    ready: false,
+  });
+
+  const updateAddIndicator = useCallback(() => {
+    const activeBiz = selectedBizIds[0];
+    const activeEl = activeBiz ? addTabRefs.current[activeBiz] : null;
+    if (activeEl && activeEl.offsetWidth > 0) {
+      setAddIndicatorStyle({
+        left: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+        ready: true,
+      });
+    }
+  }, [selectedBizIds]);
+
+  useEffect(() => {
+    const t = setTimeout(updateAddIndicator, 50);
+    return () => clearTimeout(t);
+  }, [updateAddIndicator, selectedBizIds]);
+
+  useEffect(() => {
+    const modalEl = document.getElementById("add-variant");
+    if (!modalEl) return;
+    const onShown = () => {
+      setTimeout(updateAddIndicator, 60);
+    };
+    modalEl.addEventListener("shown.bs.modal", onShown);
+    return () => {
+      modalEl.removeEventListener("shown.bs.modal", onShown);
+    };
+  }, [updateAddIndicator]);
+
+  // Animated underline tab indicator for Edit Modal Choose Store
+  const editTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [editIndicatorStyle, setEditIndicatorStyle] = useState<{ left: number; width: number; ready: boolean }>({
+    left: 0,
+    width: 0,
+    ready: false,
+  });
+
+  const updateEditIndicator = useCallback(() => {
+    const activeBiz = editSelectedBizIds[0];
+    const activeEl = activeBiz ? editTabRefs.current[activeBiz] : null;
+    if (activeEl && activeEl.offsetWidth > 0) {
+      setEditIndicatorStyle({
+        left: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+        ready: true,
+      });
+    }
+  }, [editSelectedBizIds]);
+
+  useEffect(() => {
+    const t = setTimeout(updateEditIndicator, 50);
+    return () => clearTimeout(t);
+  }, [updateEditIndicator, editSelectedBizIds]);
+
+  useEffect(() => {
+    const modalEl = document.getElementById("edit-variant");
+    if (!modalEl) return;
+    const onShown = () => {
+      setTimeout(updateEditIndicator, 60);
+    };
+    modalEl.addEventListener("shown.bs.modal", onShown);
+    return () => {
+      modalEl.removeEventListener("shown.bs.modal", onShown);
+    };
+  }, [updateEditIndicator]);
+
   const handleSearch = (value: any) => {
     setSearchQuery(value);
     setCurrentPage(1);
@@ -249,6 +476,24 @@ const VariantAttributes: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleAddValueImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setAddError("Please select an image file (PNG, JPG, WEBP, etc.).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAddError("Image size must be less than 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAddCurrentValueImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleEditPatternImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -267,28 +512,75 @@ const VariantAttributes: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleEditValueImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setEditError("Please select an image file (PNG, JPG, WEBP, etc.).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setEditError("Image size must be less than 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditCurrentValueImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Reset & prepare Add Modal
   const handleOpenAddModal = () => {
     setVariantName("");
+    setAddProductName("");
+    setAddSizesList([]);
+    setAddSingleSizeInput("");
     setAddValuesList([]);
     setAddSingleValueInput("");
+    setAddValueImages({});
+    setAddCurrentValueImage(null);
+    if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
     setAddPatternsList([]);
     setAddSinglePatternInput("");
     setAddPatternImages({});
     setAddCurrentPatternImage(null);
     if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
     setVariantStatus(true);
+    setAddAttributeType("general");
     setAddError(null);
 
-    // Default business mapping based on current tab filter or active business
-    if (businessFilter !== "all") {
-      setSelectedBizIds([businessFilter]);
-    } else if (activeBusiness && activeBusiness !== "all" && activeBusiness !== "combined") {
-      setSelectedBizIds([activeBusiness]);
-    } else {
-      // Default to both businesses
-      setSelectedBizIds(availableBusinesses.map((b) => b.id));
-    }
+    // Pre-select store tab (matching current businessFilter or first business)
+    const activeBiz =
+      businessFilter && businessFilter !== "all" && availableBusinesses.some((b) => b.id === businessFilter)
+        ? businessFilter
+        : availableBusinesses[0]?.id || "grow-naturals";
+    setSelectedBizIds([activeBiz]);
+    const isNN = isNikhleshNurseryOnly([activeBiz], availableBusinesses);
+    const defaultOption = isNN ? "Variety" : "Size";
+    setVariantNameType(defaultOption);
+    setVariantName(defaultOption);
+  };
+
+  // Add sizes handlers (one by one)
+  const handleAddSingleSize = () => {
+    if (!addSingleSizeInput.trim()) return;
+    const parts = addSingleSizeInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (parts.length === 0) return;
+
+    setAddSizesList((prev) => {
+      const existing = new Set(prev.map((p) => p.toLowerCase()));
+      const toAdd = parts.filter((p) => !existing.has(p.toLowerCase()));
+      return [...prev, ...toAdd];
+    });
+    setAddSingleSizeInput("");
+  };
+
+  const handleRemoveSingleSize = (indexToRemove: number) => {
+    setAddSizesList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   // Add values handlers (one by one)
@@ -305,11 +597,32 @@ const VariantAttributes: React.FC = () => {
       const toAdd = parts.filter((p) => !existing.has(p.toLowerCase()));
       return [...prev, ...toAdd];
     });
+
+    if (addCurrentValueImage) {
+      setAddValueImages((prev) => {
+        const next = { ...prev };
+        parts.forEach((p) => {
+          next[p] = addCurrentValueImage;
+        });
+        return next;
+      });
+      setAddCurrentValueImage(null);
+      if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
+    }
+
     setAddSingleValueInput("");
   };
 
   const handleRemoveSingleValue = (indexToRemove: number) => {
+    const valName = addValuesList[indexToRemove];
     setAddValuesList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (valName) {
+      setAddValueImages((prev) => {
+        const next = { ...prev };
+        delete next[valName];
+        return next;
+      });
+    }
   };
 
   // Add patterns handlers (one by one)
@@ -355,6 +668,27 @@ const VariantAttributes: React.FC = () => {
     }
   };
 
+  // Edit sizes handlers (one by one)
+  const handleEditAddSingleSize = () => {
+    if (!editSingleSizeInput.trim()) return;
+    const parts = editSingleSizeInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (parts.length === 0) return;
+
+    setEditSizesList((prev) => {
+      const existing = new Set(prev.map((p) => p.toLowerCase()));
+      const toAdd = parts.filter((p) => !existing.has(p.toLowerCase()));
+      return [...prev, ...toAdd];
+    });
+    setEditSingleSizeInput("");
+  };
+
+  const handleEditRemoveSingleSize = (indexToRemove: number) => {
+    setEditSizesList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
   // Edit values handlers (one by one)
   const handleEditAddSingleValue = () => {
     if (!editSingleValueInput.trim()) return;
@@ -369,11 +703,32 @@ const VariantAttributes: React.FC = () => {
       const toAdd = parts.filter((p) => !existing.has(p.toLowerCase()));
       return [...prev, ...toAdd];
     });
+
+    if (editCurrentValueImage) {
+      setEditValueImages((prev) => {
+        const next = { ...prev };
+        parts.forEach((p) => {
+          next[p] = editCurrentValueImage;
+        });
+        return next;
+      });
+      setEditCurrentValueImage(null);
+      if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
+    }
+
     setEditSingleValueInput("");
   };
 
   const handleEditRemoveSingleValue = (indexToRemove: number) => {
+    const valName = editValuesList[indexToRemove];
     setEditValuesList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (valName) {
+      setEditValueImages((prev) => {
+        const next = { ...prev };
+        delete next[valName];
+        return next;
+      });
+    }
   };
 
   // Edit patterns handlers (one by one)
@@ -418,42 +773,141 @@ const VariantAttributes: React.FC = () => {
     }
   };
 
-  // Toggle business selection for Add
-  const handleToggleAddBiz = (id: string) => {
-    setSelectedBizIds((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((b) => b !== id);
-      } else {
-        return [...prev, id];
+  const handleVariantNameTypeChange = (newType: string) => {
+    setVariantNameType(newType);
+    if (newType === "Custom") {
+      if (["Size", "Colors", "Variety"].includes(variantName)) {
+        setVariantName("");
       }
-    });
-  };
-
-  const handleToggleAddAllBiz = () => {
-    if (selectedBizIds.length === availableBusinesses.length) {
-      setSelectedBizIds([]);
+      setTimeout(() => {
+        addVariantInputRef.current?.focus();
+      }, 50);
     } else {
-      setSelectedBizIds(availableBusinesses.map((b) => b.id));
+      setVariantName(newType);
     }
   };
 
-  // Toggle business selection for Edit
-  const handleToggleEditBiz = (id: string) => {
-    setEditSelectedBizIds((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((b) => b !== id);
-      } else {
-        return [...prev, id];
+  const handleEditVariantNameTypeChange = (newType: string) => {
+    setEditVariantNameType(newType);
+    if (newType === "Custom") {
+      if (["Size", "Colors", "Variety"].includes(editVariantName)) {
+        setEditVariantName("");
       }
-    });
+      setTimeout(() => {
+        editVariantInputRef.current?.focus();
+      }, 50);
+    } else {
+      setEditVariantName(newType);
+    }
   };
 
-  const handleToggleEditAllBiz = () => {
-    if (editSelectedBizIds.length === availableBusinesses.length) {
-      setEditSelectedBizIds([]);
-    } else {
-      setEditSelectedBizIds(availableBusinesses.map((b) => b.id));
+  // Select store for Add Modal - tabs selection
+  const handleSelectAddBiz = (id: string) => {
+    if (selectedBizIds.length === 1 && selectedBizIds[0] === id) return;
+    setSelectedBizIds([id]);
+    const isNN = isNikhleshNurseryOnly([id], availableBusinesses);
+    const defaultOption = isNN ? "Variety" : "Size";
+    setVariantNameType(defaultOption);
+    setVariantName(defaultOption);
+    // Reset inputs & attribute type when switching store so data doesn't cross over
+    setAddAttributeType("general");
+    setAddProductName("");
+    setAddSizesList([]);
+    setAddSingleSizeInput("");
+    setAddValuesList([]);
+    setAddSingleValueInput("");
+    setAddValueImages({});
+    setAddCurrentValueImage(null);
+    if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
+    setAddPatternsList([]);
+    setAddSinglePatternInput("");
+    setAddPatternImages({});
+    setAddCurrentPatternImage(null);
+    if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
+    setAddError(null);
+  };
+
+  // Switch Attribute Type in Add Modal & clear all entered data
+  const handleSelectAddAttributeType = (type: "general" | "product_based") => {
+    if (selectedBizIds.length === 0) return;
+    if (addAttributeType === type) return;
+
+    setAddAttributeType(type);
+
+    const isNN = isNikhleshNurseryOnly(selectedBizIds, availableBusinesses);
+    const defaultOption = isNN ? "Variety" : "Size";
+    setVariantNameType(defaultOption);
+    setVariantName(defaultOption);
+
+    // Clear all previously entered data so it does not carry over between General and Product Based
+    setAddProductName("");
+    setAddSizesList([]);
+    setAddSingleSizeInput("");
+    setAddValuesList([]);
+    setAddSingleValueInput("");
+    setAddValueImages({});
+    setAddCurrentValueImage(null);
+    if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
+    setAddPatternsList([]);
+    setAddSinglePatternInput("");
+    setAddPatternImages({});
+    setAddCurrentPatternImage(null);
+    if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
+    setAddError(null);
+  };
+
+  // Select store for Edit Modal - tabs selection
+  const handleSelectEditBiz = (id: string) => {
+    if (editSelectedBizIds.length === 1 && editSelectedBizIds[0] === id) return;
+    setEditSelectedBizIds([id]);
+    const isNN = isNikhleshNurseryOnly([id], availableBusinesses);
+    const options = getVariantNameOptions([id], availableBusinesses);
+    if (!options.includes(editVariantNameType)) {
+      const defaultOption = isNN ? "Variety" : "Size";
+      setEditVariantNameType(defaultOption);
+      setEditVariantName(defaultOption);
     }
+    // Reset inputs & attribute type when switching store so data doesn't cross over
+    setEditAttributeType("general");
+    setEditProductName("");
+    setEditSizesList([]);
+    setEditSingleSizeInput("");
+    setEditValuesList([]);
+    setEditSingleValueInput("");
+    setEditValueImages({});
+    setEditCurrentValueImage(null);
+    if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
+    setEditPatternsList([]);
+    setEditSinglePatternInput("");
+    setEditPatternImages({});
+    setEditCurrentPatternImage(null);
+    if (editPatternFileInputRef.current) editPatternFileInputRef.current.value = "";
+    setEditError(null);
+  };
+
+  // Switch Attribute Type in Edit Modal & clear entered data
+  const handleSelectEditAttributeType = (type: "general" | "product_based") => {
+    if (editSelectedBizIds.length === 0) return;
+    if (editAttributeType === type) return;
+
+    setEditAttributeType(type);
+
+    // Clear all previously entered data so it does not carry over between General and Product Based
+    setEditVariantName("");
+    setEditProductName("");
+    setEditSizesList([]);
+    setEditSingleSizeInput("");
+    setEditValuesList([]);
+    setEditSingleValueInput("");
+    setEditValueImages({});
+    setEditCurrentValueImage(null);
+    if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
+    setEditPatternsList([]);
+    setEditSinglePatternInput("");
+    setEditPatternImages({});
+    setEditCurrentPatternImage(null);
+    if (editPatternFileInputRef.current) editPatternFileInputRef.current.value = "";
+    setEditError(null);
   };
 
   // Add Variant Attribute
@@ -461,13 +915,41 @@ const VariantAttributes: React.FC = () => {
     e.preventDefault();
     setAddError(null);
 
-    if (!variantName.trim()) {
-      setAddError("Variant attribute name is required.");
+    const isNN = isNikhleshNurseryOnly(selectedBizIds, availableBusinesses);
+
+    if (selectedBizIds.length === 0) {
+      setAddError("Please select a business first.");
       return;
+    }
+
+    let finalVariantName = variantNameType === "Custom" ? variantName.trim() : variantNameType;
+    if (!isNN && addAttributeType === "product_based") {
+      if (!addProductName.trim()) {
+        setAddError("Product name is required.");
+        return;
+      }
+    } else {
+      if (!finalVariantName) {
+        setAddError(isNN ? "Variant name is required." : "Variant attribute name is required.");
+        return;
+      }
+    }
+
+    // Include any pending single size input
+    let finalSizes = [...addSizesList];
+    if (addSingleSizeInput.trim()) {
+      const pendingSizeParts = addSingleSizeInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      const existingSizes = new Set(finalSizes.map((p) => p.toLowerCase()));
+      const toAddSizes = pendingSizeParts.filter((p) => !existingSizes.has(p.toLowerCase()));
+      finalSizes = [...finalSizes, ...toAddSizes];
     }
 
     // Include any pending single value input
     let finalValues = [...addValuesList];
+    let finalValueImages = { ...addValueImages };
     if (addSingleValueInput.trim()) {
       const pendingParts = addSingleValueInput
         .split(",")
@@ -476,16 +958,27 @@ const VariantAttributes: React.FC = () => {
       const existing = new Set(finalValues.map((p) => p.toLowerCase()));
       const toAdd = pendingParts.filter((p) => !existing.has(p.toLowerCase()));
       finalValues = [...finalValues, ...toAdd];
+      if (addCurrentValueImage) {
+        toAdd.forEach((v) => {
+          finalValueImages[v] = addCurrentValueImage;
+        });
+      }
     }
 
-    if (finalValues.length === 0) {
-      setAddError("Please add at least one value to the list.");
-      return;
-    }
-
-    if (selectedBizIds.length === 0) {
-      setAddError("Please map this variant to at least one business (or select Both).");
-      return;
+    if (addAttributeType === "product_based") {
+      if (finalSizes.length === 0) {
+        setAddError("Please add at least one Size Attribute.");
+        return;
+      }
+      if (finalValues.length === 0) {
+        setAddError(isNN ? "Please add at least one Variety." : "Please add at least one Color.");
+        return;
+      }
+    } else {
+      if (finalValues.length === 0) {
+        setAddError(isNN ? "Please add at least one Variety." : "Please add at least one value to the list.");
+        return;
+      }
     }
 
     let finalPatterns = [...addPatternsList];
@@ -508,24 +1001,40 @@ const VariantAttributes: React.FC = () => {
     setIsAdding(true);
     try {
       await api.post("/variant-attributes", {
-        name: variantName.trim(),
+        name: !isNN && addAttributeType === "product_based" ? addProductName.trim() : finalVariantName,
+        product_name: !isNN && addAttributeType === "product_based" ? addProductName.trim() : "",
         values: finalValues.join(", "),
-        patterns: isColorVariant(variantName) ? finalPatterns.join(", ") : "",
-        pattern_images: isColorVariant(variantName) ? finalPatternImages : {},
+        sizes: addAttributeType === "product_based" ? finalSizes.join(", ") : "",
+        varieties: isNN || addAttributeType === "product_based" ? finalValues.join(", ") : "",
+        variety_images: finalValueImages,
+        value_images: finalValueImages,
+        patterns: showAddPatterns ? finalPatterns.join(", ") : "",
+        pattern_images: showAddPatterns ? finalPatternImages : {},
+        attribute_type: addAttributeType,
         status: variantStatus ? "Active" : "Inactive",
         business_ids: selectedBizIds,
       });
 
       // Reset form
-      setVariantName("");
+      const defaultOption = isNN ? "Variety" : "Size";
+      setVariantNameType(defaultOption);
+      setVariantName(defaultOption);
+      setAddProductName("");
+      setAddSizesList([]);
+      setAddSingleSizeInput("");
       setAddValuesList([]);
       setAddSingleValueInput("");
+      setAddValueImages({});
+      setAddCurrentValueImage(null);
+      if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
       setAddPatternsList([]);
       setAddSinglePatternInput("");
       setAddPatternImages({});
       setAddCurrentPatternImage(null);
       if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
       setVariantStatus(true);
+      setAddAttributeType("general");
+      setSelectedBizIds([]);
       setAddError(null);
 
       // Dismiss modal
@@ -544,7 +1053,29 @@ const VariantAttributes: React.FC = () => {
   // Start Edit
   const handleStartEdit = (row: VariantAttributeItem) => {
     setEditingVariant(row.raw);
-    setEditVariantName(row.raw.name || "");
+    const rawName = row.raw?.name || row.variant || "";
+    const cleanLower = rawName.trim().toLowerCase();
+    if (cleanLower === "size" || cleanLower === "sizes") {
+      setEditVariantNameType("Size");
+      setEditVariantName("Size");
+    } else if (cleanLower === "colors" || cleanLower === "color" || cleanLower === "colour" || cleanLower === "colours") {
+      setEditVariantNameType("Colors");
+      setEditVariantName("Colors");
+    } else if (cleanLower === "variety" || cleanLower === "varieties") {
+      setEditVariantNameType("Variety");
+      setEditVariantName("Variety");
+    } else {
+      setEditVariantNameType("Custom");
+      setEditVariantName(rawName);
+    }
+    setEditProductName(row.raw.product_name || row.product_name || "");
+
+    const sList = (row.raw.sizes || row.sizes || "")
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
+    setEditSizesList(sList);
+    setEditSingleSizeInput("");
 
     const vList = (row.raw.values || "")
       .split(",")
@@ -552,6 +1083,9 @@ const VariantAttributes: React.FC = () => {
       .filter((s: string) => s.length > 0);
     setEditValuesList(vList);
     setEditSingleValueInput("");
+    setEditValueImages(row.value_images ? { ...row.value_images } : (row.variety_images ? { ...row.variety_images } : {}));
+    setEditCurrentValueImage(null);
+    if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
 
     const pList = (row.patterns || row.raw.patterns || "")
       .split(",")
@@ -564,12 +1098,14 @@ const VariantAttributes: React.FC = () => {
     if (editPatternFileInputRef.current) editPatternFileInputRef.current.value = "";
 
     setEditVariantStatus(row.raw.status === "Active");
+    setEditAttributeType(row.raw.attribute_type === "product_based" ? "product_based" : "general");
 
     let bIds = row.business_ids || [];
     if (!bIds || bIds.length === 0) {
-      bIds = row.business_id === "all" ? availableBusinesses.map((b) => b.id) : (row.business_id ? [row.business_id] : []);
-    } else if (row.business_id === "all") {
-      bIds = availableBusinesses.map((b) => b.id);
+      bIds = row.business_id ? [row.business_id] : [];
+    }
+    if (bIds.length > 1) {
+      bIds = [bIds[0]];
     }
     setEditSelectedBizIds(bIds);
     setEditError(null);
@@ -581,12 +1117,40 @@ const VariantAttributes: React.FC = () => {
     if (!editingVariant) return;
     setEditError(null);
 
-    if (!editVariantName.trim()) {
-      setEditError("Variant attribute name is required.");
+    const isEditNN = isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses);
+
+    if (editSelectedBizIds.length === 0) {
+      setEditError("Please select a business first.");
       return;
     }
 
+    let finalEditVariantName = editVariantNameType === "Custom" ? editVariantName.trim() : editVariantNameType;
+    if (!isEditNN && editAttributeType === "product_based") {
+      if (!editProductName.trim()) {
+        setEditError("Product name is required.");
+        return;
+      }
+    } else {
+      if (!finalEditVariantName) {
+        setEditError(isEditNN ? "Variant name is required." : "Variant attribute name is required.");
+        return;
+      }
+    }
+
+    // Include any pending single size input
+    let finalSizes = [...editSizesList];
+    if (editSingleSizeInput.trim()) {
+      const pendingSizeParts = editSingleSizeInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      const existingSizes = new Set(finalSizes.map((p) => p.toLowerCase()));
+      const toAddSizes = pendingSizeParts.filter((p) => !existingSizes.has(p.toLowerCase()));
+      finalSizes = [...finalSizes, ...toAddSizes];
+    }
+
     let finalValues = [...editValuesList];
+    let finalValueImages = { ...editValueImages };
     if (editSingleValueInput.trim()) {
       const pendingParts = editSingleValueInput
         .split(",")
@@ -595,16 +1159,27 @@ const VariantAttributes: React.FC = () => {
       const existing = new Set(finalValues.map((p) => p.toLowerCase()));
       const toAdd = pendingParts.filter((p) => !existing.has(p.toLowerCase()));
       finalValues = [...finalValues, ...toAdd];
+      if (editCurrentValueImage) {
+        toAdd.forEach((v) => {
+          finalValueImages[v] = editCurrentValueImage;
+        });
+      }
     }
 
-    if (finalValues.length === 0) {
-      setEditError("Please add at least one value to the list.");
-      return;
-    }
-
-    if (editSelectedBizIds.length === 0) {
-      setEditError("Please map this variant to at least one business (or select Both).");
-      return;
+    if (editAttributeType === "product_based") {
+      if (finalSizes.length === 0) {
+        setEditError("Please add at least one Size Attribute.");
+        return;
+      }
+      if (finalValues.length === 0) {
+        setEditError(isEditNN ? "Please add at least one Variety." : "Please add at least one Color.");
+        return;
+      }
+    } else {
+      if (finalValues.length === 0) {
+        setEditError(isEditNN ? "Please add at least one Variety." : "Please add at least one value to the list.");
+        return;
+      }
     }
 
     let finalPatterns = [...editPatternsList];
@@ -627,15 +1202,22 @@ const VariantAttributes: React.FC = () => {
     setIsEditing(true);
     try {
       await api.put(`/variant-attributes/${editingVariant.id}`, {
-        name: editVariantName.trim(),
+        name: !isEditNN && editAttributeType === "product_based" ? editProductName.trim() : finalEditVariantName,
+        product_name: !isEditNN && editAttributeType === "product_based" ? editProductName.trim() : (editingVariant.product_name || ""),
         values: finalValues.join(", "),
-        patterns: isColorVariant(editVariantName) ? finalPatterns.join(", ") : "",
-        pattern_images: isColorVariant(editVariantName) ? finalPatternImages : {},
+        sizes: editAttributeType === "product_based" ? finalSizes.join(", ") : "",
+        varieties: isEditNN || editAttributeType === "product_based" ? finalValues.join(", ") : "",
+        variety_images: finalValueImages,
+        value_images: finalValueImages,
+        patterns: showEditPatterns ? finalPatterns.join(", ") : "",
+        pattern_images: showEditPatterns ? finalPatternImages : {},
+        attribute_type: editAttributeType,
         status: editVariantStatus ? "Active" : "Inactive",
         business_ids: editSelectedBizIds,
       });
 
       setEditingVariant(null);
+      setEditProductName("");
       setEditError(null);
 
       // Dismiss modal
@@ -685,9 +1267,10 @@ const VariantAttributes: React.FC = () => {
         const query = searchQuery.toLowerCase().trim();
         const matchesName = item.variant.toLowerCase().includes(query);
         const matchesValues = item.values.toLowerCase().includes(query);
+        const matchesCategory = (item.category || (item.attribute_type === "product_based" ? "Product Based" : "General")).toLowerCase().includes(query);
         const matchesDate = item.createdon.toLowerCase().includes(query);
         const matchesBiz = (item.display_business || "").toLowerCase().includes(query);
-        return matchesName || matchesValues || matchesDate || matchesBiz;
+        return matchesName || matchesValues || matchesCategory || matchesDate || matchesBiz;
       }
       return true;
     });
@@ -872,63 +1455,63 @@ const VariantAttributes: React.FC = () => {
           <div className="d-flex align-items-center">
             {renderVariantAvatar(rowData)}
             <div>
-              <span className="fw-semibold text-dark fs-14 d-block">{rowData.variant}</span>
+              <span className="fw-semibold text-dark fs-14 d-block">{formatVariantName(rowData.variant)}</span>
 
               {/* Only show Multi Business badge when mapped to multiple businesses */}
               {isBoth && (
                 <div className="mt-1 d-inline-block">
-                  <Popover
-                    trigger="click"
-                    placement="bottomLeft"
-                    title={
-                      <div className="pb-1 border-bottom fs-11 text-muted fw-bold text-uppercase">
-                        Mapped Stores ({mappedNames.length})
-                      </div>
-                    }
-                    content={
-                      <div style={{ minWidth: "190px" }}>
-                        <div className="d-flex flex-column gap-1 pt-1">
-                          {mappedNames.map((name, idx) => {
-                            const isGN = name.toLowerCase().includes("grow");
-                            return (
-                              <div key={idx} className="d-flex align-items-center gap-2 text-dark py-1">
-                                <span
-                                  className="badge rounded-pill fs-10 px-2 py-0.5 fw-semibold"
-                                  style={{
-                                    backgroundColor: isGN ? "rgba(18, 122, 60, 0.15)" : "rgba(13, 110, 253, 0.12)",
-                                    color: isGN ? "#127a3c" : "#0d6efd",
-                                  }}
-                                >
-                                  {isGN ? "GN" : "NN"}
-                                    </span>
-                                    <span className="fw-medium fs-13">{name}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                    <Popover
+                      trigger="click"
+                      placement="bottomLeft"
+                      title={
+                        <div className="pb-1 border-bottom fs-11 text-muted fw-bold text-uppercase">
+                          Mapped Stores ({mappedNames.length})
+                        </div>
+                      }
+                      content={
+                        <div style={{ minWidth: "190px" }}>
+                          <div className="d-flex flex-column gap-1 pt-1">
+                            {mappedNames.map((name, idx) => {
+                              const isGN = name.toLowerCase().includes("grow");
+                              return (
+                                <div key={idx} className="d-flex align-items-center gap-2 text-dark py-1">
+                                  <span
+                                    className="badge rounded-pill fs-10 px-2 py-0.5 fw-semibold"
+                                    style={{
+                                      backgroundColor: isGN ? "rgba(18, 122, 60, 0.15)" : "rgba(13, 110, 253, 0.12)",
+                                      color: isGN ? "#127a3c" : "#0d6efd",
+                                    }}
+                                  >
+                                    {isGN ? "GN" : "NN"}
+                                  </span>
+                                  <span className="fw-medium fs-13">{name}</span>
+                                </div>
+                              );
+                            })}
                           </div>
-                        }
+                        </div>
+                      }
+                    >
+                      <span
+                        className="badge fs-11 fw-semibold px-2 py-0.5 d-inline-flex align-items-center gap-1"
+                        style={{
+                          cursor: "pointer",
+                          backgroundColor: "#fff8f5",
+                          color: "#e04f16",
+                          border: "1px solid #ea5455",
+                          borderRadius: "6px",
+                        }}
                       >
-                        <span
-                          className="badge fs-11 fw-semibold px-2 py-0.5 d-inline-flex align-items-center gap-1"
-                          style={{
-                            cursor: "pointer",
-                            backgroundColor: "#fff8f5",
-                            color: "#e04f16",
-                            border: "1px solid #ea5455",
-                            borderRadius: "6px",
-                          }}
-                        >
-                          <i className="ti ti-layers-intersect fs-12" style={{ color: "#e04f16" }} />
-                          <span style={{ color: "#e04f16" }}>Multi Business</span>
-                          <i className="ti ti-info-circle fs-11 opacity-75" style={{ color: "#e04f16" }} />
-                        </span>
-                      </Popover>
-                    </div>
-                  )}
-                </div>
+                        <i className="ti ti-layers-intersect fs-12" style={{ color: "#e04f16" }} />
+                        <span style={{ color: "#e04f16" }}>Multi Business</span>
+                        <i className="ti ti-info-circle fs-11 opacity-75" style={{ color: "#e04f16" }} />
+                      </span>
+                    </Popover>
+                  </div>
+                )}
               </div>
-            );
+            </div>
+          );
           },
         },
         {
@@ -938,50 +1521,146 @@ const VariantAttributes: React.FC = () => {
           sortable: true,
           body: (rowData: VariantAttributeItem) => {
             const isColor = isColorVariant(rowData.variant);
-            return (
-              <div className="d-flex flex-column gap-1" style={{ maxWidth: "420px" }}>
-                <div className="d-flex flex-wrap gap-1 align-items-center">
-                  {isColor && (
-                    <span className="text-muted fs-11 fw-semibold me-1">Colors:</span>
-                  )}
-                  {rowData.values_array.length > 0 ? (
-                    rowData.values_array.map((val, idx) => (
-                      <span
-                        key={idx}
-                        className="badge bg-light text-dark border px-2 py-1 rounded-pill fs-11 fw-normal"
-                      >
-                        {val}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-muted fs-12">—</span>
-                  )}
-                </div>
+            const isSize = isSizeVariant(rowData.variant);
+            const isVariety = isVarietyVariant(rowData.variant);
+            const isPB = rowData.attribute_type === "product_based";
+            const hasSizes = rowData.sizes_array && rowData.sizes_array.length > 0;
+            const isNN = isNikhleshNurseryOnly(rowData.business_ids || (rowData.business_id ? [rowData.business_id] : []), availableBusinesses);
 
-                {isColor && rowData.patterns && (
-                  <div className="d-flex flex-wrap gap-1 align-items-center mt-1">
-                    <span className="text-muted fs-11 fw-semibold me-1">Patterns:</span>
-                    {rowData.patterns_array && rowData.patterns_array.length > 0 ? (
-                      rowData.patterns_array.map((pat, idx) => {
-                        const patImg = rowData.pattern_images?.[pat];
+            const renderLabel = (label: string, icon: string, colorClass: string = "text-muted") => (
+              <span
+                className="d-inline-flex align-items-center gap-1 fs-11 fw-semibold flex-shrink-0"
+                style={{ width: "72px" }}
+              >
+                <i className={`${icon} fs-12 ${colorClass}`} />
+                <span className={colorClass}>{label}</span>
+              </span>
+            );
+
+            if (isPB) {
+              return (
+                <div className="d-flex flex-column" style={{ maxWidth: "440px", gap: "6px" }}>
+                  {/* Sizes Row */}
+                  {hasSizes && (
+                    <div className="d-flex align-items-center gap-2">
+                      {renderLabel("Sizes:", "ti ti-ruler-2", "text-primary")}
+                      <div className="d-flex flex-wrap gap-1 align-items-center">
+                        {rowData.sizes_array!.map((sz, idx) => (
+                          <span
+                            key={idx}
+                            className="badge bg-primary-transparent text-primary border border-primary-light px-2 py-0.5 rounded-pill fs-11 fw-normal"
+                          >
+                            {sz}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Variants/Varieties Row */}
+                  <div className="d-flex align-items-center gap-2">
+                    {renderLabel(
+                      hasSizes ? (isNN ? "Varieties:" : "Variants:") : "Values:",
+                      isNN ? "ti ti-leaf" : "ti ti-palette",
+                      "text-muted"
+                    )}
+                    <div className="d-flex flex-wrap gap-1 align-items-center">
+                      {rowData.values_array.length > 0 ? (
+                        rowData.values_array.map((val, idx) => {
+                          const valImg = rowData.value_images?.[val] || rowData.variety_images?.[val];
+                          return (
+                            <span
+                              key={idx}
+                              className="badge bg-light text-dark border px-2 py-0.5 rounded-pill fs-11 fw-normal d-inline-flex align-items-center gap-1"
+                            >
+                              {valImg ? (
+                                <Popover
+                                  title={val}
+                                  content={
+                                    <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                      <img
+                                        src={valImg}
+                                        alt={val}
+                                        style={{
+                                          width: "100%",
+                                          maxHeight: "140px",
+                                          objectFit: "contain",
+                                          borderRadius: "4px",
+                                        }}
+                                      />
+                                    </div>
+                                  }
+                                >
+                                  <img
+                                    src={valImg}
+                                    alt={val}
+                                    style={{
+                                      width: "18px",
+                                      height: "18px",
+                                      objectFit: "cover",
+                                      borderRadius: "4px",
+                                      cursor: "pointer",
+                                      border: "1px solid #ced4da",
+                                    }}
+                                  />
+                                </Popover>
+                              ) : isColor ? (
+                                <span
+                                  className="rounded-circle border d-inline-block flex-shrink-0"
+                                  style={{
+                                    width: "9px",
+                                    height: "9px",
+                                    backgroundColor: val.toLowerCase().replace(/\s+/g, ""),
+                                  }}
+                                />
+                              ) : null}
+                              {val}
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="text-muted fs-12">—</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // General Attributes
+            const generalLabel = isSize
+              ? { text: "Sizes:", icon: "ti ti-ruler-2", colorClass: "text-primary" }
+              : isColor
+              ? { text: "Colors:", icon: "ti ti-palette", colorClass: "text-muted" }
+              : isVariety
+              ? { text: "Varieties:", icon: "ti ti-leaf", colorClass: "text-success" }
+              : { text: "Values:", icon: "ti ti-tag", colorClass: "text-muted" };
+
+            return (
+              <div className="d-flex flex-column" style={{ maxWidth: "440px", gap: "6px" }}>
+                <div className="d-flex align-items-center gap-2">
+                  {renderLabel(generalLabel.text, generalLabel.icon, generalLabel.colorClass)}
+                  <div className="d-flex flex-wrap gap-1 align-items-center">
+                    {rowData.values_array.length > 0 ? (
+                      rowData.values_array.map((val, idx) => {
+                        const valImg = rowData.value_images?.[val] || rowData.variety_images?.[val];
                         return (
                           <span
                             key={idx}
-                            className="badge px-2 py-0.5 rounded-pill fs-11 fw-normal d-inline-flex align-items-center gap-1"
-                            style={{
-                              backgroundColor: "rgba(111, 66, 193, 0.1)",
-                              color: "#6f42c1",
-                              border: "1px solid rgba(111, 66, 193, 0.25)",
-                            }}
+                            className={`badge ${
+                              isSize
+                                ? "bg-primary-transparent text-primary border border-primary-light"
+                                : "bg-light text-dark border"
+                            } px-2 py-0.5 rounded-pill fs-11 fw-normal d-inline-flex align-items-center gap-1`}
                           >
-                            {patImg ? (
+                            {valImg ? (
                               <Popover
-                                title={pat}
+                                title={val}
                                 content={
                                   <div style={{ maxWidth: "160px", textAlign: "center" }}>
                                     <img
-                                      src={patImg}
-                                      alt={pat}
+                                      src={valImg}
+                                      alt={val}
                                       style={{
                                         width: "100%",
                                         maxHeight: "140px",
@@ -993,26 +1672,95 @@ const VariantAttributes: React.FC = () => {
                                 }
                               >
                                 <img
-                                  src={patImg}
-                                  alt={pat}
+                                  src={valImg}
+                                  alt={val}
                                   style={{
-                                    width: "16px",
-                                    height: "16px",
+                                    width: "18px",
+                                    height: "18px",
                                     objectFit: "cover",
-                                    borderRadius: "50%",
+                                    borderRadius: "4px",
                                     cursor: "pointer",
-                                    border: "1px solid rgba(111, 66, 193, 0.35)",
+                                    border: "1px solid #ced4da",
                                   }}
                                 />
                               </Popover>
-                            ) : (
-                              <i className="ti ti-palette fs-10" />
-                            )}
-                            {pat}
+                            ) : isColor ? (
+                              <span
+                                className="rounded-circle border d-inline-block flex-shrink-0"
+                                style={{
+                                  width: "9px",
+                                  height: "9px",
+                                  backgroundColor: val.toLowerCase().replace(/\s+/g, ""),
+                                }}
+                              />
+                            ) : null}
+                            {val}
                           </span>
                         );
                       })
-                    ) : null}
+                    ) : (
+                      <span className="text-muted fs-12">—</span>
+                    )}
+                  </div>
+                </div>
+
+                {isColor && rowData.patterns && (
+                  <div className="d-flex align-items-center gap-2">
+                    {renderLabel("Patterns:", "ti ti-palette", "text-purple")}
+                    <div className="d-flex flex-wrap gap-1 align-items-center">
+                      {rowData.patterns_array && rowData.patterns_array.length > 0 ? (
+                        rowData.patterns_array.map((pat, idx) => {
+                          const patImg = rowData.pattern_images?.[pat];
+                          return (
+                            <span
+                              key={idx}
+                              className="badge px-2 py-0.5 rounded-pill fs-11 fw-normal d-inline-flex align-items-center gap-1"
+                              style={{
+                                backgroundColor: "rgba(111, 66, 193, 0.1)",
+                                color: "#6f42c1",
+                                border: "1px solid rgba(111, 66, 193, 0.25)",
+                              }}
+                            >
+                              {patImg ? (
+                                <Popover
+                                  title={pat}
+                                  content={
+                                    <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                      <img
+                                        src={patImg}
+                                        alt={pat}
+                                        style={{
+                                          width: "100%",
+                                          maxHeight: "140px",
+                                          objectFit: "contain",
+                                          borderRadius: "4px",
+                                        }}
+                                      />
+                                    </div>
+                                  }
+                                >
+                                  <img
+                                    src={patImg}
+                                    alt={pat}
+                                    style={{
+                                      width: "20px",
+                                      height: "18px",
+                                      objectFit: "cover",
+                                      borderRadius: "4px",
+                                      cursor: "pointer",
+                                      border: "1px solid rgba(111, 66, 193, 0.35)",
+                                    }}
+                                  />
+                                </Popover>
+                              ) : (
+                                <i className="ti ti-palette fs-10" />
+                              )}
+                              {pat}
+                            </span>
+                          );
+                        })
+                      ) : null}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1020,13 +1768,34 @@ const VariantAttributes: React.FC = () => {
           },
         },
         {
-          field: "createdon",
-          header: "Created On",
-          key: "createdon",
+          field: "category",
+          header: "Category",
+          key: "category",
           sortable: true,
-          body: (rowData: VariantAttributeItem) => (
-            <span className="text-muted fs-13">{rowData.createdon}</span>
-          ),
+          body: (rowData: VariantAttributeItem) => {
+            const isPB = rowData.attribute_type === "product_based";
+            return isPB ? (
+              <span
+                className="badge rounded-pill fs-10 px-2 py-0.5 fw-semibold border d-inline-flex align-items-center gap-1"
+                style={{
+                  backgroundColor: "#eff6ff",
+                  color: "#1d4ed8",
+                  borderColor: "#bfdbfe",
+                }}
+                title="Product Based"
+              >
+                Product Based
+              </span>
+            ) : (
+              <span
+                className="badge bg-light text-muted border rounded-pill fs-10 px-2 py-0.5 fw-normal d-inline-flex align-items-center gap-1"
+                title="General Attribute"
+              >
+                <i className="ti ti-layout-grid fs-10" />
+                General
+              </span>
+            );
+          },
         },
         {
           field: "status",
@@ -1161,34 +1930,6 @@ const VariantAttributes: React.FC = () => {
                   {/* Bottom Row: Animated Underline Tabs placed under the Search Bar */}
                   <div className="position-relative">
                     <ul className="nav border-bottom-0 gap-3 gap-sm-4" role="tablist">
-                      <li className="nav-item">
-                        <button
-                          ref={(el) => {
-                            tabRefs.current["all"] = el;
-                          }}
-                          type="button"
-                          className={`nav-link border-0 bg-transparent px-2 d-inline-flex align-items-center rounded-0 fs-14 ${
-                            businessFilter === "all"
-                              ? "fw-bold"
-                              : "text-muted fw-medium"
-                          }`}
-                          style={{
-                            boxShadow: "none",
-                            background: "transparent",
-                            paddingTop: 0,
-                            paddingBottom: "6px",
-                            color: businessFilter === "all" ? "#127a3c" : undefined,
-                            transition: "color 0.2s ease",
-                          }}
-                          onClick={() => {
-                            setBusinessFilter("all");
-                            setCurrentPage(1);
-                          }}
-                        >
-                          <span>All</span>
-                        </button>
-                      </li>
-
                       {availableBusinesses.map((biz) => {
                         const isSelected = businessFilter === biz.id;
                         return (
@@ -1301,7 +2042,7 @@ const VariantAttributes: React.FC = () => {
                 <div className="modal-header border-bottom">
                   <div className="page-title">
                     <h4 className="fw-bold mb-0">Add Variant Attribute</h4>
-                    <span className="text-muted fs-12">Define a reusable variant and preview values on the right</span>
+                    {/* <span className="text-muted fs-12">Define a reusable variant and preview values on the right</span> */}
                   </div>
                   <button
                     type="button"
@@ -1326,259 +2067,799 @@ const VariantAttributes: React.FC = () => {
                     <div className="row g-4">
                       {/* Left: Input Form Controls */}
                       <div className="col-12 col-lg-7">
-                        {/* Business Mapping Field */}
+                        {/* Choose Store Tabs */}
                         <div className="mb-3">
-                          <label className="form-label fw-medium d-flex justify-content-between align-items-center mb-1">
-                            <span>
-                              Map to Business<span className="text-danger ms-1">*</span>
-                            </span>
-                            <span className="text-muted fs-11">Choose store(s)</span>
-                          </label>
-                          <div className="p-3 border rounded bg-light-subtle">
-                            <div className="row row-cols-3 g-2 g-sm-3 align-items-center">
-                              {/* First: All */}
-                              <div className="col">
-                                <div className="form-check mb-0 d-flex align-items-center">
-                                  <input
-                                    className="form-check-input me-2 flex-shrink-0"
-                                    type="checkbox"
-                                    id="add-biz-all"
-                                    checked={
-                                      availableBusinesses.length > 0 &&
-                                      selectedBizIds.length === availableBusinesses.length
-                                    }
-                                    onChange={handleToggleAddAllBiz}
-                                  />
-                                  <label
-                                    className="form-check-label text-dark fw-semibold fs-13 cursor-pointer text-truncate"
-                                    htmlFor="add-biz-all"
-                                  >
-                                    All
-                                  </label>
-                                </div>
-                              </div>
-
-                              {/* All businesses one by one */}
-                              {availableBusinesses.map((biz) => (
-                                <div key={biz.id} className="col">
-                                  <div className="form-check mb-0 d-flex align-items-center">
-                                    <input
-                                      className="form-check-input me-2 flex-shrink-0"
-                                      type="checkbox"
-                                      id={`add-biz-${biz.id}`}
-                                      checked={selectedBizIds.includes(biz.id)}
-                                      onChange={() => handleToggleAddBiz(biz.id)}
-                                    />
-                                    <label
-                                      className="form-check-label fw-medium fs-13 cursor-pointer text-truncate"
-                                      htmlFor={`add-biz-${biz.id}`}
-                                      title={biz.name}
+                          <div className="position-relative border-bottom">
+                            <ul className="nav border-bottom-0 gap-3 gap-sm-4" role="tablist">
+                              {availableBusinesses.map((biz) => {
+                                const isSelected = selectedBizIds.includes(biz.id);
+                                return (
+                                  <li key={biz.id} className="nav-item">
+                                    <button
+                                      ref={(el) => {
+                                        addTabRefs.current[biz.id] = el;
+                                      }}
+                                      type="button"
+                                      className={`nav-link border-0 bg-transparent px-2 d-inline-flex align-items-center rounded-0 fs-14 position-relative ${
+                                        isSelected ? "fw-bold" : "text-muted fw-medium"
+                                      }`}
+                                      style={{
+                                        boxShadow: "none",
+                                        background: "transparent",
+                                        paddingTop: "4px",
+                                        paddingBottom: "8px",
+                                        color: isSelected ? "#127a3c" : "#5b6b79",
+                                        cursor: "pointer",
+                                        transition: "color 0.2s ease",
+                                      }}
+                                      onClick={() => handleSelectAddBiz(biz.id)}
                                     >
-                                      {biz.name}
-                                    </label>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                                      <span>{biz.name}</span>
+                                      {isSelected && !addIndicatorStyle.ready && (
+                                        <span
+                                          style={{
+                                            position: "absolute",
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: "3px",
+                                            backgroundColor: "#127a3c",
+                                            borderRadius: "3px 3px 0 0",
+                                          }}
+                                        />
+                                      )}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
 
-                            <div className="mt-2 text-muted fs-12 border-top pt-2">
-                              {selectedBizIds.length === 0 ? (
-                                <span className="text-danger">
-                                  <i className="ti ti-alert-circle me-1" />
-                                  Please select at least one business.
-                                </span>
-                              ) : selectedBizIds.length === availableBusinesses.length ? (
-                                <span className="text-success fw-medium">
-                                  <i className="ti ti-check me-1" />
-                                  Mapped to <strong>Both Businesses</strong> (available in both stores).
-                                </span>
-                              ) : (
-                                <span className="text-dark">
-                                  <i className="ti ti-info-circle me-1" />
-                                  Mapped strictly to:{" "}
-                                  <strong>
-                                    {availableBusinesses.find((b) => b.id === selectedBizIds[0])?.name ||
-                                      selectedBizIds[0]}
-                                  </strong>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Variant Name */}
-                        <div className="mb-3">
-                          <label className="form-label fw-medium">
-                            Variant Name<span className="text-danger ms-1">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="e.g. Colour, Size, Pot Material, Pack Weight"
-                            value={variantName}
-                            onChange={(e) => setVariantName(e.target.value)}
-                            required
-                            autoFocus
-                          />
-                          <span className="text-muted fs-11 mt-1 d-block">
-                            Typing "colour" or "color" unlocks Colour Variants and Pattern options.
-                          </span>
-                        </div>
-
-                        {/* Values / Colour Variant input one by one */}
-                        <div className="mb-3">
-                          <label className="form-label fw-medium d-flex justify-content-between align-items-center mb-1">
-                            <span>
-                              {isColorVariant(variantName) ? "Colour Variant" : "Variant Values"}
-                              <span className="text-danger ms-1">*</span>
-                            </span>
-                            <span className="text-muted fs-11">
-                              {addValuesList.length > 0
-                                ? `${addValuesList.length} added`
-                                : "Add one by one"}
-                            </span>
-                          </label>
-                          <div className="input-group">
-                            <input
-                              type="text"
-                              className="form-control"
-                              placeholder={
-                                isColorVariant(variantName)
-                                  ? "e.g. Red, Matte Black, Terracotta"
-                                  : "e.g. Small, 500g, 10-inch"
-                              }
-                              value={addSingleValueInput}
-                              onChange={(e) => setAddSingleValueInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === ",") {
-                                  e.preventDefault();
-                                  handleAddSingleValue();
-                                }
+                            {/* Animated sliding underline indicator */}
+                            <span
+                              style={{
+                                position: "absolute",
+                                bottom: 0,
+                                left: `${addIndicatorStyle.left}px`,
+                                width: `${addIndicatorStyle.width}px`,
+                                height: "3px",
+                                backgroundColor: "#127a3c",
+                                borderRadius: "3px 3px 0 0",
+                                transition: addIndicatorStyle.ready
+                                  ? "left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1)"
+                                  : "none",
+                                pointerEvents: "none",
+                                opacity: addIndicatorStyle.ready && addIndicatorStyle.width > 0 ? 1 : 0,
                               }}
                             />
-                            <button
-                              type="button"
-                              className="btn btn-primary d-flex align-items-center px-3"
-                              onClick={handleAddSingleValue}
-                            >
-                              <i className="ti ti-plus me-1" /> Add
-                            </button>
                           </div>
-                          <span className="tag-text mt-1 d-block text-muted fs-12">
-                            Type an item and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
-                            Items will appear on the right preview.
-                          </span>
                         </div>
 
-                        {/* Pattern field - ONLY for colors */}
-                        {isColorVariant(variantName) && (
-                          <div className="mb-3">
-                            <label className="form-label fw-medium d-flex justify-content-between align-items-center mb-1">
-                              <span>
-                                Pattern / Finish<span className="text-muted ms-1 fs-12">(Optional)</span>
+                        {/* Attribute Type: General vs Product Based */}
+                        <div className="mb-3">
+                          <div className="p-3 border rounded bg-light-subtle">
+                            <div className="d-flex align-items-center gap-3 flex-wrap">
+                              <div
+                                className={`form-check mb-0 d-flex align-items-center px-3 py-2 border rounded ${
+                                  addAttributeType === "general"
+                                    ? "border-primary bg-white shadow-xs fw-semibold text-primary"
+                                    : "border-transparent bg-white text-dark"
+                                }`}
+                                onClick={() => handleSelectAddAttributeType("general")}
+                                style={{
+                                  cursor: "pointer",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <input
+                                  className="form-check-input me-2 mt-0 flex-shrink-0"
+                                  type="radio"
+                                  name="add_attribute_type"
+                                  id="add_attr_type_general"
+                                  checked={addAttributeType === "general"}
+                                  onChange={() => handleSelectAddAttributeType("general")}
+                                  style={{ cursor: "pointer" }}
+                                />
+                                <label
+                                  className="form-check-label fs-13 d-flex align-items-center mb-0 text-dark"
+                                  htmlFor="add_attr_type_general"
+                                  style={{ cursor: "pointer", color: "#000000" }}
+                                >
+                                  <span style={{ color: "#000000" }}>General</span>
+                                </label>
+                              </div>
+
+                              <div
+                                className={`form-check mb-0 d-flex align-items-center px-3 py-2 border rounded ${
+                                  addAttributeType === "product_based"
+                                    ? "border-primary bg-white shadow-xs fw-semibold text-primary"
+                                    : "border-transparent bg-white text-dark"
+                                }`}
+                                onClick={() => handleSelectAddAttributeType("product_based")}
+                                style={{
+                                  cursor: "pointer",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <input
+                                  className="form-check-input me-2 mt-0 flex-shrink-0"
+                                  type="radio"
+                                  name="add_attribute_type"
+                                  id="add_attr_type_product"
+                                  checked={addAttributeType === "product_based"}
+                                  onChange={() => handleSelectAddAttributeType("product_based")}
+                                  style={{ cursor: "pointer" }}
+                                />
+                                <label
+                                  className="form-check-label fs-13 d-flex align-items-center mb-0 text-dark"
+                                  htmlFor="add_attr_type_product"
+                                  style={{ cursor: "pointer", color: "#000000" }}
+                                >
+                                  <span style={{ color: "#000000" }}>Product Based</span>
+                                </label>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+
+                        {/* CASE 1: NIKHLESH NURSERY + PRODUCT BASED -> Size Attribute and Variety listed one by one */}
+                        {isNikhleshNurseryOnly(selectedBizIds, availableBusinesses) && addAttributeType === "product_based" ? (
+                          <>
+                            {/* Variant / Attribute Name */}
+                            <div className="mb-3">
+                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                <span style={{ color: "#000000" }}>Variant Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
+                              </label>
+                              <div className="input-group">
+                                <input
+                                  type="text"
+                                  ref={addVariantInputRef}
+                                  className="form-control"
+                                  placeholder={
+                                    variantNameType === "Custom"
+                                      ? "e.g. Mango Variety, Bougainvillea, Hibiscus"
+                                      : "Variant Name"
+                                  }
+                                  value={variantName}
+                                  onChange={(e) => setVariantName(e.target.value)}
+                                  readOnly={variantNameType !== "Custom"}
+                                  style={{
+                                    backgroundColor: variantNameType !== "Custom" ? "#fbfcfd" : "#ffffff",
+                                    cursor: variantNameType !== "Custom" ? "default" : "text",
+                                    height: "40px",
+                                  }}
+                                  required
+                                  autoFocus={variantNameType === "Custom"}
+                                />
+                                <select
+                                  className="form-select flex-grow-0"
+                                  style={{
+                                    width: "120px",
+                                    backgroundColor: "#f8f9fa",
+                                    borderColor: "#ced4da",
+                                    fontWeight: 500,
+                                    fontSize: "13px",
+                                    cursor: "pointer",
+                                    height: "40px",
+                                  }}
+                                  value={variantNameType}
+                                  onChange={(e) => handleVariantNameTypeChange(e.target.value)}
+                                >
+                                  {getVariantNameOptions(selectedBizIds, availableBusinesses).map((opt) => (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Section 1: Size Attribute */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span style={{ color: "#000000" }}>
+                                  Size Attribute<span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {addSizesList.length > 0 ? `${addSizesList.length} added` : "Add one by one"}
+                                </span>
+                              </label>
+                              <div className="d-flex align-items-center gap-2">
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="e.g. 1 ft, 2 ft, 5 ft, 6 inch"
+                                  style={{ height: "40px" }}
+                                  value={addSingleSizeInput}
+                                  onChange={(e) => setAddSingleSizeInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === ",") {
+                                      e.preventDefault();
+                                      handleAddSingleSize();
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleAddSingleSize}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
                               </span>
-                              <span className="text-muted fs-11">
-                                {addPatternsList.length > 0 ? `${addPatternsList.length} added` : "e.g. Marble, Solid"}
+                            </div>
+
+                            {/* Section 2: Variety (below Size Attribute) */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span style={{ color: "#000000" }}>
+                                  Variety<span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {addValuesList.length > 0 ? `${addValuesList.length} added` : "with photo"}
+                                </span>
+                              </label>
+                              <div className="d-flex align-items-center gap-2">
+                                <div
+                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+                                  style={{ borderColor: "#ced4da", height: "40px" }}
+                                >
+                                  <input
+                                    type="text"
+                                    className="form-control border-0 shadow-none px-3"
+                                    placeholder="e.g. Alphonso, Kesar, Dasheri"
+                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
+                                    value={addSingleValueInput}
+                                    onChange={(e) => setAddSingleValueInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === ",") {
+                                        e.preventDefault();
+                                        handleAddSingleValue();
+                                      }
+                                    }}
+                                  />
+
+                                  <div
+                                    className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                                    style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+                                  >
+                                    <input
+                                      type="file"
+                                      ref={addValueFileInputRef}
+                                      accept="image/*"
+                                      style={{ display: "none" }}
+                                      onChange={handleAddValueImageFileChange}
+                                    />
+                                    {addCurrentValueImage ? (
+                                      <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                        <img
+                                          src={addCurrentValueImage}
+                                          alt="Variety preview"
+                                          style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            objectFit: "cover",
+                                            borderRadius: "4px",
+                                            border: "1px solid #ced4da",
+                                          }}
+                                        />
+                                        <button
+                                          type="button"
+                                          className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                          style={{ textDecoration: "none", lineHeight: 1 }}
+                                          onClick={() => {
+                                            setAddCurrentValueImage(null);
+                                            if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
+                                          }}
+                                          title="Remove image"
+                                        >
+                                          <i className="ti ti-x fs-13" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                                        onClick={() => addValueFileInputRef.current?.click()}
+                                        title="Attach image for this variety"
+                                        style={{ background: "transparent", fontSize: "12px" }}
+                                      >
+                                        <i className="ti ti-photo fs-15 text-primary me-1" />
+                                        <span className="fw-medium text-dark">Image</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleAddSingleValue}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                Type variety name, attach an optional image, and click <strong>+ Add</strong>.
                               </span>
-                            </label>
-                            <div className="input-group">
+                            </div>
+                          </>
+                        ) : !isNikhleshNurseryOnly(selectedBizIds, availableBusinesses) && addAttributeType === "product_based" ? (
+                          /* CASE 2: GROW NATURALS + PRODUCT BASED -> Product Name, Variant Name, Size Attributes, Variants with photo upload */
+                          <>
+                            {/* Product Name */}
+                            <div className="mb-3">
+                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                <span style={{ color: "#000000" }}>Product Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
+                              </label>
                               <input
                                 type="text"
                                 className="form-control"
-                                placeholder="e.g. Solid, Striped, Marble, Glossy"
-                                value={addSinglePatternInput}
-                                onChange={(e) => setAddSinglePatternInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === ",") {
-                                    e.preventDefault();
-                                    handleAddSinglePattern();
-                                  }
-                                }}
+                                placeholder="e.g. Terracotta Pot, Ceramic Planter, Monstera Deliciosa"
+                                value={addProductName}
+                                onChange={(e) => setAddProductName(e.target.value)}
+                                required
+                                autoFocus
                               />
+                            </div>
 
-                              {/* Pattern image uploading option - visible for Nikhlesh Nursery or Both businesses */}
-                              {canUploadPatternImage(selectedBizIds, availableBusinesses) && (
-                                <>
+
+                            {/* Section: Size Attributes */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span style={{ color: "#000000" }}>
+                                  Size<span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {addSizesList.length > 0 ? `${addSizesList.length} added` : "Add one by one"}
+                                </span>
+                              </label>
+                              <div className="d-flex align-items-center gap-2">
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="e.g. 4 inch, 6 inch, 8 inch, Small, Medium, Large"
+                                  style={{ height: "40px" }}
+                                  value={addSingleSizeInput}
+                                  onChange={(e) => setAddSingleSizeInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === ",") {
+                                      e.preventDefault();
+                                      handleAddSingleSize();
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleAddSingleSize}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                              </span>
+                            </div>
+
+                            {/* Section: Colors (with image uploading option) */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span style={{ color: "#000000" }}>
+                                  Colors<span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {addValuesList.length > 0 ? `${addValuesList.length} added` : "with photo"}
+                                </span>
+                              </label>
+                              <div className="d-flex align-items-center gap-2">
+                                <div
+                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+                                  style={{ borderColor: "#ced4da", height: "40px" }}
+                                >
                                   <input
-                                    type="file"
-                                    ref={addPatternFileInputRef}
-                                    accept="image/*"
-                                    style={{ display: "none" }}
-                                    onChange={handleAddPatternImageFileChange}
+                                    type="text"
+                                    className="form-control border-0 shadow-none px-3"
+                                    placeholder="e.g. Red, Matte Black, Terracotta, White"
+                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
+                                    value={addSingleValueInput}
+                                    onChange={(e) => setAddSingleValueInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === ",") {
+                                        e.preventDefault();
+                                        handleAddSingleValue();
+                                      }
+                                    }}
                                   />
-                                  {addCurrentPatternImage ? (
-                                    <div
-                                      className="d-flex align-items-center bg-white px-2 border"
-                                      style={{ borderColor: "#ced4da" }}
-                                    >
-                                      <img
-                                        src={addCurrentPatternImage}
-                                        alt="Pattern preview"
-                                        style={{
-                                          width: "26px",
-                                          height: "26px",
-                                          objectFit: "cover",
-                                          borderRadius: "4px",
-                                          border: "1px solid #dee2e6",
-                                        }}
-                                      />
+
+                                  <div
+                                    className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                                    style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+                                  >
+                                    <input
+                                      type="file"
+                                      ref={addValueFileInputRef}
+                                      accept="image/*"
+                                      style={{ display: "none" }}
+                                      onChange={handleAddValueImageFileChange}
+                                    />
+                                    {addCurrentValueImage ? (
+                                      <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                        <img
+                                          src={addCurrentValueImage}
+                                          alt="Color preview"
+                                          style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            objectFit: "cover",
+                                            borderRadius: "4px",
+                                            border: "1px solid #ced4da",
+                                          }}
+                                        />
+                                        <button
+                                          type="button"
+                                          className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                          style={{ textDecoration: "none", lineHeight: 1 }}
+                                          onClick={() => {
+                                            setAddCurrentValueImage(null);
+                                            if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
+                                          }}
+                                          title="Remove image"
+                                        >
+                                          <i className="ti ti-x fs-13" />
+                                        </button>
+                                      </div>
+                                    ) : (
                                       <button
                                         type="button"
-                                        className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
-                                        style={{ textDecoration: "none" }}
-                                        onClick={() => {
-                                          setAddCurrentPatternImage(null);
-                                          if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
-                                        }}
-                                        title="Remove image"
+                                        className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                                        onClick={() => addValueFileInputRef.current?.click()}
+                                        title="Attach image for this color"
+                                        style={{ background: "transparent", fontSize: "12px" }}
                                       >
-                                        <i className="ti ti-x fs-14" />
+                                        <i className="ti ti-photo fs-15 text-primary me-1" />
+                                        <span className="fw-medium text-dark">Image</span>
                                       </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="btn btn-outline-secondary d-flex align-items-center px-2.5"
-                                      onClick={() => addPatternFileInputRef.current?.click()}
-                                      title="Attach image for this pattern"
-                                      style={{
-                                        borderColor: "#ced4da",
-                                        backgroundColor: "#f8f9fa",
-                                      }}
-                                    >
-                                      <i className="ti ti-photo fs-15 text-muted me-1" />
-                                      <span className="fs-12 text-muted">Image</span>
-                                    </button>
-                                  )}
-                                </>
-                              )}
+                                    )}
+                                  </div>
+                                </div>
 
-                              <button
-                                type="button"
-                                className="btn btn-outline-primary d-flex align-items-center px-3"
-                                onClick={handleAddSinglePattern}
-                              >
-                                <i className="ti ti-plus me-1" /> Add
-                              </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleAddSingleValue}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                Type color, attach an optional image, and click <strong>+ Add</strong>.
+                              </span>
                             </div>
-                            <span className="tag-text mt-1 d-block text-muted fs-12">
-                              {canUploadPatternImage(selectedBizIds, availableBusinesses) ? (
-                                <>
-                                  Type pattern name, attach an optional image, and click <strong>+ Add</strong>.
-                                </>
-                              ) : (
-                                <>
-                                  Type pattern and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
-                                </>
-                              )}
-                            </span>
-                          </div>
+                          </>
+                        ) : (
+                          /* CASE 3: GENERAL ATTRIBUTE (Same as it was for both GN and NN) */
+                          <>
+                            {/* Variant Name */}
+                            <div className="mb-3">
+                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                <span style={{ color: "#000000" }}>Variant Name</span>
+                                <span className="ms-1" style={{ color: "#000000" }}>*</span>
+                              </label>
+                              <div className="input-group">
+                                <input
+                                  type="text"
+                                  ref={addVariantInputRef}
+                                  className="form-control"
+                                  placeholder={
+                                    variantNameType === "Custom"
+                                      ? (isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
+                                          ? "e.g. Plant Type, Soil Mix, Bougainvillea"
+                                          : "e.g. Pot Material, Pack Weight, Material")
+                                      : "Variant Name"
+                                  }
+                                  value={variantName}
+                                  onChange={(e) => setVariantName(e.target.value)}
+                                  readOnly={variantNameType !== "Custom"}
+                                  style={{
+                                    backgroundColor: variantNameType !== "Custom" ? "#fbfcfd" : "#ffffff",
+                                    cursor: variantNameType !== "Custom" ? "default" : "text",
+                                    height: "40px",
+                                  }}
+                                  required
+                                  autoFocus={variantNameType === "Custom"}
+                                />
+                                <select
+                                  className="form-select flex-grow-0"
+                                  style={{
+                                    width: "120px",
+                                    backgroundColor: "#f8f9fa",
+                                    borderColor: "#ced4da",
+                                    fontWeight: 500,
+                                    fontSize: "13px",
+                                    cursor: "pointer",
+                                    height: "40px",
+                                  }}
+                                  value={variantNameType}
+                                  onChange={(e) => handleVariantNameTypeChange(e.target.value)}
+                                >
+                                  {getVariantNameOptions(selectedBizIds, availableBusinesses).map((opt) => (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Values / Variety Values / Colour Variant input one by one */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span className="text-capitalize" style={{ color: "#000000" }}>
+                                  {isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
+                                    ? "Variety Values"
+                                    : variantName.trim()
+                                    ? `${variantName.trim()} Values`
+                                    : "Variant Values"}
+                                  <span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {addValuesList.length > 0
+                                    ? `${addValuesList.length} added`
+                                    : "Add one by one"}
+                                </span>
+                              </label>
+
+                              {/* Image upload option for Variant Values */}
+                              <div className="d-flex align-items-center gap-2">
+                                <div
+                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+                                  style={{
+                                    borderColor: "#ced4da",
+                                    height: "40px",
+                                  }}
+                                >
+                                  <input
+                                    type="text"
+                                    className="form-control border-0 shadow-none px-3"
+                                    placeholder={
+                                      isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
+                                        ? "e.g. Alphonso, Kesar, Dasheri"
+                                        : isColorVariant(variantName)
+                                        ? "e.g. Red, Matte Black, Terracotta"
+                                        : "e.g. Small, 500g, 10-inch"
+                                    }
+                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
+                                    value={addSingleValueInput}
+                                    onChange={(e) => setAddSingleValueInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === ",") {
+                                        e.preventDefault();
+                                        handleAddSingleValue();
+                                      }
+                                    }}
+                                  />
+
+                                  {/* Image upload only appears if not Grow Naturals OR if color variant */}
+                                  {(!isGrowNaturals(selectedBizIds, availableBusinesses) || isColorVariant(variantName)) && (
+                                    <div
+                                      className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                                      style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+                                    >
+                                      <input
+                                        type="file"
+                                        ref={addValueFileInputRef}
+                                        accept="image/*"
+                                        style={{ display: "none" }}
+                                        onChange={handleAddValueImageFileChange}
+                                      />
+                                      {addCurrentValueImage ? (
+                                        <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                          <img
+                                            src={addCurrentValueImage}
+                                            alt="Value preview"
+                                            style={{
+                                              width: "24px",
+                                              height: "24px",
+                                              objectFit: "cover",
+                                              borderRadius: "4px",
+                                              border: "1px solid #ced4da",
+                                            }}
+                                          />
+                                          <button
+                                            type="button"
+                                            className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                            style={{ textDecoration: "none", lineHeight: 1 }}
+                                            onClick={() => {
+                                              setAddCurrentValueImage(null);
+                                              if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
+                                            }}
+                                            title="Remove image"
+                                          >
+                                            <i className="ti ti-x fs-13" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                                          onClick={() => addValueFileInputRef.current?.click()}
+                                          title="Attach image for this value"
+                                          style={{
+                                            background: "transparent",
+                                            fontSize: "12px",
+                                          }}
+                                        >
+                                          <i className="ti ti-photo fs-15 text-primary me-1" />
+                                          <span className="fw-medium text-dark">Image</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleAddSingleValue}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                {(!isGrowNaturals(selectedBizIds, availableBusinesses) || isColorVariant(variantName))
+                                  ? "Type an item, attach an optional image, and click + Add."
+                                  : "Type an item and click + Add."}
+                              </span>
+                            </div>
+
+                            {/* Pattern field - ONLY for colors if not Grow Naturals */}
+                            {showAddPatterns && (
+                              <div className="mb-3">
+                                <label
+                                  className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                  style={{ color: "#000000" }}
+                                >
+                                  <span style={{ color: "#000000" }}>
+                                    Pattern / Finish <span className="ms-1 fs-12 fw-normal" style={{ color: "#000000" }}>(Optional)</span>
+                                  </span>
+                                  <span className="text-muted fs-11 fw-normal">
+                                    {addPatternsList.length > 0 ? `${addPatternsList.length} added` : "e.g. Marble, Solid"}
+                                  </span>
+                                </label>
+                                <div className="d-flex align-items-center gap-2">
+                                  <div
+                                    className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+                                    style={{
+                                      borderColor: "#ced4da",
+                                      height: "40px",
+                                    }}
+                                  >
+                                    <input
+                                      type="text"
+                                      className="form-control border-0 shadow-none px-3"
+                                      placeholder="e.g. Solid, Striped, Marble, Glossy"
+                                      style={{ height: "100%", background: "transparent", color: "#212529" }}
+                                      value={addSinglePatternInput}
+                                      onChange={(e) => setAddSinglePatternInput(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === ",") {
+                                          e.preventDefault();
+                                          handleAddSinglePattern();
+                                        }
+                                      }}
+                                    />
+
+                                    {canUploadPatternImage(selectedBizIds, availableBusinesses) && (
+                                      <div
+                                        className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                                        style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+                                      >
+                                        <input
+                                          type="file"
+                                          ref={addPatternFileInputRef}
+                                          accept="image/*"
+                                          style={{ display: "none" }}
+                                          onChange={handleAddPatternImageFileChange}
+                                        />
+                                        {addCurrentPatternImage ? (
+                                          <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                            <img
+                                              src={addCurrentPatternImage}
+                                              alt="Pattern preview"
+                                              style={{
+                                                width: "24px",
+                                                height: "24px",
+                                                objectFit: "cover",
+                                                borderRadius: "4px",
+                                                border: "1px solid #ced4da",
+                                              }}
+                                            />
+                                            <button
+                                              type="button"
+                                              className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                              style={{ textDecoration: "none", lineHeight: 1 }}
+                                              onClick={() => {
+                                                setAddCurrentPatternImage(null);
+                                                if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
+                                              }}
+                                              title="Remove image"
+                                            >
+                                              <i className="ti ti-x fs-13" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                                            onClick={() => addPatternFileInputRef.current?.click()}
+                                            title="Attach image for this pattern"
+                                            style={{
+                                              background: "transparent",
+                                              fontSize: "12px",
+                                            }}
+                                          >
+                                            <i className="ti ti-photo fs-15 text-primary me-1" />
+                                            <span className="fw-medium text-dark">Image</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                    style={{ height: "40px" }}
+                                    onClick={handleAddSinglePattern}
+                                  >
+                                    <i className="ti ti-plus me-1" /> Add
+                                  </button>
+                                </div>
+                                <span className="tag-text mt-1 d-block text-muted fs-12">
+                                  {canUploadPatternImage(selectedBizIds, availableBusinesses) ? (
+                                    <>
+                                      Type pattern name, attach an optional image, and click <strong>+ Add</strong>.
+                                    </>
+                                  ) : (
+                                    <>
+                                      Type pattern and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                          </>
                         )}
 
                         {/* Status Toggle */}
                         <div className="mb-0 mt-3 p-2 bg-light rounded">
                           <div className="status-toggle modal-status d-flex justify-content-between align-items-center">
-                            <span className="status-label fw-medium fs-13">Status (Active / Inactive)</span>
+                            <span className="status-label fw-semibold fs-13 text-dark" style={{ color: "#000000" }}>Status (Active / Inactive)</span>
                             <input
                               type="checkbox"
                               id="variant-add-status"
@@ -1597,259 +2878,498 @@ const VariantAttributes: React.FC = () => {
                           className="card border bg-light-subtle shadow-none mb-0 h-100 d-flex flex-column"
                           style={{ minHeight: "410px" }}
                         >
-                          <div className="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
-                            <div className="d-flex align-items-center gap-2">
-                              <div
-                                className="d-flex align-items-center justify-content-center rounded bg-primary-transparent text-primary"
-                                style={{ width: "26px", height: "26px" }}
-                              >
-                                <i className="ti ti-eye fs-14" />
-                              </div>
-                              <span className="fw-bold fs-13 text-dark">Live Attribute Preview</span>
-                            </div>
-                            <span className="badge bg-primary-transparent text-primary fs-11">
-                              {addValuesList.length} {addValuesList.length === 1 ? "value" : "values"}
-                            </span>
-                          </div>
-
                           <div className="card-body p-3 d-flex flex-column flex-grow-1">
-                            {/* Attribute Overview Box */}
-                            <div className="bg-white p-2 px-3 rounded border mb-3">
-                              <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                  <span className="text-muted fs-10 text-uppercase fw-semibold d-block">Attribute</span>
-                                  <span className="fw-bold fs-14 text-dark">
-                                    {variantName.trim() || <span className="text-muted fst-italic">Untitled Variant</span>}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span
-                                    className={`badge ${
-                                      variantStatus
-                                        ? "bg-success-transparent text-success"
-                                        : "bg-danger-transparent text-danger"
-                                    } fs-11`}
-                                  >
-                                    {variantStatus ? "Active" : "Inactive"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="mt-2 pt-2 border-top d-flex align-items-center justify-content-between">
-                                <span className="text-muted fs-11">Mapped to:</span>
-                                <div className="d-flex flex-wrap gap-1 justify-content-end">
-                                  {selectedBizIds.length === 0 ? (
-                                    <span className="text-danger fs-11">No store selected</span>
-                                  ) : selectedBizIds.length === availableBusinesses.length ? (
-                                    <span
-                                      className="badge fs-10 fw-medium"
-                                      style={{
-                                        backgroundColor: "#fff8f5",
-                                        color: "#e04f16",
-                                        border: "1px solid #ea5455",
-                                      }}
-                                    >
-                                      Both Businesses
+                            {/* IF PRODUCT BASED: SHOW BOTH SIZES AND VARIANTS PREVIEW */}
+                            {addAttributeType === "product_based" ? (
+                              <>
+                                {/* Product Name Preview at Top */}
+                                {(isNikhleshNurseryOnly(selectedBizIds, availableBusinesses) ? variantName.trim() : addProductName.trim()) ? (
+                                  <div style={{ marginBottom: "14px" }}>
+                                    <span className="fw-bold fs-15 text-dark text-truncate d-block" style={{ color: "#000000" }}>
+                                      {isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
+                                        ? variantName.trim()
+                                        : addProductName.trim()}
                                     </span>
-                                  ) : (
-                                    selectedBizIds.map((bId) => {
-                                      const bName = availableBusinesses.find((b) => b.id === bId)?.name || bId;
-                                      return (
-                                        <span key={bId} className="badge bg-secondary-transparent text-secondary fs-10">
-                                          {bName}
-                                        </span>
-                                      );
-                                    })
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                                  </div>
+                                ) : null}
 
-                            {/* Values Preview Section */}
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                              <span className="fs-12 fw-semibold text-muted text-uppercase">
-                                {isColorVariant(variantName) ? "Colour Variant List" : "Values Preview"}
-                              </span>
-                              {addValuesList.length > 0 && (
-                                <button
-                                  type="button"
-                                  className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
-                                  onClick={() => setAddValuesList([])}
-                                >
-                                  Clear all
-                                </button>
-                              )}
-                            </div>
-
-                            {addValuesList.length === 0 ? (
-                              <div className="text-center py-4 px-2 my-auto border border-dashed rounded bg-white">
-                                <i className="ti ti-playlist-add fs-28 text-muted mb-1 d-block" />
-                                <p className="fs-12 text-muted mb-0 fw-medium">
-                                  No {isColorVariant(variantName) ? "colours" : "values"} added yet
-                                </p>
-                                <span className="fs-11 text-muted">
-                                  Type on the left and hit <kbd className="bg-light text-dark border px-1">Enter</kbd> to add
-                                </span>
-                              </div>
-                            ) : (
-                              <div
-                                className="pe-1 mb-2"
-                                style={{
-                                  maxHeight: isColorVariant(variantName) ? "170px" : "250px",
-                                  overflowY: "auto",
-                                }}
-                              >
-                                <div className="d-flex flex-column gap-1">
-                                  {addValuesList.map((val, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="d-flex align-items-center justify-content-between p-2 bg-white border rounded shadow-xs"
-                                    >
-                                      <div className="d-flex align-items-center gap-2 overflow-hidden">
-                                        <span
-                                          className="badge bg-light text-muted border fs-10 px-1 py-0 fw-semibold"
-                                          style={{ minWidth: "24px" }}
-                                        >
-                                          #{idx + 1}
-                                        </span>
-                                        {isColorVariant(variantName) && (
-                                          <span
-                                            className="rounded-circle border d-inline-block flex-shrink-0"
-                                            style={{
-                                              width: "12px",
-                                              height: "12px",
-                                              backgroundColor: val.toLowerCase().replace(/\s+/g, ""),
-                                            }}
-                                          />
-                                        )}
-                                        <span className="fw-medium text-dark fs-12 text-truncate" title={val}>
-                                          {val}
-                                        </span>
-                                      </div>
+                                {/* Sizes Preview Header & List */}
+                                <div style={{ marginBottom: "18px" }}>
+                                  <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: "10px" }}>
+                                    <span className="fs-12 fw-semibold text-dark text-uppercase d-inline-flex align-items-center" style={{ color: "#000000", gap: "6px" }}>
+                                      <i className="ti ti-ruler-2 fs-14 text-muted" />
+                                      Size Attributes ({addSizesList.length})
+                                    </span>
+                                    {addSizesList.length > 0 && (
                                       <button
                                         type="button"
-                                        className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0"
-                                        style={{ lineHeight: 1 }}
-                                        onClick={() => handleRemoveSingleValue(idx)}
-                                        title={`Remove ${val}`}
+                                        className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
+                                        onClick={() => setAddSizesList([])}
                                       >
-                                        <i className="ti ti-x fs-13 text-danger" />
+                                        Clear
                                       </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                                    )}
+                                  </div>
 
-                            {/* Pattern List Preview (if colour) */}
-                            {isColorVariant(variantName) && (
-                              <div className="mt-2 pt-2 border-top">
+                                  {addSizesList.length === 0 ? (
+                                    <div className="text-center py-3 px-2 border border-dashed rounded bg-white">
+                                      <i className="ti ti-ruler-2 fs-20 text-muted mb-1 d-block" />
+                                      <p className="fs-12 text-muted mb-0 fw-medium">No sizes added yet</p>
+                                      <span className="fs-11 text-muted">e.g. 4 inch, 6 inch, Small, Medium</span>
+                                    </div>
+                                  ) : (
+                                    <div className="pe-1" style={{ maxHeight: "160px", overflowY: "auto" }}>
+                                      <div className="d-flex flex-column" style={{ gap: "8px" }}>
+                                        {addSizesList.map((sz, sIdx) => (
+                                          <div
+                                            key={sIdx}
+                                            className="d-flex align-items-center justify-content-between bg-white border shadow-xs"
+                                            style={{
+                                              padding: "8px 14px",
+                                              borderRadius: "8px",
+                                            }}
+                                          >
+                                            <div className="d-flex align-items-center flex-grow-1 overflow-hidden" style={{ gap: "12px" }}>
+                                              <span
+                                                className="badge bg-light text-secondary border fw-semibold flex-shrink-0"
+                                                style={{
+                                                  fontSize: "11px",
+                                                  padding: "4px 8px",
+                                                  borderRadius: "6px",
+                                                  lineHeight: 1,
+                                                }}
+                                              >
+                                                #{sIdx + 1}
+                                              </span>
+                                              <span className="fw-medium text-dark text-truncate" style={{ fontSize: "13px", lineHeight: 1.2 }}>
+                                                {sz}
+                                              </span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0 d-flex align-items-center justify-content-center"
+                                              style={{ width: "24px", height: "24px", lineHeight: 1 }}
+                                              onClick={() => handleRemoveSingleSize(sIdx)}
+                                              title={`Remove ${sz}`}
+                                            >
+                                              <i className="ti ti-x fs-13 text-danger" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Colors / Varieties Preview Header & List */}
+                                <div>
+                                  <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: "10px" }}>
+                                    <span className="fs-12 fw-semibold text-dark text-uppercase d-inline-flex align-items-center" style={{ color: "#000000", gap: "6px" }}>
+                                      <i className="ti ti-palette fs-14 text-muted" />
+                                      {isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
+                                        ? `Varieties (${addValuesList.length})`
+                                        : `Colors (${addValuesList.length})`}
+                                    </span>
+                                    {addValuesList.length > 0 && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
+                                        onClick={() => setAddValuesList([])}
+                                      >
+                                        Clear
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {addValuesList.length === 0 ? (
+                                    <div className="text-center py-3 px-2 border border-dashed rounded bg-white">
+                                      <i className="ti ti-palette fs-20 text-muted mb-1 d-block" />
+                                      <p className="fs-12 text-muted mb-0 fw-medium">
+                                        No {isNikhleshNurseryOnly(selectedBizIds, availableBusinesses) ? "varieties" : "colors"} added yet
+                                      </p>
+                                      <span className="fs-11 text-muted">
+                                        {isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
+                                          ? "e.g. Alphonso, Kesar, Dasheri"
+                                          : "e.g. Red, Matte Black, Terracotta"}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="pe-1" style={{ maxHeight: "240px", overflowY: "auto" }}>
+                                      <div className="d-flex flex-column" style={{ gap: "8px" }}>
+                                        {addValuesList.map((val, idx) => {
+                                          const valImg = addValueImages[val];
+                                          return (
+                                            <div
+                                              key={idx}
+                                              className="d-flex align-items-center justify-content-between bg-white border shadow-xs"
+                                              style={{
+                                                padding: "8px 14px",
+                                                borderRadius: "8px",
+                                              }}
+                                            >
+                                              <div className="d-flex align-items-center flex-grow-1 overflow-hidden" style={{ gap: "12px" }}>
+                                                <span
+                                                  className="badge bg-light text-secondary border fw-semibold flex-shrink-0"
+                                                  style={{
+                                                    fontSize: "11px",
+                                                    padding: "4px 8px",
+                                                    borderRadius: "6px",
+                                                    lineHeight: 1,
+                                                  }}
+                                                >
+                                                  #{idx + 1}
+                                                </span>
+                                                {valImg ? (
+                                                  <Popover
+                                                    title={val}
+                                                    content={
+                                                      <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                                        <img
+                                                          src={valImg}
+                                                          alt={val}
+                                                          style={{
+                                                            width: "100%",
+                                                            maxHeight: "140px",
+                                                            objectFit: "contain",
+                                                            borderRadius: "4px",
+                                                          }}
+                                                        />
+                                                      </div>
+                                                    }
+                                                  >
+                                                    <img
+                                                      src={valImg}
+                                                      alt={val}
+                                                      className="flex-shrink-0 cursor-pointer d-block"
+                                                      style={{
+                                                        width: "35px",
+                                                        height: "35px",
+                                                        objectFit: "cover",
+                                                        borderRadius: "6px",
+                                                        border: "1px solid #ced4da",
+                                                      }}
+                                                    />
+                                                  </Popover>
+                                                ) : isNikhleshNurseryOnly(selectedBizIds, availableBusinesses) ? (
+                                                  <div
+                                                    className="d-flex align-items-center justify-content-center bg-light border rounded flex-shrink-0"
+                                                    style={{ width: "35px", height: "35px", borderRadius: "6px" }}
+                                                  >
+                                                    <i className="ti ti-leaf fs-14 text-success" />
+                                                  </div>
+                                                ) : (
+                                                  <div
+                                                    className="flex-shrink-0"
+                                                    style={{
+                                                      width: "35px",
+                                                      height: "35px",
+                                                      borderRadius: "6px",
+                                                      border: "1px solid #ced4da",
+                                                      backgroundColor: val.toLowerCase().replace(/\s+/g, ""),
+                                                      boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)",
+                                                    }}
+                                                  />
+                                                )}
+                                                <span
+                                                  className="fw-medium text-dark text-truncate"
+                                                  style={{
+                                                    fontSize: "13px",
+                                                    textTransform: "capitalize",
+                                                    lineHeight: 1.2,
+                                                  }}
+                                                  title={val}
+                                                >
+                                                  {val}
+                                                </span>
+                                              </div>
+                                              <button
+                                                type="button"
+                                                className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0 d-flex align-items-center justify-content-center"
+                                                style={{ width: "24px", height: "24px", lineHeight: 1 }}
+                                                onClick={() => handleRemoveSingleValue(idx)}
+                                                title={`Remove ${val}`}
+                                              >
+                                                <i className="ti ti-x fs-13 text-danger" />
+                                              </button>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              /* STANDARD GENERAL PREVIEW */
+                              <>
+                                {/* Values Preview Section */}
                                 <div className="d-flex justify-content-between align-items-center mb-1">
-                                  <span className="fs-12 fw-semibold text-muted text-uppercase">
-                                    Patterns ({addPatternsList.length})
+                                  <span className="fs-12 fw-semibold text-dark text-capitalize" style={{ color: "#000000" }}>
+                                    {isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
+                                      ? (variantName.trim() ? `${variantName.trim()} Preview` : "Variant Values Preview")
+                                      : (variantName.trim() ? `${variantName.trim()} Preview` : "Values Preview")}
                                   </span>
-                                  {addPatternsList.length > 0 && (
+                                  {addValuesList.length > 0 && (
                                     <button
                                       type="button"
                                       className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
-                                      onClick={() => setAddPatternsList([])}
+                                      onClick={() => setAddValuesList([])}
                                     >
-                                      Clear
+                                      Clear all
                                     </button>
                                   )}
                                 </div>
 
-                                {addPatternsList.length === 0 ? (
-                                  <span className="fs-11 text-muted d-block mb-1 fst-italic">
-                                    Optional: Add patterns like Solid, Marble, Striped
-                                  </span>
+                                {addValuesList.length === 0 ? (
+                                  <div className="text-center py-4 px-2 my-auto border border-dashed rounded bg-white">
+                                    <i className="ti ti-playlist-add fs-28 text-muted mb-1 d-block" />
+                                    <p className="fs-12 text-muted mb-0 fw-medium">
+                                      No {variantName.trim() ? variantName.trim().toLowerCase() : isNikhleshNurseryOnly(selectedBizIds, availableBusinesses) ? "varieties" : "values"} added yet
+                                    </p>
+                                    <span className="fs-11 text-muted">
+                                      Type on the left and hit <kbd className="bg-light text-dark border px-1">Enter</kbd> to add
+                                    </span>
+                                  </div>
                                 ) : (
                                   <div
-                                    className="d-flex flex-wrap gap-1 mb-2"
-                                    style={{ maxHeight: "75px", overflowY: "auto" }}
+                                    className="pe-1 mb-2"
+                                    style={{
+                                      maxHeight: showAddPatterns ? "170px" : "320px",
+                                      overflowY: "auto",
+                                    }}
                                   >
-                                    {addPatternsList.map((pat, pIdx) => {
-                                      const patImg = addPatternImages[pat];
-                                      return (
-                                        <span
-                                          key={pIdx}
-                                          className="badge px-2 py-1 fs-11 fw-medium rounded-pill d-inline-flex align-items-center gap-1"
-                                          style={{
-                                            backgroundColor: "rgba(111, 66, 193, 0.12)",
-                                            color: "#6f42c1",
-                                            border: "1px solid rgba(111, 66, 193, 0.3)",
-                                          }}
-                                        >
-                                          {patImg ? (
-                                            <Popover
-                                              title={pat}
-                                              content={
-                                                <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                    <div className="d-flex flex-column gap-1">
+                                      {addValuesList.map((val, idx) => {
+                                        const valImg = addValueImages[val];
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className="d-flex align-items-center justify-content-between p-2 bg-white border rounded shadow-xs"
+                                          >
+                                            <div className="d-flex align-items-center gap-2 overflow-hidden">
+                                              <span
+                                                className="badge bg-light text-muted border fs-10 px-1 py-0 fw-semibold"
+                                                style={{ minWidth: "24px" }}
+                                              >
+                                                #{idx + 1}
+                                              </span>
+                                              {valImg ? (
+                                                <Popover
+                                                  title={val}
+                                                  content={
+                                                    <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                                      <img
+                                                        src={valImg}
+                                                        alt={val}
+                                                        style={{
+                                                          width: "100%",
+                                                          maxHeight: "140px",
+                                                          objectFit: "contain",
+                                                          borderRadius: "4px",
+                                                        }}
+                                                      />
+                                                    </div>
+                                                  }
+                                                >
                                                   <img
-                                                    src={patImg}
-                                                    alt={pat}
+                                                    src={valImg}
+                                                    alt={val}
+                                                    className="flex-shrink-0 cursor-pointer"
                                                     style={{
-                                                      width: "100%",
-                                                      maxHeight: "140px",
-                                                      objectFit: "contain",
-                                                      borderRadius: "4px",
+                                                      width: "35px",
+                                                      height: "35px",
+                                                      objectFit: "cover",
+                                                      borderRadius: "6px",
+                                                      border: "1px solid #ced4da",
                                                     }}
                                                   />
+                                                </Popover>
+                                              ) : isColorVariant(variantName) ? (
+                                                <span
+                                                  className="border d-inline-block flex-shrink-0"
+                                                  style={{
+                                                    width: "35px",
+                                                    height: "35px",
+                                                    borderRadius: "6px",
+                                                    border: "1px solid #ced4da",
+                                                    backgroundColor: val.toLowerCase().replace(/\s+/g, ""),
+                                                  }}
+                                                />
+                                              ) : !isGrowNaturals(selectedBizIds, availableBusinesses) ? (
+                                                <div
+                                                  className="d-flex align-items-center justify-content-center bg-light border rounded text-muted flex-shrink-0"
+                                                  style={{
+                                                    width: "35px",
+                                                    height: "35px",
+                                                    borderRadius: "6px",
+                                                  }}
+                                                  title="No image attached"
+                                                >
+                                                  <i className="ti ti-photo fs-14" />
                                                 </div>
-                                              }
+                                              ) : null}
+                                              <span className="fw-medium text-dark fs-12 text-truncate" title={val}>
+                                                {val}
+                                              </span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0"
+                                              style={{ lineHeight: 1 }}
+                                              onClick={() => handleRemoveSingleValue(idx)}
+                                              title={`Remove ${val}`}
                                             >
-                                              <img
-                                                src={patImg}
-                                                alt={pat}
-                                                style={{
-                                                  width: "16px",
-                                                  height: "16px",
-                                                  objectFit: "cover",
-                                                  borderRadius: "50%",
-                                                  cursor: "pointer",
-                                                  border: "1px solid rgba(111, 66, 193, 0.4)",
-                                                }}
-                                              />
-                                            </Popover>
-                                          ) : (
-                                            <i className="ti ti-palette fs-10" />
-                                          )}
-                                          {pat}
-                                          <i
-                                            className="ti ti-x fs-10 ms-1 cursor-pointer"
-                                            onClick={() => handleRemoveSinglePattern(pIdx)}
-                                            title={`Remove ${pat}`}
-                                          />
-                                        </span>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-
-                                Generated combinations preview if both colors and patterns are present
-                                {addValuesList.length > 0 && addPatternsList.length > 0 && (
-                                  <div className="mt-2 p-2 bg-white rounded border">
-                                    <span className="fs-11 fw-semibold text-dark d-block mb-1">
-                                      Product Combinations ({addValuesList.length * addPatternsList.length}):
-                                    </span>
-                                    <div
-                                      className="d-flex flex-wrap gap-1"
-                                      style={{ maxHeight: "85px", overflowY: "auto" }}
-                                    >
-                                      {addValuesList.flatMap((c) =>
-                                        addPatternsList.map((p) => (
-                                          <span
-                                            key={`${c}-${p}`}
-                                            className="badge bg-light text-dark border fs-10 px-2 py-1"
-                                          >
-                                            {c} • {p}
-                                          </span>
-                                        ))
-                                      )}
+                                              <i className="ti ti-x fs-13 text-danger" />
+                                            </button>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 )}
-                              </div>
+
+                                {/* Pattern List Preview (if colour) */}
+                                {showAddPatterns && (
+                                  <div className="mt-2 pt-2 border-top">
+                                    <div className="d-flex justify-content-between align-items-center mb-1">
+                                      <span className="fs-12 fw-semibold text-dark text-uppercase" style={{ color: "#000000" }}>
+                                        Patterns ({addPatternsList.length})
+                                      </span>
+                                      {addPatternsList.length > 0 && (
+                                        <button
+                                          type="button"
+                                          className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
+                                          onClick={() => setAddPatternsList([])}
+                                        >
+                                          Clear
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {addPatternsList.length === 0 ? (
+                                      <div className="text-center py-3 px-2 border border-dashed rounded bg-white">
+                                        <i className="ti ti-palette fs-24 text-muted mb-1 d-block" />
+                                        <p className="fs-12 text-muted mb-0 fw-medium">No patterns added yet</p>
+                                        <span className="fs-11 text-muted">
+                                          Optional: Add patterns like Solid, Marble, Striped
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className="pe-1 mb-2"
+                                        style={{
+                                          maxHeight: "170px",
+                                          overflowY: "auto",
+                                        }}
+                                      >
+                                        <div className="d-flex flex-column gap-1">
+                                          {addPatternsList.map((pat, pIdx) => {
+                                            const patImg = addPatternImages[pat];
+                                            return (
+                                              <div
+                                                key={pIdx}
+                                                className="d-flex align-items-center justify-content-between p-2 bg-white border rounded shadow-xs"
+                                              >
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden">
+                                                  <span
+                                                    className="badge bg-light text-muted border fs-10 px-1 py-0 fw-semibold"
+                                                    style={{ minWidth: "24px" }}
+                                                  >
+                                                    #{pIdx + 1}
+                                                  </span>
+
+                                                  {patImg ? (
+                                                    <Popover
+                                                      title={pat}
+                                                      content={
+                                                        <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                                          <img
+                                                            src={patImg}
+                                                            alt={pat}
+                                                            style={{
+                                                              width: "100%",
+                                                              maxHeight: "140px",
+                                                              objectFit: "contain",
+                                                              borderRadius: "4px",
+                                                            }}
+                                                          />
+                                                        </div>
+                                                      }
+                                                    >
+                                                      <img
+                                                        src={patImg}
+                                                        alt={pat}
+                                                        className="flex-shrink-0 cursor-pointer"
+                                                        style={{
+                                                          width: "35px",
+                                                          height: "35px",
+                                                          objectFit: "cover",
+                                                          borderRadius: "6px",
+                                                          border: "1px solid #ced4da",
+                                                        }}
+                                                      />
+                                                    </Popover>
+                                                  ) : (
+                                                    <div
+                                                      className="d-flex align-items-center justify-content-center bg-light border rounded text-muted flex-shrink-0"
+                                                      style={{
+                                                        width: "35px",
+                                                        height: "35px",
+                                                        borderRadius: "6px",
+                                                      }}
+                                                      title="No image attached"
+                                                    >
+                                                      <i className="ti ti-palette fs-14" />
+                                                    </div>
+                                                  )}
+
+                                                  <span className="fw-medium text-dark fs-12 text-truncate" title={pat}>
+                                                    {pat}
+                                                  </span>
+                                                </div>
+
+                                                <button
+                                                  type="button"
+                                                  className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0"
+                                                  style={{ lineHeight: 1 }}
+                                                  onClick={() => handleRemoveSinglePattern(pIdx)}
+                                                  title={`Remove ${pat}`}
+                                                >
+                                                  <i className="ti ti-x fs-13 text-danger" />
+                                                </button>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Combinations preview if both colors and patterns are present */}
+                                    {addValuesList.length > 0 && addPatternsList.length > 0 && (
+                                      <div className="mt-2 p-2 bg-white rounded border">
+                                        <span className="fs-11 fw-semibold text-dark d-block mb-1">
+                                          Product Combinations ({addValuesList.length * addPatternsList.length}):
+                                        </span>
+                                        <div
+                                          className="d-flex flex-wrap gap-1"
+                                          style={{ maxHeight: "85px", overflowY: "auto" }}
+                                        >
+                                          {addValuesList.flatMap((c) =>
+                                            addPatternsList.map((p) => (
+                                              <span
+                                                key={`${c}-${p}`}
+                                                className="badge bg-light text-dark border fs-10 px-2 py-1"
+                                              >
+                                                {c} • {p}
+                                              </span>
+                                            ))
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -1921,256 +3441,804 @@ const VariantAttributes: React.FC = () => {
                     <div className="row g-4">
                       {/* Left: Input Form Controls */}
                       <div className="col-12 col-lg-7">
-                        {/* Business Mapping Field */}
+                        {/* Choose Store Tabs */}
                         <div className="mb-3">
-                          <label className="form-label fw-medium d-flex justify-content-between align-items-center mb-1">
-                            <span>
-                              Map to Business<span className="text-danger ms-1">*</span>
-                            </span>
-                            <span className="text-muted fs-11">Choose store(s)</span>
-                          </label>
-                          <div className="p-3 border rounded bg-light-subtle">
-                            <div className="row row-cols-3 g-2 g-sm-3 align-items-center">
-                              {/* First: All */}
-                              <div className="col">
-                                <div className="form-check mb-0 d-flex align-items-center">
-                                  <input
-                                    className="form-check-input me-2 flex-shrink-0"
-                                    type="checkbox"
-                                    id="edit-biz-all"
-                                    checked={
-                                      availableBusinesses.length > 0 &&
-                                      editSelectedBizIds.length === availableBusinesses.length
-                                    }
-                                    onChange={handleToggleEditAllBiz}
-                                  />
-                                  <label
-                                    className="form-check-label text-dark fw-semibold fs-13 cursor-pointer text-truncate"
-                                    htmlFor="edit-biz-all"
-                                  >
-                                    All
-                                  </label>
-                                </div>
-                              </div>
-
-                              {/* All businesses one by one */}
-                              {availableBusinesses.map((biz) => (
-                                <div key={biz.id} className="col">
-                                  <div className="form-check mb-0 d-flex align-items-center">
-                                    <input
-                                      className="form-check-input me-2 flex-shrink-0"
-                                      type="checkbox"
-                                      id={`edit-biz-${biz.id}`}
-                                      checked={editSelectedBizIds.includes(biz.id)}
-                                      onChange={() => handleToggleEditBiz(biz.id)}
-                                    />
-                                    <label
-                                      className="form-check-label fw-medium fs-13 cursor-pointer text-truncate"
-                                      htmlFor={`edit-biz-${biz.id}`}
-                                      title={biz.name}
+                          <div className="position-relative border-bottom">
+                            <ul className="nav border-bottom-0 gap-3 gap-sm-4" role="tablist">
+                              {availableBusinesses.map((biz) => {
+                                const isSelected = editSelectedBizIds.includes(biz.id);
+                                return (
+                                  <li key={biz.id} className="nav-item">
+                                    <button
+                                      ref={(el) => {
+                                        editTabRefs.current[biz.id] = el;
+                                      }}
+                                      type="button"
+                                      className={`nav-link border-0 bg-transparent px-2 d-inline-flex align-items-center rounded-0 fs-14 position-relative ${
+                                        isSelected ? "fw-bold" : "text-muted fw-medium"
+                                      }`}
+                                      style={{
+                                        boxShadow: "none",
+                                        background: "transparent",
+                                        paddingTop: "4px",
+                                        paddingBottom: "8px",
+                                        color: isSelected ? "#127a3c" : "#5b6b79",
+                                        cursor: "pointer",
+                                        transition: "color 0.2s ease",
+                                      }}
+                                      onClick={() => handleSelectEditBiz(biz.id)}
                                     >
-                                      {biz.name}
-                                    </label>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                                      <span>{biz.name}</span>
+                                      {isSelected && !editIndicatorStyle.ready && (
+                                        <span
+                                          style={{
+                                            position: "absolute",
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: "3px",
+                                            backgroundColor: "#127a3c",
+                                            borderRadius: "3px 3px 0 0",
+                                          }}
+                                        />
+                                      )}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
 
-                            <div className="mt-2 text-muted fs-12 border-top pt-2">
-                              {editSelectedBizIds.length === 0 ? (
-                                <span className="text-danger">
-                                  <i className="ti ti-alert-circle me-1" />
-                                  Please select at least one business.
-                                </span>
-                              ) : editSelectedBizIds.length === availableBusinesses.length ? (
-                                <span className="text-success fw-medium">
-                                  <i className="ti ti-check me-1" />
-                                  Mapped to <strong>Both Businesses</strong> (available in both stores).
-                                </span>
-                              ) : (
-                                <span className="text-dark">
-                                  <i className="ti ti-info-circle me-1" />
-                                  Mapped strictly to:{" "}
-                                  <strong>
-                                    {availableBusinesses.find((b) => b.id === editSelectedBizIds[0])?.name ||
-                                      editSelectedBizIds[0]}
-                                  </strong>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Variant Name */}
-                        <div className="mb-3">
-                          <label className="form-label fw-medium">
-                            Variant Name<span className="text-danger ms-1">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={editVariantName}
-                            onChange={(e) => setEditVariantName(e.target.value)}
-                            required
-                          />
-                          <span className="text-muted fs-11 mt-1 d-block">
-                            Typing "colour" or "color" unlocks Colour Variants and Pattern options.
-                          </span>
-                        </div>
-
-                        {/* Values / Colour Variant input one by one */}
-                        <div className="mb-3">
-                          <label className="form-label fw-medium d-flex justify-content-between align-items-center mb-1">
-                            <span>
-                              {isColorVariant(editVariantName) ? "Colour Variant" : "Variant Values"}
-                              <span className="text-danger ms-1">*</span>
-                            </span>
-                            <span className="text-muted fs-11">
-                              {editValuesList.length > 0
-                                ? `${editValuesList.length} added`
-                                : "Add one by one"}
-                            </span>
-                          </label>
-                          <div className="input-group">
-                            <input
-                              type="text"
-                              className="form-control"
-                              placeholder={
-                                isColorVariant(editVariantName)
-                                  ? "e.g. Red, Matte Black, Terracotta"
-                                  : "e.g. Small, 500g, 10-inch"
-                              }
-                              value={editSingleValueInput}
-                              onChange={(e) => setEditSingleValueInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === ",") {
-                                  e.preventDefault();
-                                  handleEditAddSingleValue();
-                                }
+                            {/* Animated sliding underline indicator */}
+                            <span
+                              style={{
+                                position: "absolute",
+                                bottom: 0,
+                                left: `${editIndicatorStyle.left}px`,
+                                width: `${editIndicatorStyle.width}px`,
+                                height: "3px",
+                                backgroundColor: "#127a3c",
+                                borderRadius: "3px 3px 0 0",
+                                transition: editIndicatorStyle.ready
+                                  ? "left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1)"
+                                  : "none",
+                                pointerEvents: "none",
+                                opacity: editIndicatorStyle.ready && editIndicatorStyle.width > 0 ? 1 : 0,
                               }}
                             />
-                            <button
-                              type="button"
-                              className="btn btn-primary d-flex align-items-center px-3"
-                              onClick={handleEditAddSingleValue}
-                            >
-                              <i className="ti ti-plus me-1" /> Add
-                            </button>
                           </div>
-                          <span className="tag-text mt-1 d-block text-muted fs-12">
-                            Type an item and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
-                          </span>
                         </div>
 
-                        {/* Pattern field - ONLY for colors */}
-                        {isColorVariant(editVariantName) && (
-                          <div className="mb-3">
-                            <label className="form-label fw-medium d-flex justify-content-between align-items-center mb-1">
-                              <span>
-                                Pattern / Finish<span className="text-muted ms-1 fs-12">(Optional)</span>
+                        {/* Attribute Type: General vs Product Based */}
+                        <div className="mb-3">
+                          <div className="p-3 border rounded bg-light-subtle">
+                            <div className="d-flex align-items-center gap-3 flex-wrap">
+                              <div
+                                className={`form-check mb-0 d-flex align-items-center px-3 py-2 border rounded ${
+                                  editAttributeType === "general"
+                                    ? "border-primary bg-white shadow-xs fw-semibold text-primary"
+                                    : "border-transparent bg-white text-dark"
+                                }`}
+                                onClick={() => handleSelectEditAttributeType("general")}
+                                style={{
+                                  cursor: "pointer",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <input
+                                  className="form-check-input me-2 mt-0 flex-shrink-0"
+                                  type="radio"
+                                  name="edit_attribute_type"
+                                  id="edit_attr_type_general"
+                                  checked={editAttributeType === "general"}
+                                  onChange={() => handleSelectEditAttributeType("general")}
+                                  style={{ cursor: "pointer" }}
+                                />
+                                <label
+                                  className="form-check-label fs-13 d-flex align-items-center mb-0 text-dark"
+                                  htmlFor="edit_attr_type_general"
+                                  style={{ cursor: "pointer", color: "#000000" }}
+                                >
+                                  <span style={{ color: "#000000" }}>General</span>
+                                </label>
+                              </div>
+
+                              <div
+                                className={`form-check mb-0 d-flex align-items-center px-3 py-2 border rounded ${
+                                  editAttributeType === "product_based"
+                                    ? "border-primary bg-white shadow-xs fw-semibold text-primary"
+                                    : "border-transparent bg-white text-dark"
+                                }`}
+                                onClick={() => handleSelectEditAttributeType("product_based")}
+                                style={{
+                                  cursor: "pointer",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <input
+                                  className="form-check-input me-2 mt-0 flex-shrink-0"
+                                  type="radio"
+                                  name="edit_attribute_type"
+                                  id="edit_attr_type_product"
+                                  checked={editAttributeType === "product_based"}
+                                  onChange={() => handleSelectEditAttributeType("product_based")}
+                                  style={{ cursor: "pointer" }}
+                                />
+                                <label
+                                  className="form-check-label fs-13 d-flex align-items-center mb-0 text-dark"
+                                  htmlFor="edit_attr_type_product"
+                                  style={{ cursor: "pointer", color: "#000000" }}
+                                >
+                                  <span style={{ color: "#000000" }}>Product Based</span>
+                                </label>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+
+                        {/* CASE 1: NIKHLESH NURSERY + PRODUCT BASED -> Size Attribute and Variety listed one by one */}
+                        {isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses) && editAttributeType === "product_based" ? (
+                          <>
+                            {/* Variant / Attribute Name */}
+                            <div className="mb-3">
+                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                <span style={{ color: "#000000" }}>Variant Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
+                              </label>
+                              <div className="input-group">
+                                <input
+                                  type="text"
+                                  ref={editVariantInputRef}
+                                  className="form-control"
+                                  placeholder={
+                                    editVariantNameType === "Custom"
+                                      ? "e.g. Mango Variety, Bougainvillea, Hibiscus"
+                                      : "Variant Name"
+                                  }
+                                  value={editVariantName}
+                                  onChange={(e) => setEditVariantName(e.target.value)}
+                                  readOnly={editVariantNameType !== "Custom"}
+                                  style={{
+                                    backgroundColor: editVariantNameType !== "Custom" ? "#fbfcfd" : "#ffffff",
+                                    cursor: editVariantNameType !== "Custom" ? "default" : "text",
+                                    height: "40px",
+                                  }}
+                                  required
+                                  autoFocus={editVariantNameType === "Custom"}
+                                />
+                                <select
+                                  className="form-select flex-grow-0"
+                                  style={{
+                                    width: "120px",
+                                    backgroundColor: "#f8f9fa",
+                                    borderColor: "#ced4da",
+                                    fontWeight: 500,
+                                    fontSize: "13px",
+                                    cursor: "pointer",
+                                    height: "40px",
+                                  }}
+                                  value={editVariantNameType}
+                                  onChange={(e) => handleEditVariantNameTypeChange(e.target.value)}
+                                >
+                                  {getVariantNameOptions(editSelectedBizIds, availableBusinesses).map((opt) => (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Section 1: Size Attribute */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span style={{ color: "#000000" }}>
+                                  Size Attribute<span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {editSizesList.length > 0 ? `${editSizesList.length} added` : "Add one by one"}
+                                </span>
+                              </label>
+                              <div className="d-flex align-items-center gap-2">
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="e.g. 1 ft, 2 ft, 5 ft, 6 inch"
+                                  style={{ height: "40px" }}
+                                  value={editSingleSizeInput}
+                                  onChange={(e) => setEditSingleSizeInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === ",") {
+                                      e.preventDefault();
+                                      handleEditAddSingleSize();
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleEditAddSingleSize}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
                               </span>
-                              <span className="text-muted fs-11">
-                                {editPatternsList.length > 0 ? `${editPatternsList.length} added` : "e.g. Marble, Solid"}
+                            </div>
+
+                            {/* Section 2: Variety (below Size Attribute) */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span style={{ color: "#000000" }}>
+                                  Variety<span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {editValuesList.length > 0 ? `${editValuesList.length} added` : "with photo"}
+                                </span>
+                              </label>
+                              <div className="d-flex align-items-center gap-2">
+                                <div
+                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+                                  style={{ borderColor: "#ced4da", height: "40px" }}
+                                >
+                                  <input
+                                    type="text"
+                                    className="form-control border-0 shadow-none px-3"
+                                    placeholder="e.g. Alphonso, Kesar, Dasheri"
+                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
+                                    value={editSingleValueInput}
+                                    onChange={(e) => setEditSingleValueInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === ",") {
+                                        e.preventDefault();
+                                        handleEditAddSingleValue();
+                                      }
+                                    }}
+                                  />
+
+                                  <div
+                                    className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                                    style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+                                  >
+                                    <input
+                                      type="file"
+                                      ref={editValueFileInputRef}
+                                      accept="image/*"
+                                      style={{ display: "none" }}
+                                      onChange={handleEditValueImageFileChange}
+                                    />
+                                    {editCurrentValueImage ? (
+                                      <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                        <img
+                                          src={editCurrentValueImage}
+                                          alt="Variety preview"
+                                          style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            objectFit: "cover",
+                                            borderRadius: "4px",
+                                            border: "1px solid #ced4da",
+                                          }}
+                                        />
+                                        <button
+                                          type="button"
+                                          className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                          style={{ textDecoration: "none", lineHeight: 1 }}
+                                          onClick={() => {
+                                            setEditCurrentValueImage(null);
+                                            if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
+                                          }}
+                                          title="Remove image"
+                                        >
+                                          <i className="ti ti-x fs-13" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                                        onClick={() => editValueFileInputRef.current?.click()}
+                                        title="Attach image for this variety"
+                                        style={{
+                                          background: "transparent",
+                                          fontSize: "12px",
+                                        }}
+                                      >
+                                        <i className="ti ti-photo fs-15 text-primary me-1" />
+                                        <span className="fw-medium text-dark">Image</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleEditAddSingleValue}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                Type variety name, attach an optional image, and click <strong>+ Add</strong>.
                               </span>
-                            </label>
-                            <div className="input-group">
+                            </div>
+                          </>
+                        ) : !isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses) && editAttributeType === "product_based" ? (
+                          /* CASE 2: GROW NATURALS + PRODUCT BASED -> Product Name, Variant Name, Size Attributes, Variants with photo upload */
+                          <>
+                            {/* Product Name */}
+                            <div className="mb-3">
+                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                <span style={{ color: "#000000" }}>Product Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
+                              </label>
                               <input
                                 type="text"
                                 className="form-control"
-                                placeholder="e.g. Solid, Striped, Marble, Glossy"
-                                value={editSinglePatternInput}
-                                onChange={(e) => setEditSinglePatternInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === ",") {
-                                    e.preventDefault();
-                                    handleEditAddSinglePattern();
-                                  }
-                                }}
+                                placeholder="e.g. Terracotta Pot, Ceramic Planter, Monstera Deliciosa"
+                                value={editProductName}
+                                onChange={(e) => setEditProductName(e.target.value)}
+                                required
                               />
+                            </div>
 
-                              {/* Pattern image uploading option - visible for Nikhlesh Nursery or Both businesses */}
-                              {canUploadPatternImage(editSelectedBizIds, availableBusinesses) && (
-                                <>
+
+                            {/* Section: Size Attributes */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span style={{ color: "#000000" }}>
+                                  Size<span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {editSizesList.length > 0 ? `${editSizesList.length} added` : "Add one by one"}
+                                </span>
+                              </label>
+                              <div className="d-flex align-items-center gap-2">
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="e.g. 4 inch, 6 inch, 8 inch, Small, Medium, Large"
+                                  style={{ height: "40px" }}
+                                  value={editSingleSizeInput}
+                                  onChange={(e) => setEditSingleSizeInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === ",") {
+                                      e.preventDefault();
+                                      handleEditAddSingleSize();
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleEditAddSingleSize}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                              </span>
+                            </div>
+
+                            {/* Section: Colors (with image uploading option) */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span style={{ color: "#000000" }}>
+                                  Colors<span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {editValuesList.length > 0 ? `${editValuesList.length} added` : "with photo"}
+                                </span>
+                              </label>
+                              <div className="d-flex align-items-center gap-2">
+                                <div
+                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+                                  style={{ borderColor: "#ced4da", height: "40px" }}
+                                >
                                   <input
-                                    type="file"
-                                    ref={editPatternFileInputRef}
-                                    accept="image/*"
-                                    style={{ display: "none" }}
-                                    onChange={handleEditPatternImageFileChange}
+                                    type="text"
+                                    className="form-control border-0 shadow-none px-3"
+                                    placeholder="e.g. Red, Matte Black, Terracotta, White"
+                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
+                                    value={editSingleValueInput}
+                                    onChange={(e) => setEditSingleValueInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === ",") {
+                                        e.preventDefault();
+                                        handleEditAddSingleValue();
+                                      }
+                                    }}
                                   />
-                                  {editCurrentPatternImage ? (
-                                    <div
-                                      className="d-flex align-items-center bg-white px-2 border"
-                                      style={{ borderColor: "#ced4da" }}
-                                    >
-                                      <img
-                                        src={editCurrentPatternImage}
-                                        alt="Pattern preview"
-                                        style={{
-                                          width: "26px",
-                                          height: "26px",
-                                          objectFit: "cover",
-                                          borderRadius: "4px",
-                                          border: "1px solid #dee2e6",
-                                        }}
-                                      />
+
+                                  <div
+                                    className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                                    style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+                                  >
+                                    <input
+                                      type="file"
+                                      ref={editValueFileInputRef}
+                                      accept="image/*"
+                                      style={{ display: "none" }}
+                                      onChange={handleEditValueImageFileChange}
+                                    />
+                                    {editCurrentValueImage ? (
+                                      <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                        <img
+                                          src={editCurrentValueImage}
+                                          alt="Color preview"
+                                          style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            objectFit: "cover",
+                                            borderRadius: "4px",
+                                            border: "1px solid #ced4da",
+                                          }}
+                                        />
+                                        <button
+                                          type="button"
+                                          className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                          style={{ textDecoration: "none", lineHeight: 1 }}
+                                          onClick={() => {
+                                            setEditCurrentValueImage(null);
+                                            if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
+                                          }}
+                                          title="Remove image"
+                                        >
+                                          <i className="ti ti-x fs-13" />
+                                        </button>
+                                      </div>
+                                    ) : (
                                       <button
                                         type="button"
-                                        className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
-                                        style={{ textDecoration: "none" }}
-                                        onClick={() => {
-                                          setEditCurrentPatternImage(null);
-                                          if (editPatternFileInputRef.current) editPatternFileInputRef.current.value = "";
-                                        }}
-                                        title="Remove image"
+                                        className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                                        onClick={() => editValueFileInputRef.current?.click()}
+                                        title="Attach image for this color"
+                                        style={{ background: "transparent", fontSize: "12px" }}
                                       >
-                                        <i className="ti ti-x fs-14" />
+                                        <i className="ti ti-photo fs-15 text-primary me-1" />
+                                        <span className="fw-medium text-dark">Image</span>
                                       </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="btn btn-outline-secondary d-flex align-items-center px-2.5"
-                                      onClick={() => editPatternFileInputRef.current?.click()}
-                                      title="Attach image for this pattern"
-                                      style={{
-                                        borderColor: "#ced4da",
-                                        backgroundColor: "#f8f9fa",
-                                      }}
-                                    >
-                                      <i className="ti ti-photo fs-15 text-muted me-1" />
-                                      <span className="fs-12 text-muted">Image</span>
-                                    </button>
-                                  )}
-                                </>
-                              )}
+                                    )}
+                                  </div>
+                                </div>
 
-                              <button
-                                type="button"
-                                className="btn btn-outline-primary d-flex align-items-center px-3"
-                                onClick={handleEditAddSinglePattern}
-                              >
-                                <i className="ti ti-plus me-1" /> Add
-                              </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleEditAddSingleValue}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                Type color, attach an optional image, and click <strong>+ Add</strong>.
+                              </span>
                             </div>
-                            <span className="tag-text mt-1 d-block text-muted fs-12">
-                              {canUploadPatternImage(editSelectedBizIds, availableBusinesses) ? (
-                                <>
-                                  Type pattern name, attach an optional image, and click <strong>+ Add</strong>.
-                                </>
-                              ) : (
-                                <>
-                                  Type pattern and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
-                                </>
-                              )}
-                            </span>
-                          </div>
+                          </>
+                        ) : (
+                          /* CASE 3: GENERAL ATTRIBUTE (Same as it was for both GN and NN) */
+                          <>
+                            {/* Variant Name */}
+                            <div className="mb-3">
+                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                <span style={{ color: "#000000" }}>Variant Name</span>
+                                <span className="ms-1" style={{ color: "#000000" }}>*</span>
+                              </label>
+                              <div className="input-group">
+                                <input
+                                  type="text"
+                                  ref={editVariantInputRef}
+                                  className="form-control"
+                                  placeholder={
+                                    editVariantNameType === "Custom"
+                                      ? (isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
+                                          ? "e.g. Plant Type, Soil Mix, Bougainvillea"
+                                          : "e.g. Pot Material, Pack Weight, Material")
+                                      : "Variant Name"
+                                  }
+                                  value={editVariantName}
+                                  onChange={(e) => setEditVariantName(e.target.value)}
+                                  readOnly={editVariantNameType !== "Custom"}
+                                  style={{
+                                    backgroundColor: editVariantNameType !== "Custom" ? "#fbfcfd" : "#ffffff",
+                                    cursor: editVariantNameType !== "Custom" ? "default" : "text",
+                                    height: "40px",
+                                  }}
+                                  required
+                                  autoFocus={editVariantNameType === "Custom"}
+                                />
+                                <select
+                                  className="form-select flex-grow-0"
+                                  style={{
+                                    width: "120px",
+                                    backgroundColor: "#f8f9fa",
+                                    borderColor: "#ced4da",
+                                    fontWeight: 500,
+                                    fontSize: "13px",
+                                    cursor: "pointer",
+                                    height: "40px",
+                                  }}
+                                  value={editVariantNameType}
+                                  onChange={(e) => handleEditVariantNameTypeChange(e.target.value)}
+                                >
+                                  {getVariantNameOptions(editSelectedBizIds, availableBusinesses).map((opt) => (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Values / Variety Values / Colour Variant input one by one */}
+                            <div className="mb-3">
+                              <label
+                                className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                style={{ color: "#000000" }}
+                              >
+                                <span className="text-capitalize" style={{ color: "#000000" }}>
+                                  {isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
+                                    ? "Variety Values"
+                                    : editVariantName.trim()
+                                    ? `${editVariantName.trim()} Values`
+                                    : "Variant Values"}
+                                  <span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </span>
+                                <span className="text-muted fs-11 fw-normal">
+                                  {editValuesList.length > 0
+                                    ? `${editValuesList.length} added`
+                                    : "Add one by one"}
+                                </span>
+                              </label>
+
+                              {/* Image upload option for Variant Values */}
+                              <div className="d-flex align-items-center gap-2">
+                                <div
+                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+                                  style={{
+                                    borderColor: "#ced4da",
+                                    height: "40px",
+                                  }}
+                                >
+                                  <input
+                                    type="text"
+                                    className="form-control border-0 shadow-none px-3"
+                                    placeholder={
+                                      isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
+                                        ? "e.g. Alphonso, Kesar, Dasheri"
+                                        : isColorVariant(editVariantName)
+                                        ? "e.g. Red, Matte Black, Terracotta"
+                                        : "e.g. Small, 500g, 10-inch"
+                                    }
+                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
+                                    value={editSingleValueInput}
+                                    onChange={(e) => setEditSingleValueInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === ",") {
+                                        e.preventDefault();
+                                        handleEditAddSingleValue();
+                                      }
+                                    }}
+                                  />
+
+                                  {/* Image upload only appears if not Grow Naturals OR if color variant */}
+                                  {(!isGrowNaturals(editSelectedBizIds, availableBusinesses) || isColorVariant(editVariantName)) && (
+                                    <div
+                                      className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                                      style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+                                    >
+                                      <input
+                                        type="file"
+                                        ref={editValueFileInputRef}
+                                        accept="image/*"
+                                        style={{ display: "none" }}
+                                        onChange={handleEditValueImageFileChange}
+                                      />
+                                      {editCurrentValueImage ? (
+                                        <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                          <img
+                                            src={editCurrentValueImage}
+                                            alt="Value preview"
+                                            style={{
+                                              width: "24px",
+                                              height: "24px",
+                                              objectFit: "cover",
+                                              borderRadius: "4px",
+                                              border: "1px solid #ced4da",
+                                            }}
+                                          />
+                                          <button
+                                            type="button"
+                                            className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                            style={{ textDecoration: "none", lineHeight: 1 }}
+                                            onClick={() => {
+                                              setEditCurrentValueImage(null);
+                                              if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
+                                            }}
+                                            title="Remove image"
+                                          >
+                                            <i className="ti ti-x fs-13" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                                          onClick={() => editValueFileInputRef.current?.click()}
+                                          title="Attach image for this value"
+                                          style={{
+                                            background: "transparent",
+                                            fontSize: "12px",
+                                          }}
+                                        >
+                                          <i className="ti ti-photo fs-15 text-primary me-1" />
+                                          <span className="fw-medium text-dark">Image</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                  style={{ height: "40px" }}
+                                  onClick={handleEditAddSingleValue}
+                                >
+                                  <i className="ti ti-plus me-1" /> Add
+                                </button>
+                              </div>
+
+                              <span className="tag-text mt-1 d-block text-muted fs-12">
+                                {(!isGrowNaturals(editSelectedBizIds, availableBusinesses) || isColorVariant(editVariantName))
+                                  ? "Type an item, attach an optional image, and click + Add."
+                                  : "Type an item and click + Add."}
+                              </span>
+                            </div>
+
+                            {/* Pattern field - ONLY for colors if not Grow Naturals */}
+                            {showEditPatterns && (
+                              <div className="mb-3">
+                                <label
+                                  className="form-label fw-semibold d-flex justify-content-between align-items-center mb-1 text-dark"
+                                  style={{ color: "#000000" }}
+                                >
+                                  <span style={{ color: "#000000" }}>
+                                    Pattern / Finish <span className="ms-1 fs-12 fw-normal" style={{ color: "#000000" }}>(Optional)</span>
+                                  </span>
+                                  <span className="text-muted fs-11 fw-normal">
+                                    {editPatternsList.length > 0 ? `${editPatternsList.length} added` : "e.g. Marble, Solid"}
+                                  </span>
+                                </label>
+                                <div className="d-flex align-items-center gap-2">
+                                  {/* Textbox and Image Option in the same box with seamless merged borders */}
+                                  <div
+                                    className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+                                    style={{
+                                      borderColor: "#ced4da",
+                                      height: "40px",
+                                    }}
+                                  >
+                                    <input
+                                      type="text"
+                                      className="form-control border-0 shadow-none px-3"
+                                      placeholder="e.g. Solid, Striped, Marble, Glossy"
+                                      style={{ height: "100%", background: "transparent", color: "#212529" }}
+                                      value={editSinglePatternInput}
+                                      onChange={(e) => setEditSinglePatternInput(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === ",") {
+                                          e.preventDefault();
+                                          handleEditAddSinglePattern();
+                                        }
+                                      }}
+                                    />
+
+                                    {/* Pattern image uploading option - visible for Nikhlesh Nursery or Both businesses */}
+                                    {canUploadPatternImage(editSelectedBizIds, availableBusinesses) && (
+                                      <div
+                                        className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                                        style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+                                      >
+                                        <input
+                                          type="file"
+                                          ref={editPatternFileInputRef}
+                                          accept="image/*"
+                                          style={{ display: "none" }}
+                                          onChange={handleEditPatternImageFileChange}
+                                        />
+                                        {editCurrentPatternImage ? (
+                                          <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                            <img
+                                              src={editCurrentPatternImage}
+                                              alt="Pattern preview"
+                                              style={{
+                                                width: "24px",
+                                                height: "24px",
+                                                objectFit: "cover",
+                                                borderRadius: "4px",
+                                                border: "1px solid #ced4da",
+                                              }}
+                                            />
+                                            <button
+                                              type="button"
+                                              className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                              style={{ textDecoration: "none", lineHeight: 1 }}
+                                              onClick={() => {
+                                                setEditCurrentPatternImage(null);
+                                                if (editPatternFileInputRef.current) editPatternFileInputRef.current.value = "";
+                                              }}
+                                              title="Remove image"
+                                            >
+                                              <i className="ti ti-x fs-13" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                                            onClick={() => editPatternFileInputRef.current?.click()}
+                                            title="Attach image for this pattern"
+                                            style={{
+                                              background: "transparent",
+                                              fontSize: "12px",
+                                            }}
+                                          >
+                                            <i className="ti ti-photo fs-15 text-primary me-1" />
+                                            <span className="fw-medium text-dark">Image</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Separate Add Button */}
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+                                    style={{ height: "40px" }}
+                                    onClick={handleEditAddSinglePattern}
+                                  >
+                                    <i className="ti ti-plus me-1" /> Add
+                                  </button>
+                                </div>
+                                <span className="tag-text mt-1 d-block text-muted fs-12">
+                                  {canUploadPatternImage(editSelectedBizIds, availableBusinesses) ? (
+                                    <>
+                                      Type pattern name, attach an optional image, and click <strong>+ Add</strong>.
+                                    </>
+                                  ) : (
+                                    <>
+                                      Type pattern and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                          </>
                         )}
 
                         {/* Status Toggle */}
                         <div className="mb-0 mt-3 p-2 bg-light rounded">
                           <div className="status-toggle modal-status d-flex justify-content-between align-items-center">
-                            <span className="status-label fw-medium fs-13">Status (Active / Inactive)</span>
+                            <span className="status-label fw-semibold fs-13 text-dark" style={{ color: "#000000" }}>Status (Active / Inactive)</span>
                             <input
                               type="checkbox"
                               id="variant-edit-status"
@@ -2189,259 +4257,476 @@ const VariantAttributes: React.FC = () => {
                           className="card border bg-light-subtle shadow-none mb-0 h-100 d-flex flex-column"
                           style={{ minHeight: "410px" }}
                         >
-                          <div className="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
-                            <div className="d-flex align-items-center gap-2">
-                              <div
-                                className="d-flex align-items-center justify-content-center rounded bg-primary-transparent text-primary"
-                                style={{ width: "26px", height: "26px" }}
-                              >
-                                <i className="ti ti-eye fs-14" />
-                              </div>
-                              <span className="fw-bold fs-13 text-dark">Live Attribute Preview</span>
-                            </div>
-                            <span className="badge bg-primary-transparent text-primary fs-11">
-                              {editValuesList.length} {editValuesList.length === 1 ? "value" : "values"}
-                            </span>
-                          </div>
-
                           <div className="card-body p-3 d-flex flex-column flex-grow-1">
-                            {/* Attribute Overview Box */}
-                            <div className="bg-white p-2 px-3 rounded border mb-3">
-                              <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                  <span className="text-muted fs-10 text-uppercase fw-semibold d-block">Attribute</span>
-                                  <span className="fw-bold fs-14 text-dark">
-                                    {editVariantName.trim() || <span className="text-muted fst-italic">Untitled Variant</span>}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span
-                                    className={`badge ${
-                                      editVariantStatus
-                                        ? "bg-success-transparent text-success"
-                                        : "bg-danger-transparent text-danger"
-                                    } fs-11`}
-                                  >
-                                    {editVariantStatus ? "Active" : "Inactive"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="mt-2 pt-2 border-top d-flex align-items-center justify-content-between">
-                                <span className="text-muted fs-11">Mapped to:</span>
-                                <div className="d-flex flex-wrap gap-1 justify-content-end">
-                                  {editSelectedBizIds.length === 0 ? (
-                                    <span className="text-danger fs-11">No store selected</span>
-                                  ) : editSelectedBizIds.length === availableBusinesses.length ? (
-                                    <span
-                                      className="badge fs-10 fw-medium"
-                                      style={{
-                                        backgroundColor: "#fff8f5",
-                                        color: "#e04f16",
-                                        border: "1px solid #ea5455",
-                                      }}
-                                    >
-                                      Both Businesses
+                            {editAttributeType === "product_based" ? (
+                              /* PRODUCT BASED PREVIEW */
+                              <>
+                                {/* Product Name Preview at Top */}
+                                {(isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses) ? editVariantName.trim() : editProductName.trim()) ? (
+                                  <div style={{ marginBottom: "14px" }}>
+                                    <span className="fw-bold fs-15 text-dark text-truncate d-block" style={{ color: "#000000" }}>
+                                      {isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
+                                        ? editVariantName.trim()
+                                        : editProductName.trim()}
                                     </span>
-                                  ) : (
-                                    editSelectedBizIds.map((bId) => {
-                                      const bName = availableBusinesses.find((b) => b.id === bId)?.name || bId;
-                                      return (
-                                        <span key={bId} className="badge bg-secondary-transparent text-secondary fs-10">
-                                          {bName}
-                                        </span>
-                                      );
-                                    })
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                                  </div>
+                                ) : null}
 
-                            {/* Values Preview Section */}
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                              <span className="fs-12 fw-semibold text-muted text-uppercase">
-                                {isColorVariant(editVariantName) ? "Colour Variant List" : "Values Preview"}
-                              </span>
-                              {editValuesList.length > 0 && (
-                                <button
-                                  type="button"
-                                  className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
-                                  onClick={() => setEditValuesList([])}
-                                >
-                                  Clear all
-                                </button>
-                              )}
-                            </div>
-
-                            {editValuesList.length === 0 ? (
-                              <div className="text-center py-4 px-2 my-auto border border-dashed rounded bg-white">
-                                <i className="ti ti-playlist-add fs-28 text-muted mb-1 d-block" />
-                                <p className="fs-12 text-muted mb-0 fw-medium">
-                                  No {isColorVariant(editVariantName) ? "colours" : "values"} added yet
-                                </p>
-                                <span className="fs-11 text-muted">
-                                  Type on the left and hit <kbd className="bg-light text-dark border px-1">Enter</kbd> to add
-                                </span>
-                              </div>
-                            ) : (
-                              <div
-                                className="pe-1 mb-2"
-                                style={{
-                                  maxHeight: isColorVariant(editVariantName) ? "170px" : "250px",
-                                  overflowY: "auto",
-                                }}
-                              >
-                                <div className="d-flex flex-column gap-1">
-                                  {editValuesList.map((val, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="d-flex align-items-center justify-content-between p-2 bg-white border rounded shadow-xs"
-                                    >
-                                      <div className="d-flex align-items-center gap-2 overflow-hidden">
-                                        <span
-                                          className="badge bg-light text-muted border fs-10 px-1 py-0 fw-semibold"
-                                          style={{ minWidth: "24px" }}
-                                        >
-                                          #{idx + 1}
-                                        </span>
-                                        {isColorVariant(editVariantName) && (
-                                          <span
-                                            className="rounded-circle border d-inline-block flex-shrink-0"
-                                            style={{
-                                              width: "12px",
-                                              height: "12px",
-                                              backgroundColor: val.toLowerCase().replace(/\s+/g, ""),
-                                            }}
-                                          />
-                                        )}
-                                        <span className="fw-medium text-dark fs-12 text-truncate" title={val}>
-                                          {val}
-                                        </span>
-                                      </div>
+                                {/* Sizes Preview */}
+                                <div style={{ marginBottom: "18px" }}>
+                                  <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: "10px" }}>
+                                    <span className="fs-12 fw-semibold text-dark text-uppercase d-inline-flex align-items-center" style={{ color: "#000000", gap: "6px" }}>
+                                      <i className="ti ti-ruler-2 fs-14 text-muted" />
+                                      Size Attributes ({editSizesList.length})
+                                    </span>
+                                    {editSizesList.length > 0 && (
                                       <button
                                         type="button"
-                                        className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0"
-                                        style={{ lineHeight: 1 }}
-                                        onClick={() => handleEditRemoveSingleValue(idx)}
-                                        title={`Remove ${val}`}
+                                        className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
+                                        onClick={() => setEditSizesList([])}
                                       >
-                                        <i className="ti ti-x fs-13 text-danger" />
+                                        Clear sizes
                                       </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                                    )}
+                                  </div>
 
-                            {/* Pattern List Preview (if colour) */}
-                            {isColorVariant(editVariantName) && (
-                              <div className="mt-2 pt-2 border-top">
+                                  {editSizesList.length === 0 ? (
+                                    <div className="text-center py-3 px-2 border border-dashed rounded bg-white">
+                                      <i className="ti ti-ruler-2 fs-20 text-muted mb-1 d-block" />
+                                      <p className="fs-12 text-muted mb-0 fw-medium">No sizes added yet</p>
+                                      <span className="fs-11 text-muted">e.g. 4 inch, 6 inch, 1 ft, Small</span>
+                                    </div>
+                                  ) : (
+                                    <div className="pe-1" style={{ maxHeight: "160px", overflowY: "auto" }}>
+                                      <div className="d-flex flex-column" style={{ gap: "8px" }}>
+                                        {editSizesList.map((sz, sIdx) => (
+                                          <div
+                                            key={sIdx}
+                                            className="d-flex align-items-center justify-content-between bg-white border shadow-xs"
+                                            style={{
+                                              padding: "8px 14px",
+                                              borderRadius: "8px",
+                                            }}
+                                          >
+                                            <div className="d-flex align-items-center flex-grow-1 overflow-hidden" style={{ gap: "12px" }}>
+                                              <span
+                                                className="badge bg-light text-secondary border fw-semibold flex-shrink-0"
+                                                style={{
+                                                  fontSize: "11px",
+                                                  padding: "4px 8px",
+                                                  borderRadius: "6px",
+                                                  lineHeight: 1,
+                                                }}
+                                              >
+                                                #{sIdx + 1}
+                                              </span>
+                                              <span className="fw-medium text-dark text-truncate" style={{ fontSize: "13px", lineHeight: 1.2 }}>
+                                                {sz}
+                                              </span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0 d-flex align-items-center justify-content-center"
+                                              style={{ width: "24px", height: "24px", lineHeight: 1 }}
+                                              onClick={() => handleEditRemoveSingleSize(sIdx)}
+                                              title={`Remove ${sz}`}
+                                            >
+                                              <i className="ti ti-x fs-13 text-danger" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Colors / Varieties Preview */}
+                                <div>
+                                  <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: "10px" }}>
+                                    <span className="fs-12 fw-semibold text-dark text-uppercase d-inline-flex align-items-center" style={{ color: "#000000", gap: "6px" }}>
+                                      <i className="ti ti-palette fs-14 text-muted" />
+                                      {isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
+                                        ? `Varieties (${editValuesList.length})`
+                                        : `Colors (${editValuesList.length})`}
+                                    </span>
+                                    {editValuesList.length > 0 && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
+                                        onClick={() => setEditValuesList([])}
+                                      >
+                                        Clear all
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {editValuesList.length === 0 ? (
+                                    <div className="text-center py-3 px-2 border border-dashed rounded bg-white">
+                                      <i className="ti ti-palette fs-20 text-muted mb-1 d-block" />
+                                      <p className="fs-12 text-muted mb-0 fw-medium">
+                                        No {isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses) ? "varieties" : "colors"} added yet
+                                      </p>
+                                      <span className="fs-11 text-muted">
+                                        {isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
+                                          ? "e.g. Alphonso, Kesar, Dasheri"
+                                          : "e.g. Red, Matte Black, Terracotta"}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="pe-1" style={{ maxHeight: "240px", overflowY: "auto" }}>
+                                      <div className="d-flex flex-column" style={{ gap: "8px" }}>
+                                        {editValuesList.map((val, idx) => {
+                                          const valImg = editValueImages[val];
+                                          return (
+                                            <div
+                                              key={idx}
+                                              className="d-flex align-items-center justify-content-between bg-white border shadow-xs"
+                                              style={{
+                                                padding: "8px 14px",
+                                                borderRadius: "8px",
+                                              }}
+                                            >
+                                              <div className="d-flex align-items-center flex-grow-1 overflow-hidden" style={{ gap: "12px" }}>
+                                                <span
+                                                  className="badge bg-light text-secondary border fw-semibold flex-shrink-0"
+                                                  style={{
+                                                    fontSize: "11px",
+                                                    padding: "4px 8px",
+                                                    borderRadius: "6px",
+                                                    lineHeight: 1,
+                                                  }}
+                                                >
+                                                  #{idx + 1}
+                                                </span>
+                                                {valImg ? (
+                                                  <Popover
+                                                    title={val}
+                                                    content={
+                                                      <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                                        <img
+                                                          src={valImg}
+                                                          alt={val}
+                                                          style={{
+                                                            width: "100%",
+                                                            maxHeight: "140px",
+                                                            objectFit: "contain",
+                                                            borderRadius: "4px",
+                                                          }}
+                                                        />
+                                                      </div>
+                                                    }
+                                                  >
+                                                    <img
+                                                      src={valImg}
+                                                      alt={val}
+                                                      className="flex-shrink-0 cursor-pointer d-block"
+                                                      style={{
+                                                        width: "35px",
+                                                        height: "35px",
+                                                        objectFit: "cover",
+                                                        borderRadius: "6px",
+                                                        border: "1px solid #ced4da",
+                                                      }}
+                                                    />
+                                                  </Popover>
+                                                ) : isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses) ? (
+                                                  <div
+                                                    className="d-flex align-items-center justify-content-center bg-light border rounded text-muted flex-shrink-0"
+                                                    style={{ width: "35px", height: "35px", borderRadius: "6px" }}
+                                                  >
+                                                    <i className="ti ti-leaf fs-14 text-success" />
+                                                  </div>
+                                                ) : (
+                                                  <div
+                                                    className="flex-shrink-0"
+                                                    style={{
+                                                      width: "35px",
+                                                      height: "35px",
+                                                      borderRadius: "6px",
+                                                      border: "1px solid #ced4da",
+                                                      backgroundColor: val.toLowerCase().replace(/\s+/g, ""),
+                                                      boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)",
+                                                    }}
+                                                  />
+                                                )}
+                                                <span
+                                                  className="fw-medium text-dark text-truncate"
+                                                  style={{
+                                                    fontSize: "13px",
+                                                    textTransform: "capitalize",
+                                                    lineHeight: 1.2,
+                                                  }}
+                                                  title={val}
+                                                >
+                                                  {val}
+                                                </span>
+                                              </div>
+                                              <button
+                                                type="button"
+                                                className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0 d-flex align-items-center justify-content-center"
+                                                style={{ width: "24px", height: "24px", lineHeight: 1 }}
+                                                onClick={() => handleEditRemoveSingleValue(idx)}
+                                                title={`Remove ${val}`}
+                                              >
+                                                <i className="ti ti-x fs-13 text-danger" />
+                                              </button>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              /* STANDARD GENERAL PREVIEW */
+                              <>
+                                {/* Values Preview Section */}
                                 <div className="d-flex justify-content-between align-items-center mb-1">
-                                  <span className="fs-12 fw-semibold text-muted text-uppercase">
-                                    Patterns ({editPatternsList.length})
+                                  <span className="fs-12 fw-semibold text-dark text-capitalize" style={{ color: "#000000" }}>
+                                    {isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
+                                      ? (editVariantName.trim() ? `${editVariantName.trim()} Preview` : "Variant Values Preview")
+                                      : (editVariantName.trim() ? `${editVariantName.trim()} Preview` : "Values Preview")}
                                   </span>
-                                  {editPatternsList.length > 0 && (
+                                  {editValuesList.length > 0 && (
                                     <button
                                       type="button"
                                       className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
-                                      onClick={() => setEditPatternsList([])}
+                                      onClick={() => setEditValuesList([])}
                                     >
-                                      Clear
+                                      Clear all
                                     </button>
                                   )}
                                 </div>
 
-                                {editPatternsList.length === 0 ? (
-                                  <span className="fs-11 text-muted d-block mb-1 fst-italic">
-                                    Optional: Add patterns like Solid, Marble, Striped
-                                  </span>
+                                {editValuesList.length === 0 ? (
+                                  <div className="text-center py-4 px-2 my-auto border border-dashed rounded bg-white">
+                                    <i className="ti ti-playlist-add fs-28 text-muted mb-1 d-block" />
+                                    <p className="fs-12 text-muted mb-0 fw-medium">
+                                      No {editVariantName.trim() ? editVariantName.trim().toLowerCase() : isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses) ? "varieties" : "values"} added yet
+                                    </p>
+                                    <span className="fs-11 text-muted">
+                                      Type on the left and hit <kbd className="bg-light text-dark border px-1">Enter</kbd> to add
+                                    </span>
+                                  </div>
                                 ) : (
                                   <div
-                                    className="d-flex flex-wrap gap-1 mb-2"
-                                    style={{ maxHeight: "75px", overflowY: "auto" }}
+                                    className="pe-1 mb-2"
+                                    style={{
+                                      maxHeight: showEditPatterns ? "170px" : "320px",
+                                      overflowY: "auto",
+                                    }}
                                   >
-                                    {editPatternsList.map((pat, pIdx) => {
-                                      const patImg = editPatternImages[pat];
-                                      return (
-                                        <span
-                                          key={pIdx}
-                                          className="badge px-2 py-1 fs-11 fw-medium rounded-pill d-inline-flex align-items-center gap-1"
-                                          style={{
-                                            backgroundColor: "rgba(111, 66, 193, 0.12)",
-                                            color: "#6f42c1",
-                                            border: "1px solid rgba(111, 66, 193, 0.3)",
-                                          }}
-                                        >
-                                          {patImg ? (
-                                            <Popover
-                                              title={pat}
-                                              content={
-                                                <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                    <div className="d-flex flex-column gap-1">
+                                      {editValuesList.map((val, idx) => {
+                                        const valImg = editValueImages[val];
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className="d-flex align-items-center justify-content-between p-2 bg-white border rounded shadow-xs"
+                                          >
+                                            <div className="d-flex align-items-center gap-2 overflow-hidden">
+                                              <span
+                                                className="badge bg-light text-muted border fs-10 px-1 py-0 fw-semibold"
+                                                style={{ minWidth: "24px" }}
+                                              >
+                                                #{idx + 1}
+                                              </span>
+                                              {valImg ? (
+                                                <Popover
+                                                  title={val}
+                                                  content={
+                                                    <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                                      <img
+                                                        src={valImg}
+                                                        alt={val}
+                                                        style={{
+                                                          width: "100%",
+                                                          maxHeight: "140px",
+                                                          objectFit: "contain",
+                                                          borderRadius: "4px",
+                                                        }}
+                                                      />
+                                                    </div>
+                                                  }
+                                                >
                                                   <img
-                                                    src={patImg}
-                                                    alt={pat}
+                                                    src={valImg}
+                                                    alt={val}
+                                                    className="flex-shrink-0 cursor-pointer"
                                                     style={{
-                                                      width: "100%",
-                                                      maxHeight: "140px",
-                                                      objectFit: "contain",
-                                                      borderRadius: "4px",
+                                                      width: "35px",
+                                                      height: "35px",
+                                                      objectFit: "cover",
+                                                      borderRadius: "6px",
+                                                      border: "1px solid #ced4da",
                                                     }}
                                                   />
+                                                </Popover>
+                                              ) : isColorVariant(editVariantName) ? (
+                                                <span
+                                                  className="border d-inline-block flex-shrink-0"
+                                                  style={{
+                                                    width: "35px",
+                                                    height: "35px",
+                                                    borderRadius: "6px",
+                                                    border: "1px solid #ced4da",
+                                                    backgroundColor: val.toLowerCase().replace(/\s+/g, ""),
+                                                  }}
+                                                />
+                                              ) : !isGrowNaturals(editSelectedBizIds, availableBusinesses) ? (
+                                                <div
+                                                  className="d-flex align-items-center justify-content-center bg-light border rounded text-muted flex-shrink-0"
+                                                  style={{
+                                                    width: "35px",
+                                                    height: "35px",
+                                                    borderRadius: "6px",
+                                                  }}
+                                                  title="No image attached"
+                                                >
+                                                  <i className="ti ti-photo fs-14" />
                                                 </div>
-                                              }
+                                              ) : null}
+                                              <span className="fw-medium text-dark fs-12 text-truncate" title={val}>
+                                                {val}
+                                              </span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0"
+                                              style={{ lineHeight: 1 }}
+                                              onClick={() => handleEditRemoveSingleValue(idx)}
+                                              title={`Remove ${val}`}
                                             >
-                                              <img
-                                                src={patImg}
-                                                alt={pat}
-                                                style={{
-                                                  width: "16px",
-                                                  height: "16px",
-                                                  objectFit: "cover",
-                                                  borderRadius: "50%",
-                                                  cursor: "pointer",
-                                                  border: "1px solid rgba(111, 66, 193, 0.4)",
-                                                }}
-                                              />
-                                            </Popover>
-                                          ) : (
-                                            <i className="ti ti-palette fs-10" />
-                                          )}
-                                          {pat}
-                                          <i
-                                            className="ti ti-x fs-10 ms-1 cursor-pointer"
-                                            onClick={() => handleEditRemoveSinglePattern(pIdx)}
-                                            title={`Remove ${pat}`}
-                                          />
-                                        </span>
-                                      );
-                                    })}
+                                              <i className="ti ti-x fs-13 text-danger" />
+                                            </button>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
                                 )}
 
-                                {/* Generated combinations preview if both colors and patterns are present */}
-                                {/* {editValuesList.length > 0 && editPatternsList.length > 0 && (
-                                  <div className="mt-2 p-2 bg-white rounded border">
-                                    <span className="fs-11 fw-semibold text-dark d-block mb-1">
-                                      Product Combinations ({editValuesList.length * editPatternsList.length}):
-                                    </span>
-                                    <div
-                                      className="d-flex flex-wrap gap-1"
-                                      style={{ maxHeight: "85px", overflowY: "auto" }}
-                                    >
-                                      {editValuesList.flatMap((c) =>
-                                        editPatternsList.map((p) => (
-                                          <span
-                                            key={`${c}-${p}`}
-                                            className="badge bg-light text-dark border fs-10 px-2 py-1"
-                                          >
-                                            {c} • {p}
-                                          </span>
-                                        ))
+                                {/* Pattern List Preview (if colour) */}
+                                {showEditPatterns && (
+                                  <div className="mt-2 pt-2 border-top">
+                                    <div className="d-flex justify-content-between align-items-center mb-1">
+                                      <span className="fs-12 fw-semibold text-dark text-uppercase" style={{ color: "#000000" }}>
+                                        Patterns ({editPatternsList.length})
+                                      </span>
+                                      {editPatternsList.length > 0 && (
+                                        <button
+                                          type="button"
+                                          className="btn btn-link text-danger p-0 fs-11 text-decoration-none"
+                                          onClick={() => setEditPatternsList([])}
+                                        >
+                                          Clear
+                                        </button>
                                       )}
                                     </div>
+
+                                    {editPatternsList.length === 0 ? (
+                                      <div className="text-center py-3 px-2 border border-dashed rounded bg-white">
+                                        <i className="ti ti-palette fs-24 text-muted mb-1 d-block" />
+                                        <p className="fs-12 text-muted mb-0 fw-medium">No patterns added yet</p>
+                                        <span className="fs-11 text-muted">
+                                          Optional: Add patterns like Solid, Marble, Striped
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className="pe-1 mb-2"
+                                        style={{
+                                          maxHeight: "170px",
+                                          overflowY: "auto",
+                                        }}
+                                      >
+                                        <div className="d-flex flex-column gap-1">
+                                          {editPatternsList.map((pat, pIdx) => {
+                                            const patImg = editPatternImages[pat];
+                                            return (
+                                              <div
+                                                key={pIdx}
+                                                className="d-flex align-items-center justify-content-between p-2 bg-white border rounded shadow-xs"
+                                              >
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden">
+                                                  <span
+                                                    className="badge bg-light text-muted border fs-10 px-1 py-0 fw-semibold"
+                                                    style={{ minWidth: "24px" }}
+                                                  >
+                                                    #{pIdx + 1}
+                                                  </span>
+
+                                                  {/* Box shape image or icon */}
+                                                  {patImg ? (
+                                                    <Popover
+                                                      title={pat}
+                                                      content={
+                                                        <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                                          <img
+                                                            src={patImg}
+                                                            alt={pat}
+                                                            style={{
+                                                              width: "100%",
+                                                              maxHeight: "140px",
+                                                              objectFit: "contain",
+                                                              borderRadius: "4px",
+                                                            }}
+                                                          />
+                                                        </div>
+                                                      }
+                                                    >
+                                                      <img
+                                                        src={patImg}
+                                                        alt={pat}
+                                                        className="flex-shrink-0 cursor-pointer"
+                                                        style={{
+                                                          width: "35px",
+                                                          height: "35px",
+                                                          objectFit: "cover",
+                                                          borderRadius: "6px",
+                                                          border: "1px solid #ced4da",
+                                                        }}
+                                                      />
+                                                    </Popover>
+                                                  ) : (
+                                                    <div
+                                                      className="d-flex align-items-center justify-content-center bg-light border rounded text-muted flex-shrink-0"
+                                                      style={{
+                                                        width: "35px",
+                                                        height: "35px",
+                                                        borderRadius: "6px",
+                                                      }}
+                                                      title="No image attached"
+                                                    >
+                                                      <i className="ti ti-palette fs-14" />
+                                                    </div>
+                                                  )}
+
+                                                  {/* Text on side */}
+                                                  <span className="fw-medium text-dark fs-12 text-truncate" title={pat}>
+                                                    {pat}
+                                                  </span>
+                                                </div>
+
+                                                <button
+                                                  type="button"
+                                                  className="btn btn-sm btn-icon text-muted p-0 border-0 ms-2 flex-shrink-0"
+                                                  style={{ lineHeight: 1 }}
+                                                  onClick={() => handleEditRemoveSinglePattern(pIdx)}
+                                                  title={`Remove ${pat}`}
+                                                >
+                                                  <i className="ti ti-x fs-13 text-danger" />
+                                                </button>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                )} */}
-                              </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>

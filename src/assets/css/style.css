@@ -12696,9 +12696,7 @@ table.dataTable {
 .page-wrapper-new .card {
   border: none;
 }
-.page-wrapper-new .card .card-body {
-  border-top: 1px solid #d3d5d7;
-}
+
 .page-wrapper-new .page-header {
   margin-bottom: 40px;
 }

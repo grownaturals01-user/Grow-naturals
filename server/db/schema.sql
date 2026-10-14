@@ -485,6 +485,13 @@ CREATE TABLE IF NOT EXISTS variant_attributes (
   values TEXT NOT NULL DEFAULT '',
   patterns TEXT DEFAULT '',
   pattern_images TEXT DEFAULT '{}',
+  value_images TEXT DEFAULT '{}',
+  attribute_type VARCHAR(32) DEFAULT 'general',
+  product_id VARCHAR(64) DEFAULT '',
+  product_name VARCHAR(255) DEFAULT '',
+  sizes TEXT DEFAULT '',
+  varieties TEXT DEFAULT '',
+  variety_images TEXT DEFAULT '{}',
   status VARCHAR(32) DEFAULT 'Active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
