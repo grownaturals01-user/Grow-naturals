@@ -17,6 +17,7 @@ interface VariantAttributeItem {
   values_array: string[];
   patterns?: string;
   patterns_array?: string[];
+  pattern_images?: Record<string, string>;
   createdon: string;
   status: string;
   business_id?: string;
@@ -38,6 +39,20 @@ export const isColorVariant = (name: string): boolean => {
     clean.startsWith("colour") ||
     clean.startsWith("color")
   );
+};
+
+export const canUploadPatternImage = (
+  bizIds: string[],
+  availableBusinesses: { id: string }[]
+): boolean => {
+  if (!bizIds || bizIds.length === 0) return false;
+  if (
+    bizIds.includes("all") ||
+    (availableBusinesses.length > 0 && bizIds.length === availableBusinesses.length)
+  ) {
+    return true;
+  }
+  return bizIds.includes("nikhlesh-nursery");
 };
 
 const VariantAttributes: React.FC = () => {
@@ -73,6 +88,9 @@ const VariantAttributes: React.FC = () => {
   const [addSingleValueInput, setAddSingleValueInput] = useState("");
   const [addPatternsList, setAddPatternsList] = useState<string[]>([]);
   const [addSinglePatternInput, setAddSinglePatternInput] = useState("");
+  const [addPatternImages, setAddPatternImages] = useState<Record<string, string>>({});
+  const [addCurrentPatternImage, setAddCurrentPatternImage] = useState<string | null>(null);
+  const addPatternFileInputRef = useRef<HTMLInputElement | null>(null);
   const [variantStatus, setVariantStatus] = useState(true);
   const [selectedBizIds, setSelectedBizIds] = useState<string[]>([]);
   const [addError, setAddError] = useState<string | null>(null);
@@ -85,6 +103,9 @@ const VariantAttributes: React.FC = () => {
   const [editSingleValueInput, setEditSingleValueInput] = useState("");
   const [editPatternsList, setEditPatternsList] = useState<string[]>([]);
   const [editSinglePatternInput, setEditSinglePatternInput] = useState("");
+  const [editPatternImages, setEditPatternImages] = useState<Record<string, string>>({});
+  const [editCurrentPatternImage, setEditCurrentPatternImage] = useState<string | null>(null);
+  const editPatternFileInputRef = useRef<HTMLInputElement | null>(null);
   const [editVariantStatus, setEditVariantStatus] = useState(true);
   const [editSelectedBizIds, setEditSelectedBizIds] = useState<string[]>([]);
   const [editError, setEditError] = useState<string | null>(null);
@@ -127,6 +148,19 @@ const VariantAttributes: React.FC = () => {
 
         const isBoth = va.business_id === "all" || bIds.length >= 2;
 
+        let pImages: Record<string, string> = {};
+        if (va.pattern_images) {
+          if (typeof va.pattern_images === "object" && va.pattern_images !== null) {
+            pImages = va.pattern_images;
+          } else if (typeof va.pattern_images === "string") {
+            try {
+              pImages = JSON.parse(va.pattern_images);
+            } catch {
+              pImages = {};
+            }
+          }
+        }
+
         return {
           id: va.id,
           variant: va.name || "",
@@ -134,6 +168,7 @@ const VariantAttributes: React.FC = () => {
           values_array: valArr,
           patterns: patStr,
           patterns_array: patArr,
+          pattern_images: pImages,
           createdon: va.created_at
             ? new Date(va.created_at).toLocaleDateString("en-GB", {
                 day: "2-digit",
@@ -195,6 +230,43 @@ const VariantAttributes: React.FC = () => {
     setCurrentPage(1);
   };
 
+  // Pattern image file change handlers
+  const handleAddPatternImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setAddError("Please select an image file (PNG, JPG, WEBP, etc.).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAddError("Image size must be less than 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAddCurrentPatternImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleEditPatternImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setEditError("Please select an image file (PNG, JPG, WEBP, etc.).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setEditError("Image size must be less than 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditCurrentPatternImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Reset & prepare Add Modal
   const handleOpenAddModal = () => {
     setVariantName("");
@@ -202,6 +274,9 @@ const VariantAttributes: React.FC = () => {
     setAddSingleValueInput("");
     setAddPatternsList([]);
     setAddSinglePatternInput("");
+    setAddPatternImages({});
+    setAddCurrentPatternImage(null);
+    if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
     setVariantStatus(true);
     setAddError(null);
 
@@ -251,11 +326,33 @@ const VariantAttributes: React.FC = () => {
       const toAdd = parts.filter((p) => !existing.has(p.toLowerCase()));
       return [...prev, ...toAdd];
     });
+
+    // If an image was attached for this pattern, store it
+    if (addCurrentPatternImage) {
+      setAddPatternImages((prev) => {
+        const next = { ...prev };
+        parts.forEach((p) => {
+          next[p] = addCurrentPatternImage;
+        });
+        return next;
+      });
+      setAddCurrentPatternImage(null);
+      if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
+    }
+
     setAddSinglePatternInput("");
   };
 
   const handleRemoveSinglePattern = (indexToRemove: number) => {
+    const patName = addPatternsList[indexToRemove];
     setAddPatternsList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (patName) {
+      setAddPatternImages((prev) => {
+        const next = { ...prev };
+        delete next[patName];
+        return next;
+      });
+    }
   };
 
   // Edit values handlers (one by one)
@@ -293,11 +390,32 @@ const VariantAttributes: React.FC = () => {
       const toAdd = parts.filter((p) => !existing.has(p.toLowerCase()));
       return [...prev, ...toAdd];
     });
+
+    if (editCurrentPatternImage) {
+      setEditPatternImages((prev) => {
+        const next = { ...prev };
+        parts.forEach((p) => {
+          next[p] = editCurrentPatternImage;
+        });
+        return next;
+      });
+      setEditCurrentPatternImage(null);
+      if (editPatternFileInputRef.current) editPatternFileInputRef.current.value = "";
+    }
+
     setEditSinglePatternInput("");
   };
 
   const handleEditRemoveSinglePattern = (indexToRemove: number) => {
+    const patName = editPatternsList[indexToRemove];
     setEditPatternsList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (patName) {
+      setEditPatternImages((prev) => {
+        const next = { ...prev };
+        delete next[patName];
+        return next;
+      });
+    }
   };
 
   // Toggle business selection for Add
@@ -371,6 +489,7 @@ const VariantAttributes: React.FC = () => {
     }
 
     let finalPatterns = [...addPatternsList];
+    let finalPatternImages = { ...addPatternImages };
     if (addSinglePatternInput.trim()) {
       const pendingParts = addSinglePatternInput
         .split(",")
@@ -379,6 +498,11 @@ const VariantAttributes: React.FC = () => {
       const existing = new Set(finalPatterns.map((p) => p.toLowerCase()));
       const toAdd = pendingParts.filter((p) => !existing.has(p.toLowerCase()));
       finalPatterns = [...finalPatterns, ...toAdd];
+      if (addCurrentPatternImage) {
+        toAdd.forEach((p) => {
+          finalPatternImages[p] = addCurrentPatternImage;
+        });
+      }
     }
 
     setIsAdding(true);
@@ -387,6 +511,7 @@ const VariantAttributes: React.FC = () => {
         name: variantName.trim(),
         values: finalValues.join(", "),
         patterns: isColorVariant(variantName) ? finalPatterns.join(", ") : "",
+        pattern_images: isColorVariant(variantName) ? finalPatternImages : {},
         status: variantStatus ? "Active" : "Inactive",
         business_ids: selectedBizIds,
       });
@@ -397,6 +522,9 @@ const VariantAttributes: React.FC = () => {
       setAddSingleValueInput("");
       setAddPatternsList([]);
       setAddSinglePatternInput("");
+      setAddPatternImages({});
+      setAddCurrentPatternImage(null);
+      if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
       setVariantStatus(true);
       setAddError(null);
 
@@ -431,6 +559,9 @@ const VariantAttributes: React.FC = () => {
       .filter((s: string) => s.length > 0);
     setEditPatternsList(pList);
     setEditSinglePatternInput("");
+    setEditPatternImages(row.pattern_images ? { ...row.pattern_images } : {});
+    setEditCurrentPatternImage(null);
+    if (editPatternFileInputRef.current) editPatternFileInputRef.current.value = "";
 
     setEditVariantStatus(row.raw.status === "Active");
 
@@ -477,6 +608,7 @@ const VariantAttributes: React.FC = () => {
     }
 
     let finalPatterns = [...editPatternsList];
+    let finalPatternImages = { ...editPatternImages };
     if (editSinglePatternInput.trim()) {
       const pendingParts = editSinglePatternInput
         .split(",")
@@ -485,6 +617,11 @@ const VariantAttributes: React.FC = () => {
       const existing = new Set(finalPatterns.map((p) => p.toLowerCase()));
       const toAdd = pendingParts.filter((p) => !existing.has(p.toLowerCase()));
       finalPatterns = [...finalPatterns, ...toAdd];
+      if (editCurrentPatternImage) {
+        toAdd.forEach((p) => {
+          finalPatternImages[p] = editCurrentPatternImage;
+        });
+      }
     }
 
     setIsEditing(true);
@@ -493,6 +630,7 @@ const VariantAttributes: React.FC = () => {
         name: editVariantName.trim(),
         values: finalValues.join(", "),
         patterns: isColorVariant(editVariantName) ? finalPatterns.join(", ") : "",
+        pattern_images: isColorVariant(editVariantName) ? finalPatternImages : {},
         status: editVariantStatus ? "Active" : "Inactive",
         business_ids: editSelectedBizIds,
       });
@@ -762,270 +900,275 @@ const VariantAttributes: React.FC = () => {
                                   }}
                                 >
                                   {isGN ? "GN" : "NN"}
-                                </span>
-                                <span className="fw-medium fs-13">{name}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    }
-                  >
-                    <span
-                      className="badge fs-11 fw-semibold px-2 py-0.5 d-inline-flex align-items-center gap-1"
-                      style={{
-                        cursor: "pointer",
-                        backgroundColor: "#fff8f5",
-                        color: "#e04f16",
-                        border: "1px solid #ea5455",
-                        borderRadius: "6px",
-                      }}
-                    >
-                      <i className="ti ti-layers-intersect fs-12" style={{ color: "#e04f16" }} />
-                      <span style={{ color: "#e04f16" }}>Multi Business</span>
-                      <i className="ti ti-info-circle fs-11 opacity-75" style={{ color: "#e04f16" }} />
-                    </span>
-                  </Popover>
+                                    </span>
+                                    <span className="fw-medium fs-13">{name}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        }
+                      >
+                        <span
+                          className="badge fs-11 fw-semibold px-2 py-0.5 d-inline-flex align-items-center gap-1"
+                          style={{
+                            cursor: "pointer",
+                            backgroundColor: "#fff8f5",
+                            color: "#e04f16",
+                            border: "1px solid #ea5455",
+                            borderRadius: "6px",
+                          }}
+                        >
+                          <i className="ti ti-layers-intersect fs-12" style={{ color: "#e04f16" }} />
+                          <span style={{ color: "#e04f16" }}>Multi Business</span>
+                          <i className="ti ti-info-circle fs-11 opacity-75" style={{ color: "#e04f16" }} />
+                        </span>
+                      </Popover>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      field: "values",
-      header: "Values",
-      key: "values",
-      sortable: true,
-      body: (rowData: VariantAttributeItem) => {
-        const isColor = isColorVariant(rowData.variant);
-        return (
-          <div className="d-flex flex-column gap-1" style={{ maxWidth: "420px" }}>
-            <div className="d-flex flex-wrap gap-1 align-items-center">
-              {isColor && (
-                <span className="text-muted fs-11 fw-semibold me-1">Colors:</span>
-              )}
-              {rowData.values_array.length > 0 ? (
-                rowData.values_array.map((val, idx) => (
-                  <span
-                    key={idx}
-                    className="badge bg-light text-dark border px-2 py-1 rounded-pill fs-11 fw-normal"
-                  >
-                    {val}
-                  </span>
-                ))
-              ) : (
-                <span className="text-muted fs-12">—</span>
-              )}
-            </div>
-
-            {isColor && rowData.patterns && (
-              <div className="d-flex flex-wrap gap-1 align-items-center mt-1">
-                <span className="text-muted fs-11 fw-semibold me-1">Patterns:</span>
-                {rowData.patterns_array && rowData.patterns_array.length > 0 ? (
-                  rowData.patterns_array.map((pat, idx) => (
-                    <span
-                      key={idx}
-                      className="badge px-2 py-0.5 rounded-pill fs-11 fw-normal d-inline-flex align-items-center gap-1"
-                      style={{
-                        backgroundColor: "rgba(111, 66, 193, 0.1)",
-                        color: "#6f42c1",
-                        border: "1px solid rgba(111, 66, 193, 0.25)",
-                      }}
-                    >
-                      <i className="ti ti-palette fs-10" />
-                      {pat}
-                    </span>
-                  ))
-                ) : null}
               </div>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      field: "createdon",
-      header: "Created On",
-      key: "createdon",
-      sortable: true,
-      body: (rowData: VariantAttributeItem) => (
-        <span className="text-muted fs-13">{rowData.createdon}</span>
-      ),
-    },
-    {
-      field: "status",
-      header: "Status",
-      key: "status",
-      sortable: true,
-      body: (rowData: VariantAttributeItem) => (
-        <span
-          className={`badge table-badge fw-medium fs-10 ${
-            rowData.status === "Active" ? "bg-success" : "bg-danger"
-          }`}
-        >
-          {rowData.status}
-        </span>
-      ),
-    },
-    {
-      header: "",
-      field: "actions",
-      key: "actions",
-      sortable: false,
-      body: (row: VariantAttributeItem) => (
-        <div className="edit-delete-action d-flex align-items-center">
-          <Link
-            className="me-2 d-flex align-items-center justify-content-center border rounded hover-primary bg-white"
-            to="#"
-            data-bs-toggle="modal"
-            data-bs-target="#edit-variant"
-            onClick={() => handleStartEdit(row)}
-            title="Edit Variant"
-            style={{ width: "32px", height: "32px" }}
-          >
-            <Edit size={16} className="text-primary" />
-          </Link>
-          <Link
-            className="d-flex align-items-center justify-content-center border rounded hover-danger bg-white"
-            to="#"
-            data-bs-toggle="modal"
-            data-bs-target="#delete-modal"
-            onClick={() => setDeleteVariantId(row.id)}
-            title="Delete Variant"
-            style={{ width: "32px", height: "32px" }}
-          >
-            <Trash2 size={16} className="text-danger" />
-          </Link>
-        </div>
-      ),
-    },
-  ];
+            );
+          },
+        },
+        {
+          field: "values",
+          header: "Values",
+          key: "values",
+          sortable: true,
+          body: (rowData: VariantAttributeItem) => {
+            const isColor = isColorVariant(rowData.variant);
+            return (
+              <div className="d-flex flex-column gap-1" style={{ maxWidth: "420px" }}>
+                <div className="d-flex flex-wrap gap-1 align-items-center">
+                  {isColor && (
+                    <span className="text-muted fs-11 fw-semibold me-1">Colors:</span>
+                  )}
+                  {rowData.values_array.length > 0 ? (
+                    rowData.values_array.map((val, idx) => (
+                      <span
+                        key={idx}
+                        className="badge bg-light text-dark border px-2 py-1 rounded-pill fs-11 fw-normal"
+                      >
+                        {val}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-muted fs-12">—</span>
+                  )}
+                </div>
 
-  return (
-    <>
-      <div className="page-wrapper">
-        <div className="content">
-          {/* Page Header */}
-          <div className="page-header">
-            <div className="add-item d-flex">
-              <div className="page-title">
-                <h4 className="fw-bold">Variant Attributes</h4>
-                <h6>
-                  Manage product variant attributes (Size, Color, Pot Material, Pack Weight, etc.)
-                </h6>
+                {isColor && rowData.patterns && (
+                  <div className="d-flex flex-wrap gap-1 align-items-center mt-1">
+                    <span className="text-muted fs-11 fw-semibold me-1">Patterns:</span>
+                    {rowData.patterns_array && rowData.patterns_array.length > 0 ? (
+                      rowData.patterns_array.map((pat, idx) => {
+                        const patImg = rowData.pattern_images?.[pat];
+                        return (
+                          <span
+                            key={idx}
+                            className="badge px-2 py-0.5 rounded-pill fs-11 fw-normal d-inline-flex align-items-center gap-1"
+                            style={{
+                              backgroundColor: "rgba(111, 66, 193, 0.1)",
+                              color: "#6f42c1",
+                              border: "1px solid rgba(111, 66, 193, 0.25)",
+                            }}
+                          >
+                            {patImg ? (
+                              <Popover
+                                title={pat}
+                                content={
+                                  <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                    <img
+                                      src={patImg}
+                                      alt={pat}
+                                      style={{
+                                        width: "100%",
+                                        maxHeight: "140px",
+                                        objectFit: "contain",
+                                        borderRadius: "4px",
+                                      }}
+                                    />
+                                  </div>
+                                }
+                              >
+                                <img
+                                  src={patImg}
+                                  alt={pat}
+                                  style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    objectFit: "cover",
+                                    borderRadius: "50%",
+                                    cursor: "pointer",
+                                    border: "1px solid rgba(111, 66, 193, 0.35)",
+                                  }}
+                                />
+                              </Popover>
+                            ) : (
+                              <i className="ti ti-palette fs-10" />
+                            )}
+                            {pat}
+                          </span>
+                        );
+                      })
+                    ) : null}
+                  </div>
+                )}
               </div>
-            </div>
-            <TableTopHead />
-            <div className="page-btn">
+            );
+          },
+        },
+        {
+          field: "createdon",
+          header: "Created On",
+          key: "createdon",
+          sortable: true,
+          body: (rowData: VariantAttributeItem) => (
+            <span className="text-muted fs-13">{rowData.createdon}</span>
+          ),
+        },
+        {
+          field: "status",
+          header: "Status",
+          key: "status",
+          sortable: true,
+          body: (rowData: VariantAttributeItem) => (
+            <span
+              className={`badge table-badge fw-medium fs-10 ${
+                rowData.status === "Active" ? "bg-success" : "bg-danger"
+              }`}
+            >
+              {rowData.status}
+            </span>
+          ),
+        },
+        {
+          header: "",
+          field: "actions",
+          key: "actions",
+          sortable: false,
+          body: (row: VariantAttributeItem) => (
+            <div className="edit-delete-action d-flex align-items-center">
               <Link
+                className="me-2 d-flex align-items-center justify-content-center border rounded hover-primary bg-white"
                 to="#"
-                className="btn btn-primary d-inline-flex align-items-center"
                 data-bs-toggle="modal"
-                data-bs-target="#add-variant"
-                onClick={handleOpenAddModal}
+                data-bs-target="#edit-variant"
+                onClick={() => handleStartEdit(row)}
+                title="Edit Variant"
+                style={{ width: "32px", height: "32px" }}
               >
-                <i className="ti ti-circle-plus me-1 fs-16"></i> Add Variant
+                <Edit size={16} className="text-primary" />
+              </Link>
+              <Link
+                className="d-flex align-items-center justify-content-center border rounded hover-danger bg-white"
+                to="#"
+                data-bs-toggle="modal"
+                data-bs-target="#delete-modal"
+                onClick={() => setDeleteVariantId(row.id)}
+                title="Delete Variant"
+                style={{ width: "32px", height: "32px" }}
+              >
+                <Trash2 size={16} className="text-danger" />
               </Link>
             </div>
-          </div>
+          ),
+        },
+      ];
 
-          {/* Table Card */}
-          <div className="card table-list-card">
-            <div className="card-header pb-0 border-bottom">
-              {/* Top Row: Search and Status Filter */}
-              <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
-                <SearchFromApi
-                  callback={handleSearch}
-                  rows={rows}
-                  setRows={setRows}
-                />
-                <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
-                  <div className="dropdown me-2">
-                    <Link
-                      to="#"
-                      className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                      data-bs-toggle="dropdown"
-                    >
-                      <i className="ti ti-filter me-1 fs-14" />
-                      Status: <span className="fw-semibold ms-1">{statusFilter}</span>
-                    </Link>
-                    <ul className="dropdown-menu dropdown-menu-end p-2 shadow-sm rounded-2">
-                      <li>
-                        <button
-                          type="button"
-                          className={`dropdown-item rounded-1 ${statusFilter === "All" ? "active" : ""}`}
-                          onClick={() => setStatusFilter("All")}
-                        >
-                          All
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          type="button"
-                          className={`dropdown-item rounded-1 ${statusFilter === "Active" ? "active" : ""}`}
-                          onClick={() => setStatusFilter("Active")}
-                        >
-                          Active
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          type="button"
-                          className={`dropdown-item rounded-1 ${statusFilter === "Inactive" ? "active" : ""}`}
-                          onClick={() => setStatusFilter("Inactive")}
-                        >
-                          Inactive
-                        </button>
-                      </li>
-                    </ul>
+      return (
+        <>
+          <div className="page-wrapper">
+            <div className="content">
+              {/* Page Header */}
+              <div className="page-header">
+                <div className="add-item d-flex">
+                  <div className="page-title">
+                    <h4 className="fw-bold">Variant Attributes</h4>
+                    <h6>
+                      Manage product variant attributes (Size, Color, Pot Material, Pack Weight, etc.)
+                    </h6>
                   </div>
+                </div>
+                <TableTopHead />
+                <div className="page-btn">
+                  <Link
+                    to="#"
+                    className="btn btn-primary d-inline-flex align-items-center"
+                    data-bs-toggle="modal"
+                    data-bs-target="#add-variant"
+                    onClick={handleOpenAddModal}
+                  >
+                    <i className="ti ti-circle-plus me-1 fs-16"></i> Add Variant
+                  </Link>
                 </div>
               </div>
 
-              {/* Bottom Row: Animated Underline Tabs placed under the Search Bar */}
-              <div className="position-relative">
-                <ul className="nav border-bottom-0 gap-3 gap-sm-4" role="tablist">
-                  <li className="nav-item">
-                    <button
-                      ref={(el) => {
-                        tabRefs.current["all"] = el;
-                      }}
-                      type="button"
-                      className={`nav-link border-0 bg-transparent px-2 d-inline-flex align-items-center rounded-0 fs-14 ${
-                        businessFilter === "all"
-                          ? "fw-bold"
-                          : "text-muted fw-medium"
-                      }`}
-                      style={{
-                        boxShadow: "none",
-                        background: "transparent",
-                        paddingTop: 0,
-                        paddingBottom: "6px",
-                        color: businessFilter === "all" ? "#127a3c" : undefined,
-                        transition: "color 0.2s ease",
-                      }}
-                      onClick={() => {
-                        setBusinessFilter("all");
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <span>All</span>
-                    </button>
-                  </li>
+              {/* Table Card */}
+              <div className="card table-list-card">
+                <div className="card-header pb-0 border-bottom">
+                  {/* Top Row: Search and Status Filter */}
+                  <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
+                    <SearchFromApi
+                      callback={handleSearch}
+                      rows={rows}
+                      setRows={setRows}
+                    />
+                    <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
+                      <div className="dropdown me-2">
+                        <Link
+                          to="#"
+                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          <i className="ti ti-filter me-1 fs-14" />
+                          Status: <span className="fw-semibold ms-1">{statusFilter}</span>
+                        </Link>
+                        <ul className="dropdown-menu dropdown-menu-end p-2 shadow-sm rounded-2">
+                          <li>
+                            <button
+                              type="button"
+                              className={`dropdown-item rounded-1 ${statusFilter === "All" ? "active" : ""}`}
+                              onClick={() => setStatusFilter("All")}
+                            >
+                              All
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              type="button"
+                              className={`dropdown-item rounded-1 ${statusFilter === "Active" ? "active" : ""}`}
+                              onClick={() => setStatusFilter("Active")}
+                            >
+                              Active
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              type="button"
+                              className={`dropdown-item rounded-1 ${statusFilter === "Inactive" ? "active" : ""}`}
+                              onClick={() => setStatusFilter("Inactive")}
+                            >
+                              Inactive
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
 
-                  {availableBusinesses.map((biz) => {
-                    const isSelected = businessFilter === biz.id;
-                    return (
-                      <li key={biz.id} className="nav-item">
+                  {/* Bottom Row: Animated Underline Tabs placed under the Search Bar */}
+                  <div className="position-relative">
+                    <ul className="nav border-bottom-0 gap-3 gap-sm-4" role="tablist">
+                      <li className="nav-item">
                         <button
                           ref={(el) => {
-                            tabRefs.current[biz.id] = el;
+                            tabRefs.current["all"] = el;
                           }}
                           type="button"
                           className={`nav-link border-0 bg-transparent px-2 d-inline-flex align-items-center rounded-0 fs-14 ${
-                            isSelected
+                            businessFilter === "all"
                               ? "fw-bold"
                               : "text-muted fw-medium"
                           }`}
@@ -1034,34 +1177,65 @@ const VariantAttributes: React.FC = () => {
                             background: "transparent",
                             paddingTop: 0,
                             paddingBottom: "6px",
-                            color: isSelected ? "#127a3c" : undefined,
+                            color: businessFilter === "all" ? "#127a3c" : undefined,
                             transition: "color 0.2s ease",
                           }}
                           onClick={() => {
-                            setBusinessFilter(biz.id);
+                            setBusinessFilter("all");
                             setCurrentPage(1);
                           }}
                         >
-                          <span>{biz.name}</span>
+                          <span>All</span>
                         </button>
                       </li>
-                    );
-                  })}
-                </ul>
 
-                {/* Animated sliding underline indicator */}
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: `${indicatorStyle.left}px`,
-                    width: `${indicatorStyle.width}px`,
-                    height: "3px",
-                    backgroundColor: "#127a3c",
-                    borderRadius: "3px 3px 0 0",
-                    transition: indicatorStyle.ready
-                      ? "left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1)"
-                      : "none",
+                      {availableBusinesses.map((biz) => {
+                        const isSelected = businessFilter === biz.id;
+                        return (
+                          <li key={biz.id} className="nav-item">
+                            <button
+                              ref={(el) => {
+                                tabRefs.current[biz.id] = el;
+                              }}
+                              type="button"
+                              className={`nav-link border-0 bg-transparent px-2 d-inline-flex align-items-center rounded-0 fs-14 ${
+                                isSelected
+                                  ? "fw-bold"
+                                  : "text-muted fw-medium"
+                              }`}
+                              style={{
+                                boxShadow: "none",
+                                background: "transparent",
+                                paddingTop: 0,
+                                paddingBottom: "6px",
+                                color: isSelected ? "#127a3c" : undefined,
+                                transition: "color 0.2s ease",
+                              }}
+                              onClick={() => {
+                                setBusinessFilter(biz.id);
+                                setCurrentPage(1);
+                              }}
+                            >
+                              <span>{biz.name}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    {/* Animated sliding underline indicator */}
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: `${indicatorStyle.left}px`,
+                        width: `${indicatorStyle.width}px`,
+                        height: "3px",
+                        backgroundColor: "#127a3c",
+                        borderRadius: "3px 3px 0 0",
+                        transition: indicatorStyle.ready
+                          ? "left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1)"
+                          : "none",
                     pointerEvents: "none",
                     opacity: indicatorStyle.ready ? 1 : 0,
                   }}
@@ -1321,6 +1495,64 @@ const VariantAttributes: React.FC = () => {
                                   }
                                 }}
                               />
+
+                              {/* Pattern image uploading option - visible for Nikhlesh Nursery or Both businesses */}
+                              {canUploadPatternImage(selectedBizIds, availableBusinesses) && (
+                                <>
+                                  <input
+                                    type="file"
+                                    ref={addPatternFileInputRef}
+                                    accept="image/*"
+                                    style={{ display: "none" }}
+                                    onChange={handleAddPatternImageFileChange}
+                                  />
+                                  {addCurrentPatternImage ? (
+                                    <div
+                                      className="d-flex align-items-center bg-white px-2 border"
+                                      style={{ borderColor: "#ced4da" }}
+                                    >
+                                      <img
+                                        src={addCurrentPatternImage}
+                                        alt="Pattern preview"
+                                        style={{
+                                          width: "26px",
+                                          height: "26px",
+                                          objectFit: "cover",
+                                          borderRadius: "4px",
+                                          border: "1px solid #dee2e6",
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                        style={{ textDecoration: "none" }}
+                                        onClick={() => {
+                                          setAddCurrentPatternImage(null);
+                                          if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
+                                        }}
+                                        title="Remove image"
+                                      >
+                                        <i className="ti ti-x fs-14" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline-secondary d-flex align-items-center px-2.5"
+                                      onClick={() => addPatternFileInputRef.current?.click()}
+                                      title="Attach image for this pattern"
+                                      style={{
+                                        borderColor: "#ced4da",
+                                        backgroundColor: "#f8f9fa",
+                                      }}
+                                    >
+                                      <i className="ti ti-photo fs-15 text-muted me-1" />
+                                      <span className="fs-12 text-muted">Image</span>
+                                    </button>
+                                  )}
+                                </>
+                              )}
+
                               <button
                                 type="button"
                                 className="btn btn-outline-primary d-flex align-items-center px-3"
@@ -1330,7 +1562,15 @@ const VariantAttributes: React.FC = () => {
                               </button>
                             </div>
                             <span className="tag-text mt-1 d-block text-muted fs-12">
-                              Type pattern and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                              {canUploadPatternImage(selectedBizIds, availableBusinesses) ? (
+                                <>
+                                  Type pattern name, attach an optional image, and click <strong>+ Add</strong>.
+                                </>
+                              ) : (
+                                <>
+                                  Type pattern and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                                </>
+                              )}
                             </span>
                           </div>
                         )}
@@ -1528,29 +1768,65 @@ const VariantAttributes: React.FC = () => {
                                     className="d-flex flex-wrap gap-1 mb-2"
                                     style={{ maxHeight: "75px", overflowY: "auto" }}
                                   >
-                                    {addPatternsList.map((pat, pIdx) => (
-                                      <span
-                                        key={pIdx}
-                                        className="badge px-2 py-1 fs-11 fw-medium rounded-pill d-inline-flex align-items-center gap-1"
-                                        style={{
-                                          backgroundColor: "rgba(111, 66, 193, 0.12)",
-                                          color: "#6f42c1",
-                                          border: "1px solid rgba(111, 66, 193, 0.3)",
-                                        }}
-                                      >
-                                        <i className="ti ti-palette fs-10" />
-                                        {pat}
-                                        <i
-                                          className="ti ti-x fs-10 ms-1 cursor-pointer"
-                                          onClick={() => handleRemoveSinglePattern(pIdx)}
-                                          title={`Remove ${pat}`}
-                                        />
-                                      </span>
-                                    ))}
+                                    {addPatternsList.map((pat, pIdx) => {
+                                      const patImg = addPatternImages[pat];
+                                      return (
+                                        <span
+                                          key={pIdx}
+                                          className="badge px-2 py-1 fs-11 fw-medium rounded-pill d-inline-flex align-items-center gap-1"
+                                          style={{
+                                            backgroundColor: "rgba(111, 66, 193, 0.12)",
+                                            color: "#6f42c1",
+                                            border: "1px solid rgba(111, 66, 193, 0.3)",
+                                          }}
+                                        >
+                                          {patImg ? (
+                                            <Popover
+                                              title={pat}
+                                              content={
+                                                <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                                  <img
+                                                    src={patImg}
+                                                    alt={pat}
+                                                    style={{
+                                                      width: "100%",
+                                                      maxHeight: "140px",
+                                                      objectFit: "contain",
+                                                      borderRadius: "4px",
+                                                    }}
+                                                  />
+                                                </div>
+                                              }
+                                            >
+                                              <img
+                                                src={patImg}
+                                                alt={pat}
+                                                style={{
+                                                  width: "16px",
+                                                  height: "16px",
+                                                  objectFit: "cover",
+                                                  borderRadius: "50%",
+                                                  cursor: "pointer",
+                                                  border: "1px solid rgba(111, 66, 193, 0.4)",
+                                                }}
+                                              />
+                                            </Popover>
+                                          ) : (
+                                            <i className="ti ti-palette fs-10" />
+                                          )}
+                                          {pat}
+                                          <i
+                                            className="ti ti-x fs-10 ms-1 cursor-pointer"
+                                            onClick={() => handleRemoveSinglePattern(pIdx)}
+                                            title={`Remove ${pat}`}
+                                          />
+                                        </span>
+                                      );
+                                    })}
                                   </div>
                                 )}
 
-                                {/* Generated combinations preview if both colors and patterns are present */}
+                                Generated combinations preview if both colors and patterns are present
                                 {addValuesList.length > 0 && addPatternsList.length > 0 && (
                                   <div className="mt-2 p-2 bg-white rounded border">
                                     <span className="fs-11 fw-semibold text-dark d-block mb-1">
@@ -1811,6 +2087,64 @@ const VariantAttributes: React.FC = () => {
                                   }
                                 }}
                               />
+
+                              {/* Pattern image uploading option - visible for Nikhlesh Nursery or Both businesses */}
+                              {canUploadPatternImage(editSelectedBizIds, availableBusinesses) && (
+                                <>
+                                  <input
+                                    type="file"
+                                    ref={editPatternFileInputRef}
+                                    accept="image/*"
+                                    style={{ display: "none" }}
+                                    onChange={handleEditPatternImageFileChange}
+                                  />
+                                  {editCurrentPatternImage ? (
+                                    <div
+                                      className="d-flex align-items-center bg-white px-2 border"
+                                      style={{ borderColor: "#ced4da" }}
+                                    >
+                                      <img
+                                        src={editCurrentPatternImage}
+                                        alt="Pattern preview"
+                                        style={{
+                                          width: "26px",
+                                          height: "26px",
+                                          objectFit: "cover",
+                                          borderRadius: "4px",
+                                          border: "1px solid #dee2e6",
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                                        style={{ textDecoration: "none" }}
+                                        onClick={() => {
+                                          setEditCurrentPatternImage(null);
+                                          if (editPatternFileInputRef.current) editPatternFileInputRef.current.value = "";
+                                        }}
+                                        title="Remove image"
+                                      >
+                                        <i className="ti ti-x fs-14" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline-secondary d-flex align-items-center px-2.5"
+                                      onClick={() => editPatternFileInputRef.current?.click()}
+                                      title="Attach image for this pattern"
+                                      style={{
+                                        borderColor: "#ced4da",
+                                        backgroundColor: "#f8f9fa",
+                                      }}
+                                    >
+                                      <i className="ti ti-photo fs-15 text-muted me-1" />
+                                      <span className="fs-12 text-muted">Image</span>
+                                    </button>
+                                  )}
+                                </>
+                              )}
+
                               <button
                                 type="button"
                                 className="btn btn-outline-primary d-flex align-items-center px-3"
@@ -1820,7 +2154,15 @@ const VariantAttributes: React.FC = () => {
                               </button>
                             </div>
                             <span className="tag-text mt-1 d-block text-muted fs-12">
-                              Type pattern and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                              {canUploadPatternImage(editSelectedBizIds, availableBusinesses) ? (
+                                <>
+                                  Type pattern name, attach an optional image, and click <strong>+ Add</strong>.
+                                </>
+                              ) : (
+                                <>
+                                  Type pattern and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                                </>
+                              )}
                             </span>
                           </div>
                         )}
@@ -2018,30 +2360,66 @@ const VariantAttributes: React.FC = () => {
                                     className="d-flex flex-wrap gap-1 mb-2"
                                     style={{ maxHeight: "75px", overflowY: "auto" }}
                                   >
-                                    {editPatternsList.map((pat, pIdx) => (
-                                      <span
-                                        key={pIdx}
-                                        className="badge px-2 py-1 fs-11 fw-medium rounded-pill d-inline-flex align-items-center gap-1"
-                                        style={{
-                                          backgroundColor: "rgba(111, 66, 193, 0.12)",
-                                          color: "#6f42c1",
-                                          border: "1px solid rgba(111, 66, 193, 0.3)",
-                                        }}
-                                      >
-                                        <i className="ti ti-palette fs-10" />
-                                        {pat}
-                                        <i
-                                          className="ti ti-x fs-10 ms-1 cursor-pointer"
-                                          onClick={() => handleEditRemoveSinglePattern(pIdx)}
-                                          title={`Remove ${pat}`}
-                                        />
-                                      </span>
-                                    ))}
+                                    {editPatternsList.map((pat, pIdx) => {
+                                      const patImg = editPatternImages[pat];
+                                      return (
+                                        <span
+                                          key={pIdx}
+                                          className="badge px-2 py-1 fs-11 fw-medium rounded-pill d-inline-flex align-items-center gap-1"
+                                          style={{
+                                            backgroundColor: "rgba(111, 66, 193, 0.12)",
+                                            color: "#6f42c1",
+                                            border: "1px solid rgba(111, 66, 193, 0.3)",
+                                          }}
+                                        >
+                                          {patImg ? (
+                                            <Popover
+                                              title={pat}
+                                              content={
+                                                <div style={{ maxWidth: "160px", textAlign: "center" }}>
+                                                  <img
+                                                    src={patImg}
+                                                    alt={pat}
+                                                    style={{
+                                                      width: "100%",
+                                                      maxHeight: "140px",
+                                                      objectFit: "contain",
+                                                      borderRadius: "4px",
+                                                    }}
+                                                  />
+                                                </div>
+                                              }
+                                            >
+                                              <img
+                                                src={patImg}
+                                                alt={pat}
+                                                style={{
+                                                  width: "16px",
+                                                  height: "16px",
+                                                  objectFit: "cover",
+                                                  borderRadius: "50%",
+                                                  cursor: "pointer",
+                                                  border: "1px solid rgba(111, 66, 193, 0.4)",
+                                                }}
+                                              />
+                                            </Popover>
+                                          ) : (
+                                            <i className="ti ti-palette fs-10" />
+                                          )}
+                                          {pat}
+                                          <i
+                                            className="ti ti-x fs-10 ms-1 cursor-pointer"
+                                            onClick={() => handleEditRemoveSinglePattern(pIdx)}
+                                            title={`Remove ${pat}`}
+                                          />
+                                        </span>
+                                      );
+                                    })}
                                   </div>
                                 )}
 
                                 {/* Generated combinations preview if both colors and patterns are present */}
-                                {editValuesList.length > 0 && editPatternsList.length > 0 && (
+                                {/* {editValuesList.length > 0 && editPatternsList.length > 0 && (
                                   <div className="mt-2 p-2 bg-white rounded border">
                                     <span className="fs-11 fw-semibold text-dark d-block mb-1">
                                       Product Combinations ({editValuesList.length * editPatternsList.length}):
@@ -2062,7 +2440,7 @@ const VariantAttributes: React.FC = () => {
                                       )}
                                     </div>
                                   </div>
-                                )}
+                                )} */}
                               </div>
                             )}
                           </div>

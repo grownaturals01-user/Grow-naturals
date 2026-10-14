@@ -484,6 +484,7 @@ CREATE TABLE IF NOT EXISTS variant_attributes (
   name VARCHAR(128) NOT NULL,
   values TEXT NOT NULL DEFAULT '',
   patterns TEXT DEFAULT '',
+  pattern_images TEXT DEFAULT '{}',
   status VARCHAR(32) DEFAULT 'Active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

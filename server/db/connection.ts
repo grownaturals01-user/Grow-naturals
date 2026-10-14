@@ -387,7 +387,8 @@ export async function initDb(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_variant_attributes_biz ON variant_attributes(business_id);`,
     `ALTER TABLE variant_attributes DROP CONSTRAINT IF EXISTS variant_attributes_business_id_fkey;`,
     `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS business_ids JSONB DEFAULT '[]'::jsonb;`,
-    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS patterns TEXT DEFAULT '';`
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS patterns TEXT DEFAULT '';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS pattern_images TEXT DEFAULT '{}';`
   ];
 
   for (const m of migrations) {
