@@ -38,8 +38,6 @@ import { api, getActiveBusinessId } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useBusiness } from "../../context/BusinessContext";
 import confetti from "canvas-confetti";
-import { TbUserPause } from "react-icons/tb";
-import { IoIosPause } from "react-icons/io";
 
 interface Product {
   id: string;

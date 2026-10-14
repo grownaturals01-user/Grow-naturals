@@ -31,7 +31,7 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
   const handleOpenWhatsAppModal = () => {
     const bizName = invoice.business_legal_name || invoice.business_name || (isTaxable ? 'Grow Naturals Pvt Ltd' : 'Nikhlesh Nursery');
     const itemsSummary = (invoice.items || [])
-      .map((it, idx) => `${idx + 1}. *${it.product_name}* (Qty: ${it.quantity}) — ₹${Number(it.total).toFixed(2)}`)
+      .map((it, idx) => `${idx + 1}. *${it.product_name || 'Item'}* (Qty: ${it.quantity || 1}) — ₹${Number(it.total || 0).toFixed(2)}`)
       .join('\n');
 
     const paymentMethodText = invoice.payment_method === 'split'
@@ -41,16 +41,16 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
     const msg = [
       `🧾 *TAX INVOICE — ${bizName.toUpperCase()}* 🧾`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `*Invoice No:* #${invoice.invoice_number}`,
+      `*Invoice No:* #${invoice.invoice_number || ''}`,
       `*Customer:* ${invoice.customer_name || 'Valued Customer'}`,
-      `*Date:* ${new Date(invoice.created_at).toLocaleDateString('en-IN')}`,
-      `*Payment Status:* ${invoice.payment_status.toUpperCase()}`,
+      `*Date:* ${invoice.created_at ? new Date(invoice.created_at).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}`,
+      `*Payment Status:* ${(invoice.payment_status || 'unpaid').toUpperCase()}`,
       `*Payment Method:* ${paymentMethodText}`,
       ``,
       `*Items Summary:*`,
       itemsSummary,
       ``,
-      `*Grand Total:* *₹${Number(invoice.total_amount).toFixed(2)}*`,
+      `*Grand Total:* *₹${Number(invoice.total_amount || 0).toFixed(2)}*`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `Thank you for your business! 🌱`
     ].join('\n');
@@ -400,18 +400,18 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
               <tbody>
                 <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '6px 12px', color: '#64748b' }}>Subtotal:</td>
-                  <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>₹{Number(invoice.subtotal).toFixed(2)}</td>
+                  <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>₹{Number(invoice.subtotal || 0).toFixed(2)}</td>
                 </tr>
-                {Number(invoice.discount_amount) > 0 && (
+                {Number(invoice.discount_amount || 0) > 0 && (
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '6px 12px', color: '#64748b' }}>Discount:</td>
-                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#dc2626', fontWeight: 600 }}>-₹{Number(invoice.discount_amount).toFixed(2)}</td>
+                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#dc2626', fontWeight: 600 }}>-₹{Number(invoice.discount_amount || 0).toFixed(2)}</td>
                   </tr>
                 )}
-                {Number(invoice.additional_charges) > 0 && (
+                {Number(invoice.additional_charges || 0) > 0 && (
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '6px 12px', color: '#64748b' }}>Additional Charges:</td>
-                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>₹{Number(invoice.additional_charges).toFixed(2)}</td>
+                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>₹{Number(invoice.additional_charges || 0).toFixed(2)}</td>
                   </tr>
                 )}
                 {isTaxable && (
@@ -433,13 +433,13 @@ export const A4InvoiceView: React.FC<A4InvoiceViewProps> = ({ invoice }) => {
                 {Number(invoice.round_off || 0) !== 0 && (
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '6px 12px', color: '#64748b' }}>Round Off:</td>
-                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{Number(invoice.round_off) > 0 ? `+₹${Number(invoice.round_off).toFixed(2)}` : `-₹${Math.abs(Number(invoice.round_off)).toFixed(2)}`}</td>
+                    <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{Number(invoice.round_off || 0) > 0 ? `+₹${Number(invoice.round_off || 0).toFixed(2)}` : `-₹${Math.abs(Number(invoice.round_off || 0)).toFixed(2)}`}</td>
                   </tr>
                 )}
                 <tr style={{ backgroundColor: '#f0fdf4', borderTop: '2px solid #16a34a' }}>
                   <td style={{ padding: '10px 12px', fontWeight: 800, fontSize: '14px', color: '#166534' }}>Grand Total:</td>
                   <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: '15px', color: '#166534' }}>
-                    ₹{Number(invoice.total_amount).toFixed(2)}
+                    ₹{Number(invoice.total_amount || 0).toFixed(2)}
                   </td>
                 </tr>
               </tbody>
