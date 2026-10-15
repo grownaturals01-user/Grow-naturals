@@ -97,7 +97,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, slug, code, type, description, sort_order, icon, image_url, status } = req.body;
+    const { name, slug, code, type, description, sort_order, icon, image_url, status, business_id } = req.body;
 
     const db = await getDb();
     await ensureCategoryColumns(db);
@@ -112,8 +112,9 @@ router.put('/:id', async (req: Request, res: Response) => {
         sort_order = COALESCE($4, sort_order),
         icon = COALESCE($5, icon),
         image_url = COALESCE($6, image_url),
-        status = COALESCE($7, status)
-       WHERE id = $8
+        status = COALESCE($7, status),
+        business_id = COALESCE($8, business_id)
+       WHERE id = $9
        RETURNING *`,
       [
         name ? name.trim() : undefined,
@@ -123,6 +124,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         icon !== undefined ? icon : undefined,
         image_url !== undefined ? image_url : undefined,
         status !== undefined ? status : undefined,
+        business_id ? business_id.trim() : undefined,
         id
       ]
     );

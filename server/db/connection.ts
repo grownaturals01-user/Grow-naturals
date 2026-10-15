@@ -395,7 +395,8 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS product_name VARCHAR(255) DEFAULT '';`,
     `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS sizes TEXT DEFAULT '';`,
     `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS varieties TEXT DEFAULT '';`,
-    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS variety_images TEXT DEFAULT '{}';`
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS variety_images TEXT DEFAULT '{}';`,
+    `ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS category VARCHAR(128) DEFAULT '';`
   ];
 
   for (const m of migrations) {

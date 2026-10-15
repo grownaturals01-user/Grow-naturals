@@ -827,3 +827,23 @@
   }
 }
 
+/* Sub Category Table Column Spacing - eliminate gap between Image and Sub Category */
+.sub-category-table table tbody .productimgname {
+  min-width: unset !important;
+  width: auto !important;
+}
+
+.sub-category-table .p-datatable-thead > tr > th:nth-child(2),
+.sub-category-table .p-datatable-tbody > tr > td:nth-child(2) {
+  width: 85px !important;
+  min-width: 85px !important;
+  max-width: 95px !important;
+  white-space: nowrap !important;
+}
+
+.sub-category-table .p-datatable-thead > tr > th:nth-child(3),
+.sub-category-table .p-datatable-tbody > tr > td:nth-child(3) {
+  padding-left: 12px !important;
+  white-space: nowrap !important;
+}
+

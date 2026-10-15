@@ -180,6 +180,8 @@ const PrimeDataTable: React.FC<Props> = ({
             sortable={sortable === false ? false : col.sortable !== false}
             sortField={col.sortField ? col.sortField : col.field}
             className={col.className ? col.className : ""}
+            headerStyle={col.headerStyle || col.style}
+            style={col.style}
           />
         ))}
       </DataTable>

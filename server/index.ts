@@ -104,8 +104,12 @@ async function startServer() {
   try {
     console.log('[Server] Initializing PostgreSQL database...');
     await initDb();
-    console.log('[Server] Seeding demo database records...');
-    await seedDatabase();
+    try {
+      console.log('[Server] Seeding demo database records...');
+      await seedDatabase();
+    } catch (seedErr) {
+      console.warn('[Server] Seed database warning (server continuing):', seedErr);
+    }
 
     const server = app.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`\n======================================================`);

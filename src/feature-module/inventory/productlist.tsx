@@ -62,140 +62,9 @@ const userAvatars = [
   user10,
 ];
 
-export const fallbackProductListData = [
-  {
-    id: 1,
-    product: "Lenovo 3rd Generation",
-    productImage: stockImg1,
-    sku: "PT001",
-    category: "Laptop",
-    brand: "Lenovo",
-    price: "₹12,500",
-    unit: "Pc",
-    qty: "100",
-    createdby: "Arroon",
-    img: user30,
-  },
-  {
-    id: 2,
-    product: "Bold V3.2",
-    productImage: stockImg06,
-    sku: "PT002",
-    category: "Electronics",
-    brand: "Bolt",
-    price: "₹1,600",
-    unit: "Pc",
-    qty: "140",
-    createdby: "Kenneth",
-    img: user13,
-  },
-  {
-    id: 3,
-    product: "Nike Jordan",
-    productImage: stockImg02,
-    sku: "PT003",
-    category: "Shoe",
-    brand: "Nike",
-    price: "₹6,000",
-    unit: "Pc",
-    qty: "780",
-    createdby: "Gooch",
-    img: user11,
-  },
-  {
-    id: 4,
-    product: "Apple Series 5 Watch",
-    productImage: stockImg03,
-    sku: "PT004",
-    category: "Electronics",
-    brand: "Apple",
-    price: "₹25,000",
-    unit: "Pc",
-    qty: "450",
-    createdby: "Nathan",
-    img: user3,
-  },
-  {
-    id: 5,
-    product: "Amazon Echo Dot",
-    productImage: stockImg04,
-    sku: "PT005",
-    category: "Speaker",
-    brand: "Amazon",
-    price: "₹1,600",
-    unit: "Pc",
-    qty: "477",
-    createdby: "Alice",
-    img: user2,
-  },
-  {
-    id: 6,
-    product: "Lobar Handy",
-    productImage: stockImg05,
-    sku: "PT006",
-    category: "Furnitures",
-    brand: "Woodmart",
-    price: "₹4,521",
-    unit: "Kg",
-    qty: "145",
-    createdby: "Robb",
-    img: user5,
-  },
-  {
-    id: 7,
-    product: "Red Premium Handy",
-    productImage: expireProduct01,
-    sku: "PT007",
-    category: "Bags",
-    brand: "Versace",
-    price: "₹2,024",
-    unit: "Kg",
-    qty: "747",
-    createdby: "Steven",
-    img: user08,
-  },
-  {
-    id: 8,
-    product: "Iphone 14 Pro",
-    productImage: expireProduct02,
-    sku: "PT008",
-    category: "Phone",
-    brand: "Iphone",
-    price: "₹1,698",
-    unit: "Pc",
-    qty: "897",
-    createdby: "Gravely",
-    img: user04,
-  },
-  {
-    id: 9,
-    product: "Black Slim 200",
-    productImage: expireProduct03,
-    sku: "PT009",
-    category: "Chairs",
-    brand: "Bently",
-    price: "₹6,794",
-    unit: "Pc",
-    qty: "741",
-    createdby: "Kevin",
-    img: user01,
-  },
-  {
-    id: 10,
-    product: "Woodcraft Sandal",
-    productImage: expireProduct04,
-    sku: "PT010",
-    category: "Bags",
-    brand: "Woodcraft",
-    price: "₹4,547",
-    unit: "Kg",
-    qty: "148",
-    createdby: "Grillo",
-    img: user10,
-  },
-];
+export const fallbackProductListData: any[] = [];
+export const productlistdata: any[] = [];
 
-export const productlistdata = fallbackProductListData;
 
 interface ProductItem {
   id: string | number;
@@ -396,13 +265,13 @@ const ProductList: React.FC = () => {
         });
         setBrands(Array.from(brandSet));
       } else {
-        setProducts(fallbackProductListData);
-        setBrands(["Lenovo", "Bolt", "Nike", "Apple", "Amazon", "Woodmart", "Versace", "Bently"]);
+        setProducts([]);
+        setBrands([]);
       }
     } catch (err) {
-      console.warn("Failed to load products, using theme defaults:", err);
-      setProducts(fallbackProductListData);
-      setBrands(["Lenovo", "Bolt", "Nike", "Apple", "Amazon", "Woodmart", "Versace", "Bently"]);
+      console.warn("Failed to load products:", err);
+      setProducts([]);
+      setBrands([]);
     }
   }, [businessId]);
 
@@ -413,22 +282,11 @@ const ProductList: React.FC = () => {
       if (Array.isArray(res) && res.length > 0) {
         setCategories(res);
       } else {
-        setCategories([
-          { id: "1", name: "Computers" },
-          { id: "2", name: "Electronics" },
-          { id: "3", name: "Shoe" },
-          { id: "4", name: "Speaker" },
-          { id: "5", name: "Furnitures" },
-        ]);
+        setCategories([]);
       }
     } catch (err) {
-      setCategories([
-        { id: "1", name: "Computers" },
-        { id: "2", name: "Electronics" },
-        { id: "3", name: "Shoe" },
-        { id: "4", name: "Speaker" },
-        { id: "5", name: "Furnitures" },
-      ]);
+      console.warn("Failed to load categories:", err);
+      setCategories([]);
     }
   }, [businessId]);
 

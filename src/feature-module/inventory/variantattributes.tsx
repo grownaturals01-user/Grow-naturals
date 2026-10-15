@@ -7,7 +7,7 @@ import DeleteModal from "../../components/delete-modal";
 import SearchFromApi from "../../components/data-table/search";
 import { api, getActiveBusinessId } from "../../services/api";
 import { useBusiness } from "../../context/BusinessContext";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ChevronDown } from "lucide-react";
 import { Popover } from "antd";
 
 interface VariantAttributeItem { 
@@ -142,6 +142,7 @@ const VariantAttributes: React.FC = () => {
   const [rows, setRows] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [businessFilter, setBusinessFilter] = useState<string>(() => {
     if (currentActiveBiz && currentActiveBiz !== "all" && currentActiveBiz !== "combined") {
       return currentActiveBiz;
@@ -184,6 +185,7 @@ const VariantAttributes: React.FC = () => {
     return ["grow-naturals"];
   });
   const [addAttributeType, setAddAttributeType] = useState<"general" | "product_based">("general");
+  const [addCategory, setAddCategory] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -193,6 +195,7 @@ const VariantAttributes: React.FC = () => {
   const [editVariantNameType, setEditVariantNameType] = useState<string>("Size");
   const editVariantInputRef = useRef<HTMLInputElement | null>(null);
   const [editProductName, setEditProductName] = useState("");
+  const [editCategory, setEditCategory] = useState("");
   const [editSizesList, setEditSizesList] = useState<string[]>([]);
   const [editSingleSizeInput, setEditSingleSizeInput] = useState("");
   const [editValuesList, setEditValuesList] = useState<string[]>([]);
@@ -210,6 +213,33 @@ const VariantAttributes: React.FC = () => {
   const [editAttributeType, setEditAttributeType] = useState<"general" | "product_based">("general");
   const [editError, setEditError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [showAddCategoryDropdown, setShowAddCategoryDropdown] = useState(false);
+  const [showEditCategoryDropdown, setShowEditCategoryDropdown] = useState(false);
+  const addCategoryContainerRef = useRef<HTMLDivElement | null>(null);
+  const editCategoryContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Close category dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        addCategoryContainerRef.current &&
+        !addCategoryContainerRef.current.contains(event.target as Node)
+      ) {
+        setShowAddCategoryDropdown(false);
+      }
+      if (
+        editCategoryContainerRef.current &&
+        !editCategoryContainerRef.current.contains(event.target as Node)
+      ) {
+        setShowEditCategoryDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Delete state
   const [deleteVariantId, setDeleteVariantId] = useState<string | null>(null);
@@ -231,6 +261,102 @@ const VariantAttributes: React.FC = () => {
     if (Array.isArray(item.business_ids) && item.business_ids.includes(bizId)) return true;
     return false;
   }, []);
+
+  const isVariantForBiz = useCallback((item: VariantAttributeItem, bizId: string) => {
+    if (!bizId || bizId === "all") return true;
+    const targetId = bizId.toLowerCase();
+    const bIds = (item.business_ids || []).map((id) => String(id).toLowerCase());
+    if (bIds.includes(targetId)) return true;
+    if (item.business_id && String(item.business_id).toLowerCase() === targetId) return true;
+    if (item.business_name) {
+      const bName = item.business_name.toLowerCase();
+      if (targetId.includes("grow") && bName.includes("grow")) return true;
+      if (targetId.includes("nikhlesh") && bName.includes("nikhlesh")) return true;
+    }
+    return false;
+  }, []);
+
+  // Categories helper per business (strict store isolation: only actual user-saved categories for that business, no dump data)
+  const getCategoriesForBiz = useCallback(
+    (bizId: string): string[] => {
+      if (!bizId) return [];
+      const catSet = new Set<string>();
+
+      // From variantList (only previously typed & saved categories for this business)
+      variantList.forEach((item) => {
+        if (isVariantForBiz(item, bizId)) {
+          const rawCat = (item.raw?.category || item.category || "").trim();
+          if (
+            rawCat &&
+            rawCat.toLowerCase() !== "general" &&
+            rawCat.toLowerCase() !== "product based"
+          ) {
+            catSet.add(rawCat);
+          }
+        }
+      });
+
+      return Array.from(catSet).sort((a, b) => a.localeCompare(b));
+    },
+    [variantList, isVariantForBiz]
+  );
+
+  // Product name to category map for auto-mapping within store
+  const getProductToCategoryMap = useCallback(
+    (bizId: string): Record<string, string> => {
+      if (!bizId) return {};
+      const map: Record<string, string> = {};
+      variantList.forEach((item) => {
+        if (isVariantForBiz(item, bizId)) {
+          const pName = (item.raw?.product_name || item.product_name || item.variant || "").trim().toLowerCase();
+          const cat = (item.raw?.category || item.category || "").trim();
+          if (pName && cat && cat.toLowerCase() !== "general" && cat.toLowerCase() !== "product based") {
+            map[pName] = cat;
+          }
+        }
+      });
+      return map;
+    },
+    [variantList, isVariantForBiz]
+  );
+
+  const activeAddBiz = selectedBizIds[0] || (availableBusinesses[0]?.id ?? "grow-naturals");
+  const availableAddCategories = useMemo(
+    () => getCategoriesForBiz(activeAddBiz),
+    [getCategoriesForBiz, activeAddBiz]
+  );
+  const addProductCatMap = useMemo(
+    () => getProductToCategoryMap(activeAddBiz),
+    [getProductToCategoryMap, activeAddBiz]
+  );
+
+  const activeEditBiz = editSelectedBizIds[0] || (availableBusinesses[0]?.id ?? "grow-naturals");
+  const availableEditCategories = useMemo(
+    () => getCategoriesForBiz(activeEditBiz),
+    [getCategoriesForBiz, activeEditBiz]
+  );
+  const editProductCatMap = useMemo(
+    () => getProductToCategoryMap(activeEditBiz),
+    [getProductToCategoryMap, activeEditBiz]
+  );
+
+  // Available categories for table filter based on active business tab (no dump data, only actual categories in variant list)
+  const availableTableCategories = useMemo(() => {
+    const catSet = new Set<string>();
+    variantList.forEach((item) => {
+      if (businessFilter === "all" || isMappedToBiz(item, businessFilter)) {
+        const rawCat = (item.raw?.category || item.category || "").trim();
+        if (
+          rawCat &&
+          rawCat.toLowerCase() !== "general" &&
+          rawCat.toLowerCase() !== "product based"
+        ) {
+          catSet.add(rawCat);
+        }
+      }
+    });
+    return Array.from(catSet).sort((a, b) => a.localeCompare(b));
+  }, [variantList, businessFilter, isMappedToBiz]);
 
   // Fetch variant attributes from backend (fetch all so tab switching is instantaneous)
   const fetchVariants = useCallback(async () => {
@@ -319,7 +445,7 @@ const VariantAttributes: React.FC = () => {
           varieties_array: varietiesArr,
           variety_images: Object.keys(vrImages).length > 0 ? vrImages : vImages,
           attribute_type: va.attribute_type || "general",
-          category: va.attribute_type === "product_based" ? "Product Based" : "General",
+          category: va.category ? va.category : (va.attribute_type === "product_based" ? "Product Based" : "General"),
           product_id: va.product_id || "",
           product_name: va.product_name || "",
           createdon: va.created_at
@@ -548,6 +674,8 @@ const VariantAttributes: React.FC = () => {
     if (addPatternFileInputRef.current) addPatternFileInputRef.current.value = "";
     setVariantStatus(true);
     setAddAttributeType("general");
+    setAddCategory("");
+    setShowAddCategoryDropdown(false);
     setAddError(null);
 
     // Pre-select store tab (matching current businessFilter or first business)
@@ -811,6 +939,8 @@ const VariantAttributes: React.FC = () => {
     setVariantName(defaultOption);
     // Reset inputs & attribute type when switching store so data doesn't cross over
     setAddAttributeType("general");
+    setAddCategory("");
+    setShowAddCategoryDropdown(false);
     setAddProductName("");
     setAddSizesList([]);
     setAddSingleSizeInput("");
@@ -841,6 +971,8 @@ const VariantAttributes: React.FC = () => {
 
     // Clear all previously entered data so it does not carry over between General and Product Based
     setAddProductName("");
+    setAddCategory("");
+    setShowAddCategoryDropdown(false);
     setAddSizesList([]);
     setAddSingleSizeInput("");
     setAddValuesList([]);
@@ -870,6 +1002,8 @@ const VariantAttributes: React.FC = () => {
     // Reset inputs & attribute type when switching store so data doesn't cross over
     setEditAttributeType("general");
     setEditProductName("");
+    setEditCategory("");
+    setShowEditCategoryDropdown(false);
     setEditSizesList([]);
     setEditSingleSizeInput("");
     setEditValuesList([]);
@@ -895,6 +1029,8 @@ const VariantAttributes: React.FC = () => {
     // Clear all previously entered data so it does not carry over between General and Product Based
     setEditVariantName("");
     setEditProductName("");
+    setEditCategory("");
+    setShowEditCategoryDropdown(false);
     setEditSizesList([]);
     setEditSingleSizeInput("");
     setEditValuesList([]);
@@ -922,7 +1058,7 @@ const VariantAttributes: React.FC = () => {
       return;
     }
 
-    let finalVariantName = variantNameType === "Custom" ? variantName.trim() : variantNameType;
+    let finalVariantName = (variantNameType === "Custom" || addAttributeType === "product_based") ? variantName.trim() : variantNameType;
     if (!isNN && addAttributeType === "product_based") {
       if (!addProductName.trim()) {
         setAddError("Product name is required.");
@@ -930,7 +1066,7 @@ const VariantAttributes: React.FC = () => {
       }
     } else {
       if (!finalVariantName) {
-        setAddError(isNN ? "Variant name is required." : "Variant attribute name is required.");
+        setAddError(isNN && addAttributeType === "product_based" ? "Product name is required." : (isNN ? "Variant name is required." : "Variant attribute name is required."));
         return;
       }
     }
@@ -1002,7 +1138,8 @@ const VariantAttributes: React.FC = () => {
     try {
       await api.post("/variant-attributes", {
         name: !isNN && addAttributeType === "product_based" ? addProductName.trim() : finalVariantName,
-        product_name: !isNN && addAttributeType === "product_based" ? addProductName.trim() : "",
+        product_name: addAttributeType === "product_based" ? (isNN ? finalVariantName : addProductName.trim()) : "",
+        category: addAttributeType === "product_based" ? addCategory.trim() : "",
         values: finalValues.join(", "),
         sizes: addAttributeType === "product_based" ? finalSizes.join(", ") : "",
         varieties: isNN || addAttributeType === "product_based" ? finalValues.join(", ") : "",
@@ -1020,6 +1157,8 @@ const VariantAttributes: React.FC = () => {
       setVariantNameType(defaultOption);
       setVariantName(defaultOption);
       setAddProductName("");
+      setAddCategory("");
+      setShowAddCategoryDropdown(false);
       setAddSizesList([]);
       setAddSingleSizeInput("");
       setAddValuesList([]);
@@ -1052,7 +1191,7 @@ const VariantAttributes: React.FC = () => {
 
   // Start Edit
   const handleStartEdit = (row: VariantAttributeItem) => {
-    setEditingVariant(row.raw);
+    setEditingVariant(row.raw || row);
     const rawName = row.raw?.name || row.variant || "";
     const cleanLower = rawName.trim().toLowerCase();
     if (cleanLower === "size" || cleanLower === "sizes") {
@@ -1068,22 +1207,39 @@ const VariantAttributes: React.FC = () => {
       setEditVariantNameType("Custom");
       setEditVariantName(rawName);
     }
-    setEditProductName(row.raw.product_name || row.product_name || "");
+    setEditProductName(row.raw?.product_name || row.product_name || "");
 
-    const sList = (row.raw.sizes || row.sizes || "")
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0);
+    const sList =
+      row.sizes_array && row.sizes_array.length > 0
+        ? [...row.sizes_array]
+        : (row.raw?.sizes || row.sizes || "")
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0);
     setEditSizesList(sList);
     setEditSingleSizeInput("");
 
-    const vList = (row.raw.values || "")
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0);
+    const isSize = cleanLower === "size" || cleanLower === "sizes";
+    const isColor = cleanLower === "colors" || cleanLower === "color" || cleanLower === "colour" || cleanLower === "colours";
+
+    const vList =
+      (isSize || isColor) && row.values_array && row.values_array.length > 0
+        ? [...row.values_array]
+        : (row.raw?.values || row.values || "")
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0);
     setEditValuesList(vList);
     setEditSingleValueInput("");
-    setEditValueImages(row.value_images ? { ...row.value_images } : (row.variety_images ? { ...row.variety_images } : {}));
+    setEditValueImages(
+      row.value_images
+        ? { ...row.value_images }
+        : row.raw?.value_images
+        ? { ...row.raw.value_images }
+        : row.variety_images
+        ? { ...row.variety_images }
+        : {}
+    );
     setEditCurrentValueImage(null);
     if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
 
@@ -1099,6 +1255,12 @@ const VariantAttributes: React.FC = () => {
 
     setEditVariantStatus(row.raw.status === "Active");
     setEditAttributeType(row.raw.attribute_type === "product_based" ? "product_based" : "general");
+    setEditCategory(
+      row.raw?.category ||
+      (row.category && row.category !== "General" && row.category !== "Product Based" ? row.category : "") ||
+      ""
+    );
+    setShowEditCategoryDropdown(false);
 
     let bIds = row.business_ids || [];
     if (!bIds || bIds.length === 0) {
@@ -1124,7 +1286,7 @@ const VariantAttributes: React.FC = () => {
       return;
     }
 
-    let finalEditVariantName = editVariantNameType === "Custom" ? editVariantName.trim() : editVariantNameType;
+    let finalEditVariantName = (editVariantNameType === "Custom" || editAttributeType === "product_based") ? editVariantName.trim() : editVariantNameType;
     if (!isEditNN && editAttributeType === "product_based") {
       if (!editProductName.trim()) {
         setEditError("Product name is required.");
@@ -1132,7 +1294,7 @@ const VariantAttributes: React.FC = () => {
       }
     } else {
       if (!finalEditVariantName) {
-        setEditError(isEditNN ? "Variant name is required." : "Variant attribute name is required.");
+        setEditError(isEditNN && editAttributeType === "product_based" ? "Product name is required." : (isEditNN ? "Variant name is required." : "Variant attribute name is required."));
         return;
       }
     }
@@ -1201,23 +1363,45 @@ const VariantAttributes: React.FC = () => {
 
     setIsEditing(true);
     try {
-      await api.put(`/variant-attributes/${editingVariant.id}`, {
-        name: !isEditNN && editAttributeType === "product_based" ? editProductName.trim() : finalEditVariantName,
-        product_name: !isEditNN && editAttributeType === "product_based" ? editProductName.trim() : (editingVariant.product_name || ""),
-        values: finalValues.join(", "),
-        sizes: editAttributeType === "product_based" ? finalSizes.join(", ") : "",
-        varieties: isEditNN || editAttributeType === "product_based" ? finalValues.join(", ") : "",
-        variety_images: finalValueImages,
-        value_images: finalValueImages,
-        patterns: showEditPatterns ? finalPatterns.join(", ") : "",
-        pattern_images: showEditPatterns ? finalPatternImages : {},
-        attribute_type: editAttributeType,
-        status: editVariantStatus ? "Active" : "Inactive",
-        business_ids: editSelectedBizIds,
-      });
+      const isVirtual = editingVariant.id && String(editingVariant.id).startsWith("virtual-");
+      if (isVirtual) {
+        await api.post("/variant-attributes", {
+          name: !isEditNN && editAttributeType === "product_based" ? editProductName.trim() : finalEditVariantName,
+          product_name: editAttributeType === "product_based" ? (isEditNN ? finalEditVariantName : editProductName.trim()) : "",
+          category: editAttributeType === "product_based" ? editCategory.trim() : "",
+          values: finalValues.join(", "),
+          sizes: editAttributeType === "product_based" ? finalSizes.join(", ") : "",
+          varieties: isEditNN || editAttributeType === "product_based" ? finalValues.join(", ") : "",
+          variety_images: finalValueImages,
+          value_images: finalValueImages,
+          patterns: showEditPatterns ? finalPatterns.join(", ") : "",
+          pattern_images: showEditPatterns ? finalPatternImages : {},
+          attribute_type: editAttributeType,
+          status: editVariantStatus ? "Active" : "Inactive",
+          business_ids: editSelectedBizIds,
+        });
+      } else {
+        await api.put(`/variant-attributes/${editingVariant.id}`, {
+          name: !isEditNN && editAttributeType === "product_based" ? editProductName.trim() : finalEditVariantName,
+          product_name: editAttributeType === "product_based" ? (isEditNN ? finalEditVariantName : editProductName.trim()) : (editingVariant.product_name || ""),
+          category: editAttributeType === "product_based" ? editCategory.trim() : "",
+          values: finalValues.join(", "),
+          sizes: editAttributeType === "product_based" ? finalSizes.join(", ") : "",
+          varieties: isEditNN || editAttributeType === "product_based" ? finalValues.join(", ") : "",
+          variety_images: finalValueImages,
+          value_images: finalValueImages,
+          patterns: showEditPatterns ? finalPatterns.join(", ") : "",
+          pattern_images: showEditPatterns ? finalPatternImages : {},
+          attribute_type: editAttributeType,
+          status: editVariantStatus ? "Active" : "Inactive",
+          business_ids: editSelectedBizIds,
+        });
+      }
 
       setEditingVariant(null);
       setEditProductName("");
+      setEditCategory("");
+      setShowEditCategoryDropdown(false);
       setEditError(null);
 
       // Dismiss modal
@@ -1236,6 +1420,13 @@ const VariantAttributes: React.FC = () => {
   // Confirm Delete
   const handleDelete = async () => {
     if (!deleteVariantId) return;
+    if (String(deleteVariantId).startsWith("virtual-")) {
+      setDeleteVariantId(null);
+      const modal = document.getElementById("delete-modal");
+      const closeBtn = modal?.querySelector('[data-bs-dismiss="modal"]') as HTMLElement;
+      if (closeBtn) closeBtn.click();
+      return;
+    }
     try {
       await api.delete(`/variant-attributes/${deleteVariantId}`);
       setDeleteVariantId(null);
@@ -1251,30 +1442,228 @@ const VariantAttributes: React.FC = () => {
     }
   };
 
-  // Filtered dataset
+  // Filtered dataset with aggregated sizes and colors per business
   const filteredData = useMemo(() => {
-    return variantList.filter((item) => {
-      // Business tab filter
-      if (!isMappedToBiz(item, businessFilter)) {
-        return false;
+    // 1. Get raw items mapped to the currently selected business
+    const bizRawItems = variantList.filter((item) => isMappedToBiz(item, businessFilter));
+
+    // 2. Collect all sizes for this business:
+    //    - from general Size rows
+    //    - from all product-based rows
+    const sizesSet = new Set<string>();
+    const allSizesList: string[] = [];
+    const addSizeItem = (s: string) => {
+      const trimmed = s.trim();
+      if (!trimmed) return;
+      const lower = trimmed.toLowerCase();
+      if (!sizesSet.has(lower)) {
+        sizesSet.add(lower);
+        allSizesList.push(trimmed);
       }
+    };
+
+    // First collect from general Size rows
+    bizRawItems
+      .filter((item) => item.attribute_type !== "product_based" && isSizeVariant(item.variant))
+      .forEach((item) => {
+        (item.values_array || []).forEach(addSizeItem);
+        (item.sizes_array || []).forEach(addSizeItem);
+      });
+
+    // Then collect from all product-based rows
+    bizRawItems
+      .filter((item) => item.attribute_type === "product_based")
+      .forEach((item) => {
+        (item.sizes_array || []).forEach(addSizeItem);
+        if (item.sizes) {
+          item.sizes.split(",").forEach(addSizeItem);
+        }
+      });
+
+    // 3. Collect all colors for this business:
+    //    - from general Colors rows
+    //    - from all product-based rows
+    const colorsSet = new Set<string>();
+    const allColorsList: string[] = [];
+    const mergedColorImages: Record<string, string> = {};
+
+    const addColorItem = (c: string, img?: string) => {
+      const trimmed = c.trim();
+      if (!trimmed) return;
+      const lower = trimmed.toLowerCase();
+      if (!colorsSet.has(lower)) {
+        colorsSet.add(lower);
+        allColorsList.push(trimmed);
+      }
+      if (img && !mergedColorImages[trimmed]) {
+        mergedColorImages[trimmed] = img;
+      }
+    };
+
+    // First collect from general Colors rows
+    bizRawItems
+      .filter((item) => item.attribute_type !== "product_based" && isColorVariant(item.variant))
+      .forEach((item) => {
+        (item.values_array || []).forEach((val) => {
+          const img = item.value_images?.[val] || item.variety_images?.[val];
+          addColorItem(val, img);
+        });
+      });
+
+    // Then collect from all product-based rows
+    bizRawItems
+      .filter((item) => item.attribute_type === "product_based")
+      .forEach((item) => {
+        (item.values_array || []).forEach((val) => {
+          const img = item.value_images?.[val] || item.variety_images?.[val];
+          addColorItem(val, img);
+        });
+      });
+
+    // 4. Transform items:
+    //    - General Size rows get allSizesList
+    //    - General Colors rows get allColorsList + mergedColorImages
+    //    - Product-based rows retain their own sizes and colors
+    let hasGeneralSizeRow = false;
+    let hasGeneralColorRow = false;
+
+    const transformedItems: VariantAttributeItem[] = bizRawItems.map((item) => {
+      if (item.attribute_type !== "product_based" && isSizeVariant(item.variant)) {
+        hasGeneralSizeRow = true;
+        const finalSizes = allSizesList.length > 0 ? allSizesList : item.values_array;
+        return {
+          ...item,
+          values: finalSizes.join(", "),
+          values_array: finalSizes,
+          sizes: finalSizes.join(", "),
+          sizes_array: finalSizes,
+        };
+      }
+
+      if (item.attribute_type !== "product_based" && isColorVariant(item.variant)) {
+        hasGeneralColorRow = true;
+        const finalColors = allColorsList.length > 0 ? allColorsList : item.values_array;
+        const finalImages = { ...(item.value_images || {}), ...mergedColorImages };
+        return {
+          ...item,
+          values: finalColors.join(", "),
+          values_array: finalColors,
+          value_images: finalImages,
+          variety_images: finalImages,
+        };
+      }
+
+      // Product-based and other items remain as-is in their respective rows
+      return item;
+    });
+
+    // 5. If no general Size row exists for this business but there are sizes, synthesize a Size row
+    const targetBizName =
+      availableBusinesses.find((b) => b.id === businessFilter)?.name || "Grow Naturals";
+
+    if (!hasGeneralSizeRow && allSizesList.length > 0) {
+      const virtualSizeRow: VariantAttributeItem = {
+        id: `virtual-size-${businessFilter}`,
+        variant: "Size",
+        values: allSizesList.join(", "),
+        values_array: allSizesList,
+        sizes: allSizesList.join(", "),
+        sizes_array: allSizesList,
+        attribute_type: "general",
+        category: "General",
+        createdon: new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        status: "Active",
+        business_id: businessFilter,
+        business_ids: [businessFilter],
+        business_name: targetBizName,
+        display_business: targetBizName,
+        is_mapped_to_both: false,
+        raw: {
+          id: `virtual-size-${businessFilter}`,
+          name: "Size",
+          values: allSizesList.join(", "),
+          sizes: allSizesList.join(", "),
+          attribute_type: "general",
+          status: "Active",
+          business_id: businessFilter,
+          business_ids: [businessFilter],
+        },
+      };
+      transformedItems.unshift(virtualSizeRow);
+    }
+
+    // 6. If no general Colors row exists for this business but there are colors (and not NN only), synthesize a Colors row
+    const isNN = isNikhleshNurseryOnly([businessFilter], availableBusinesses);
+    if (!hasGeneralColorRow && allColorsList.length > 0 && !isNN) {
+      const virtualColorRow: VariantAttributeItem = {
+        id: `virtual-colors-${businessFilter}`,
+        variant: "Colors",
+        values: allColorsList.join(", "),
+        values_array: allColorsList,
+        value_images: mergedColorImages,
+        variety_images: mergedColorImages,
+        attribute_type: "general",
+        category: "General",
+        createdon: new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        status: "Active",
+        business_id: businessFilter,
+        business_ids: [businessFilter],
+        business_name: targetBizName,
+        display_business: targetBizName,
+        is_mapped_to_both: false,
+        raw: {
+          id: `virtual-colors-${businessFilter}`,
+          name: "Colors",
+          values: allColorsList.join(", "),
+          attribute_type: "general",
+          value_images: mergedColorImages,
+          variety_images: mergedColorImages,
+          status: "Active",
+          business_id: businessFilter,
+          business_ids: [businessFilter],
+        },
+      };
+      transformedItems.splice(hasGeneralSizeRow ? 1 : 0, 0, virtualColorRow);
+    }
+
+    // 7. Apply status, category, and search filters
+    return transformedItems.filter((item) => {
       // Status filter
       if (statusFilter !== "All" && item.status !== statusFilter) {
         return false;
+      }
+      // Category filter
+      if (categoryFilter !== "All") {
+        const itemCat = (item.raw?.category || item.category || "").trim();
+        if (itemCat.toLowerCase() !== categoryFilter.toLowerCase()) {
+          return false;
+        }
       }
       // Search query filter
       if (searchQuery && searchQuery.trim() !== "") {
         const query = searchQuery.toLowerCase().trim();
         const matchesName = item.variant.toLowerCase().includes(query);
         const matchesValues = item.values.toLowerCase().includes(query);
-        const matchesCategory = (item.category || (item.attribute_type === "product_based" ? "Product Based" : "General")).toLowerCase().includes(query);
+        const matchesCategory = (
+          item.category || (item.attribute_type === "product_based" ? "Product Based" : "General")
+        )
+          .toLowerCase()
+          .includes(query);
         const matchesDate = item.createdon.toLowerCase().includes(query);
         const matchesBiz = (item.display_business || "").toLowerCase().includes(query);
         return matchesName || matchesValues || matchesCategory || matchesDate || matchesBiz;
       }
       return true;
     });
-  }, [variantList, businessFilter, statusFilter, searchQuery, isMappedToBiz]);
+  }, [variantList, businessFilter, statusFilter, categoryFilter, searchQuery, isMappedToBiz, availableBusinesses]);
 
   // Preview helper for comma-separated values in modals
   const renderPreviewPills = (valStr: string) => {
@@ -1437,6 +1826,128 @@ const VariantAttributes: React.FC = () => {
     );
   };
 
+  const renderCategoryField = (
+    isEdit: boolean,
+    currentCategory: string,
+    onCategoryChange: (val: string) => void,
+    showDropdown: boolean,
+    setShowDropdown: React.Dispatch<React.SetStateAction<boolean>>,
+    containerRef: React.RefObject<HTMLDivElement | null>,
+    categoriesList: string[]
+  ) => {
+    const filtered = categoriesList.filter(
+      (c) => !currentCategory.trim() || c.toLowerCase().includes(currentCategory.trim().toLowerCase())
+    );
+    const isCustomNew =
+      currentCategory.trim() &&
+      !categoriesList.some((c) => c.toLowerCase() === currentCategory.trim().toLowerCase());
+
+    return (
+      <div className="col-12 col-md-6 mb-3 position-relative" ref={containerRef}>
+        <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+          <span style={{ color: "#000000" }}>Category</span>
+        </label>
+        <div className="position-relative">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Select or type category (e.g. Indoor Plants, Ceramic Pots)"
+            value={currentCategory}
+            onChange={(e) => {
+              onCategoryChange(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+            style={{
+              height: "40px",
+              paddingRight: categoriesList.length > 0 ? "36px" : "12px",
+            }}
+          />
+          {categoriesList.length > 0 && (
+            <button
+              type="button"
+              className="btn p-0 position-absolute end-0 top-50 translate-middle-y me-2 d-flex align-items-center justify-content-center border-0 bg-transparent shadow-none"
+              onClick={() => setShowDropdown((prev) => !prev)}
+              style={{
+                width: "28px",
+                height: "28px",
+                border: "none",
+                background: "transparent",
+                boxShadow: "none",
+                cursor: "pointer",
+                padding: 0,
+              }}
+              title="Show existing categories"
+            >
+              <ChevronDown
+                size={16}
+                className="text-muted"
+                style={{
+                  transition: "transform 0.2s ease",
+                  transform: showDropdown ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            </button>
+          )}
+        </div>
+        <small className="text-muted d-block mt-1 fs-12">
+          {/* Pick an existing category or type a new one. It will be mapped to this product. */}
+        </small>
+
+        {showDropdown && categoriesList.length > 0 && (
+          <ul
+            className="dropdown-menu show w-100 shadow border mt-1"
+            style={{
+              maxHeight: "220px",
+              overflowY: "auto",
+              display: "block",
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              zIndex: 1060,
+            }}
+          >
+            <li className="dropdown-header text-uppercase fs-11 fw-bold text-muted py-1 px-3">
+              Previously Used Categories
+            </li>
+            {filtered.map((cat, idx) => {
+              const isSelected = currentCategory.trim().toLowerCase() === cat.toLowerCase();
+              return (
+                <li key={idx}>
+                  <button
+                    type="button"
+                    className={`dropdown-item d-flex align-items-center justify-content-between py-2 px-3 ${
+                      isSelected ? "bg-light text-primary fw-semibold" : ""
+                    }`}
+                    onClick={() => {
+                      onCategoryChange(cat);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <span className="d-flex align-items-center gap-2">
+                      <i className="ti ti-folder fs-14 text-muted" />
+                      {cat}
+                    </span>
+                    {isSelected && <i className="ti ti-check text-primary fs-14" />}
+                  </button>
+                </li>
+              );
+            })}
+            {isCustomNew && (
+              <li>
+                <div className="dropdown-item text-muted fst-italic py-2 px-3 border-top">
+                  <i className="ti ti-plus me-1 text-success" />
+                  Will save as new category: &quot;<strong>{currentCategory.trim()}</strong>&quot;
+                </div>
+              </li>
+            )}
+          </ul>
+        )}
+        
+      </div>
+    );
+  };
+
   const columns = [
     {
       field: "variant",
@@ -1557,10 +2068,10 @@ const VariantAttributes: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Variants/Varieties Row */}
+                  {/* Colors / Varieties Row */}
                   <div className="d-flex align-items-center gap-2">
                     {renderLabel(
-                      hasSizes ? (isNN ? "Varieties:" : "Variants:") : "Values:",
+                      isNN ? "Varieties:" : "Colors:",
                       isNN ? "ti ti-leaf" : "ti ti-palette",
                       "text-muted"
                     )}
@@ -1769,11 +2280,19 @@ const VariantAttributes: React.FC = () => {
         },
         {
           field: "category",
-          header: "Category",
+          header: "Type",
           key: "category",
           sortable: true,
           body: (rowData: VariantAttributeItem) => {
             const isPB = rowData.attribute_type === "product_based";
+            const displayCat =
+              rowData.category &&
+              rowData.category !== "General" &&
+              rowData.category !== "Product Based"
+                ? rowData.category
+                : isPB
+                ? "Product Based"
+                : "General";
             return isPB ? (
               <span
                 className="badge rounded-pill fs-10 px-2 py-0.5 fw-semibold border d-inline-flex align-items-center gap-1"
@@ -1782,9 +2301,10 @@ const VariantAttributes: React.FC = () => {
                   color: "#1d4ed8",
                   borderColor: "#bfdbfe",
                 }}
-                title="Product Based"
+                title={displayCat}
               >
-                Product Based
+                <i className="ti ti-folder fs-10" />
+                {displayCat}
               </span>
             ) : (
               <span
@@ -1820,7 +2340,7 @@ const VariantAttributes: React.FC = () => {
           body: (row: VariantAttributeItem) => (
             <div className="edit-delete-action d-flex align-items-center">
               <Link
-                className="me-2 d-flex align-items-center justify-content-center border rounded hover-primary bg-white"
+                className="me-2 d-flex align-items-center justify-content-center border rounded hover-dark bg-white"
                 to="#"
                 data-bs-toggle="modal"
                 data-bs-target="#edit-variant"
@@ -1828,7 +2348,7 @@ const VariantAttributes: React.FC = () => {
                 title="Edit Variant"
                 style={{ width: "32px", height: "32px" }}
               >
-                <Edit size={16} className="text-primary" />
+                <Edit size={16} className="text-dark" style={{ color: "#000000" }} />
               </Link>
               <Link
                 className="d-flex align-items-center justify-content-center border rounded hover-danger bg-white"
@@ -1885,6 +2405,55 @@ const VariantAttributes: React.FC = () => {
                       setRows={setRows}
                     />
                     <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
+                      {/* Category Filter */}
+                      <div className="dropdown me-2">
+                        <Link
+                          to="#"
+                          className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          <i className="ti ti-folder me-1 fs-14" />
+                          Category: <span className="fw-semibold ms-1">{categoryFilter}</span>
+                        </Link>
+                        <ul
+                          className="dropdown-menu dropdown-menu-end p-2 shadow-sm rounded-2"
+                          style={{ maxHeight: "300px", overflowY: "auto", minWidth: "180px" }}
+                        >
+                          <li>
+                            <button
+                              type="button"
+                              className={`dropdown-item rounded-1 ${categoryFilter === "All" ? "active" : ""}`}
+                              onClick={() => {
+                                setCategoryFilter("All");
+                                setCurrentPage(1);
+                              }}
+                            >
+                              All
+                            </button>
+                          </li>
+                          {availableTableCategories.map((cat, idx) => (
+                            <li key={idx}>
+                              <button
+                                type="button"
+                                className={`dropdown-item rounded-1 d-flex align-items-center justify-content-between ${
+                                  categoryFilter.toLowerCase() === cat.toLowerCase() ? "active" : ""
+                                }`}
+                                onClick={() => {
+                                  setCategoryFilter(cat);
+                                  setCurrentPage(1);
+                                }}
+                              >
+                                <span>{cat}</span>
+                                {categoryFilter.toLowerCase() === cat.toLowerCase() && (
+                                  <i className="ti ti-check fs-12 ms-2 text-primary" />
+                                )}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Status Filter */}
                       <div className="dropdown me-2">
                         <Link
                           to="#"
@@ -1899,7 +2468,10 @@ const VariantAttributes: React.FC = () => {
                             <button
                               type="button"
                               className={`dropdown-item rounded-1 ${statusFilter === "All" ? "active" : ""}`}
-                              onClick={() => setStatusFilter("All")}
+                              onClick={() => {
+                                setStatusFilter("All");
+                                setCurrentPage(1);
+                              }}
                             >
                               All
                             </button>
@@ -1908,7 +2480,10 @@ const VariantAttributes: React.FC = () => {
                             <button
                               type="button"
                               className={`dropdown-item rounded-1 ${statusFilter === "Active" ? "active" : ""}`}
-                              onClick={() => setStatusFilter("Active")}
+                              onClick={() => {
+                                setStatusFilter("Active");
+                                setCurrentPage(1);
+                              }}
                             >
                               Active
                             </button>
@@ -1917,7 +2492,10 @@ const VariantAttributes: React.FC = () => {
                             <button
                               type="button"
                               className={`dropdown-item rounded-1 ${statusFilter === "Inactive" ? "active" : ""}`}
-                              onClick={() => setStatusFilter("Inactive")}
+                              onClick={() => {
+                                setStatusFilter("Inactive");
+                                setCurrentPage(1);
+                              }}
                             >
                               Inactive
                             </button>
@@ -1955,6 +2533,7 @@ const VariantAttributes: React.FC = () => {
                               onClick={() => {
                                 setBusinessFilter(biz.id);
                                 setCurrentPage(1);
+                                setCategoryFilter("All");
                               }}
                             >
                               <span>{biz.name}</span>
@@ -2205,53 +2784,44 @@ const VariantAttributes: React.FC = () => {
                         {/* CASE 1: NIKHLESH NURSERY + PRODUCT BASED -> Size Attribute and Variety listed one by one */}
                         {isNikhleshNurseryOnly(selectedBizIds, availableBusinesses) && addAttributeType === "product_based" ? (
                           <>
-                            {/* Variant / Attribute Name */}
-                            <div className="mb-3">
-                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
-                                <span style={{ color: "#000000" }}>Variant Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
-                              </label>
-                              <div className="input-group">
+                            {/* Product Name and Category side by side */}
+                            <div className="row">
+                              <div className="col-12 col-md-6 mb-3">
+                                <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                  <span style={{ color: "#000000" }}>Product Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </label>
                                 <input
                                   type="text"
                                   ref={addVariantInputRef}
                                   className="form-control"
-                                  placeholder={
-                                    variantNameType === "Custom"
-                                      ? "e.g. Mango Variety, Bougainvillea, Hibiscus"
-                                      : "Variant Name"
-                                  }
-                                  value={variantName}
-                                  onChange={(e) => setVariantName(e.target.value)}
-                                  readOnly={variantNameType !== "Custom"}
+                                  placeholder="e.g. Mango Variety, Bougainvillea, Hibiscus"
+                                  value={variantName === "Variety" ? "" : variantName}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setVariantName(val);
+                                    const mapped = addProductCatMap[val.trim().toLowerCase()];
+                                    if (mapped && !addCategory) {
+                                      setAddCategory(mapped);
+                                    }
+                                  }}
                                   style={{
-                                    backgroundColor: variantNameType !== "Custom" ? "#fbfcfd" : "#ffffff",
-                                    cursor: variantNameType !== "Custom" ? "default" : "text",
                                     height: "40px",
                                   }}
                                   required
-                                  autoFocus={variantNameType === "Custom"}
+                                  autoFocus
                                 />
-                                <select
-                                  className="form-select flex-grow-0"
-                                  style={{
-                                    width: "120px",
-                                    backgroundColor: "#f8f9fa",
-                                    borderColor: "#ced4da",
-                                    fontWeight: 500,
-                                    fontSize: "13px",
-                                    cursor: "pointer",
-                                    height: "40px",
-                                  }}
-                                  value={variantNameType}
-                                  onChange={(e) => handleVariantNameTypeChange(e.target.value)}
-                                >
-                                  {getVariantNameOptions(selectedBizIds, availableBusinesses).map((opt) => (
-                                    <option key={opt} value={opt}>
-                                      {opt}
-                                    </option>
-                                  ))}
-                                </select>
                               </div>
+
+                              {/* Category */}
+                              {renderCategoryField(
+                                false,
+                                addCategory,
+                                setAddCategory,
+                                showAddCategoryDropdown,
+                                setShowAddCategoryDropdown,
+                                addCategoryContainerRef,
+                                availableAddCategories
+                              )}
                             </div>
 
                             {/* Section 1: Size Attribute */}
@@ -2398,20 +2968,41 @@ const VariantAttributes: React.FC = () => {
                         ) : !isNikhleshNurseryOnly(selectedBizIds, availableBusinesses) && addAttributeType === "product_based" ? (
                           /* CASE 2: GROW NATURALS + PRODUCT BASED -> Product Name, Variant Name, Size Attributes, Variants with photo upload */
                           <>
-                            {/* Product Name */}
-                            <div className="mb-3">
-                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
-                                <span style={{ color: "#000000" }}>Product Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
-                              </label>
-                              <input
-                                type="text"
-                                className="form-control"
-                                placeholder="e.g. Terracotta Pot, Ceramic Planter, Monstera Deliciosa"
-                                value={addProductName}
-                                onChange={(e) => setAddProductName(e.target.value)}
-                                required
-                                autoFocus
-                              />
+                            {/* Product Name and Category side by side */}
+                            <div className="row">
+                              <div className="col-12 col-md-6 mb-3">
+                                <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                  <span style={{ color: "#000000" }}>Product Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="e.g. Terracotta Pot, Ceramic Planter, Monstera Deliciosa"
+                                  value={addProductName}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setAddProductName(val);
+                                    const mapped = addProductCatMap[val.trim().toLowerCase()];
+                                    if (mapped && !addCategory) {
+                                      setAddCategory(mapped);
+                                    }
+                                  }}
+                                  style={{ height: "40px" }}
+                                  required
+                                  autoFocus
+                                />
+                              </div>
+
+                              {/* Category */}
+                              {renderCategoryField(
+                                false,
+                                addCategory,
+                                setAddCategory,
+                                showAddCategoryDropdown,
+                                setShowAddCategoryDropdown,
+                                addCategoryContainerRef,
+                                availableAddCategories
+                              )}
                             </div>
 
 
@@ -2890,6 +3481,15 @@ const VariantAttributes: React.FC = () => {
                                         ? variantName.trim()
                                         : addProductName.trim()}
                                     </span>
+                                    {addCategory.trim() && (
+                                      <span
+                                        className="badge rounded-pill fs-11 px-2 py-0.5 mt-1 border d-inline-flex align-items-center gap-1"
+                                        style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe" }}
+                                      >
+                                        <i className="ti ti-folder fs-11" />
+                                        {addCategory.trim()}
+                                      </span>
+                                    )}
                                   </div>
                                 ) : null}
 
@@ -3579,53 +4179,44 @@ const VariantAttributes: React.FC = () => {
                         {/* CASE 1: NIKHLESH NURSERY + PRODUCT BASED -> Size Attribute and Variety listed one by one */}
                         {isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses) && editAttributeType === "product_based" ? (
                           <>
-                            {/* Variant / Attribute Name */}
-                            <div className="mb-3">
-                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
-                                <span style={{ color: "#000000" }}>Variant Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
-                              </label>
-                              <div className="input-group">
+                            {/* Product Name and Category side by side */}
+                            <div className="row">
+                              <div className="col-12 col-md-6 mb-3">
+                                <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                  <span style={{ color: "#000000" }}>Product Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </label>
                                 <input
                                   type="text"
                                   ref={editVariantInputRef}
                                   className="form-control"
-                                  placeholder={
-                                    editVariantNameType === "Custom"
-                                      ? "e.g. Mango Variety, Bougainvillea, Hibiscus"
-                                      : "Variant Name"
-                                  }
-                                  value={editVariantName}
-                                  onChange={(e) => setEditVariantName(e.target.value)}
-                                  readOnly={editVariantNameType !== "Custom"}
+                                  placeholder="e.g. Mango Variety, Bougainvillea, Hibiscus"
+                                  value={editVariantName === "Variety" ? "" : editVariantName}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEditVariantName(val);
+                                    const mapped = editProductCatMap[val.trim().toLowerCase()];
+                                    if (mapped && !editCategory) {
+                                      setEditCategory(mapped);
+                                    }
+                                  }}
                                   style={{
-                                    backgroundColor: editVariantNameType !== "Custom" ? "#fbfcfd" : "#ffffff",
-                                    cursor: editVariantNameType !== "Custom" ? "default" : "text",
                                     height: "40px",
                                   }}
                                   required
-                                  autoFocus={editVariantNameType === "Custom"}
+                                  autoFocus
                                 />
-                                <select
-                                  className="form-select flex-grow-0"
-                                  style={{
-                                    width: "120px",
-                                    backgroundColor: "#f8f9fa",
-                                    borderColor: "#ced4da",
-                                    fontWeight: 500,
-                                    fontSize: "13px",
-                                    cursor: "pointer",
-                                    height: "40px",
-                                  }}
-                                  value={editVariantNameType}
-                                  onChange={(e) => handleEditVariantNameTypeChange(e.target.value)}
-                                >
-                                  {getVariantNameOptions(editSelectedBizIds, availableBusinesses).map((opt) => (
-                                    <option key={opt} value={opt}>
-                                      {opt}
-                                    </option>
-                                  ))}
-                                </select>
                               </div>
+
+                              {/* Category */}
+                              {renderCategoryField(
+                                true,
+                                editCategory,
+                                setEditCategory,
+                                showEditCategoryDropdown,
+                                setShowEditCategoryDropdown,
+                                editCategoryContainerRef,
+                                availableEditCategories
+                              )}
                             </div>
 
                             {/* Section 1: Size Attribute */}
@@ -3775,19 +4366,40 @@ const VariantAttributes: React.FC = () => {
                         ) : !isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses) && editAttributeType === "product_based" ? (
                           /* CASE 2: GROW NATURALS + PRODUCT BASED -> Product Name, Variant Name, Size Attributes, Variants with photo upload */
                           <>
-                            {/* Product Name */}
-                            <div className="mb-3">
-                              <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
-                                <span style={{ color: "#000000" }}>Product Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
-                              </label>
-                              <input
-                                type="text"
-                                className="form-control"
-                                placeholder="e.g. Terracotta Pot, Ceramic Planter, Monstera Deliciosa"
-                                value={editProductName}
-                                onChange={(e) => setEditProductName(e.target.value)}
-                                required
-                              />
+                            {/* Product Name and Category side by side */}
+                            <div className="row">
+                              <div className="col-12 col-md-6 mb-3">
+                                <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
+                                  <span style={{ color: "#000000" }}>Product Name</span><span className="ms-1" style={{ color: "#000000" }}>*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="e.g. Terracotta Pot, Ceramic Planter, Monstera Deliciosa"
+                                  value={editProductName}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEditProductName(val);
+                                    const mapped = editProductCatMap[val.trim().toLowerCase()];
+                                    if (mapped && !editCategory) {
+                                      setEditCategory(mapped);
+                                    }
+                                  }}
+                                  style={{ height: "40px" }}
+                                  required
+                                />
+                              </div>
+
+                              {/* Category */}
+                              {renderCategoryField(
+                                true,
+                                editCategory,
+                                setEditCategory,
+                                showEditCategoryDropdown,
+                                setShowEditCategoryDropdown,
+                                editCategoryContainerRef,
+                                availableEditCategories
+                              )}
                             </div>
 
 
@@ -4269,6 +4881,15 @@ const VariantAttributes: React.FC = () => {
                                         ? editVariantName.trim()
                                         : editProductName.trim()}
                                     </span>
+                                    {editCategory.trim() && (
+                                      <span
+                                        className="badge rounded-pill fs-11 px-2 py-0.5 mt-1 border d-inline-flex align-items-center gap-1"
+                                        style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe" }}
+                                      >
+                                        <i className="ti ti-folder fs-11" />
+                                        {editCategory.trim()}
+                                      </span>
+                                    )}
                                   </div>
                                 ) : null}
 

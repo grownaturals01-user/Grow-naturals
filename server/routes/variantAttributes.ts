@@ -7,11 +7,45 @@ function getBusinessId(req: Request): string {
   return (req.query.business_id as string) || (req.headers['x-business-id'] as string) || 'all';
 }
 
+let columnsEnsured = false;
+async function ensureVariantAttributeColumns(db: any) {
+  if (columnsEnsured) return;
+  try {
+    await db.exec(`
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS patterns TEXT DEFAULT '';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS pattern_images TEXT DEFAULT '{}';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS value_images TEXT DEFAULT '{}';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS attribute_type VARCHAR(32) DEFAULT 'general';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS product_id VARCHAR(64) DEFAULT '';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS product_name VARCHAR(255) DEFAULT '';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS category VARCHAR(128) DEFAULT '';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS sizes TEXT DEFAULT '';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS varieties TEXT DEFAULT '';
+      ALTER TABLE variant_attributes ADD COLUMN IF NOT EXISTS variety_images TEXT DEFAULT '{}';
+    `);
+    columnsEnsured = true;
+  } catch (err) {
+    console.warn('[DB] Failed to ensure variant_attributes columns:', err);
+  }
+}
+
+// Router middleware to always ensure columns exist
+router.use(async (_req, _res, next) => {
+  try {
+    const db = await getDb();
+    await ensureVariantAttributeColumns(db);
+  } catch (err) {
+    console.warn('[DB] Error in variant attributes column middleware:', err);
+  }
+  next();
+});
+
 // GET /api/variant-attributes
 router.get('/', async (req: Request, res: Response) => {
   try {
     const businessId = getBusinessId(req);
     const db = await getDb();
+    await ensureVariantAttributeColumns(db);
     const result = await db.query(
       `SELECT va.*, bus.name as business_name
        FROM variant_attributes va
@@ -194,6 +228,7 @@ router.post('/', async (req: Request, res: Response) => {
       attribute_type,
       product_id,
       product_name,
+      category,
       sizes,
       varieties,
       variety_images,
@@ -233,6 +268,7 @@ router.post('/', async (req: Request, res: Response) => {
       : targetBizIds;
 
     const db = await getDb();
+    await ensureVariantAttributeColumns(db);
     const id = `va-${primaryBizId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
     // Normalize comma-separated values (clean whitespace)
@@ -283,13 +319,14 @@ router.post('/', async (req: Request, res: Response) => {
     const finalAttrType = attribute_type === 'product_based' ? 'product_based' : 'general';
     const finalProductId = product_id ? String(product_id).trim() : '';
     const finalProductName = product_name ? String(product_name).trim() : '';
+    const finalCategory = category ? String(category).trim() : '';
 
     const result = await db.query(
       `INSERT INTO variant_attributes (
         id, business_id, business_ids, name, values, patterns, pattern_images, value_images,
-        attribute_type, product_id, product_name, sizes, varieties, variety_images, status
+        attribute_type, product_id, product_name, category, sizes, varieties, variety_images, status
       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        RETURNING *`,
       [
         id,
@@ -303,6 +340,7 @@ router.post('/', async (req: Request, res: Response) => {
         finalAttrType,
         finalProductId,
         finalProductName,
+        finalCategory,
         normalizedSizes,
         normalizedVarieties,
         normalizedVarietyImages,
@@ -336,6 +374,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       attribute_type,
       product_id,
       product_name,
+      category,
       sizes,
       varieties,
       variety_images,
@@ -344,6 +383,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       business_id
     } = req.body;
     const db = await getDb();
+    await ensureVariantAttributeColumns(db);
 
     let normalizedValues: string | undefined = undefined;
     if (values !== undefined) {
@@ -426,14 +466,15 @@ router.put('/:id', async (req: Request, res: Response) => {
         attribute_type = COALESCE($6, attribute_type),
         product_id = COALESCE($7, product_id),
         product_name = COALESCE($8, product_name),
-        sizes = COALESCE($9, sizes),
-        varieties = COALESCE($10, varieties),
-        variety_images = COALESCE($11, variety_images),
-        status = COALESCE($12, status),
-        business_id = COALESCE($13, business_id),
-        business_ids = COALESCE($14, business_ids),
+        category = COALESCE($9, category),
+        sizes = COALESCE($10, sizes),
+        varieties = COALESCE($11, varieties),
+        variety_images = COALESCE($12, variety_images),
+        status = COALESCE($13, status),
+        business_id = COALESCE($14, business_id),
+        business_ids = COALESCE($15, business_ids),
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $15
+       WHERE id = $16
        RETURNING *`,
       [
         name ? name.trim() : undefined,
@@ -444,6 +485,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         attribute_type !== undefined ? attribute_type : undefined,
         product_id !== undefined ? String(product_id).trim() : undefined,
         product_name !== undefined ? String(product_name).trim() : undefined,
+        category !== undefined ? String(category).trim() : undefined,
         normalizedSizes !== undefined ? normalizedSizes : undefined,
         normalizedVarieties !== undefined ? normalizedVarieties : undefined,
         normalizedVarietyImages !== undefined ? normalizedVarietyImages : undefined,

@@ -19,11 +19,13 @@ async function ensureSubCategoryColumns(db: any) {
         code VARCHAR(64) DEFAULT '',
         description TEXT DEFAULT '',
         status VARCHAR(32) DEFAULT 'Active',
+        image_url TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'Active';
       ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS code VARCHAR(64) DEFAULT '';
       ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
+      ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';
     `);
   } catch (err) {
     // Ignore if already exists
@@ -68,13 +70,14 @@ router.get('/', async (req: Request, res: Response) => {
 // POST /api/subcategories
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, category_id, code, description } = req.body;
+    const { name, category_id, code, description, status, image_url } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Subcategory name is required' });
     }
 
     const db = await getDb();
+    await ensureSubCategoryColumns(db);
     const businessId = await resolveBusinessId(db, req.body.business_id || getBusinessId(req));
     const id = `subcat-${businessId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
@@ -88,8 +91,8 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const result = await db.query(
-      `INSERT INTO subcategories (id, business_id, category_id, name, code, description)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO subcategories (id, business_id, category_id, name, code, description, status, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         id,
@@ -97,7 +100,9 @@ router.post('/', async (req: Request, res: Response) => {
         resolvedCategoryId,
         name.trim(),
         code ? code.trim() : '',
-        description ? description.trim() : ''
+        description ? description.trim() : '',
+        status || 'Active',
+        image_url || ''
       ]
     );
 
@@ -111,9 +116,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, category_id, code, description } = req.body;
+    const { name, category_id, code, description, status, image_url, business_id } = req.body;
 
     const db = await getDb();
+    await ensureSubCategoryColumns(db);
 
     let resolvedCategoryId = category_id;
     if (resolvedCategoryId) {
@@ -128,14 +134,20 @@ router.put('/:id', async (req: Request, res: Response) => {
         name = COALESCE($1, name),
         category_id = COALESCE($2, category_id),
         code = COALESCE($3, code),
-        description = COALESCE($4, description)
-       WHERE id = $5
+        description = COALESCE($4, description),
+        status = COALESCE($5, status),
+        image_url = COALESCE($6, image_url),
+        business_id = COALESCE($7, business_id)
+       WHERE id = $8
        RETURNING *`,
       [
         name ? name.trim() : undefined,
         resolvedCategoryId !== undefined ? resolvedCategoryId : undefined,
         code !== undefined ? code.trim() : undefined,
         description !== undefined ? description.trim() : undefined,
+        status !== undefined ? status : undefined,
+        image_url !== undefined ? image_url : undefined,
+        business_id ? business_id.trim() : undefined,
         id
       ]
     );

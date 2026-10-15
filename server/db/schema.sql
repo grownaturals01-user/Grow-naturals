@@ -492,6 +492,7 @@ CREATE TABLE IF NOT EXISTS variant_attributes (
   sizes TEXT DEFAULT '',
   varieties TEXT DEFAULT '',
   variety_images TEXT DEFAULT '{}',
+  category VARCHAR(128) DEFAULT '',
   status VARCHAR(32) DEFAULT 'Active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

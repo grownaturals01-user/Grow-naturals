@@ -105,31 +105,28 @@ export async function seedDatabase(): Promise<void> {
     `);
   }
 
-  // 4. Categories
-  const catCount = await db.query(`SELECT COUNT(*) as count FROM categories`);
-  if (Number(catCount.rows[0]?.count) === 0) {
-    console.log('[DB Seed] Seeding default categories...');
-    await db.query(`
-      INSERT INTO categories (id, business_id, name, type, description, sort_order)
-      VALUES
-      ('cat-gn-1', 'grow-naturals', 'Indoor Plants', 'plants', 'Purifying and decorative indoor flora', 1),
-      ('cat-gn-2', 'grow-naturals', 'Outdoor Plants', 'plants', 'Sunlight loving garden and ornamental plants', 2),
-      ('cat-gn-3', 'grow-naturals', 'Ceramic Pots', 'pots', 'Handcrafted ceramic planters and tabletop pots', 3),
-      ('cat-gn-4', 'grow-naturals', 'Terracotta & Fiber Pots', 'pots', 'Heavy duty garden and balcony planters', 4),
-      ('cat-gn-5', 'grow-naturals', 'Organic Fertilizers', 'fertilizers', 'Bio-fertilizers, vermicompost & plant boosters', 5),
-      ('cat-gn-6', 'grow-naturals', 'Exotic Flowers', 'flowers', 'Orchids, Anthuriums and flowering succulents', 6),
-      ('cat-nn-1', 'nikhlesh-nursery', 'Fruit Saplings', 'plants', 'Grafted high-yield mango, guava, and citrus saplings', 1),
-      ('cat-nn-2', 'nikhlesh-nursery', 'Timber & Shade Trees', 'plants', 'Teak, Mahogany, and fast growing shade saplings', 2),
-      ('cat-nn-3', 'nikhlesh-nursery', 'Flowering Shrubs', 'plants', 'Bougainvillea, Jasmine, and Hibiscus varieties', 3),
-      ('cat-nn-4', 'nikhlesh-nursery', 'Farm Soil & Cocopeat', 'fertilizers', 'Sterilized potting mix, compost & red soil blocks', 4)
-      ON CONFLICT (id) DO NOTHING;
-    `);
-  }
+  // 4. Categories - ensure foundational categories exist
+  await db.query(`
+    INSERT INTO categories (id, business_id, name, type, description, sort_order)
+    VALUES
+    ('cat-gn-1', 'grow-naturals', 'Indoor Plants', 'plants', 'Purifying and decorative indoor flora', 1),
+    ('cat-gn-2', 'grow-naturals', 'Outdoor Plants', 'plants', 'Sunlight loving garden and ornamental plants', 2),
+    ('cat-gn-3', 'grow-naturals', 'Ceramic Pots', 'pots', 'Handcrafted ceramic planters and tabletop pots', 3),
+    ('cat-gn-4', 'grow-naturals', 'Terracotta & Fiber Pots', 'pots', 'Heavy duty garden and balcony planters', 4),
+    ('cat-gn-5', 'grow-naturals', 'Organic Fertilizers', 'fertilizers', 'Bio-fertilizers, vermicompost & plant boosters', 5),
+    ('cat-gn-6', 'grow-naturals', 'Exotic Flowers', 'flowers', 'Orchids, Anthuriums and flowering succulents', 6),
+    ('cat-nn-1', 'nikhlesh-nursery', 'Fruit Saplings', 'plants', 'Grafted high-yield mango, guava, and citrus saplings', 1),
+    ('cat-nn-2', 'nikhlesh-nursery', 'Timber & Shade Trees', 'plants', 'Teak, Mahogany, and fast growing shade saplings', 2),
+    ('cat-nn-3', 'nikhlesh-nursery', 'Flowering Shrubs', 'plants', 'Bougainvillea, Jasmine, and Hibiscus varieties', 3),
+    ('cat-nn-4', 'nikhlesh-nursery', 'Farm Soil & Cocopeat', 'fertilizers', 'Sterilized potting mix, compost & red soil blocks', 4)
+    ON CONFLICT (id) DO NOTHING;
+  `);
 
   // 5. Products
-  const prodCount = await db.query(`SELECT COUNT(*) as count FROM products`);
-  if (Number(prodCount.rows[0]?.count) === 0) {
-    console.log('[DB Seed] Seeding default products for Grow Naturals & Nikhlesh Nursery...');
+  try {
+    const prodCount = await db.query(`SELECT COUNT(*) as count FROM products`);
+    if (Number(prodCount.rows[0]?.count) === 0) {
+      console.log('[DB Seed] Seeding default products for Grow Naturals & Nikhlesh Nursery...');
     await db.query(`
       INSERT INTO products (id, business_id, category_id, type, name, sku, barcode, cost_price, sale_price, gst_rate, hsn_code, stock_quantity, low_stock_threshold, unit, image_url)
       VALUES
@@ -153,6 +150,9 @@ export async function seedDatabase(): Promise<void> {
       ('prod-nn-6', 'nikhlesh-nursery', 'cat-nn-4', 'fertilizers', 'Premium Red Soil & Cowdung Compost (25 Kg)', 'NN-SOIL-06', '8902002006', 160.00, 350.00, 0.00, '3101', 80, 15, 'BAG', '')
       ON CONFLICT (id) DO NOTHING;
     `);
+    }
+  } catch (prodErr) {
+    console.warn('[DB Seed] Warning while seeding products (skipped):', prodErr);
   }
 
   console.log('[DB Seed] Verification & Seeding completed successfully!');
