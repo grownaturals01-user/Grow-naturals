@@ -803,64 +803,52 @@ const VariantAttributes: React.FC = () => {
   const handleAddPatternImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     try {
       setAddError(null);
-      const compressed = await compressImageFile(file, {
-        maxDimension: 800,
-        quality: 0.82,
-        maxSizeBytes: 10 * 1024 * 1024,
-      });
+      const compressed = await compressImageFile(file);
       setAddCurrentPatternImage(compressed);
     } catch (err: any) {
-      setAddError(err.message || "Failed to load pattern image. Please select an image up to 10MB.");
+      setAddError(err.message || "Failed to load pattern image. Please select an image up to 15MB.");
     }
   };
 
   const handleAddValueImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     try {
       setAddError(null);
-      const compressed = await compressImageFile(file, {
-        maxDimension: 800,
-        quality: 0.82,
-        maxSizeBytes: 10 * 1024 * 1024,
-      });
+      const compressed = await compressImageFile(file);
       setAddCurrentValueImage(compressed);
     } catch (err: any) {
-      setAddError(err.message || "Failed to load image. Please select an image up to 10MB.");
+      setAddError(err.message || "Failed to load image. Please select an image up to 15MB.");
     }
   };
 
   const handleEditPatternImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     try {
       setEditError(null);
-      const compressed = await compressImageFile(file, {
-        maxDimension: 800,
-        quality: 0.82,
-        maxSizeBytes: 10 * 1024 * 1024,
-      });
+      const compressed = await compressImageFile(file);
       setEditCurrentPatternImage(compressed);
     } catch (err: any) {
-      setEditError(err.message || "Failed to load pattern image. Please select an image up to 10MB.");
+      setEditError(err.message || "Failed to load pattern image. Please select an image up to 15MB.");
     }
   };
 
   const handleEditValueImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     try {
       setEditError(null);
-      const compressed = await compressImageFile(file, {
-        maxDimension: 800,
-        quality: 0.82,
-        maxSizeBytes: 10 * 1024 * 1024,
-      });
+      const compressed = await compressImageFile(file);
       setEditCurrentValueImage(compressed);
     } catch (err: any) {
-      setEditError(err.message || "Failed to load image. Please select an image up to 10MB.");
+      setEditError(err.message || "Failed to load image. Please select an image up to 15MB.");
     }
   };
 
@@ -1342,6 +1330,8 @@ const VariantAttributes: React.FC = () => {
       }
     }
 
+    const isVariety = isNN || addAttributeType === "product_based";
+
     setIsAdding(true);
     try {
       await api.post("/variant-attributes", {
@@ -1350,9 +1340,9 @@ const VariantAttributes: React.FC = () => {
         category: addAttributeType === "product_based" ? addCategory.trim() : "",
         values: finalValues.join(", "),
         sizes: addAttributeType === "product_based" ? finalSizes.join(", ") : "",
-        varieties: isNN || addAttributeType === "product_based" ? finalValues.join(", ") : "",
-        variety_images: finalValueImages,
-        value_images: finalValueImages,
+        varieties: isVariety ? finalValues.join(", ") : "",
+        variety_images: isVariety ? finalValueImages : {},
+        value_images: !isVariety ? finalValueImages : {},
         patterns: showAddPatterns ? finalPatterns.join(", ") : "",
         pattern_images: showAddPatterns ? finalPatternImages : {},
         attribute_type: addAttributeType,
@@ -1569,6 +1559,8 @@ const VariantAttributes: React.FC = () => {
       }
     }
 
+    const isVariety = isEditNN || editAttributeType === "product_based";
+
     setIsEditing(true);
     try {
       const isVirtual = editingVariant.id && String(editingVariant.id).startsWith("virtual-");
@@ -1579,9 +1571,9 @@ const VariantAttributes: React.FC = () => {
           category: editAttributeType === "product_based" ? editCategory.trim() : "",
           values: finalValues.join(", "),
           sizes: editAttributeType === "product_based" ? finalSizes.join(", ") : "",
-          varieties: isEditNN || editAttributeType === "product_based" ? finalValues.join(", ") : "",
-          variety_images: finalValueImages,
-          value_images: finalValueImages,
+          varieties: isVariety ? finalValues.join(", ") : "",
+          variety_images: isVariety ? finalValueImages : {},
+          value_images: !isVariety ? finalValueImages : {},
           patterns: showEditPatterns ? finalPatterns.join(", ") : "",
           pattern_images: showEditPatterns ? finalPatternImages : {},
           attribute_type: editAttributeType,
@@ -1595,9 +1587,9 @@ const VariantAttributes: React.FC = () => {
           category: editAttributeType === "product_based" ? editCategory.trim() : "",
           values: finalValues.join(", "),
           sizes: editAttributeType === "product_based" ? finalSizes.join(", ") : "",
-          varieties: isEditNN || editAttributeType === "product_based" ? finalValues.join(", ") : "",
-          variety_images: finalValueImages,
-          value_images: finalValueImages,
+          varieties: isVariety ? finalValues.join(", ") : "",
+          variety_images: isVariety ? finalValueImages : {},
+          value_images: !isVariety ? finalValueImages : {},
           patterns: showEditPatterns ? finalPatterns.join(", ") : "",
           pattern_images: showEditPatterns ? finalPatternImages : {},
           attribute_type: editAttributeType,

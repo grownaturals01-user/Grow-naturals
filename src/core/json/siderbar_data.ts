@@ -98,6 +98,13 @@ export const SidebarData = [
         showSubRoute: false,
         submenu: false,
       },
+      {
+        label: "Damage Tracking",
+        link: route.damagetracking,
+        icon: "alert-triangle",
+        showSubRoute: false,
+        submenu: false,
+      },
     ],
   },
   {

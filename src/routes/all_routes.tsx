@@ -108,6 +108,7 @@ export const all_routes = {
   expensecategory: "/expense-category",
   calendars: "/calendar",
   variantattributes: "/variant-attributes",
+  damagetracking: "/damage-tracking",
   qrcode: "/qrcode",
   purchases: "/purchases",
   purchaselist: "/purchase-list",

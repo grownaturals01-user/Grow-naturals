@@ -121,7 +121,7 @@ router.get('/', async (req: Request, res: Response) => {
         ...row,
         business_ids: bIds,
         pattern_images: pImages,
-        value_images: vImages,
+        value_images: Object.keys(vImages).length > 0 ? vImages : varImages,
         variety_images: Object.keys(varImages).length > 0 ? varImages : vImages,
         is_mapped_to_both: isMappedToBoth,
         display_business: isMappedToBoth ? 'Both Businesses' : (row.business_name || (bIds[0] === 'nikhlesh-nursery' ? 'Nikhlesh Nursery' : 'Grow Naturals'))
@@ -207,7 +207,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       ...row,
       business_ids: bIds,
       pattern_images: pImages,
-      value_images: vImages,
+      value_images: Object.keys(vImages).length > 0 ? vImages : varImages,
       variety_images: Object.keys(varImages).length > 0 ? varImages : vImages,
       is_mapped_to_both: row.business_id === 'all' || bIds.length >= 2
     });
@@ -292,10 +292,6 @@ router.post('/', async (req: Request, res: Response) => {
       ? JSON.stringify(pattern_images)
       : (typeof pattern_images === 'string' ? pattern_images : '{}');
 
-    const normalizedValueImages = value_images && typeof value_images === 'object'
-      ? JSON.stringify(value_images)
-      : (typeof value_images === 'string' ? value_images : '{}');
-
     const normalizedSizes = sizes
       ? sizes
           .split(',')
@@ -312,9 +308,18 @@ router.post('/', async (req: Request, res: Response) => {
           .join(', ')
       : normalizedValues;
 
-    const normalizedVarietyImages = variety_images && typeof variety_images === 'object'
-      ? JSON.stringify(variety_images)
-      : (typeof variety_images === 'string' ? variety_images : normalizedValueImages);
+    const hasValueImages = value_images && (typeof value_images === 'object' ? Object.keys(value_images).length > 0 : value_images !== '{}');
+    const hasVarietyImages = variety_images && (typeof variety_images === 'object' ? Object.keys(variety_images).length > 0 : variety_images !== '{}');
+
+    let effectiveImagesJson = '{}';
+    if (hasValueImages) {
+      effectiveImagesJson = typeof value_images === 'object' ? JSON.stringify(value_images) : String(value_images);
+    } else if (hasVarietyImages) {
+      effectiveImagesJson = typeof variety_images === 'object' ? JSON.stringify(variety_images) : String(variety_images);
+    }
+
+    const normalizedValueImages = effectiveImagesJson;
+    const normalizedVarietyImages = effectiveImagesJson;
 
     const finalAttrType = attribute_type === 'product_based' ? 'product_based' : 'general';
     const finalProductId = product_id ? String(product_id).trim() : '';
@@ -440,6 +445,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       normalizedVarietyImages = typeof variety_images === 'object'
         ? JSON.stringify(variety_images)
         : String(variety_images);
+    }
+
+    if (normalizedValueImages && normalizedValueImages !== '{}' && (!normalizedVarietyImages || normalizedVarietyImages === '{}')) {
+      normalizedVarietyImages = normalizedValueImages;
+    } else if (normalizedVarietyImages && normalizedVarietyImages !== '{}' && (!normalizedValueImages || normalizedValueImages === '{}')) {
+      normalizedValueImages = normalizedVarietyImages;
     }
 
     let primaryBizId: string | undefined = undefined;

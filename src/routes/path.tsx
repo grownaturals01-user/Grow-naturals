@@ -54,6 +54,9 @@ const BrandList = lazy(() => import("../feature-module/inventory/brandlist"));
 const VariantAttributes = lazy(
   () => import("../feature-module/inventory/variantattributes")
 );
+const DamageTracking = lazy(
+  () => import("../feature-module/inventory/damagetracking")
+);
 const Warranty = lazy(() => import("../feature-module/inventory/warranty"));
 const PrintBarcode = lazy(
   () => import("../feature-module/inventory/printbarcode")
@@ -818,6 +821,13 @@ export const authRoutes = [
     path: routes.variantattributes,
     name: "variantattributes",
     element: <VariantAttributes />,
+    route: Route,
+  },
+  {
+    id: 661,
+    path: routes.damagetracking,
+    name: "damage-tracking",
+    element: <DamageTracking />,
     route: Route,
   },
   {
