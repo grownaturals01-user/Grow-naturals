@@ -142,15 +142,31 @@ const DamageTracking: React.FC = () => {
     setLoadingInvoices(true);
     const combinedList: PurchaseInvoice[] = [];
 
-    // 1. Fetch purchase orders from backend
+    // Helper map of product catalog prices (cost_price / price) as an intelligent fallback
+    const productPriceMap = new Map<string, number>();
+
+    // 1. Fetch purchase orders from backend & product catalog in parallel
     try {
       const activeBiz = getActiveBusinessId();
-      const res = await api.get<any[]>("/purchases", {
-        business_id: activeBiz || "all",
-      });
+      const [resPurchases, resProducts] = await Promise.allSettled([
+        api.get<any[]>("/purchases", { business_id: activeBiz || "all" }),
+        api.get<any[]>("/products", { business_id: activeBiz || "all" }),
+      ]);
 
-      if (Array.isArray(res)) {
-        res.forEach((po: any) => {
+      if (resProducts.status === "fulfilled" && Array.isArray(resProducts.value)) {
+        resProducts.value.forEach((p: any) => {
+          const cost = Number(p.cost_price || p.purchase_price || p.cost || p.price || 0);
+          if (cost > 0) {
+            if (p.id) productPriceMap.set(String(p.id).toLowerCase(), cost);
+            if (p.sku) productPriceMap.set(String(p.sku).toLowerCase(), cost);
+            const pName = String(p.name || p.product_name || p.product || "").toLowerCase().trim();
+            if (pName) productPriceMap.set(pName, cost);
+          }
+        });
+      }
+
+      if (resPurchases.status === "fulfilled" && Array.isArray(resPurchases.value)) {
+        resPurchases.value.forEach((po: any) => {
           combinedList.push({
             id: String(po.id),
             po_number: po.po_number || `PO-${po.id}`,
@@ -185,35 +201,70 @@ const DamageTracking: React.FC = () => {
       const localBatches = batchService.getBatches();
       if (Array.isArray(localBatches)) {
         (localBatches as any[]).forEach((batch: any) => {
-          const bNum = batch.batchNumber || batch.batch_number || batch.batchNo || "";
-          const invNum = batch.invoiceNumber || batch.invoice_no || batch.supplier_invoice_no || "";
+          const bNum = batch.batchNo || batch.batchNumber || batch.batch_number || "";
+          const invNum = batch.invoiceNo || batch.invoiceNumber || batch.invoice_no || batch.supplier_invoice_no || "";
           const alreadyExists = combinedList.some(
             (p) =>
               (bNum && p.po_number.toLowerCase() === bNum.toLowerCase()) ||
-              (invNum && p.supplier_invoice_no?.toLowerCase() === invNum.toLowerCase())
+              (invNum && p.supplier_invoice_no && p.supplier_invoice_no.toLowerCase() === invNum.toLowerCase())
           );
 
           if (!alreadyExists) {
             const mappedItems: PurchaseOrderItem[] = (batch.items || []).map((item: any, idx: number) => {
-              const qty = item.receivedQuantity || item.orderedQuantity || item.quantity || 0;
-              const cost = item.costPrice || item.unit_price || item.price || 0;
+              const qty = Number(item.quantity ?? item.receivedQuantity ?? item.orderedQuantity ?? 0);
+              const pName = item.productName || item.name || item.product_name || "Product";
+              const sku = item.sku || "";
+              const prodId = item.productId || item.product_id || "";
+
+              // Resolve unit cost: first from item's recorded prices, then fallback to catalog price
+              const explicitCost = Number(
+                item.purchasePrice ??
+                item.actualCost ??
+                item.costPrice ??
+                item.unit_price ??
+                item.price ??
+                item.sellingPrice ??
+                0
+              );
+
+              const catalogCost =
+                (prodId && productPriceMap.get(String(prodId).toLowerCase())) ||
+                (sku && productPriceMap.get(String(sku).toLowerCase())) ||
+                (pName && productPriceMap.get(String(pName).toLowerCase().trim())) ||
+                0;
+
+              const cost = explicitCost > 0 ? explicitCost : catalogCost;
+              const lineTotal = Number(item.total ?? (qty * cost));
+
               return {
                 id: `${batch.id}-item-${idx}`,
-                product_id: item.productId || item.product_id || "",
-                product_name: item.name || item.product_name || item.productName || "Product",
-                sku: item.sku || "",
+                product_id: prodId,
+                product_name: pName,
+                sku: sku,
                 quantity: qty,
                 unit_price: cost,
-                total: qty * cost,
+                total: lineTotal,
                 batch_no: bNum,
               };
             });
+
+            // Calculate overall total amount from items if batch total is zero or missing
+            const calculatedItemSum = mappedItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+            const totalAmt = Number(
+              batch.totalPurchaseValue ||
+              batch.totalAmount ||
+              batch.total_amount ||
+              calculatedItemSum ||
+              0
+            );
+
+            const supplierName = (batch.supplierName || batch.supplier || batch.supplier_name || "").trim() || "Local Supplier";
 
             combinedList.push({
               id: batch.id,
               po_number: bNum || `BATCH-${batch.id}`,
               supplier_invoice_no: invNum,
-              supplier_name: batch.supplier || batch.supplier_name || "Supplier",
+              supplier_name: supplierName,
               contact_person: "",
               supplier_phone: "",
               supplier_email: "",
@@ -224,12 +275,12 @@ const DamageTracking: React.FC = () => {
                 batch.businessName ||
                 batch.business_name ||
                 ((batch.businessId || batch.business_id) === "nikhlesh-nursery" ? "Nikhlesh Nursery" : "Grow Naturals"),
-              order_date: batch.receivedDate || batch.purchaseDate || batch.order_date || new Date().toISOString().split("T")[0],
+              order_date: batch.purchaseDate || batch.receivedDate || batch.order_date || new Date().toISOString().split("T")[0],
               status: "received",
               payment_status: batch.paymentStatus || batch.payment_status || "paid",
               payment_method: "Cash / Bank",
-              total_amount: batch.totalAmount || batch.total_amount || 0,
-              paid_amount: batch.totalAmount || batch.total_amount || 0,
+              total_amount: totalAmt,
+              paid_amount: Number(batch.paidAmount || batch.paid_amount || totalAmt),
               outstanding_due: 0,
               notes: batch.notes || "",
               items: mappedItems,
