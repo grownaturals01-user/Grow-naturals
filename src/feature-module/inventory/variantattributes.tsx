@@ -217,23 +217,59 @@ const VariantAttributes: React.FC = () => {
 
   const [showAddCategoryDropdown, setShowAddCategoryDropdown] = useState(false);
   const [showEditCategoryDropdown, setShowEditCategoryDropdown] = useState(false);
-  const addCategoryContainerRef = useRef<HTMLDivElement | null>(null);
+  const addCategoryContainerRef = useRef<HTMLDivElement | null>(null);                                                                                                                      
   const editCategoryContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Close category dropdowns on outside click
+  // Size & Color / Variety recommendation dropdown states & refs
+  const [showAddSizeDropdown, setShowAddSizeDropdown] = useState(false);
+  const [showAddColorDropdown, setShowAddColorDropdown] = useState(false);
+  const addSizeContainerRef = useRef<HTMLDivElement | null>(null);
+  const addColorContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const [showEditSizeDropdown, setShowEditSizeDropdown] = useState(false);
+  const [showEditColorDropdown, setShowEditColorDropdown] = useState(false);
+  const editSizeContainerRef = useRef<HTMLDivElement | null>(null);
+  const editColorContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Close recommendation & category dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
         addCategoryContainerRef.current &&
-        !addCategoryContainerRef.current.contains(event.target as Node)
+        !addCategoryContainerRef.current.contains(target)
       ) {
         setShowAddCategoryDropdown(false);
       }
       if (
         editCategoryContainerRef.current &&
-        !editCategoryContainerRef.current.contains(event.target as Node)
+        !editCategoryContainerRef.current.contains(target)
       ) {
         setShowEditCategoryDropdown(false);
+      }
+      if (
+        addSizeContainerRef.current &&
+        !addSizeContainerRef.current.contains(target)
+      ) {
+        setShowAddSizeDropdown(false);
+      }
+      if (
+        addColorContainerRef.current &&
+        !addColorContainerRef.current.contains(target)
+      ) {
+        setShowAddColorDropdown(false);
+      }
+      if (
+        editSizeContainerRef.current &&
+        !editSizeContainerRef.current.contains(target)
+      ) {
+        setShowEditSizeDropdown(false);
+      }
+      if (
+        editColorContainerRef.current &&
+        !editColorContainerRef.current.contains(target)
+      ) {
+        setShowEditColorDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -321,6 +357,161 @@ const VariantAttributes: React.FC = () => {
     [variantList, isVariantForBiz]
   );
 
+  // Sizes helper per business (strict store isolation: previously entered sizes for this business)
+  const getSizesForBiz = useCallback(
+    (bizId: string): string[] => {
+      if (!bizId) return [];
+      const seenLower = new Set<string>();
+      const result: string[] = [];
+
+      const addSize = (s: string) => {
+        const trimmed = s.trim();
+        if (!trimmed) return;
+        const lower = trimmed.toLowerCase();
+        if (!seenLower.has(lower)) {
+          seenLower.add(lower);
+          result.push(trimmed);
+        }
+      };
+
+      variantList.forEach((item) => {
+        if (isVariantForBiz(item, bizId)) {
+          // From sizes_array or sizes string
+          if (item.sizes_array && item.sizes_array.length > 0) {
+            item.sizes_array.forEach(addSize);
+          } else if (item.sizes) {
+            item.sizes.split(",").forEach(addSize);
+          }
+          // If variant is Size
+          const vName = (item.variant || item.raw?.name || "").toLowerCase();
+          if (isSizeVariant(vName) || vName === "size" || vName === "sizes") {
+            if (item.values_array && item.values_array.length > 0) {
+              item.values_array.forEach(addSize);
+            } else if (item.values) {
+              item.values.split(",").forEach(addSize);
+            }
+          }
+        }
+      });
+
+      return result.sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+      );
+    },
+    [variantList, isVariantForBiz]
+  );
+
+  // Colors helper per business (strict store isolation: previously entered colors with images for this business)
+  const getColorsForBiz = useCallback(
+    (bizId: string): { name: string; image?: string }[] => {
+      if (!bizId) return [];
+      const colorMap = new Map<string, string | undefined>();
+
+      variantList.forEach((item) => {
+        if (isVariantForBiz(item, bizId)) {
+          const vName = (item.variant || item.raw?.name || "").toLowerCase();
+          const isNN = isNikhleshNurseryOnly([bizId], availableBusinesses);
+          const isColor =
+            vName.includes("color") ||
+            vName.includes("colour") ||
+            (item.attribute_type === "product_based" && !isNN);
+
+          if (isColor) {
+            const list =
+              item.values_array && item.values_array.length > 0
+                ? item.values_array
+                : item.values
+                ? item.values.split(",").map((v) => v.trim()).filter(Boolean)
+                : [];
+
+            list.forEach((col) => {
+              const trimmed = col.trim();
+              if (!trimmed) return;
+              const lower = trimmed.toLowerCase();
+              const existingImg = colorMap.get(lower);
+              const itemImg =
+                item.value_images?.[trimmed] ||
+                item.value_images?.[lower] ||
+                item.variety_images?.[trimmed] ||
+                item.variety_images?.[lower];
+
+              if (!colorMap.has(lower) || (!existingImg && itemImg)) {
+                colorMap.set(lower, itemImg);
+              }
+            });
+          }
+        }
+      });
+
+      const keys = Array.from(colorMap.keys()).sort();
+      return keys.map((key) => {
+        const capitalized = key.charAt(0).toUpperCase() + key.slice(1);
+        return {
+          name: capitalized,
+          image: colorMap.get(key),
+        };
+      });
+    },
+    [variantList, isVariantForBiz, availableBusinesses]
+  );
+
+  // Varieties helper per business (strict store isolation: previously entered varieties with images for Nikhlesh Nursery)
+  const getVarietiesForBiz = useCallback(
+    (bizId: string): { name: string; image?: string }[] => {
+      if (!bizId) return [];
+      const varietyMap = new Map<string, string | undefined>();
+
+      variantList.forEach((item) => {
+        if (isVariantForBiz(item, bizId)) {
+          const vName = (item.variant || item.raw?.name || "").toLowerCase();
+          const isNN = isNikhleshNurseryOnly([bizId], availableBusinesses);
+          const isVariety =
+            vName.includes("variety") ||
+            (item.attribute_type === "product_based" && isNN);
+
+          if (isVariety) {
+            const list =
+              item.varieties_array && item.varieties_array.length > 0
+                ? item.varieties_array
+                : item.varieties
+                ? item.varieties.split(",").map((v) => v.trim()).filter(Boolean)
+                : item.values_array && item.values_array.length > 0
+                ? item.values_array
+                : item.values
+                ? item.values.split(",").map((v) => v.trim()).filter(Boolean)
+                : [];
+
+            list.forEach((vr) => {
+              const trimmed = vr.trim();
+              if (!trimmed) return;
+              const lower = trimmed.toLowerCase();
+              const existingImg = varietyMap.get(lower);
+              const itemImg =
+                item.variety_images?.[trimmed] ||
+                item.variety_images?.[lower] ||
+                item.value_images?.[trimmed] ||
+                item.value_images?.[lower];
+
+              if (!varietyMap.has(lower) || (!existingImg && itemImg)) {
+                varietyMap.set(lower, itemImg);
+              }
+            });
+          }
+        }
+      });
+
+      const keys = Array.from(varietyMap.keys()).sort();
+      return keys.map((key) => {
+        const capitalized = key.charAt(0).toUpperCase() + key.slice(1);
+        return {
+          name: capitalized,
+          image: varietyMap.get(key),
+        };
+      });
+    },
+    [variantList, isVariantForBiz, availableBusinesses]
+  );
+
   const activeAddBiz = selectedBizIds[0] || (availableBusinesses[0]?.id ?? "grow-naturals");
   const availableAddCategories = useMemo(
     () => getCategoriesForBiz(activeAddBiz),
@@ -329,6 +520,18 @@ const VariantAttributes: React.FC = () => {
   const addProductCatMap = useMemo(
     () => getProductToCategoryMap(activeAddBiz),
     [getProductToCategoryMap, activeAddBiz]
+  );
+  const availableAddSizes = useMemo(
+    () => getSizesForBiz(activeAddBiz),
+    [getSizesForBiz, activeAddBiz]
+  );
+  const availableAddColors = useMemo(
+    () => getColorsForBiz(activeAddBiz),
+    [getColorsForBiz, activeAddBiz]
+  );
+  const availableAddVarieties = useMemo(
+    () => getVarietiesForBiz(activeAddBiz),
+    [getVarietiesForBiz, activeAddBiz]
   );
 
   const activeEditBiz = editSelectedBizIds[0] || (availableBusinesses[0]?.id ?? "grow-naturals");
@@ -339,6 +542,18 @@ const VariantAttributes: React.FC = () => {
   const editProductCatMap = useMemo(
     () => getProductToCategoryMap(activeEditBiz),
     [getProductToCategoryMap, activeEditBiz]
+  );
+  const availableEditSizes = useMemo(
+    () => getSizesForBiz(activeEditBiz),
+    [getSizesForBiz, activeEditBiz]
+  );
+  const availableEditColors = useMemo(
+    () => getColorsForBiz(activeEditBiz),
+    [getColorsForBiz, activeEditBiz]
+  );
+  const availableEditVarieties = useMemo(
+    () => getVarietiesForBiz(activeEditBiz),
+    [getVarietiesForBiz, activeEditBiz]
   );
 
   // Available categories for table filter based on active business tab (no dump data, only actual categories in variant list)
@@ -1941,6 +2156,428 @@ const VariantAttributes: React.FC = () => {
     );
   };
 
+  const renderSizeInputField = (
+    isEdit: boolean,
+    placeholderText: string = "e.g. 4 inch, 6 inch, 8 inch, Small, Medium, Large"
+  ) => {
+    const currentVal = isEdit ? editSingleSizeInput : addSingleSizeInput;
+    const setVal = isEdit ? setEditSingleSizeInput : setAddSingleSizeInput;
+    const handleAdd = isEdit ? handleEditAddSingleSize : handleAddSingleSize;
+    const showDropdown = isEdit ? showEditSizeDropdown : showAddSizeDropdown;
+    const setShowDropdown = isEdit ? setShowEditSizeDropdown : setShowAddSizeDropdown;
+    const containerRef = isEdit ? editSizeContainerRef : addSizeContainerRef;
+    const sizesList = isEdit ? availableEditSizes : availableAddSizes;
+    const currentAddedList = isEdit ? editSizesList : addSizesList;
+    const setAddedList = isEdit ? setEditSizesList : setAddSizesList;
+    const bizId = isEdit ? activeEditBiz : activeAddBiz;
+    const bizName = bizId === "nikhlesh-nursery" ? "Nikhlesh Nursery" : "Grow Naturals";
+
+    const filtered = sizesList.filter(
+      (s) => !currentVal.trim() || s.toLowerCase().includes(currentVal.trim().toLowerCase())
+    );
+
+    return (
+      <div className="d-flex align-items-center gap-2">
+        <div className="position-relative flex-grow-1" ref={containerRef}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder={placeholderText}
+            style={{
+              height: "40px",
+              paddingRight: sizesList.length > 0 ? "36px" : "12px",
+            }}
+            value={currentVal}
+            onChange={(e) => {
+              setVal(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                setShowDropdown(false);
+                handleAdd();
+              }
+            }}
+          />
+          {sizesList.length > 0 && (
+            <button
+              type="button"
+              className="btn p-0 position-absolute end-0 top-50 translate-middle-y me-2 d-flex align-items-center justify-content-center border-0 bg-transparent shadow-none"
+              onClick={() => setShowDropdown((prev) => !prev)}
+              style={{
+                width: "28px",
+                height: "28px",
+                cursor: "pointer",
+              }}
+              title="Show existing sizes"
+            >
+              <ChevronDown
+                size={16}
+                className="text-muted"
+                style={{
+                  transition: "transform 0.2s ease",
+                  transform: showDropdown ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            </button>
+          )}
+
+          {showDropdown && sizesList.length > 0 && (
+            <ul
+              className="dropdown-menu show w-100 shadow border mt-1"
+              style={{
+                maxHeight: "220px",
+                overflowY: "auto",
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                zIndex: 1060,
+              }}
+            >
+              <li className="dropdown-header d-flex justify-content-between align-items-center text-uppercase fs-11 fw-bold text-muted py-1 px-3">
+                <span>Previously Used Sizes ({bizName})</span>
+                <span className="badge bg-light text-muted border">{filtered.length}</span>
+              </li>
+              {filtered.length === 0 ? (
+                <li className="text-muted fs-12 py-2 px-3">No matching sizes found</li>
+              ) : (
+                filtered.map((sz, idx) => {
+                  const isAlreadyAdded = currentAddedList.some(
+                    (s) => s.toLowerCase() === sz.toLowerCase()
+                  );
+                  return (
+                    <li key={idx}>
+                      <div
+                        className="dropdown-item d-flex align-items-center justify-content-between py-2 px-3"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => {
+                          setVal(sz);
+                          setShowDropdown(false);
+                        }}
+                      >
+                        <span className="d-flex align-items-center gap-2">
+                          <i className="ti ti-ruler-2 text-primary fs-14" />
+                          <span className="fw-medium text-dark">{sz}</span>
+                        </span>
+                        {isAlreadyAdded ? (
+                          <span className="badge bg-success-subtle text-success fs-10 px-2 py-0 border border-success-subtle">
+                            Added
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-outline-primary py-0 px-2 fs-11 d-flex align-items-center gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAddedList((prev) => {
+                                const existing = new Set(prev.map((p) => p.toLowerCase()));
+                                if (existing.has(sz.toLowerCase())) return prev;
+                                return [...prev, sz];
+                              });
+                              setShowDropdown(false);
+                            }}
+                            title={`Add ${sz} directly`}
+                          >
+                            <i className="ti ti-plus fs-10" /> Add
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+          style={{ height: "40px" }}
+          onClick={() => {
+            setShowDropdown(false);
+            handleAdd();
+          }}
+        >
+          <i className="ti ti-plus me-1" /> Add
+        </button>
+      </div>
+    );
+  };
+
+  const renderValueWithImageInputField = (
+    isEdit: boolean,
+    isNN: boolean,
+    labelName: string,
+    placeholderText: string,
+    canUploadImage: boolean,
+    itemType?: "size" | "color" | "variety" | "custom"
+  ) => {
+    const currentVal = isEdit ? editSingleValueInput : addSingleValueInput;
+    const setVal = isEdit ? setEditSingleValueInput : setAddSingleValueInput;
+    const handleAdd = isEdit ? handleEditAddSingleValue : handleAddSingleValue;
+    const showDropdown = isEdit ? showEditColorDropdown : showAddColorDropdown;
+    const setShowDropdown = isEdit ? setShowEditColorDropdown : setShowAddColorDropdown;
+    const containerRef = isEdit ? editColorContainerRef : addColorContainerRef;
+    
+    let itemsList: { name: string; image?: string }[] = [];
+    if (itemType === "size") {
+      itemsList = (isEdit ? availableEditSizes : availableAddSizes).map((s) => ({ name: s }));
+    } else if (itemType === "color") {
+      itemsList = isEdit ? availableEditColors : availableAddColors;
+    } else if (itemType === "variety") {
+      itemsList = isEdit ? availableEditVarieties : availableAddVarieties;
+    } else if (itemType === "custom") {
+      itemsList = [];
+    } else {
+      itemsList = isNN
+        ? (isEdit ? availableEditVarieties : availableAddVarieties)
+        : (isEdit ? availableEditColors : availableAddColors);
+    }
+
+    const currentAddedList = isEdit ? editValuesList : addValuesList;
+    const setAddedList = isEdit ? setEditValuesList : setAddValuesList;
+    const setAddedImages = isEdit ? setEditValueImages : setAddValueImages;
+    const currentImage = isEdit ? editCurrentValueImage : addCurrentValueImage;
+    const setCurrentImage = isEdit ? setEditCurrentValueImage : setAddCurrentValueImage;
+    const fileInputRef = isEdit ? editValueFileInputRef : addValueFileInputRef;
+    const handleImageChange = isEdit ? handleEditValueImageFileChange : handleAddValueImageFileChange;
+    const bizId = isEdit ? activeEditBiz : activeAddBiz;
+    const bizName = bizId === "nikhlesh-nursery" ? "Nikhlesh Nursery" : "Grow Naturals";
+
+    const filtered = itemsList.filter(
+      (item) => !currentVal.trim() || item.name.toLowerCase().includes(currentVal.trim().toLowerCase())
+    );
+
+    return (
+      <div className="d-flex align-items-center gap-2">
+        <div className="position-relative flex-grow-1" ref={containerRef}>
+          <div
+            className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
+            style={{ borderColor: "#ced4da", height: "40px" }}
+          >
+            <input
+              type="text"
+              className="form-control border-0 shadow-none px-3"
+              placeholder={placeholderText}
+              style={{ height: "100%", background: "transparent", color: "#212529" }}
+              value={currentVal}
+              onChange={(e) => {
+                setVal(e.target.value);
+                setShowDropdown(true);
+              }}
+              onFocus={() => setShowDropdown(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  setShowDropdown(false);
+                  handleAdd();
+                }
+              }}
+            />
+
+            {itemsList.length > 0 && (
+              <button
+                type="button"
+                className="btn p-0 me-1 d-flex align-items-center justify-content-center border-0 bg-transparent shadow-none"
+                onClick={() => setShowDropdown((prev) => !prev)}
+                style={{ width: "24px", height: "24px", cursor: "pointer" }}
+                title={`Show existing ${labelName.toLowerCase()}`}
+              >
+                <ChevronDown
+                  size={15}
+                  className="text-muted"
+                  style={{
+                    transition: "transform 0.2s ease",
+                    transform: showDropdown ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              </button>
+            )}
+
+            {canUploadImage && (
+              <div
+                className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
+                style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onClick={(e) => {
+                    (e.target as HTMLInputElement).value = "";
+                  }}
+                  onChange={handleImageChange}
+                />
+                {currentImage ? (
+                  <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                    <img
+                      src={currentImage}
+                      alt={`${labelName} preview`}
+                      style={{
+                        width: "24px",
+                        height: "24px",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                        border: "1px solid #ced4da",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
+                      style={{ textDecoration: "none", lineHeight: 1 }}
+                      onClick={() => {
+                        setCurrentImage(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                      title="Remove image"
+                    >
+                      <i className="ti ti-x fs-13" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
+                    onClick={() => fileInputRef.current?.click()}
+                    title={`Attach image for this ${isNN || itemType === "variety" ? "variety" : "color"}`}
+                    style={{ background: "transparent", fontSize: "12px" }}
+                  >
+                    <i className="ti ti-photo fs-15 text-primary me-1" />
+                    <span className="fw-medium text-dark">Image</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {showDropdown && itemsList.length > 0 && (
+            <ul
+              className="dropdown-menu show w-100 shadow border mt-1"
+              style={{
+                maxHeight: "220px",
+                overflowY: "auto",
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                zIndex: 1060,
+              }}
+            >
+              <li className="dropdown-header d-flex justify-content-between align-items-center text-uppercase fs-11 fw-bold text-muted py-1 px-3">
+                <span>Previously Used {labelName} ({bizName})</span>
+                <span className="badge bg-light text-muted border">{filtered.length}</span>
+              </li>
+              {filtered.length === 0 ? (
+                <li className="text-muted fs-12 py-2 px-3">No matching {labelName.toLowerCase()} found</li>
+              ) : (
+                filtered.map((item, idx) => {
+                  const isAlreadyAdded = currentAddedList.some(
+                    (v) => v.toLowerCase() === item.name.toLowerCase()
+                  );
+                  return (
+                    <li key={idx}>
+                      <div
+                        className="dropdown-item d-flex align-items-center justify-content-between py-2 px-3"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => {
+                          setVal(item.name);
+                          if (item.image && !currentImage) {
+                            setCurrentImage(item.image);
+                          }
+                          setShowDropdown(false);
+                        }}
+                      >
+                        <span className="d-flex align-items-center gap-2 overflow-hidden">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              style={{
+                                width: "20px",
+                                height: "20px",
+                                objectFit: "cover",
+                                borderRadius: "4px",
+                                border: "1px solid #ced4da",
+                              }}
+                            />
+                          ) : itemType === "size" ? (
+                            <i className="ti ti-ruler-2 text-primary fs-14 flex-shrink-0" />
+                          ) : isNN || itemType === "variety" ? (
+                            <div
+                              className="d-flex align-items-center justify-content-center bg-light border rounded text-success flex-shrink-0"
+                              style={{ width: "20px", height: "20px", borderRadius: "4px" }}
+                            >
+                              <i className="ti ti-leaf fs-11" />
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                width: "18px",
+                                height: "18px",
+                                borderRadius: "4px",
+                                border: "1px solid #ced4da",
+                                backgroundColor: item.name.toLowerCase().replace(/\s+/g, ""),
+                                boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.08)",
+                              }}
+                            />
+                          )}
+                          <span className="fw-medium text-dark text-truncate">{item.name}</span>
+                        </span>
+                        {isAlreadyAdded ? (
+                          <span className="badge bg-success-subtle text-success fs-10 px-2 py-0 border border-success-subtle">
+                            Added
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-outline-primary py-0 px-2 fs-11 d-flex align-items-center gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAddedList((prev) => {
+                                const existing = new Set(prev.map((p) => p.toLowerCase()));
+                                if (existing.has(item.name.toLowerCase())) return prev;
+                                return [...prev, item.name];
+                              });
+                              if (item.image) {
+                                setAddedImages((prev) => ({
+                                  ...prev,
+                                  [item.name]: item.image!,
+                                }));
+                              }
+                              setShowDropdown(false);
+                            }}
+                            title={`Add ${item.name} directly`}
+                          >
+                            <i className="ti ti-plus fs-10" /> Add
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
+          style={{ height: "40px" }}
+          onClick={() => {
+            setShowDropdown(false);
+            handleAdd();
+          }}
+        >
+          <i className="ti ti-plus me-1" /> Add
+        </button>
+      </div>
+    );
+  };
+
   const columns = [
     {
       field: "variant",
@@ -2826,33 +3463,10 @@ const VariantAttributes: React.FC = () => {
                                   {addSizesList.length > 0 ? `${addSizesList.length} added` : "Add one by one"}
                                 </span>
                               </label>
-                              <div className="d-flex align-items-center gap-2">
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="e.g. 1 ft, 2 ft, 5 ft, 6 inch"
-                                  style={{ height: "40px" }}
-                                  value={addSingleSizeInput}
-                                  onChange={(e) => setAddSingleSizeInput(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === ",") {
-                                      e.preventDefault();
-                                      handleAddSingleSize();
-                                    }
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleAddSingleSize}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
-                              <span className="tag-text mt-1 d-block text-muted fs-12">
-                                Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
-                              </span>
+                                {renderSizeInputField(false, "e.g. 1 ft, 2 ft, 5 ft, 6 inch")}
+                                <span className="tag-text mt-1 d-block text-muted fs-12">
+                                  Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                                </span>
                             </div>
 
                             {/* Section 2: Variety (below Size Attribute) */}
@@ -2868,90 +3482,7 @@ const VariantAttributes: React.FC = () => {
                                   {addValuesList.length > 0 ? `${addValuesList.length} added` : "with photo"}
                                 </span>
                               </label>
-                              <div className="d-flex align-items-center gap-2">
-                                <div
-                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
-                                  style={{ borderColor: "#ced4da", height: "40px" }}
-                                >
-                                  <input
-                                    type="text"
-                                    className="form-control border-0 shadow-none px-3"
-                                    placeholder="e.g. Alphonso, Kesar, Dasheri"
-                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
-                                    value={addSingleValueInput}
-                                    onChange={(e) => setAddSingleValueInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === ",") {
-                                        e.preventDefault();
-                                        handleAddSingleValue();
-                                      }
-                                    }}
-                                  />
-
-                                  <div
-                                    className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
-                                    style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
-                                  >
-                                    <input
-                                      type="file"
-                                      ref={addValueFileInputRef}
-                                      accept="image/*"
-                                      style={{ display: "none" }}
-                                      onClick={(e) => {
-                                        (e.target as HTMLInputElement).value = "";
-                                      }}
-                                      onChange={handleAddValueImageFileChange}
-                                    />
-                                    {addCurrentValueImage ? (
-                                      <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                        <img
-                                          src={addCurrentValueImage}
-                                          alt="Variety preview"
-                                          style={{
-                                            width: "24px",
-                                            height: "24px",
-                                            objectFit: "cover",
-                                            borderRadius: "4px",
-                                            border: "1px solid #ced4da",
-                                          }}
-                                        />
-                                        <button
-                                          type="button"
-                                          className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
-                                          style={{ textDecoration: "none", lineHeight: 1 }}
-                                          onClick={() => {
-                                            setAddCurrentValueImage(null);
-                                            if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
-                                          }}
-                                          title="Remove image"
-                                        >
-                                          <i className="ti ti-x fs-13" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
-                                        onClick={() => addValueFileInputRef.current?.click()}
-                                        title="Attach image for this variety"
-                                        style={{ background: "transparent", fontSize: "12px" }}
-                                      >
-                                        <i className="ti ti-photo fs-15 text-primary me-1" />
-                                        <span className="fw-medium text-dark">Image</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleAddSingleValue}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
+                              {renderValueWithImageInputField(false, true, "Varieties", "e.g. Alphonso, Kesar, Dasheri", true, "variety")}
                               <span className="tag-text mt-1 d-block text-muted fs-12">
                                 Type variety name, attach an optional image, and click <strong>+ Add</strong>.
                               </span>
@@ -3011,33 +3542,10 @@ const VariantAttributes: React.FC = () => {
                                   {addSizesList.length > 0 ? `${addSizesList.length} added` : "Add one by one"}
                                 </span>
                               </label>
-                              <div className="d-flex align-items-center gap-2">
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="e.g. 4 inch, 6 inch, 8 inch, Small, Medium, Large"
-                                  style={{ height: "40px" }}
-                                  value={addSingleSizeInput}
-                                  onChange={(e) => setAddSingleSizeInput(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === ",") {
-                                      e.preventDefault();
-                                      handleAddSingleSize();
-                                    }
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleAddSingleSize}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
-                              <span className="tag-text mt-1 d-block text-muted fs-12">
-                                Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
-                              </span>
+                                {renderSizeInputField(false, "e.g. 4 inch, 6 inch, 8 inch, Small, Medium, Large")}
+                                <span className="tag-text mt-1 d-block text-muted fs-12">
+                                  Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                                </span>
                             </div>
 
                             {/* Section: Colors (with image uploading option) */}
@@ -3053,90 +3561,7 @@ const VariantAttributes: React.FC = () => {
                                   {addValuesList.length > 0 ? `${addValuesList.length} added` : "with photo"}
                                 </span>
                               </label>
-                              <div className="d-flex align-items-center gap-2">
-                                <div
-                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
-                                  style={{ borderColor: "#ced4da", height: "40px" }}
-                                >
-                                  <input
-                                    type="text"
-                                    className="form-control border-0 shadow-none px-3"
-                                    placeholder="e.g. Red, Matte Black, Terracotta, White"
-                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
-                                    value={addSingleValueInput}
-                                    onChange={(e) => setAddSingleValueInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === ",") {
-                                        e.preventDefault();
-                                        handleAddSingleValue();
-                                      }
-                                    }}
-                                  />
-
-                                  <div
-                                    className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
-                                    style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
-                                  >
-                                    <input
-                                      type="file"
-                                      ref={addValueFileInputRef}
-                                      accept="image/*"
-                                      style={{ display: "none" }}
-                                      onClick={(e) => {
-                                        (e.target as HTMLInputElement).value = "";
-                                      }}
-                                      onChange={handleAddValueImageFileChange}
-                                    />
-                                    {addCurrentValueImage ? (
-                                      <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                        <img
-                                          src={addCurrentValueImage}
-                                          alt="Color preview"
-                                          style={{
-                                            width: "24px",
-                                            height: "24px",
-                                            objectFit: "cover",
-                                            borderRadius: "4px",
-                                            border: "1px solid #ced4da",
-                                          }}
-                                        />
-                                        <button
-                                          type="button"
-                                          className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
-                                          style={{ textDecoration: "none", lineHeight: 1 }}
-                                          onClick={() => {
-                                            setAddCurrentValueImage(null);
-                                            if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
-                                          }}
-                                          title="Remove image"
-                                        >
-                                          <i className="ti ti-x fs-13" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
-                                        onClick={() => addValueFileInputRef.current?.click()}
-                                        title="Attach image for this color"
-                                        style={{ background: "transparent", fontSize: "12px" }}
-                                      >
-                                        <i className="ti ti-photo fs-15 text-primary me-1" />
-                                        <span className="fw-medium text-dark">Image</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleAddSingleValue}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
+                              {renderValueWithImageInputField(false, false, "Colors", "e.g. Red, Matte Black, Terracotta, White", true, "color")}
                               <span className="tag-text mt-1 d-block text-muted fs-12">
                                 Type color, attach an optional image, and click <strong>+ Add</strong>.
                               </span>
@@ -3218,106 +3643,33 @@ const VariantAttributes: React.FC = () => {
                                 </span>
                               </label>
 
-                              {/* Image upload option for Variant Values */}
-                              <div className="d-flex align-items-center gap-2">
-                                <div
-                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
-                                  style={{
-                                    borderColor: "#ced4da",
-                                    height: "40px",
-                                  }}
-                                >
-                                  <input
-                                    type="text"
-                                    className="form-control border-0 shadow-none px-3"
-                                    placeholder={
-                                      isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
-                                        ? "e.g. Alphonso, Kesar, Dasheri"
-                                        : isColorVariant(variantName)
-                                        ? "e.g. Red, Matte Black, Terracotta"
-                                        : "e.g. Small, 500g, 10-inch"
-                                    }
-                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
-                                    value={addSingleValueInput}
-                                    onChange={(e) => setAddSingleValueInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === ",") {
-                                        e.preventDefault();
-                                        handleAddSingleValue();
-                                      }
-                                    }}
-                                  />
-
-                                  {/* Image upload only appears if not Grow Naturals OR if color variant */}
-                                  {(!isGrowNaturals(selectedBizIds, availableBusinesses) || isColorVariant(variantName)) && (
-                                    <div
-                                      className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
-                                      style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
-                                    >
-                                      <input
-                                        type="file"
-                                        ref={addValueFileInputRef}
-                                        accept="image/*"
-                                        style={{ display: "none" }}
-                                        onClick={(e) => {
-                                          (e.target as HTMLInputElement).value = "";
-                                        }}
-                                        onChange={handleAddValueImageFileChange}
-                                      />
-                                      {addCurrentValueImage ? (
-                                        <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                          <img
-                                            src={addCurrentValueImage}
-                                            alt="Value preview"
-                                            style={{
-                                              width: "24px",
-                                              height: "24px",
-                                              objectFit: "cover",
-                                              borderRadius: "4px",
-                                              border: "1px solid #ced4da",
-                                            }}
-                                          />
-                                          <button
-                                            type="button"
-                                            className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
-                                            style={{ textDecoration: "none", lineHeight: 1 }}
-                                            onClick={() => {
-                                              setAddCurrentValueImage(null);
-                                              if (addValueFileInputRef.current) addValueFileInputRef.current.value = "";
-                                            }}
-                                            title="Remove image"
-                                          >
-                                            <i className="ti ti-x fs-13" />
-                                          </button>
-                                        </div>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
-                                          onClick={() => addValueFileInputRef.current?.click()}
-                                          title="Attach image for this value"
-                                          style={{
-                                            background: "transparent",
-                                            fontSize: "12px",
-                                          }}
-                                        >
-                                          <i className="ti ti-photo fs-15 text-primary me-1" />
-                                          <span className="fw-medium text-dark">Image</span>
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleAddSingleValue}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
+                              {/* Value input with recommendation dropdown and optional image */}
+                              {renderValueWithImageInputField(
+                                false,
+                                isNikhleshNurseryOnly(selectedBizIds, availableBusinesses),
+                                isSizeVariant(variantName)
+                                  ? "Sizes"
+                                  : isColorVariant(variantName)
+                                  ? "Colors"
+                                  : isVarietyVariant(variantName)
+                                  ? "Varieties"
+                                  : "Values",
+                                isNikhleshNurseryOnly(selectedBizIds, availableBusinesses)
+                                  ? "e.g. Alphonso, Kesar, Dasheri"
+                                  : isColorVariant(variantName)
+                                  ? "e.g. Red, Matte Black, Terracotta"
+                                  : isSizeVariant(variantName)
+                                  ? "e.g. 4 inch, 6 inch, Small, Medium"
+                                  : "e.g. Small, 500g, 10-inch",
+                                !isGrowNaturals(selectedBizIds, availableBusinesses) || isColorVariant(variantName),
+                                isSizeVariant(variantName)
+                                  ? "size"
+                                  : isColorVariant(variantName)
+                                  ? "color"
+                                  : isVarietyVariant(variantName)
+                                  ? "variety"
+                                  : "custom"
+                              )}
 
                               <span className="tag-text mt-1 d-block text-muted fs-12">
                                 {(!isGrowNaturals(selectedBizIds, availableBusinesses) || isColorVariant(variantName))
@@ -4233,33 +4585,10 @@ const VariantAttributes: React.FC = () => {
                                   {editSizesList.length > 0 ? `${editSizesList.length} added` : "Add one by one"}
                                 </span>
                               </label>
-                              <div className="d-flex align-items-center gap-2">
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="e.g. 1 ft, 2 ft, 5 ft, 6 inch"
-                                  style={{ height: "40px" }}
-                                  value={editSingleSizeInput}
-                                  onChange={(e) => setEditSingleSizeInput(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === ",") {
-                                      e.preventDefault();
-                                      handleEditAddSingleSize();
-                                    }
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleEditAddSingleSize}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
-                              <span className="tag-text mt-1 d-block text-muted fs-12">
-                                Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
-                              </span>
+                                {renderSizeInputField(true, "e.g. 1 ft, 2 ft, 5 ft, 6 inch")}
+                                <span className="tag-text mt-1 d-block text-muted fs-12">
+                                  Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                                </span>
                             </div>
 
                             {/* Section 2: Variety (below Size Attribute) */}
@@ -4275,93 +4604,7 @@ const VariantAttributes: React.FC = () => {
                                   {editValuesList.length > 0 ? `${editValuesList.length} added` : "with photo"}
                                 </span>
                               </label>
-                              <div className="d-flex align-items-center gap-2">
-                                <div
-                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
-                                  style={{ borderColor: "#ced4da", height: "40px" }}
-                                >
-                                  <input
-                                    type="text"
-                                    className="form-control border-0 shadow-none px-3"
-                                    placeholder="e.g. Alphonso, Kesar, Dasheri"
-                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
-                                    value={editSingleValueInput}
-                                    onChange={(e) => setEditSingleValueInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === ",") {
-                                        e.preventDefault();
-                                        handleEditAddSingleValue();
-                                      }
-                                    }}
-                                  />
-
-                                  <div
-                                    className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
-                                    style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
-                                  >
-                                    <input
-                                      type="file"
-                                      ref={editValueFileInputRef}
-                                      accept="image/*"
-                                      style={{ display: "none" }}
-                                      onClick={(e) => {
-                                        (e.target as HTMLInputElement).value = "";
-                                      }}
-                                      onChange={handleEditValueImageFileChange}
-                                    />
-                                    {editCurrentValueImage ? (
-                                      <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                        <img
-                                          src={editCurrentValueImage}
-                                          alt="Variety preview"
-                                          style={{
-                                            width: "24px",
-                                            height: "24px",
-                                            objectFit: "cover",
-                                            borderRadius: "4px",
-                                            border: "1px solid #ced4da",
-                                          }}
-                                        />
-                                        <button
-                                          type="button"
-                                          className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
-                                          style={{ textDecoration: "none", lineHeight: 1 }}
-                                          onClick={() => {
-                                            setEditCurrentValueImage(null);
-                                            if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
-                                          }}
-                                          title="Remove image"
-                                        >
-                                          <i className="ti ti-x fs-13" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
-                                        onClick={() => editValueFileInputRef.current?.click()}
-                                        title="Attach image for this variety"
-                                        style={{
-                                          background: "transparent",
-                                          fontSize: "12px",
-                                        }}
-                                      >
-                                        <i className="ti ti-photo fs-15 text-primary me-1" />
-                                        <span className="fw-medium text-dark">Image</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleEditAddSingleValue}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
+                              {renderValueWithImageInputField(true, true, "Varieties", "e.g. Alphonso, Kesar, Dasheri", true, "variety")}
                               <span className="tag-text mt-1 d-block text-muted fs-12">
                                 Type variety name, attach an optional image, and click <strong>+ Add</strong>.
                               </span>
@@ -4420,33 +4663,10 @@ const VariantAttributes: React.FC = () => {
                                   {editSizesList.length > 0 ? `${editSizesList.length} added` : "Add one by one"}
                                 </span>
                               </label>
-                              <div className="d-flex align-items-center gap-2">
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="e.g. 4 inch, 6 inch, 8 inch, Small, Medium, Large"
-                                  style={{ height: "40px" }}
-                                  value={editSingleSizeInput}
-                                  onChange={(e) => setEditSingleSizeInput(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === ",") {
-                                      e.preventDefault();
-                                      handleEditAddSingleSize();
-                                    }
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleEditAddSingleSize}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
-                              <span className="tag-text mt-1 d-block text-muted fs-12">
-                                Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
-                              </span>
+                                {renderSizeInputField(true, "e.g. 4 inch, 6 inch, 8 inch, Small, Medium, Large")}
+                                <span className="tag-text mt-1 d-block text-muted fs-12">
+                                  Type size and press <kbd className="bg-light text-dark border px-1 rounded">Enter</kbd> or click <strong>+ Add</strong>.
+                                </span>
                             </div>
 
                             {/* Section: Colors (with image uploading option) */}
@@ -4462,90 +4682,7 @@ const VariantAttributes: React.FC = () => {
                                   {editValuesList.length > 0 ? `${editValuesList.length} added` : "with photo"}
                                 </span>
                               </label>
-                              <div className="d-flex align-items-center gap-2">
-                                <div
-                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
-                                  style={{ borderColor: "#ced4da", height: "40px" }}
-                                >
-                                  <input
-                                    type="text"
-                                    className="form-control border-0 shadow-none px-3"
-                                    placeholder="e.g. Red, Matte Black, Terracotta, White"
-                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
-                                    value={editSingleValueInput}
-                                    onChange={(e) => setEditSingleValueInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === ",") {
-                                        e.preventDefault();
-                                        handleEditAddSingleValue();
-                                      }
-                                    }}
-                                  />
-
-                                  <div
-                                    className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
-                                    style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
-                                  >
-                                    <input
-                                      type="file"
-                                      ref={editValueFileInputRef}
-                                      accept="image/*"
-                                      style={{ display: "none" }}
-                                      onClick={(e) => {
-                                        (e.target as HTMLInputElement).value = "";
-                                      }}
-                                      onChange={handleEditValueImageFileChange}
-                                    />
-                                    {editCurrentValueImage ? (
-                                      <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                        <img
-                                          src={editCurrentValueImage}
-                                          alt="Color preview"
-                                          style={{
-                                            width: "24px",
-                                            height: "24px",
-                                            objectFit: "cover",
-                                            borderRadius: "4px",
-                                            border: "1px solid #ced4da",
-                                          }}
-                                        />
-                                        <button
-                                          type="button"
-                                          className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
-                                          style={{ textDecoration: "none", lineHeight: 1 }}
-                                          onClick={() => {
-                                            setEditCurrentValueImage(null);
-                                            if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
-                                          }}
-                                          title="Remove image"
-                                        >
-                                          <i className="ti ti-x fs-13" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
-                                        onClick={() => editValueFileInputRef.current?.click()}
-                                        title="Attach image for this color"
-                                        style={{ background: "transparent", fontSize: "12px" }}
-                                      >
-                                        <i className="ti ti-photo fs-15 text-primary me-1" />
-                                        <span className="fw-medium text-dark">Image</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleEditAddSingleValue}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
+                              {renderValueWithImageInputField(true, false, "Colors", "e.g. Red, Matte Black, Terracotta, White", true, "color")}
                               <span className="tag-text mt-1 d-block text-muted fs-12">
                                 Type color, attach an optional image, and click <strong>+ Add</strong>.
                               </span>
@@ -4627,106 +4764,33 @@ const VariantAttributes: React.FC = () => {
                                 </span>
                               </label>
 
-                              {/* Image upload option for Variant Values */}
-                              <div className="d-flex align-items-center gap-2">
-                                <div
-                                  className="d-flex align-items-center flex-grow-1 border rounded bg-white overflow-hidden"
-                                  style={{
-                                    borderColor: "#ced4da",
-                                    height: "40px",
-                                  }}
-                                >
-                                  <input
-                                    type="text"
-                                    className="form-control border-0 shadow-none px-3"
-                                    placeholder={
-                                      isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
-                                        ? "e.g. Alphonso, Kesar, Dasheri"
-                                        : isColorVariant(editVariantName)
-                                        ? "e.g. Red, Matte Black, Terracotta"
-                                        : "e.g. Small, 500g, 10-inch"
-                                    }
-                                    style={{ height: "100%", background: "transparent", color: "#212529" }}
-                                    value={editSingleValueInput}
-                                    onChange={(e) => setEditSingleValueInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === ",") {
-                                        e.preventDefault();
-                                        handleEditAddSingleValue();
-                                      }
-                                    }}
-                                  />
-
-                                  {/* Image upload only appears if not Grow Naturals OR if color variant */}
-                                  {(!isGrowNaturals(editSelectedBizIds, availableBusinesses) || isColorVariant(editVariantName)) && (
-                                    <div
-                                      className="d-flex align-items-center pe-2 ps-2 flex-shrink-0 border-start"
-                                      style={{ borderColor: "#ced4da", height: "100%", backgroundColor: "#fdfdfe" }}
-                                    >
-                                      <input
-                                        type="file"
-                                        ref={editValueFileInputRef}
-                                        accept="image/*"
-                                        style={{ display: "none" }}
-                                        onClick={(e) => {
-                                          (e.target as HTMLInputElement).value = "";
-                                        }}
-                                        onChange={handleEditValueImageFileChange}
-                                      />
-                                      {editCurrentValueImage ? (
-                                        <div className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                          <img
-                                            src={editCurrentValueImage}
-                                            alt="Value preview"
-                                            style={{
-                                              width: "24px",
-                                              height: "24px",
-                                              objectFit: "cover",
-                                              borderRadius: "4px",
-                                              border: "1px solid #ced4da",
-                                            }}
-                                          />
-                                          <button
-                                            type="button"
-                                            className="btn btn-link text-danger p-0 ms-1 d-flex align-items-center"
-                                            style={{ textDecoration: "none", lineHeight: 1 }}
-                                            onClick={() => {
-                                              setEditCurrentValueImage(null);
-                                              if (editValueFileInputRef.current) editValueFileInputRef.current.value = "";
-                                            }}
-                                            title="Remove image"
-                                          >
-                                            <i className="ti ti-x fs-13" />
-                                          </button>
-                                        </div>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          className="btn btn-sm border-0 shadow-none d-flex align-items-center px-2 py-1 text-muted"
-                                          onClick={() => editValueFileInputRef.current?.click()}
-                                          title="Attach image for this value"
-                                          style={{
-                                            background: "transparent",
-                                            fontSize: "12px",
-                                          }}
-                                        >
-                                          <i className="ti ti-photo fs-15 text-primary me-1" />
-                                          <span className="fw-medium text-dark">Image</span>
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="btn btn-primary d-flex align-items-center px-3 flex-shrink-0"
-                                  style={{ height: "40px" }}
-                                  onClick={handleEditAddSingleValue}
-                                >
-                                  <i className="ti ti-plus me-1" /> Add
-                                </button>
-                              </div>
+                              {/* Value input with recommendation dropdown and optional image */}
+                              {renderValueWithImageInputField(
+                                true,
+                                isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses),
+                                isSizeVariant(editVariantName)
+                                  ? "Sizes"
+                                  : isColorVariant(editVariantName)
+                                  ? "Colors"
+                                  : isVarietyVariant(editVariantName)
+                                  ? "Varieties"
+                                  : "Values",
+                                isNikhleshNurseryOnly(editSelectedBizIds, availableBusinesses)
+                                  ? "e.g. Alphonso, Kesar, Dasheri"
+                                  : isColorVariant(editVariantName)
+                                  ? "e.g. Red, Matte Black, Terracotta"
+                                  : isSizeVariant(editVariantName)
+                                  ? "e.g. 4 inch, 6 inch, Small, Medium"
+                                  : "e.g. Small, 500g, 10-inch",
+                                !isGrowNaturals(editSelectedBizIds, availableBusinesses) || isColorVariant(editVariantName),
+                                isSizeVariant(editVariantName)
+                                  ? "size"
+                                  : isColorVariant(editVariantName)
+                                  ? "color"
+                                  : isVarietyVariant(editVariantName)
+                                  ? "variety"
+                                  : "custom"
+                              )}
 
                               <span className="tag-text mt-1 d-block text-muted fs-12">
                                 {(!isGrowNaturals(editSelectedBizIds, availableBusinesses) || isColorVariant(editVariantName))
