@@ -9,6 +9,7 @@ import { api, getActiveBusinessId } from "../../services/api";
 import { useBusiness } from "../../context/BusinessContext";
 import { Edit, Trash2, ChevronDown } from "lucide-react";
 import { Popover } from "antd";
+import { compressImageFile } from "../../utils/imageCompression";
 
 interface VariantAttributeItem { 
   id: string;
@@ -584,76 +585,68 @@ const VariantAttributes: React.FC = () => {
   };
 
   // Pattern image file change handlers
-  const handleAddPatternImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddPatternImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setAddError("Please select an image file (PNG, JPG, WEBP, etc.).");
-      return;
+    try {
+      setAddError(null);
+      const compressed = await compressImageFile(file, {
+        maxDimension: 800,
+        quality: 0.82,
+        maxSizeBytes: 10 * 1024 * 1024,
+      });
+      setAddCurrentPatternImage(compressed);
+    } catch (err: any) {
+      setAddError(err.message || "Failed to load pattern image. Please select an image up to 10MB.");
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setAddError("Image size must be less than 5MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAddCurrentPatternImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleAddValueImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddValueImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setAddError("Please select an image file (PNG, JPG, WEBP, etc.).");
-      return;
+    try {
+      setAddError(null);
+      const compressed = await compressImageFile(file, {
+        maxDimension: 800,
+        quality: 0.82,
+        maxSizeBytes: 10 * 1024 * 1024,
+      });
+      setAddCurrentValueImage(compressed);
+    } catch (err: any) {
+      setAddError(err.message || "Failed to load image. Please select an image up to 10MB.");
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setAddError("Image size must be less than 5MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAddCurrentValueImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleEditPatternImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditPatternImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setEditError("Please select an image file (PNG, JPG, WEBP, etc.).");
-      return;
+    try {
+      setEditError(null);
+      const compressed = await compressImageFile(file, {
+        maxDimension: 800,
+        quality: 0.82,
+        maxSizeBytes: 10 * 1024 * 1024,
+      });
+      setEditCurrentPatternImage(compressed);
+    } catch (err: any) {
+      setEditError(err.message || "Failed to load pattern image. Please select an image up to 10MB.");
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setEditError("Image size must be less than 5MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setEditCurrentPatternImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleEditValueImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditValueImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setEditError("Please select an image file (PNG, JPG, WEBP, etc.).");
-      return;
+    try {
+      setEditError(null);
+      const compressed = await compressImageFile(file, {
+        maxDimension: 800,
+        quality: 0.82,
+        maxSizeBytes: 10 * 1024 * 1024,
+      });
+      setEditCurrentValueImage(compressed);
+    } catch (err: any) {
+      setEditError(err.message || "Failed to load image. Please select an image up to 10MB.");
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setEditError("Image size must be less than 5MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setEditCurrentValueImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   // Reset & prepare Add Modal
@@ -1964,7 +1957,6 @@ const VariantAttributes: React.FC = () => {
 
         return (
           <div className="d-flex align-items-center">
-            {renderVariantAvatar(rowData)}
             <div>
               <span className="fw-semibold text-dark fs-14 d-block">{formatVariantName(rowData.variant)}</span>
 
@@ -2039,21 +2031,18 @@ const VariantAttributes: React.FC = () => {
             const isNN = isNikhleshNurseryOnly(rowData.business_ids || (rowData.business_id ? [rowData.business_id] : []), availableBusinesses);
 
             const renderLabel = (label: string, icon: string, colorClass: string = "text-muted") => (
-              <span
-                className="d-inline-flex align-items-center gap-1 fs-11 fw-semibold flex-shrink-0"
-                style={{ width: "72px" }}
-              >
+              <div className="d-flex align-items-center gap-1 fs-11 fw-semibold mb-1">
                 <i className={`${icon} fs-12 ${colorClass}`} />
                 <span className={colorClass}>{label}</span>
-              </span>
+              </div>
             );
 
             if (isPB) {
               return (
-                <div className="d-flex flex-column" style={{ maxWidth: "440px", gap: "6px" }}>
-                  {/* Sizes Row */}
+                <div className="d-flex flex-column py-1" style={{ maxWidth: "480px", gap: "8px" }}>
+                  {/* Sizes Section */}
                   {hasSizes && (
-                    <div className="d-flex align-items-center gap-2">
+                    <div>
                       {renderLabel("Sizes:", "ti ti-ruler-2", "text-primary")}
                       <div className="d-flex flex-wrap gap-1 align-items-center">
                         {rowData.sizes_array!.map((sz, idx) => (
@@ -2068,8 +2057,8 @@ const VariantAttributes: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Colors / Varieties Row */}
-                  <div className="d-flex align-items-center gap-2">
+                  {/* Colors / Varieties Section */}
+                  <div>
                     {renderLabel(
                       isNN ? "Varieties:" : "Colors:",
                       isNN ? "ti ti-leaf" : "ti ti-palette",
@@ -2148,8 +2137,8 @@ const VariantAttributes: React.FC = () => {
               : { text: "Values:", icon: "ti ti-tag", colorClass: "text-muted" };
 
             return (
-              <div className="d-flex flex-column" style={{ maxWidth: "440px", gap: "6px" }}>
-                <div className="d-flex align-items-center gap-2">
+              <div className="d-flex flex-column py-1" style={{ maxWidth: "480px", gap: "8px" }}>
+                <div>
                   {renderLabel(generalLabel.text, generalLabel.icon, generalLabel.colorClass)}
                   <div className="d-flex flex-wrap gap-1 align-items-center">
                     {rowData.values_array.length > 0 ? (
@@ -2216,7 +2205,7 @@ const VariantAttributes: React.FC = () => {
                 </div>
 
                 {isColor && rowData.patterns && (
-                  <div className="d-flex align-items-center gap-2">
+                  <div>
                     {renderLabel("Patterns:", "ti ti-palette", "text-purple")}
                     <div className="d-flex flex-wrap gap-1 align-items-center">
                       {rowData.patterns_array && rowData.patterns_array.length > 0 ? (
@@ -2908,6 +2897,9 @@ const VariantAttributes: React.FC = () => {
                                       ref={addValueFileInputRef}
                                       accept="image/*"
                                       style={{ display: "none" }}
+                                      onClick={(e) => {
+                                        (e.target as HTMLInputElement).value = "";
+                                      }}
                                       onChange={handleAddValueImageFileChange}
                                     />
                                     {addCurrentValueImage ? (
@@ -3090,6 +3082,9 @@ const VariantAttributes: React.FC = () => {
                                       ref={addValueFileInputRef}
                                       accept="image/*"
                                       style={{ display: "none" }}
+                                      onClick={(e) => {
+                                        (e.target as HTMLInputElement).value = "";
+                                      }}
                                       onChange={handleAddValueImageFileChange}
                                     />
                                     {addCurrentValueImage ? (
@@ -3264,6 +3259,9 @@ const VariantAttributes: React.FC = () => {
                                         ref={addValueFileInputRef}
                                         accept="image/*"
                                         style={{ display: "none" }}
+                                        onClick={(e) => {
+                                          (e.target as HTMLInputElement).value = "";
+                                        }}
                                         onChange={handleAddValueImageFileChange}
                                       />
                                       {addCurrentValueImage ? (
@@ -3375,6 +3373,9 @@ const VariantAttributes: React.FC = () => {
                                           ref={addPatternFileInputRef}
                                           accept="image/*"
                                           style={{ display: "none" }}
+                                          onClick={(e) => {
+                                            (e.target as HTMLInputElement).value = "";
+                                          }}
                                           onChange={handleAddPatternImageFileChange}
                                         />
                                         {addCurrentPatternImage ? (
@@ -4303,6 +4304,9 @@ const VariantAttributes: React.FC = () => {
                                       ref={editValueFileInputRef}
                                       accept="image/*"
                                       style={{ display: "none" }}
+                                      onClick={(e) => {
+                                        (e.target as HTMLInputElement).value = "";
+                                      }}
                                       onChange={handleEditValueImageFileChange}
                                     />
                                     {editCurrentValueImage ? (
@@ -4487,6 +4491,9 @@ const VariantAttributes: React.FC = () => {
                                       ref={editValueFileInputRef}
                                       accept="image/*"
                                       style={{ display: "none" }}
+                                      onClick={(e) => {
+                                        (e.target as HTMLInputElement).value = "";
+                                      }}
                                       onChange={handleEditValueImageFileChange}
                                     />
                                     {editCurrentValueImage ? (
@@ -4661,6 +4668,9 @@ const VariantAttributes: React.FC = () => {
                                         ref={editValueFileInputRef}
                                         accept="image/*"
                                         style={{ display: "none" }}
+                                        onClick={(e) => {
+                                          (e.target as HTMLInputElement).value = "";
+                                        }}
                                         onChange={handleEditValueImageFileChange}
                                       />
                                       {editCurrentValueImage ? (
@@ -4774,6 +4784,9 @@ const VariantAttributes: React.FC = () => {
                                           ref={editPatternFileInputRef}
                                           accept="image/*"
                                           style={{ display: "none" }}
+                                          onClick={(e) => {
+                                            (e.target as HTMLInputElement).value = "";
+                                          }}
                                           onChange={handleEditPatternImageFileChange}
                                         />
                                         {editCurrentPatternImage ? (
