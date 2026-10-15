@@ -2050,8 +2050,10 @@ const VariantAttributes: React.FC = () => {
       currentCategory.trim() &&
       !categoriesList.some((c) => c.toLowerCase() === currentCategory.trim().toLowerCase());
 
+    const isDropdownVisible = showDropdown && (categoriesList.length > 0 || isCustomNew);
+
     return (
-      <div className="col-12 col-md-6 mb-3 position-relative" ref={containerRef}>
+      <div className="col-12 col-md-6 mb-3" ref={containerRef}>
         <label className="form-label fw-semibold text-dark" style={{ color: "#000000" }}>
           <span style={{ color: "#000000" }}>Category</span>
         </label>
@@ -2069,6 +2071,9 @@ const VariantAttributes: React.FC = () => {
             style={{
               height: "40px",
               paddingRight: categoriesList.length > 0 ? "36px" : "12px",
+              borderBottomLeftRadius: isDropdownVisible ? 0 : "6px",
+              borderBottomRightRadius: isDropdownVisible ? 0 : "6px",
+              borderColor: isDropdownVisible ? "#86b7fe" : undefined,
             }}
           />
           {categoriesList.length > 0 && (
@@ -2085,7 +2090,7 @@ const VariantAttributes: React.FC = () => {
                 cursor: "pointer",
                 padding: 0,
               }}
-              title="Show existing categories"
+              title="Toggle categories"
             >
               <ChevronDown
                 size={16}
@@ -2097,61 +2102,88 @@ const VariantAttributes: React.FC = () => {
               />
             </button>
           )}
-        </div>
-        <small className="text-muted d-block mt-1 fs-12">
-          {/* Pick an existing category or type a new one. It will be mapped to this product. */}
-        </small>
 
-        {showDropdown && categoriesList.length > 0 && (
-          <ul
-            className="dropdown-menu show w-100 shadow border mt-1"
-            style={{
-              maxHeight: "220px",
-              overflowY: "auto",
-              display: "block",
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              zIndex: 1060,
-            }}
-          >
-            <li className="dropdown-header text-uppercase fs-11 fw-bold text-muted py-1 px-3">
-              Previously Used Categories
-            </li>
-            {filtered.map((cat, idx) => {
-              const isSelected = currentCategory.trim().toLowerCase() === cat.toLowerCase();
-              return (
-                <li key={idx}>
-                  <button
-                    type="button"
-                    className={`dropdown-item d-flex align-items-center justify-content-between py-2 px-3 ${
-                      isSelected ? "bg-light text-primary fw-semibold" : ""
-                    }`}
+          {isDropdownVisible && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                zIndex: 1060,
+                backgroundColor: "#ffffff",
+                border: "1px solid #86b7fe",
+                borderTop: "1px solid #e9ecef",
+                borderBottomLeftRadius: "6px",
+                borderBottomRightRadius: "6px",
+                boxShadow: "0 6px 16px rgba(0, 0, 0, 0.08)",
+                maxHeight: "200px",
+                overflowY: "auto",
+                padding: "4px 0",
+              }}
+            >
+              {filtered.map((cat, idx) => {
+                const isSelected = currentCategory.trim().toLowerCase() === cat.toLowerCase();
+                return (
+                  <div
+                    key={idx}
+                    className="d-flex align-items-center justify-content-between px-3 py-2"
+                    style={{
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      backgroundColor: isSelected ? "#f0f7ff" : "transparent",
+                      color: isSelected ? "#0d6efd" : "#212529",
+                      fontWeight: isSelected ? 500 : 400,
+                      transition: "background-color 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) e.currentTarget.style.backgroundColor = "#f8f9fa";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
+                    }}
                     onClick={() => {
                       onCategoryChange(cat);
                       setShowDropdown(false);
                     }}
                   >
-                    <span className="d-flex align-items-center gap-2">
-                      <i className="ti ti-folder fs-14 text-muted" />
-                      {cat}
-                    </span>
+                    <span>{cat}</span>
                     {isSelected && <i className="ti ti-check text-primary fs-14" />}
-                  </button>
-                </li>
-              );
-            })}
-            {isCustomNew && (
-              <li>
-                <div className="dropdown-item text-muted fst-italic py-2 px-3 border-top">
-                  <i className="ti ti-plus me-1 text-success" />
-                  Will save as new category: &quot;<strong>{currentCategory.trim()}</strong>&quot;
+                  </div>
+                );
+              })}
+
+              {filtered.length === 0 && !isCustomNew && (
+                <div className="px-3 py-2 text-muted fs-13 text-center">
+                  No matching categories
                 </div>
-              </li>
-            )}
-          </ul>
-        )}
-        
+              )}
+
+              {isCustomNew && (
+                <div
+                  className="d-flex align-items-center gap-2 px-3 py-2 text-success"
+                  style={{
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    backgroundColor: "transparent",
+                    transition: "background-color 0.15s ease",
+                    borderTop: filtered.length > 0 ? "1px solid #f1f5f9" : "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f0fdf4";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  onClick={() => setShowDropdown(false)}
+                >
+                  <i className="ti ti-plus fs-14" />
+                  <span>Use &quot;<strong>{currentCategory.trim()}</strong>&quot;</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
