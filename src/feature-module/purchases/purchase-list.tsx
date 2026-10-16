@@ -1633,12 +1633,13 @@ export const PurchasesList: React.FC = () => {
                         >
                           <strong className="text-primary">{inv.po_number}</strong>
                           <span className="text-muted">({inv.supplier_name})</span>
-                          <X
-                            size={12}
-                            className="text-danger cursor-pointer ms-0.5"
+                          <span
+                            className="text-danger cursor-pointer ms-0.5 d-inline-flex align-items-center"
                             onClick={() => handleToggleInvoice(inv.id || inv.po_number)}
                             title="Remove invoice"
-                          />
+                          >
+                            <X size={12} />
+                          </span>
                         </span>
                       ))}
                     </div>
