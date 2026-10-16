@@ -121,6 +121,13 @@ const DamageTracking: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "danger"; message: string } | null>(null);
   const [productTaxMap, setProductTaxMap] = useState<Map<string, { rate: number; type: string }>>(new Map());
+  const [editingLineItem, setEditingLineItem] = useState<{
+    index: number;
+    item: DamagedProductItem;
+  } | null>(null);
+  const [editFormQty, setEditFormQty] = useState<number>(1);
+  const [editFormReason, setEditFormReason] = useState<string>("Physical / Handling Damage");
+  const [editFormNotes, setEditFormNotes] = useState<string>("");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -857,6 +864,127 @@ const DamageTracking: React.FC = () => {
     navigator.clipboard.writeText(text);
     setCopiedText(text);
     setTimeout(() => setCopiedText(null), 2000);
+  };
+
+  const handleOpenEditLineModal = (item: DamagedProductItem, index: number) => {
+    setEditingLineItem({ index, item });
+    setEditFormQty(item.damagedQuantity || 1);
+    setEditFormReason(item.reason || "Physical / Handling Damage");
+    setEditFormNotes(item.notes || "");
+  };
+
+  const handleSaveEditLineItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLineItem || !viewingRecord) return;
+
+    if (editFormQty <= 0) {
+      alert("Damaged quantity must be greater than 0");
+      return;
+    }
+
+    const currentItems = (viewingRecord.items && viewingRecord.items.length > 0)
+      ? [...viewingRecord.items]
+      : [{
+          id: viewingRecord.productId || "1",
+          productName: viewingRecord.productName,
+          sku: viewingRecord.sku,
+          invoiceQuantity: viewingRecord.damagedQuantity,
+          damagedQuantity: viewingRecord.damagedQuantity,
+          unitPrice: viewingRecord.unitPrice,
+          totalLoss: viewingRecord.totalLoss,
+          reason: viewingRecord.reason,
+          notes: viewingRecord.notes,
+        }];
+
+    const oldItem = currentItems[editingLineItem.index] || editingLineItem.item;
+    const newLoss = (Number(oldItem.unitPrice) || 0) * editFormQty;
+
+    currentItems[editingLineItem.index] = {
+      ...oldItem,
+      damagedQuantity: editFormQty,
+      totalLoss: newLoss,
+      reason: editFormReason,
+      notes: editFormNotes,
+    };
+
+    const newTotalQty = currentItems.reduce((acc, it) => acc + (Number(it.damagedQuantity) || 0), 0);
+    const newTotalLoss = currentItems.reduce((acc, it) => acc + (Number(it.totalLoss) || 0), 0);
+    const uniqueReasons = Array.from(new Set(currentItems.map((d) => d.reason).filter(Boolean)));
+
+    const updatedRecord: SavedDamageRecord = {
+      ...viewingRecord,
+      damagedQuantity: newTotalQty,
+      totalLoss: newTotalLoss,
+      reason: uniqueReasons.join(", ") || editFormReason,
+      notes: currentItems.map((d) => d.notes).filter(Boolean).join("; "),
+      items: currentItems,
+    };
+
+    const updatedRecords = savedRecords.map((r) => (r.id === viewingRecord.id ? updatedRecord : r));
+    setSavedRecords(updatedRecords);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
+
+    setViewingRecord(updatedRecord);
+    setEditingLineItem(null);
+    setNotification({
+      type: "success",
+      message: `Updated damaged line item: ${oldItem.productName}`,
+    });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleDeleteLineItem = (index: number) => {
+    if (!viewingRecord) return;
+    const currentItems = (viewingRecord.items && viewingRecord.items.length > 0)
+      ? [...viewingRecord.items]
+      : [{
+          id: viewingRecord.productId || "1",
+          productName: viewingRecord.productName,
+          sku: viewingRecord.sku,
+          invoiceQuantity: viewingRecord.damagedQuantity,
+          damagedQuantity: viewingRecord.damagedQuantity,
+          unitPrice: viewingRecord.unitPrice,
+          totalLoss: viewingRecord.totalLoss,
+          reason: viewingRecord.reason,
+          notes: viewingRecord.notes,
+        }];
+
+    const targetItem = currentItems[index];
+    const itemName = targetItem?.productName || "this product";
+
+    if (!window.confirm(`Are you sure you want to remove ${itemName} from this damage record?`)) {
+      return;
+    }
+
+    if (currentItems.length <= 1) {
+      handleDeleteRecord(viewingRecord.id);
+      return;
+    }
+
+    const updatedItems = currentItems.filter((_, i) => i !== index);
+    const newTotalQty = updatedItems.reduce((acc, it) => acc + (Number(it.damagedQuantity) || 0), 0);
+    const newTotalLoss = updatedItems.reduce((acc, it) => acc + (Number(it.totalLoss) || 0), 0);
+    const uniqueReasons = Array.from(new Set(updatedItems.map((d) => d.reason).filter(Boolean)));
+
+    const updatedRecord: SavedDamageRecord = {
+      ...viewingRecord,
+      damagedQuantity: newTotalQty,
+      totalLoss: newTotalLoss,
+      reason: uniqueReasons.join(", ") || viewingRecord.reason,
+      notes: updatedItems.map((d) => d.notes).filter(Boolean).join("; "),
+      items: updatedItems,
+    };
+
+    const updatedRecords = savedRecords.map((r) => (r.id === viewingRecord.id ? updatedRecord : r));
+    setSavedRecords(updatedRecords);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
+
+    setViewingRecord(updatedRecord);
+    setNotification({
+      type: "success",
+      message: `Removed ${itemName} from damage record.`,
+    });
+    setTimeout(() => setNotification(null), 3000);
   };
 
   // Filter Saved Records for the main listing table
@@ -2603,7 +2731,8 @@ const DamageTracking: React.FC = () => {
                         <th className="py-2.5 text-end">Actual Price (Cost)</th>
                         <th className="py-2.5 text-end">Total Loss</th>
                         <th className="py-2.5">Reason</th>
-                        <th className="py-2.5 pe-3">Notes</th>
+                        <th className="py-2.5">Notes</th>
+                        <th className="py-2.5 text-center pe-3" style={{ width: "95px" }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody className="fs-13">
@@ -2643,7 +2772,7 @@ const DamageTracking: React.FC = () => {
                           <td className="text-end text-dark fs-13" style={{ color: "#000000" }}>
                             ₹{Number(it.unitPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="text-end fw-bold text-danger fs-13">
+                          <td className="text-end text-danger fs-13">
                             ₹{Number(it.totalLoss).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                           </td>
                           <td>
@@ -2654,15 +2783,37 @@ const DamageTracking: React.FC = () => {
                               {it.reason}
                             </span>
                           </td>
-                          <td className="pe-3 text-muted fst-italic fs-12">
+                          <td className="text-muted fst-italic fs-12">
                             {it.notes || "—"}
+                          </td>
+                          <td className="pe-3 text-center">
+                            <div className="d-flex align-items-center justify-content-center gap-1.5">
+                              <button
+                                type="button"
+                                className="d-flex align-items-center justify-content-center border rounded bg-white shadow-none"
+                                onClick={() => handleOpenEditLineModal(it, idx)}
+                                title="Edit Line Item"
+                                style={{ width: "30px", height: "30px", cursor: "pointer", borderColor: "#e2e8f0" }}
+                              >
+                                <i className="ti ti-edit fs-14 text-dark" style={{ color: "#000000" }} />
+                              </button>
+                              <button
+                                type="button"
+                                className="d-flex align-items-center justify-content-center border rounded bg-white shadow-none"
+                                onClick={() => handleDeleteLineItem(idx)}
+                                title="Delete Line Item"
+                                style={{ width: "30px", height: "30px", cursor: "pointer", borderColor: "#e2e8f0" }}
+                              >
+                                <i className="ti ti-trash fs-14" style={{ color: "#FF0000" }} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="table-light fw-bold fs-13" style={{ borderTop: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
-                        <td colSpan={3} className="ps-3 text-dark py-3" style={{ color: "#000000", borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
+                      <tr className="table-light fs-13" style={{ borderTop: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
+                        <td colSpan={3} className="ps-3 fw-bold text-dark py-3" style={{ color: "#000000", borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
                           Invoice Total
                         </td>
                         <td className="text-center py-3" style={{ borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
@@ -2671,28 +2822,128 @@ const DamageTracking: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3" style={{ borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}></td>
-                        <td className="text-end py-3 fs-15" style={{ color: "#ea5455", borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
+                        <td className="text-end py-3 fs-14 fw-normal" style={{ color: "#ea5455", borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
                           ₹{Number(viewingRecord.totalLoss).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                         </td>
-                        <td colSpan={2} className="py-3" style={{ borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}></td>
+                        <td colSpan={3} className="py-3" style={{ borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}></td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
-
-                {/* Bottom Action Footer */}
-                <div className="d-flex align-items-center justify-content-end pt-3 mt-1 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger d-inline-flex align-items-center gap-1.5 px-3 py-2 shadow-none rounded-2 fs-13"
-                    onClick={() => handleDeleteRecord(viewingRecord.id)}
-                  >
-                    <i className="ti ti-trash fs-15" />
-                    <span>Delete Record</span>
-                  </button>
-                </div>
               </div>
             </div>
+
+            {/* Edit Line Item Modal */}
+            {editingLineItem && (
+              <div
+                className="modal fade show d-block"
+                tabIndex={-1}
+                style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1055 }}
+              >
+                <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 480 }}>
+                  <div className="modal-content border rounded-3 shadow-none" style={{ borderColor: "#e2e8f0" }}>
+                    <form onSubmit={handleSaveEditLineItem}>
+                      <div className="modal-header bg-white border-bottom py-3 px-4">
+                        <div>
+                          <h5 className="modal-title fw-bold text-dark fs-16 mb-0">Edit Damaged Line Item</h5>
+                          <small className="text-muted fs-12">
+                            {editingLineItem.item.productName} {editingLineItem.item.sku ? `(${editingLineItem.item.sku})` : ""}
+                          </small>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn-close shadow-none"
+                          onClick={() => setEditingLineItem(null)}
+                        />
+                      </div>
+
+                      <div className="modal-body p-4">
+                        <div className="mb-3">
+                          <label className="form-label fs-13 fw-semibold text-dark">
+                            Damaged Quantity <span className="text-danger">*</span>
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            className="form-control form-control-sm shadow-none"
+                            value={editFormQty}
+                            onChange={(e) => setEditFormQty(Math.max(1, parseInt(e.target.value) || 1))}
+                            required
+                          />
+                        </div>
+
+                        <div className="mb-3">
+                          <label className="form-label fs-13 fw-semibold text-dark">
+                            Damage Reason <span className="text-danger">*</span>
+                          </label>
+                          <select
+                            className="form-select form-select-sm shadow-none"
+                            value={editFormReason}
+                            onChange={(e) => setEditFormReason(e.target.value)}
+                            required
+                          >
+                            <option value="Physical / Handling Damage">Physical / Handling Damage</option>
+                            <option value="Transit / Transportation Damage">Transit / Transportation Damage</option>
+                            <option value="Quality / Defect Issue">Quality / Defect Issue</option>
+                            <option value="Expiry / Spoilage">Expiry / Spoilage</option>
+                            <option value="Water / Moisture Damage">Water / Moisture Damage</option>
+                            <option value="Packaging Crushed / Torn">Packaging Crushed / Torn</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+
+                        <div className="mb-3">
+                          <label className="form-label fs-13 fw-semibold text-dark">
+                            Damage Notes
+                          </label>
+                          <textarea
+                            rows={3}
+                            className="form-control fs-13 shadow-none"
+                            placeholder="Optional notes or observations..."
+                            value={editFormNotes}
+                            onChange={(e) => setEditFormNotes(e.target.value)}
+                          />
+                        </div>
+
+                        <div
+                          className="p-3 rounded-2 border d-flex align-items-center justify-content-between"
+                          style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}
+                        >
+                          <div>
+                            <span className="text-muted fs-11 text-uppercase fw-semibold d-block">Unit Cost</span>
+                            <span className="text-dark fw-semibold fs-13">
+                              ₹{Number(editingLineItem.item.unitPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className="text-end">
+                            <span className="text-muted fs-11 text-uppercase fw-semibold d-block">Updated Loss</span>
+                            <strong className="text-danger fs-15">
+                              ₹{((Number(editingLineItem.item.unitPrice) || 0) * editFormQty).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="modal-footer bg-light border-top py-2.5 px-4 d-flex justify-content-end gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary px-3 shadow-none rounded-2 fs-13"
+                          onClick={() => setEditingLineItem(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary px-3 shadow-none rounded-2 fs-13 fw-semibold"
+                        >
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
