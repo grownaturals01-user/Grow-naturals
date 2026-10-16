@@ -18,7 +18,87 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: none !important;
+}
+
+.pb-wrapper .card,
+.pb-card,
+.modal-content {
+  box-shadow: none !important;
+}
+
+/* Merged Input Group with Auto Button */
+.merged-auto-group {
+  display: flex !important;
+  align-items: stretch !important;
+  width: 100%;
+}
+
+.merged-auto-group .form-control {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: none !important;
+  border-color: #e2e8f0 !important;
+}
+
+.merged-auto-group .form-control:focus {
+  border-color: #2563eb !important;
+  box-shadow: none !important;
+}
+
+.merged-auto-group .btn-auto-merged {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-top-right-radius: 0.35rem !important;
+  border-bottom-right-radius: 0.35rem !important;
+  border: 1px solid #e2e8f0 !important;
+  border-left: 1px solid #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  color: #334155 !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  padding: 0.45rem 0.85rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  transition: all 0.15s ease-in-out !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+}
+
+.merged-auto-group .btn-auto-merged:hover {
+  background-color: #f1f5f9 !important;
+  color: #2563eb !important;
+  border-color: #cbd5e1 !important;
+}
+
+.merged-auto-group .btn-auto-merged:active {
+  background-color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .merged-auto-group .form-control {
+  border-color: #334155 !important;
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .merged-auto-group .btn-auto-merged {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .merged-auto-group .btn-auto-merged:hover {
+  background-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+.transition-all {
+  transition: all 0.15s ease-in-out;
 }
 
 [data-theme="dark"] .pb-stat-card {
@@ -163,7 +243,7 @@
   border-radius: 8px;
   padding: 1rem 1.25rem;
   margin: 0.5rem 0 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: none !important;
 }
 
 [data-theme="dark"] .product-batch-subtable-container {
@@ -332,7 +412,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   margin-bottom: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: none !important;
 }
 
 [data-theme="dark"] .pb-card {

@@ -379,7 +379,7 @@ export const LossTracking: React.FC = () => {
         <div className="dash-white-card">
           <div className="dash-white-top">
             <div className="dash-white-val-group">
-              <span className="dash-white-label">Total Financial Loss</span>
+              <span className="dash-white-label">Total  Loss</span>
               <span className="dash-white-amount" style={{ color: '#dc2626' }}>
                 ₹{Number(metrics?.total_loss_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>

@@ -42,16 +42,16 @@ export const SidebarData = [
     ],
   },
   {
-    label: "Purchases",
+    label: "Branch Management",
     submenuOpen: true,
-    submenuHdr: "Purchases",
+    submenuHdr: "Branch Management",
     submenu: false,
     showSubRoute: false,
     submenuItems: [
       {
-        label: "Purchase & Batches",
+        label: "Branch Management",
         link: "/purchase-list",
-        icon: "shopping-bag",
+        icon: "building-2",
         showSubRoute: false,
         submenu: false,
       },

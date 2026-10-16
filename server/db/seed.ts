@@ -105,55 +105,14 @@ export async function seedDatabase(): Promise<void> {
     `);
   }
 
-  // 4. Categories - ensure foundational categories exist
-  await db.query(`
-    INSERT INTO categories (id, business_id, name, type, description, sort_order)
-    VALUES
-    ('cat-gn-1', 'grow-naturals', 'Indoor Plants', 'plants', 'Purifying and decorative indoor flora', 1),
-    ('cat-gn-2', 'grow-naturals', 'Outdoor Plants', 'plants', 'Sunlight loving garden and ornamental plants', 2),
-    ('cat-gn-3', 'grow-naturals', 'Ceramic Pots', 'pots', 'Handcrafted ceramic planters and tabletop pots', 3),
-    ('cat-gn-4', 'grow-naturals', 'Terracotta & Fiber Pots', 'pots', 'Heavy duty garden and balcony planters', 4),
-    ('cat-gn-5', 'grow-naturals', 'Organic Fertilizers', 'fertilizers', 'Bio-fertilizers, vermicompost & plant boosters', 5),
-    ('cat-gn-6', 'grow-naturals', 'Exotic Flowers', 'flowers', 'Orchids, Anthuriums and flowering succulents', 6),
-    ('cat-nn-1', 'nikhlesh-nursery', 'Fruit Saplings', 'plants', 'Grafted high-yield mango, guava, and citrus saplings', 1),
-    ('cat-nn-2', 'nikhlesh-nursery', 'Timber & Shade Trees', 'plants', 'Teak, Mahogany, and fast growing shade saplings', 2),
-    ('cat-nn-3', 'nikhlesh-nursery', 'Flowering Shrubs', 'plants', 'Bougainvillea, Jasmine, and Hibiscus varieties', 3),
-    ('cat-nn-4', 'nikhlesh-nursery', 'Farm Soil & Cocopeat', 'fertilizers', 'Sterilized potting mix, compost & red soil blocks', 4)
-    ON CONFLICT (id) DO NOTHING;
-  `);
-
-  // 5. Products
+  // 4. Clean out any legacy dump categories and products
   try {
-    const prodCount = await db.query(`SELECT COUNT(*) as count FROM products`);
-    if (Number(prodCount.rows[0]?.count) === 0) {
-      console.log('[DB Seed] Seeding default products for Grow Naturals & Nikhlesh Nursery...');
-    await db.query(`
-      INSERT INTO products (id, business_id, category_id, type, name, sku, barcode, cost_price, sale_price, gst_rate, hsn_code, stock_quantity, low_stock_threshold, unit, image_url)
-      VALUES
-      ('prod-gn-1', 'grow-naturals', 'cat-gn-1', 'plants', 'Monstera Deliciosa (Swiss Cheese Plant)', 'GN-MON-01', '8901001001', 350.00, 650.00, 18.00, '0602', 45, 5, 'PCS', ''),
-      ('prod-gn-2', 'grow-naturals', 'cat-gn-1', 'plants', 'Fiddle Leaf Fig (Ficus Lyrata)', 'GN-FID-02', '8901001002', 480.00, 890.00, 18.00, '0602', 28, 4, 'PCS', ''),
-      ('prod-gn-3', 'grow-naturals', 'cat-gn-1', 'plants', 'Snake Plant Golden (Sansevieria Trifasciata)', 'GN-SNK-03', '8901001003', 180.00, 390.00, 18.00, '0602', 80, 10, 'PCS', ''),
-      ('prod-gn-4', 'grow-naturals', 'cat-gn-1', 'plants', 'Areca Palm (Indoor Air Purifier)', 'GN-ARC-04', '8901001004', 250.00, 520.00, 18.00, '0602', 60, 8, 'PCS', ''),
-      ('prod-gn-5', 'grow-naturals', 'cat-gn-1', 'plants', 'Peace Lily (Spathiphyllum)', 'GN-PCE-05', '8901001005', 200.00, 450.00, 18.00, '0602', 35, 5, 'PCS', ''),
-      ('prod-gn-6', 'grow-naturals', 'cat-gn-1', 'plants', 'ZZ Plant (Zamioculcas Zamiifolia)', 'GN-ZZP-06', '8901001006', 320.00, 580.00, 18.00, '0602', 40, 5, 'PCS', ''),
-      ('prod-gn-7', 'grow-naturals', 'cat-gn-3', 'pots', 'Matte White Ceramic Planter (8 Inch)', 'GN-POT-07', '8901001007', 220.00, 450.00, 18.00, '6912', 120, 15, 'PCS', ''),
-      ('prod-gn-8', 'grow-naturals', 'cat-gn-3', 'pots', 'Terracotta Handcrafted Ribbed Pot (10 Inch)', 'GN-POT-08', '8901001008', 150.00, 320.00, 18.00, '6912', 95, 12, 'PCS', ''),
-      ('prod-gn-9', 'grow-naturals', 'cat-gn-5', 'fertilizers', 'Organic Vermicompost Enricher (5 Kg Bag)', 'GN-FER-09', '8901001009', 110.00, 240.00, 5.00, '3101', 150, 20, 'BAG', ''),
-      ('prod-gn-10', 'grow-naturals', 'cat-gn-5', 'fertilizers', 'Bio-Neem Organic Spray (500ml)', 'GN-FER-10', '8901001010', 95.00, 199.00, 18.00, '3808', 75, 10, 'BTL', ''),
-      ('prod-gn-11', 'grow-naturals', 'cat-gn-6', 'flowers', 'Phalaenopsis Orchid (Potted Flowering)', 'GN-FLW-11', '8901001011', 650.00, 1250.00, 18.00, '0603', 18, 3, 'PCS', ''),
-      ('prod-gn-12', 'grow-naturals', 'cat-gn-6', 'flowers', 'Anthurium Red Bloom (Air Purifier)', 'GN-FLW-12', '8901001012', 380.00, 720.00, 18.00, '0603', 25, 4, 'PCS', ''),
-      ('prod-nn-1', 'nikhlesh-nursery', 'cat-nn-1', 'plants', 'Alphonso Mango Grafted Sapling', 'NN-MNG-01', '8902002001', 120.00, 250.00, 0.00, '0602', 180, 25, 'PCS', ''),
-      ('prod-nn-2', 'nikhlesh-nursery', 'cat-nn-1', 'plants', 'Taiwan Pink Guava Sapling', 'NN-GVA-02', '8902002002', 80.00, 180.00, 0.00, '0602', 200, 30, 'PCS', ''),
-      ('prod-nn-3', 'nikhlesh-nursery', 'cat-nn-1', 'plants', 'Kagzi Lime (Lemon) Sapling', 'NN-LMN-03', '8902002003', 65.00, 140.00, 0.00, '0602', 250, 30, 'PCS', ''),
-      ('prod-nn-4', 'nikhlesh-nursery', 'cat-nn-2', 'plants', 'Tissue Culture Teak Wood (Sagwan)', 'NN-TEK-04', '8902002004', 45.00, 95.00, 0.00, '0602', 500, 50, 'PCS', ''),
-      ('prod-nn-5', 'nikhlesh-nursery', 'cat-nn-3', 'plants', 'Bougainvillea Multi-Color Grafted', 'NN-BOU-05', '8902002005', 90.00, 220.00, 0.00, '0602', 140, 20, 'PCS', ''),
-      ('prod-nn-6', 'nikhlesh-nursery', 'cat-nn-4', 'fertilizers', 'Premium Red Soil & Cowdung Compost (25 Kg)', 'NN-SOIL-06', '8902002006', 160.00, 350.00, 0.00, '3101', 80, 15, 'BAG', '')
-      ON CONFLICT (id) DO NOTHING;
-    `);
-    }
-  } catch (prodErr) {
-    console.warn('[DB Seed] Warning while seeding products (skipped):', prodErr);
+    await db.query(`DELETE FROM products WHERE id LIKE 'prod-gn-%' OR id LIKE 'prod-nn-%';`);
+    await db.query(`DELETE FROM categories WHERE id LIKE 'cat-gn-%' OR id LIKE 'cat-nn-%';`);
+    await db.query(`DELETE FROM subcategories WHERE id LIKE 'subcat-%';`);
+  } catch (cleanErr) {
+    console.warn('[DB Seed] Warning while cleaning dump records:', cleanErr);
   }
 
-  console.log('[DB Seed] Verification & Seeding completed successfully!');
+  console.log('[DB Seed] Verification completed successfully (dump data removed)!');
 }

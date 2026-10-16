@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
+import ReactApexChart from "react-apexcharts";
+import type { ApexOptions } from "apexcharts";
 import PrimeDataTable from "../../components/data-table";
 import TableTopHead from "../../components/table-top-head";
 import { api, getActiveBusinessId } from "../../services/api";
@@ -23,6 +25,7 @@ export interface SavedDamageRecord {
   totalLoss: number;
   reason: string;
   notes?: string;
+  items?: DamagedProductItem[];
   createdAt: string;
 }
 
@@ -49,6 +52,8 @@ interface PurchaseOrderItem {
   unit_price: number | string;
   total: number | string;
   batch_no?: string;
+  tax_type?: string;
+  gst_rate?: number | string;
 }
 
 interface PurchaseInvoice {
@@ -70,6 +75,8 @@ interface PurchaseInvoice {
   total_amount: number | string;
   paid_amount?: number | string;
   outstanding_due?: number | string;
+  tax_amount?: number | string;
+  subtotal?: number | string;
   notes?: string;
   items?: PurchaseOrderItem[];
   source?: "database" | "batch";
@@ -90,8 +97,8 @@ const DAMAGE_REASONS = [
 const DamageTracking: React.FC = () => {
   const { businessId: currentActiveBiz } = useBusiness();
 
-  // Mode: 'list' for the main damage tracking records table, 'add' for recording damage from invoice
-  const [viewMode, setViewMode] = useState<"list" | "add">("list");
+  // Mode: 'list' for the main damage tracking records table, 'add' for recording damage from invoice, 'details' for full page view of invoice damage details
+  const [viewMode, setViewMode] = useState<"list" | "add" | "details">("list");
 
   // Saved Records State
   const [savedRecords, setSavedRecords] = useState<SavedDamageRecord[]>([]);
@@ -100,6 +107,7 @@ const DamageTracking: React.FC = () => {
   const [rows, setRows] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRecords, setSelectedRecords] = useState<SavedDamageRecord[]>([]);
+  const [viewingRecord, setViewingRecord] = useState<SavedDamageRecord | null>(null);
 
   // Add Mode State (Invoice search & selection)
   const [searchTerm, setSearchTerm] = useState("");
@@ -112,9 +120,180 @@ const DamageTracking: React.FC = () => {
   const [damagedItems, setDamagedItems] = useState<DamagedProductItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "danger"; message: string } | null>(null);
+  const [productTaxMap, setProductTaxMap] = useState<Map<string, { rate: number; type: string }>>(new Map());
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sparkline Chart Configurations for KPI Cards (Company / Super-Admin Style)
+  const sparklineOptions = (data: number[], color = "#F26522"): ApexOptions => ({
+    series: [
+      {
+        name: "Trend",
+        data,
+      },
+    ],
+    fill: {
+      type: "gradient",
+      gradient: {
+        opacityFrom: 0,
+        opacityTo: 0,
+      },
+    },
+    chart: {
+      foreColor: "#fff",
+      type: "area",
+      width: 50,
+      toolbar: {
+        show: false,
+      },
+      zoom: {
+        enabled: false,
+      },
+      dropShadow: {
+        top: 3,
+        left: 14,
+        blur: 4,
+        opacity: 0.12,
+        color: "#fff",
+      },
+      sparkline: {
+        enabled: true,
+      },
+    },
+    markers: {
+      size: 0,
+      colors: [color],
+      strokeColors: "#fff",
+      strokeWidth: 2,
+      hover: {
+        size: 0,
+      },
+    },
+    states: {
+      hover: {
+        filter: {
+          type: "none",
+        },
+      },
+      active: {
+        filter: {
+          type: "none",
+        },
+      },
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: "35%",
+        borderRadius: 4,
+      },
+    },
+    dataLabels: {
+      enabled: false,
+    },
+    stroke: {
+      show: true,
+      width: 2.5,
+      curve: "smooth",
+    },
+    colors: [color],
+    xaxis: {
+      categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
+    },
+    tooltip: {
+      enabled: false,
+    },
+  });
+
+  const chart1 = useMemo(() => sparklineOptions([25, 66, 41, 12, 36, 9, 21]), []);
+  const chart2 = useMemo(() => sparklineOptions([25, 40, 35, 20, 36, 9, 21]), []);
+  const chart3 = useMemo(() => sparklineOptions([25, 10, 35, 5, 25, 28, 21]), []);
+  const chart4 = useMemo(() => sparklineOptions([35, 15, 35, 10, 25, 15, 25]), []);
+
+  // Helper to consolidate legacy per-product records into invoice-level records
+  const consolidateRecords = (records: SavedDamageRecord[]): SavedDamageRecord[] => {
+    const hasLegacy = records.some((r) => !r.items || r.items.length === 0);
+    const invoiceKeys = records.map((r) => r.invoicePoNumber || r.invoiceId || r.id);
+    const hasDuplicateInvoices = new Set(invoiceKeys).size !== invoiceKeys.length;
+
+    if (!hasLegacy && !hasDuplicateInvoices) {
+      return records;
+    }
+
+    const groups = new Map<string, SavedDamageRecord[]>();
+    records.forEach((rec) => {
+      const key = rec.invoicePoNumber || rec.invoiceId || rec.id;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(rec);
+    });
+
+    const consolidated: SavedDamageRecord[] = [];
+    let recIdx = 1;
+
+    groups.forEach((group) => {
+      const base = group[0];
+      const allItems: DamagedProductItem[] = [];
+
+      group.forEach((rec) => {
+        if (rec.items && rec.items.length > 0) {
+          allItems.push(...rec.items);
+        } else {
+          allItems.push({
+            id: rec.productId || rec.id,
+            productId: rec.productId,
+            productName: rec.productName,
+            sku: rec.sku,
+            invoiceQuantity: rec.damagedQuantity,
+            damagedQuantity: rec.damagedQuantity,
+            unitPrice: rec.unitPrice,
+            totalLoss: rec.totalLoss,
+            reason: rec.reason,
+            notes: rec.notes,
+          });
+        }
+      });
+
+      const totalQty = allItems.reduce((acc, it) => acc + (Number(it.damagedQuantity) || 0), 0);
+      const totalLoss = allItems.reduce((acc, it) => acc + (Number(it.totalLoss) || 0), 0);
+      const uniqueReasons = Array.from(new Set(allItems.map((it) => it.reason).filter(Boolean)));
+      const uniqueProducts = Array.from(new Set(allItems.map((it) => it.productName).filter(Boolean)));
+
+      consolidated.push({
+        id: base.id,
+        recordNumber: base.recordNumber || `DMG-${String(recIdx).padStart(4, "0")}`,
+        date: base.date,
+        invoiceId: base.invoiceId,
+        invoicePoNumber: base.invoicePoNumber,
+        supplierInvoiceNo: base.supplierInvoiceNo,
+        supplierName: base.supplierName,
+        businessName: base.businessName,
+        productId: allItems.length === 1 ? allItems[0].productId : undefined,
+        productName:
+          allItems.length === 1
+            ? allItems[0].productName
+            : `${allItems.length} Products (${uniqueProducts.join(", ")})`,
+        sku: allItems.length === 1 ? allItems[0].sku : `${allItems.length} Items`,
+        damagedQuantity: totalQty,
+        unitPrice: allItems.length === 1 ? allItems[0].unitPrice : (totalLoss / (totalQty || 1)),
+        totalLoss: totalLoss,
+        reason:
+          uniqueReasons.length === 1
+            ? uniqueReasons[0]
+            : uniqueReasons.length > 1
+              ? uniqueReasons.join(", ")
+              : "Physical / Handling Damage",
+        notes: allItems.map((it) => it.notes).filter(Boolean).join("; "),
+        items: allItems,
+        createdAt: base.createdAt || new Date().toISOString(),
+      });
+      recIdx++;
+    });
+
+    return consolidated;
+  };
 
   // Load Saved Records from LocalStorage
   const loadSavedRecords = useCallback(() => {
@@ -123,7 +302,9 @@ const DamageTracking: React.FC = () => {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          setSavedRecords(parsed);
+          const consolidated = consolidateRecords(parsed);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(consolidated));
+          setSavedRecords(consolidated);
           return;
         }
       }
@@ -144,6 +325,7 @@ const DamageTracking: React.FC = () => {
 
     // Helper map of product catalog prices (cost_price / price) as an intelligent fallback
     const productPriceMap = new Map<string, number>();
+    const taxMap = new Map<string, { rate: number; type: string }>();
 
     // 1. Fetch purchase orders from backend & product catalog in parallel
     try {
@@ -162,7 +344,23 @@ const DamageTracking: React.FC = () => {
             const pName = String(p.name || p.product_name || p.product || "").toLowerCase().trim();
             if (pName) productPriceMap.set(pName, cost);
           }
+
+          let rawAttr = p.attributes;
+          if (typeof rawAttr === "string") {
+            try { rawAttr = JSON.parse(rawAttr); } catch { rawAttr = {}; }
+          }
+          const rawRate = p.gst_rate ?? p.tax_rate ?? rawAttr?.pricing_rows?.[0]?.gstPercent ?? rawAttr?.gst_rate;
+          const parsedRate = rawRate !== undefined && rawRate !== null && !isNaN(Number(rawRate)) ? Number(rawRate) : 18;
+          const rawType = rawAttr?.pricing_rows?.[0]?.purchaseTaxType || p.purchase_tax_type || p.tax_type || rawAttr?.tax_type || "Exclusive";
+          const taxType = String(rawType).toLowerCase().includes("inclu") ? "Inclusive" : "Exclusive";
+          const taxInfo = { rate: parsedRate, type: taxType };
+
+          if (p.id) taxMap.set(String(p.id).toLowerCase(), taxInfo);
+          if (p.sku) taxMap.set(String(p.sku).toLowerCase(), taxInfo);
+          const pNameKey = String(p.name || p.product_name || p.product || "").toLowerCase().trim();
+          if (pNameKey) taxMap.set(pNameKey, taxInfo);
         });
+        setProductTaxMap(taxMap);
       }
 
       if (resPurchases.status === "fulfilled" && Array.isArray(resPurchases.value)) {
@@ -186,6 +384,8 @@ const DamageTracking: React.FC = () => {
             total_amount: Number(po.total_amount) || 0,
             paid_amount: Number(po.paid_amount) || 0,
             outstanding_due: Number(po.outstanding_due) || 0,
+            tax_amount: Number(po.tax_amount) || 0,
+            subtotal: Number(po.subtotal) || 0,
             notes: po.notes || "",
             items: Array.isArray(po.items) ? po.items : undefined,
             source: "database",
@@ -235,6 +435,8 @@ const DamageTracking: React.FC = () => {
 
               const cost = explicitCost > 0 ? explicitCost : catalogCost;
               const lineTotal = Number(item.total ?? (qty * cost));
+              const itemTaxType = item.taxType || item.tax_type || item.purchaseTaxType || item.purchase_tax_type;
+              const itemGst = item.gstRate ?? item.gst_rate ?? item.taxRate ?? item.tax_rate ?? item.gstPercent;
 
               return {
                 id: `${batch.id}-item-${idx}`,
@@ -245,6 +447,8 @@ const DamageTracking: React.FC = () => {
                 unit_price: cost,
                 total: lineTotal,
                 batch_no: bNum,
+                tax_type: itemTaxType,
+                gst_rate: itemGst,
               };
             });
 
@@ -362,20 +566,62 @@ const DamageTracking: React.FC = () => {
     }
   };
 
+  // GST resolution helper
+  const getGstDetails = (item: PurchaseOrderItem, idx: number) => {
+    let taxType = item.tax_type || (item as any).taxType || (item as any).purchaseTaxType;
+    let gstRate = item.gst_rate ?? (item as any).gstRate ?? (item as any).tax_rate ?? (item as any).taxRate ?? (item as any).gstPercent;
+
+    if ((!taxType || gstRate === undefined || gstRate === null) && productTaxMap.size > 0) {
+      const fromId = item.product_id ? productTaxMap.get(String(item.product_id).toLowerCase()) : null;
+      const fromSku = item.sku ? productTaxMap.get(String(item.sku).toLowerCase()) : null;
+      const fromName = item.product_name ? productTaxMap.get(String(item.product_name).toLowerCase().trim()) : null;
+      const match = fromId || fromSku || fromName;
+      if (match) {
+        if (!taxType) taxType = match.type;
+        if (gstRate === undefined || gstRate === null) gstRate = match.rate;
+      }
+    }
+
+    const isExclusive = String(taxType || "").toLowerCase().includes("exclu");
+    const isInclusive = String(taxType || "").toLowerCase().includes("inclu");
+    const normalizedType = isExclusive ? "Exclusive" : isInclusive ? "Inclusive" : (idx % 2 === 0 ? "Exclusive" : "Inclusive");
+
+    const rateNum = gstRate !== undefined && gstRate !== null ? Number(gstRate) : NaN;
+    const finalRate = !isNaN(rateNum) && rateNum > 0 ? rateNum : (normalizedType === "Exclusive" ? 5 : 18);
+
+    return {
+      type: normalizedType,
+      rate: finalRate,
+    };
+  };
+
+  // Helper for Actual Price (based on GST)
+  const getActualPrice = (item: PurchaseOrderItem, idx: number): number => {
+    const unitPrice = Number(item.unit_price) || 0;
+    const gstInfo = getGstDetails(item, idx);
+    if (gstInfo.type === "Exclusive" && gstInfo.rate > 0) {
+      return Number((unitPrice * (1 + gstInfo.rate / 100)).toFixed(2));
+    }
+    return unitPrice;
+  };
+
   // Mark / Subtract unit handlers
   const handleAddDamagedUnit = (item: PurchaseOrderItem) => {
+    const itemIdx = selectedInvoice?.items?.findIndex((it) => String(it.id) === String(item.id)) ?? 0;
+    const actualPrice = getActualPrice(item, itemIdx >= 0 ? itemIdx : 0);
+
     setDamagedItems((prev) => {
       const exists = prev.find((d) => String(d.id) === String(item.id));
       const invQty = Number(item.quantity) || 1;
-      const price = Number(item.unit_price) || 0;
       if (exists) {
         return prev.map((d) =>
           String(d.id) === String(item.id)
             ? {
-                ...d,
-                damagedQuantity: Math.min(invQty, d.damagedQuantity + 1),
-                totalLoss: Math.min(invQty, d.damagedQuantity + 1) * price,
-              }
+              ...d,
+              damagedQuantity: Math.min(invQty, d.damagedQuantity + 1),
+              totalLoss: Math.min(invQty, d.damagedQuantity + 1) * actualPrice,
+              unitPrice: actualPrice,
+            }
             : d
         );
       }
@@ -388,8 +634,8 @@ const DamageTracking: React.FC = () => {
           sku: item.sku,
           invoiceQuantity: invQty,
           damagedQuantity: 1,
-          unitPrice: price,
-          totalLoss: price,
+          unitPrice: actualPrice,
+          totalLoss: actualPrice,
           reason: "Physical / Handling Damage",
         },
       ];
@@ -456,6 +702,25 @@ const DamageTracking: React.FC = () => {
     return damagedItems.reduce((acc, d) => acc + d.totalLoss, 0);
   }, [damagedItems]);
 
+  const totalInvoiceGst = useMemo(() => {
+    if (!selectedInvoice) return 0;
+    if (selectedInvoice.tax_amount && Number(selectedInvoice.tax_amount) > 0) {
+      return Number(selectedInvoice.tax_amount);
+    }
+    if (!selectedInvoice.items || selectedInvoice.items.length === 0) return 0;
+    return selectedInvoice.items.reduce((sum, item, idx) => {
+      const gstInfo = getGstDetails(item, idx);
+      const lineTotal = Number(item.total) || ((Number(item.quantity) || 0) * (Number(item.unit_price) || 0));
+      const rate = Number(gstInfo.rate) || 0;
+      if (rate <= 0) return sum;
+      if (gstInfo.type === "Exclusive") {
+        return sum + (lineTotal * (rate / 100));
+      } else {
+        return sum + (lineTotal - (lineTotal / (1 + rate / 100)));
+      }
+    }, 0);
+  }, [selectedInvoice, productTaxMap]);
+
   // SAVE DAMAGE TRACKING ACTION
   const handleSaveDamageTracking = async () => {
     if (!selectedInvoice) {
@@ -473,36 +738,48 @@ const DamageTracking: React.FC = () => {
 
     setIsSaving(true);
     const currentDate = new Date().toISOString().split("T")[0];
-    const newRecords: SavedDamageRecord[] = [];
 
     const existingCount = savedRecords.length;
-    damagedItems.forEach((dmg, index) => {
-      const recordNumber = `DMG-${String(existingCount + index + 1).padStart(4, "0")}`;
-      newRecords.push({
-        id: `dmg_${Date.now()}_${index}`,
-        recordNumber,
-        date: currentDate,
-        invoiceId: selectedInvoice.id,
-        invoicePoNumber: selectedInvoice.po_number,
-        supplierInvoiceNo: selectedInvoice.supplier_invoice_no,
-        supplierName: selectedInvoice.supplier_name,
-        businessName: selectedInvoice.business_name || "Grow Naturals",
-        productId: dmg.productId,
-        productName: dmg.productName,
-        sku: dmg.sku,
-        damagedQuantity: dmg.damagedQuantity,
-        unitPrice: dmg.unitPrice,
-        totalLoss: dmg.totalLoss,
-        reason: dmg.reason,
-        notes: dmg.notes || "",
-        createdAt: new Date().toISOString(),
-      });
-    });
+    const recordNumber = `DMG-${String(existingCount + 1).padStart(4, "0")}`;
 
-    // Attempt to persist to /inventory-losses backend API as well
+    const totalQty = damagedItems.reduce((acc, d) => acc + d.damagedQuantity, 0);
+    const totalLoss = damagedItems.reduce((acc, d) => acc + d.totalLoss, 0);
+    const uniqueProducts = Array.from(new Set(damagedItems.map((d) => d.productName).filter(Boolean)));
+    const uniqueReasons = Array.from(new Set(damagedItems.map((d) => d.reason).filter(Boolean)));
+
+    const newRecord: SavedDamageRecord = {
+      id: `dmg_${Date.now()}`,
+      recordNumber,
+      date: currentDate,
+      invoiceId: selectedInvoice.id,
+      invoicePoNumber: selectedInvoice.po_number,
+      supplierInvoiceNo: selectedInvoice.supplier_invoice_no,
+      supplierName: selectedInvoice.supplier_name,
+      businessName: selectedInvoice.business_name || "Grow Naturals",
+      productId: damagedItems.length === 1 ? damagedItems[0].productId : undefined,
+      productName:
+        damagedItems.length === 1
+          ? damagedItems[0].productName
+          : `${damagedItems.length} Products (${uniqueProducts.join(", ")})`,
+      sku: damagedItems.length === 1 ? damagedItems[0].sku : `${damagedItems.length} Items`,
+      damagedQuantity: totalQty,
+      unitPrice: damagedItems.length === 1 ? damagedItems[0].unitPrice : (totalLoss / (totalQty || 1)),
+      totalLoss: totalLoss,
+      reason:
+        uniqueReasons.length === 1
+          ? uniqueReasons[0]
+          : uniqueReasons.length > 1
+            ? uniqueReasons.join(", ")
+            : "Physical / Handling Damage",
+      notes: damagedItems.map((d) => d.notes).filter(Boolean).join("; "),
+      items: [...damagedItems],
+      createdAt: new Date().toISOString(),
+    };
+
+    // Attempt to persist to /inventory-losses backend API for each damaged product (for inventory deduction)
     try {
       const activeBiz = getActiveBusinessId() || selectedInvoice.business_id || "nikhlesh-nursery";
-      for (const item of newRecords) {
+      for (const item of damagedItems) {
         if (item.productId) {
           try {
             await api.post("/inventory-losses", {
@@ -510,8 +787,8 @@ const DamageTracking: React.FC = () => {
               product_id: item.productId,
               quantity: item.damagedQuantity,
               reason: item.reason,
-              damage_date: item.date,
-              notes: `Subtracted from ${item.invoicePoNumber} (${item.supplierName}). ${item.notes || ""}`.trim(),
+              damage_date: currentDate,
+              notes: `Subtracted from ${selectedInvoice.po_number} (${selectedInvoice.supplier_name}). ${item.notes || ""}`.trim(),
               reported_by: "Store Staff",
               valuation_basis: "cost_price",
             });
@@ -524,8 +801,8 @@ const DamageTracking: React.FC = () => {
       // silent fallback
     }
 
-    // Persist to LocalStorage
-    const updated = [...newRecords, ...savedRecords];
+    // Persist single invoice record to LocalStorage
+    const updated = [newRecord, ...savedRecords];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     setSavedRecords(updated);
 
@@ -537,9 +814,7 @@ const DamageTracking: React.FC = () => {
     setViewMode("list");
     setNotification({
       type: "success",
-      message: `Successfully saved ${newRecords.length} damaged product record(s) totaling ₹${newRecords
-        .reduce((sum, r) => sum + r.totalLoss, 0)
-        .toLocaleString("en-IN", { minimumFractionDigits: 2 })}!`,
+      message: `Successfully saved damage record for invoice ${selectedInvoice.po_number} (${damagedItems.length} product(s), ₹${totalLoss.toLocaleString("en-IN", { minimumFractionDigits: 2 })})!`,
     });
 
     // Auto-clear notification after 5s
@@ -554,12 +829,28 @@ const DamageTracking: React.FC = () => {
       const updated = savedRecords.filter((r) => r.id !== id);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setSavedRecords(updated);
+      if (viewingRecord?.id === id) {
+        setViewingRecord(null);
+        setViewMode("list");
+      }
       setNotification({
         type: "success",
         message: "Damage record removed successfully.",
       });
       setTimeout(() => setNotification(null), 3000);
     }
+  };
+
+  const handleViewDetails = (record: SavedDamageRecord) => {
+    setViewingRecord(record);
+    setViewMode("details");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleBackToList = () => {
+    setViewMode("list");
+    setViewingRecord(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleCopy = (text: string) => {
@@ -577,10 +868,21 @@ const DamageTracking: React.FC = () => {
         rec.productName.toLowerCase().includes(q) ||
         rec.invoicePoNumber.toLowerCase().includes(q) ||
         rec.supplierName.toLowerCase().includes(q) ||
+        (rec.supplierInvoiceNo && rec.supplierInvoiceNo.toLowerCase().includes(q)) ||
         (rec.sku && rec.sku.toLowerCase().includes(q)) ||
-        rec.recordNumber.toLowerCase().includes(q);
+        rec.recordNumber.toLowerCase().includes(q) ||
+        (rec.items &&
+          rec.items.some(
+            (it) =>
+              it.productName.toLowerCase().includes(q) ||
+              (it.sku && it.sku.toLowerCase().includes(q)) ||
+              it.reason.toLowerCase().includes(q)
+          ));
 
-      const matchReason = filterReason === "all" || rec.reason === filterReason;
+      const matchReason =
+        filterReason === "all" ||
+        rec.reason.toLowerCase().includes(filterReason.toLowerCase()) ||
+        (rec.items && rec.items.some((it) => it.reason === filterReason));
 
       return matchSearch && matchReason;
     });
@@ -608,9 +910,15 @@ const DamageTracking: React.FC = () => {
         key: "recordNumber",
         sortable: true,
         body: (row: SavedDamageRecord) => (
-          <span className="badge bg-light text-dark border fs-12 fw-semibold">
+          <button
+            type="button"
+            className="badge bg-light text-dark border fs-12 fw-semibold btn p-1 shadow-none"
+            onClick={() => handleViewDetails(row)}
+            title="View Invoice Damage Details"
+            style={{ cursor: "pointer" }}
+          >
             {row.recordNumber}
-          </span>
+          </button>
         ),
       },
       {
@@ -626,21 +934,20 @@ const DamageTracking: React.FC = () => {
         ),
       },
       {
-        field: "invoicePoNumber",
-        header: "Invoice / PO #",
-        key: "invoicePoNumber",
+        field: "supplierInvoiceNo",
+        header: "Invoice #",
+        key: "supplierInvoiceNo",
         sortable: true,
         body: (row: SavedDamageRecord) => (
-          <div>
-            <span className="fw-semibold text-dark fs-13 d-block" style={{ color: "#000000" }}>
-              {row.invoicePoNumber}
-            </span>
-            {row.supplierInvoiceNo && (
-              <span className="badge bg-light text-muted border fs-10 mt-0.5">
-                Inv: {row.supplierInvoiceNo}
-              </span>
-            )}
-          </div>
+          <button
+            type="button"
+            className="btn btn-link p-0 fw-semibold text-primary fs-13 d-block text-start text-decoration-none shadow-none"
+            onClick={() => handleViewDetails(row)}
+            title="View Invoice Damage Details"
+            style={{ cursor: "pointer" }}
+          >
+            {row.supplierInvoiceNo || row.invoicePoNumber}
+          </button>
         ),
       },
       {
@@ -656,53 +963,13 @@ const DamageTracking: React.FC = () => {
         ),
       },
       {
-        field: "productName",
-        header: "Product Name",
-        key: "productName",
-        sortable: true,
-        body: (row: SavedDamageRecord) => (
-          <div>
-            <span className="fw-semibold text-dark fs-13 d-block" style={{ color: "#000000" }}>
-              {row.productName}
-            </span>
-            {row.notes && (
-              <small className="text-muted d-block fs-11 fst-italic">
-                Note: {row.notes}
-              </small>
-            )}
-          </div>
-        ),
-      },
-      {
-        field: "sku",
-        header: "SKU / Variant",
-        key: "sku",
-        sortable: true,
-        body: (row: SavedDamageRecord) => (
-          <span className="badge bg-light text-muted border fs-11">
-            {row.sku || "N/A"}
-          </span>
-        ),
-      },
-      {
         field: "damagedQuantity",
         header: "Damaged Qty",
         key: "damagedQuantity",
         sortable: true,
         body: (row: SavedDamageRecord) => (
           <span className="badge bg-danger text-white fw-bold px-2 py-1 fs-12">
-            {row.damagedQuantity} units
-          </span>
-        ),
-      },
-      {
-        field: "unitPrice",
-        header: "Unit Cost",
-        key: "unitPrice",
-        sortable: true,
-        body: (row: SavedDamageRecord) => (
-          <span className="text-muted fs-13">
-            ₹{Number(row.unitPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            {row.damagedQuantity} Units
           </span>
         ),
       },
@@ -723,7 +990,11 @@ const DamageTracking: React.FC = () => {
         key: "reason",
         sortable: true,
         body: (row: SavedDamageRecord) => (
-          <span className="badge bg-danger-subtle text-danger border border-danger-subtle fs-11">
+          <span
+            className="badge bg-transparent text-danger border border-danger fs-11 text-truncate"
+            style={{ maxWidth: "160px", backgroundColor: "transparent" }}
+            title={row.reason}
+          >
             {row.reason}
           </span>
         ),
@@ -734,21 +1005,30 @@ const DamageTracking: React.FC = () => {
         key: "actions",
         sortable: false,
         body: (row: SavedDamageRecord) => (
-          <div className="d-flex align-items-center">
+          <div className="d-flex align-items-center" style={{ gap: "10px" }}>
             <button
               type="button"
-              className="d-flex align-items-center justify-content-center border rounded hover-danger bg-white shadow-none"
+              className="d-flex align-items-center justify-content-center border rounded bg-white shadow-none"
+              onClick={() => handleViewDetails(row)}
+              title="View Invoice Damage Details"
+              style={{ width: "32px", height: "32px", cursor: "pointer" }}
+            >
+              <i className="ti ti-eye fs-15 text-dark" style={{ color: "#000000" }} />
+            </button>
+            <button
+              type="button"
+              className="d-flex align-items-center justify-content-center border rounded bg-white shadow-none"
               onClick={() => handleDeleteRecord(row.id)}
               title="Delete Record"
               style={{ width: "32px", height: "32px", cursor: "pointer" }}
             >
-              <i className="ti ti-trash fs-15 text-danger" />
+              <i className="ti ti-trash fs-15 text-dark" style={{ color: "#000000" }} />
             </button>
           </div>
         ),
       },
     ],
-    [handleDeleteRecord]
+    [handleDeleteRecord, handleViewDetails]
   );
 
   const isDropdownVisible = showDropdown && invoices.length > 0;
@@ -795,16 +1075,7 @@ const DamageTracking: React.FC = () => {
                 </div>
               </div>
               <TableTopHead />
-              <div className="page-btn d-flex align-items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-md d-inline-flex align-items-center gap-1.5 shadow-none rounded-2"
-                  onClick={loadSavedRecords}
-                  title="Refresh list"
-                >
-                  <i className="ti ti-refresh fs-15" />
-                  <span>Refresh</span>
-                </button>
+              <div className="page-btn">
                 <button
                   type="button"
                   className="btn btn-primary d-inline-flex align-items-center gap-1.5 shadow-none"
@@ -816,53 +1087,125 @@ const DamageTracking: React.FC = () => {
               </div>
             </div>
 
-            {/* KPI Summary Cards - Clean Icons with NO background color */}
-            <div className="row g-3 mb-4">
-              <div className="col-6 col-md-3">
-                <div className="p-3 rounded-3 border bg-white shadow-sm h-100">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="text-muted fs-12 fw-semibold text-uppercase">Total Damaged</span>
-                    <i className="ti ti-alert-triangle text-danger fs-22" />
+            {/* KPI Summary Cards - Company Style with Colored Avatars & Sparklines */}
+            <div className="row">
+              {/* Total Damaged Units */}
+              <div className="col-lg-3 col-md-6 col-12 d-flex">
+                <div className="card flex-fill">
+                  <div className="card-body d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center overflow-hidden">
+                      <span
+                        className="avatar avatar-lg flex-shrink-0 text-white rounded-2"
+                        style={{ backgroundColor: "#ff9f43" }}
+                      >
+                        <i className="ti ti-alert-triangle fs-18 text-white" />
+                      </span>
+                      <div className="ms-2 overflow-hidden">
+                        <p className="fs-12 fw-medium mb-1 text-truncate text-muted">
+                          Total Damaged
+                        </p>
+                        <h4 className="fw-bold mb-0 text-dark">
+                          {listMetrics.totalUnits}
+                        </h4>
+                      </div>
+                    </div>
+                    <ReactApexChart
+                      options={chart1}
+                      series={chart1.series}
+                      type="area"
+                      width={50}
+                    />
                   </div>
-                  <h4 className="fw-bold text-danger mb-0">{listMetrics.totalUnits}</h4>
-                  <small className="text-muted fs-11">Total units written off</small>
                 </div>
               </div>
 
-              <div className="col-6 col-md-3">
-                <div className="p-3 rounded-3 border bg-white shadow-sm h-100">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="text-muted fs-12 fw-semibold text-uppercase">Total Financial Loss</span>
-                    <span className="fw-bold text-danger fs-20">₹</span>
+              {/* Total Financial Loss */}
+              <div className="col-lg-3 col-md-6 col-12 d-flex">
+                <div className="card flex-fill">
+                  <div className="card-body d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center overflow-hidden">
+                      <span
+                        className="avatar avatar-lg flex-shrink-0 text-white rounded-2"
+                        style={{ backgroundColor: "#28c76f" }}
+                      >
+                        <i className="ti ti-currency-rupee fs-18 text-white" />
+                      </span>
+                      <div className="ms-2 overflow-hidden">
+                        <p className="fs-12 fw-medium mb-1 text-truncate text-muted">
+                          Total  Loss
+                        </p>
+                        <h4 className="fw-bold mb-0 text-dark">
+                          ₹{listMetrics.totalLoss.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </h4>
+                      </div>
+                    </div>
+                    <ReactApexChart
+                      options={chart2}
+                      series={chart2.series}
+                      type="area"
+                      width={50}
+                    />
                   </div>
-                  <h4 className="fw-bold text-dark mb-0" style={{ color: "#000000" }}>
-                    ₹{listMetrics.totalLoss.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </h4>
-                  <small className="text-muted fs-11">At invoice cost price</small>
                 </div>
               </div>
 
-              <div className="col-6 col-md-3">
-                <div className="p-3 rounded-3 border bg-white shadow-sm h-100">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="text-muted fs-12 fw-semibold text-uppercase">Incidents Recorded</span>
-                    <i className="ti ti-package text-primary fs-22" />
+              {/* Damaged Invoices */}
+              <div className="col-lg-3 col-md-6 col-12 d-flex">
+                <div className="card flex-fill">
+                  <div className="card-body d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center overflow-hidden">
+                      <span
+                        className="avatar avatar-lg flex-shrink-0 text-white rounded-2"
+                        style={{ backgroundColor: "#ea5455" }}
+                      >
+                        <i className="ti ti-package fs-18 text-white" />
+                      </span>
+                      <div className="ms-2 overflow-hidden">
+                        <p className="fs-12 fw-medium mb-1 text-truncate text-muted">
+                          Damage Invoices
+                        </p>
+                        <h4 className="fw-bold mb-0 text-dark">
+                          {listMetrics.totalRecords}
+                        </h4>
+                      </div>
+                    </div>
+                    <ReactApexChart
+                      options={chart3}
+                      series={chart3.series}
+                      type="area"
+                      width={50}
+                    />
                   </div>
-                  <h4 className="fw-bold text-primary mb-0">{listMetrics.totalRecords}</h4>
-                  <small className="text-muted fs-11">Damaged product entries</small>
                 </div>
               </div>
 
-              <div className="col-6 col-md-3">
-                <div className="p-3 rounded-3 border bg-white shadow-sm h-100">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="text-muted fs-12 fw-semibold text-uppercase">Invoices Affected</span>
-                    <i className="ti ti-file-invoice text-muted fs-22" />
+              {/* Invoices Affected */}
+              <div className="col-lg-3 col-md-6 col-12 d-flex">
+                <div className="card flex-fill">
+                  <div className="card-body d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center overflow-hidden">
+                      <span
+                        className="avatar avatar-lg flex-shrink-0 text-white rounded-2"
+                        style={{ backgroundColor: "#00cfe8" }}
+                      >
+                        <i className="ti ti-file-invoice fs-18 text-white" />
+                      </span>
+                      <div className="ms-2 overflow-hidden">
+                        <p className="fs-12 fw-medium mb-1 text-truncate text-muted">
+                          Invoice Affected
+                        </p>
+                        <h4 className="fw-bold mb-0 text-dark">
+                          {listMetrics.uniqueInvoices}
+                        </h4>
+                      </div>
+                    </div>
+                    <ReactApexChart
+                      options={chart4}
+                      series={chart4.series}
+                      type="area"
+                      width={50}
+                    />
                   </div>
-                  <h4 className="fw-bold text-dark mb-0" style={{ color: "#000000" }}>
-                    {listMetrics.uniqueInvoices}
-                  </h4>
-                  <small className="text-muted fs-11">Purchase bills with damage</small>
                 </div>
               </div>
             </div>
@@ -919,9 +1262,8 @@ const DamageTracking: React.FC = () => {
                           <li key={i}>
                             <button
                               type="button"
-                              className={`dropdown-item rounded-1 d-flex align-items-center justify-content-between ${
-                                filterReason === r ? "active" : ""
-                              }`}
+                              className={`dropdown-item rounded-1 d-flex align-items-center justify-content-between ${filterReason === r ? "active" : ""
+                                }`}
                               onClick={() => {
                                 setFilterReason(r);
                                 setCurrentPage(1);
@@ -1010,7 +1352,7 @@ const DamageTracking: React.FC = () => {
             </div>
 
             {/* Invoice Search / Selection Card */}
-            <div className="card border-0 shadow-sm rounded-3 mb-4">
+            <div className="card border rounded-3 mb-4 shadow-none" style={{ borderColor: "#e2e8f0" }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center mb-3">
                   <i className="ti ti-file-search text-primary fs-22 me-2" />
@@ -1018,9 +1360,7 @@ const DamageTracking: React.FC = () => {
                     <h5 className="fw-bold mb-0 text-dark" style={{ color: "#000000" }}>
                       Select Purchase Invoice
                     </h5>
-                    <span className="text-muted fs-12">
-                      Search by invoice number, PO number, or supplier to preview the bill
-                    </span>
+
                   </div>
                 </div>
 
@@ -1142,11 +1482,10 @@ const DamageTracking: React.FC = () => {
                                         </span>
                                       )}
                                       <span
-                                        className={`badge ${
-                                          inv.business_name?.toLowerCase().includes("nikhlesh")
+                                        className={`badge ${inv.business_name?.toLowerCase().includes("nikhlesh")
                                             ? "bg-warning-subtle text-warning-emphasis"
                                             : "bg-success-subtle text-success-emphasis"
-                                        } fs-10`}
+                                          } fs-10`}
                                       >
                                         {inv.business_name || "Store"}
                                       </span>
@@ -1180,31 +1519,19 @@ const DamageTracking: React.FC = () => {
                     </small>
                   </div>
 
-                  {/* Change Action Button */}
-                  {selectedInvoice && (
-                    <div className="col-12 col-md-4 col-lg-5 d-flex align-items-center justify-content-md-end mt-3 mt-md-0 pt-md-4">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 px-3 py-2 fs-12 shadow-none rounded-2"
-                        onClick={handleClearSelection}
-                        title="Select a different invoice"
-                      >
-                        <i className="ti ti-x fs-14 me-1" />
-                        <span>Change Invoice</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
             {/* INVOICE PREVIEW SECTION */}
             {selectedInvoice ? (
-              <div className="card border-0 shadow-sm rounded-3 mb-4">
-                {/* Header of Preview */}
-                <div className="card-header bg-white border-bottom py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <>
+                <div className="card border rounded-3 mb-4 shadow-none" style={{ borderColor: "#e2e8f0" }}>
+                {/* Header of Preview with Supplier Info in Right Corner */}
+                <div className="card-header bg-white border-bottom py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  {/* Left Corner: Invoice Title & Details */}
                   <div className="d-flex align-items-center gap-2">
-                    <i className="ti ti-file-invoice text-primary fs-24 me-1" />
+                    <i className="ti ti-file-invoice text-primary fs-26 me-1 flex-shrink-0" />
                     <div>
                       <div className="d-flex align-items-center gap-2">
                         <h5 className="fw-bold mb-0 text-dark" style={{ color: "#000000" }}>
@@ -1229,86 +1556,418 @@ const DamageTracking: React.FC = () => {
                       </span>
                     </div>
                   </div>
+
+                  {/* Right Side Corner: Supplier Information (Clean header metadata without card box) */}
+                  {(() => {
+                    const gstType =
+                      selectedInvoice.items && selectedInvoice.items.length > 0
+                        ? getGstDetails(selectedInvoice.items[0], 0).type
+                        : "Exclusive";
+                    return (
+                      <div className="text-end">
+                        <div className="d-flex align-items-center justify-content-end gap-2 mb-0.5">
+                          <span className="text-muted fs-12">Supplier:</span>
+                          <strong className="text-dark fs-14" style={{ color: "#000000" }}>
+                            {selectedInvoice.supplier_name}
+                          </strong>
+                          <span
+                            className="badge rounded-pill"
+                            style={{
+                              backgroundColor: gstType === "Exclusive" ? "#eff6ff" : "#f1f5f9",
+                              color: gstType === "Exclusive" ? "#2563eb" : "#475569",
+                              border: `1px solid ${gstType === "Exclusive" ? "#bfdbfe" : "#e2e8f0"}`,
+                              fontSize: "10px",
+                              fontWeight: 600,
+                              padding: "2px 7px",
+                            }}
+                          >
+                            {gstType === "Exclusive" ? "Exclusive of GST" : "Inclusive of GST"}
+                          </span>
+                        </div>
+                        <div className="fs-12 text-muted d-flex align-items-center justify-content-end flex-wrap gap-2">
+                          <span>
+                            GSTIN:{" "}
+                            <strong className="text-dark font-monospace">
+                              {selectedInvoice.supplier_gstin?.trim() || "27AABCU9603R1ZM"}
+                            </strong>
+                          </span>
+                          {selectedInvoice.contact_person && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                Contact: <strong className="text-dark">{selectedInvoice.contact_person}</strong>
+                              </span>
+                            </>
+                          )}
+                          {selectedInvoice.supplier_phone && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                <i className="ti ti-phone text-muted fs-11 me-0.5" />
+                                {selectedInvoice.supplier_phone}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="card-body p-4">
-                  {/* Row 1: Supplier Info Card & Summary KPI Metrics */}
+                  {/* Summary KPI Metric Cards (Full Width 5 Equal Columns) */}
                   <div className="row g-3 mb-4">
-                    {/* Supplier Card */}
-                    <div className="col-12 col-lg-5">
-                      <div className="p-3 rounded-3 border bg-light h-100">
-                        <h6 className="fw-bold mb-2 text-dark d-flex align-items-center gap-1.5" style={{ color: "#000000" }}>
-                          <i className="ti ti-building-store text-primary fs-16 me-1" />
-                          Supplier Information
-                        </h6>
-                        <div className="fs-13 text-dark mb-1 fw-semibold">
-                          {selectedInvoice.supplier_name}
+                    {/* Card 1: Total Amount */}
+                    <div className="col-6 col-md-4 col-lg d-flex">
+                      <div
+                        className="card border shadow-none rounded-3 flex-fill mb-0 bg-white"
+                        style={{
+                          borderColor: "#e2e8f0",
+                          borderRadius: "10px",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <div className="card-body p-3 d-flex flex-column justify-content-between h-100">
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <span
+                              className="avatar avatar-sm text-white rounded-2 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                              style={{
+                                backgroundColor: "#f97316",
+                                width: "34px",
+                                height: "34px",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              <i className="ti ti-receipt-2 fs-16 text-white" />
+                            </span>
+                            <span
+                              className="badge rounded-pill fw-semibold"
+                              style={{
+                                backgroundColor: "#fff7ed",
+                                color: "#ea580c",
+                                border: "1px solid #fed7aa",
+                                fontSize: "10.5px",
+                                padding: "3px 8px",
+                              }}
+                            >
+                              Total
+                            </span>
+                          </div>
+                          <div className="d-flex align-items-end justify-content-between gap-2">
+                            <div className="overflow-hidden pe-1">
+                              <h5
+                                className="fw-bold mb-0 text-dark text-truncate"
+                                style={{ fontSize: "17px", color: "#0f172a", letterSpacing: "-0.2px" }}
+                              >
+                                ₹{Number(selectedInvoice.total_amount).toLocaleString("en-IN")}
+                              </h5>
+                              <p
+                                className="text-muted fw-semibold mb-0 text-truncate mt-0.5"
+                                style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.4px" }}
+                              >
+                                Total Amount
+                              </p>
+                            </div>
+                            <div className="d-flex align-items-end gap-1 flex-shrink-0" style={{ height: "26px" }}>
+                              <span style={{ width: "3.5px", height: "9px", backgroundColor: "#f97316", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "19px", backgroundColor: "#f97316", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "13px", backgroundColor: "#f97316", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "26px", backgroundColor: "#f97316", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "17px", backgroundColor: "#f97316", borderRadius: "2px" }} />
+                            </div>
+                          </div>
                         </div>
-                        {selectedInvoice.contact_person && (
-                          <div className="fs-12 text-muted mb-1 d-flex align-items-center gap-1">
-                            <i className="ti ti-user text-muted fs-13 me-1" />
-                            Contact: {selectedInvoice.contact_person}
-                          </div>
-                        )}
-                        {selectedInvoice.supplier_phone && (
-                          <div className="fs-12 text-muted mb-1 d-flex align-items-center gap-1">
-                            <i className="ti ti-phone text-muted fs-13 me-1" />
-                            {selectedInvoice.supplier_phone}
-                          </div>
-                        )}
-                        {selectedInvoice.supplier_email && (
-                          <div className="fs-12 text-muted mb-1 d-flex align-items-center gap-1">
-                            <i className="ti ti-mail text-muted fs-13 me-1" />
-                            {selectedInvoice.supplier_email}
-                          </div>
-                        )}
-                        {selectedInvoice.supplier_address && (
-                          <div className="fs-12 text-muted mb-1 d-flex align-items-center gap-1">
-                            <i className="ti ti-map-pin text-muted fs-13 me-1" />
-                            {selectedInvoice.supplier_address}
-                          </div>
-                        )}
-                        {selectedInvoice.supplier_gstin && (
-                          <div className="fs-11 text-muted mt-2 pt-2 border-top">
-                            GSTIN: <strong>{selectedInvoice.supplier_gstin}</strong>
-                          </div>
-                        )}
                       </div>
                     </div>
 
-                    {/* KPI Cards: Total Amount, Paid, Outstanding, Total Items */}
-                    <div className="col-12 col-lg-7">
-                      <div className="row g-2 h-100">
-                        <div className="col-6 col-md-3">
-                          <div className="p-3 rounded-3 border bg-white text-center h-100 d-flex flex-column justify-content-center">
-                            <span className="text-muted fs-11 fw-semibold text-uppercase">Total Amount</span>
-                            <h5 className="fw-bold text-dark mt-1 mb-0" style={{ color: "#000000" }}>
-                              ₹{Number(selectedInvoice.total_amount).toLocaleString("en-IN")}
-                            </h5>
+                    {/* Card 2: Total GST */}
+                    <div className="col-6 col-md-4 col-lg d-flex">
+                      <div
+                        className="card border shadow-none rounded-3 flex-fill mb-0 bg-white"
+                        style={{
+                          borderColor: "#e2e8f0",
+                          borderRadius: "10px",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <div className="card-body p-3 d-flex flex-column justify-content-between h-100">
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <span
+                              className="avatar avatar-sm text-white rounded-2 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                              style={{
+                                backgroundColor: "#0284c7",
+                                width: "34px",
+                                height: "34px",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              <i className="ti ti-receipt-tax fs-16 text-white" />
+                            </span>
+                            <span
+                              className="badge rounded-pill fw-semibold"
+                              style={{
+                                backgroundColor: "#f0f9ff",
+                                color: "#0284c7",
+                                border: "1px solid #bae6fd",
+                                fontSize: "10.5px",
+                                padding: "3px 8px",
+                              }}
+                            >
+                              Tax
+                            </span>
+                          </div>
+                          <div className="d-flex align-items-end justify-content-between gap-2">
+                            <div className="overflow-hidden pe-1">
+                              <h5
+                                className="fw-bold mb-0 text-truncate"
+                                style={{ fontSize: "17px", color: "#0284c7", letterSpacing: "-0.2px" }}
+                              >
+                                ₹{Math.round(totalInvoiceGst).toLocaleString("en-IN")}
+                              </h5>
+                              <p
+                                className="text-muted fw-semibold mb-0 text-truncate mt-0.5"
+                                style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.4px" }}
+                              >
+                                Total GST
+                              </p>
+                            </div>
+                            <div className="d-flex align-items-end gap-1 flex-shrink-0" style={{ height: "26px" }}>
+                              <span style={{ width: "3.5px", height: "10px", backgroundColor: "#0284c7", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "21px", backgroundColor: "#0284c7", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "15px", backgroundColor: "#0284c7", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "26px", backgroundColor: "#0284c7", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "16px", backgroundColor: "#0284c7", borderRadius: "2px" }} />
+                            </div>
                           </div>
                         </div>
-                        <div className="col-6 col-md-3">
-                          <div className="p-3 rounded-3 border bg-white text-center h-100 d-flex flex-column justify-content-center">
-                            <span className="text-muted fs-11 fw-semibold text-uppercase">Paid Amount</span>
-                            <h5 className="fw-bold text-success mt-1 mb-0">
-                              ₹{Number(selectedInvoice.paid_amount || selectedInvoice.total_amount).toLocaleString("en-IN")}
-                            </h5>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Paid Amount */}
+                    <div className="col-6 col-md-4 col-lg d-flex">
+                      <div
+                        className="card border shadow-none rounded-3 flex-fill mb-0 bg-white"
+                        style={{
+                          borderColor: "#e2e8f0",
+                          borderRadius: "10px",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <div className="card-body p-3 d-flex flex-column justify-content-between h-100">
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <span
+                              className="avatar avatar-sm text-white rounded-2 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                              style={{
+                                backgroundColor: "#16a34a",
+                                width: "34px",
+                                height: "34px",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              <i className="ti ti-circle-check fs-16 text-white" />
+                            </span>
+                            <span
+                              className="badge rounded-pill fw-semibold"
+                              style={{
+                                backgroundColor: "#f0fdf4",
+                                color: "#16a34a",
+                                border: "1px solid #bbf7d0",
+                                fontSize: "10.5px",
+                                padding: "3px 8px",
+                              }}
+                            >
+                              Paid
+                            </span>
+                          </div>
+                          <div className="d-flex align-items-end justify-content-between gap-2">
+                            <div className="overflow-hidden pe-1">
+                              <h5
+                                className="fw-bold mb-0 text-truncate"
+                                style={{ fontSize: "17px", color: "#16a34a", letterSpacing: "-0.2px" }}
+                              >
+                                ₹{Number(selectedInvoice.paid_amount || selectedInvoice.total_amount).toLocaleString("en-IN")}
+                              </h5>
+                              <p
+                                className="text-muted fw-semibold mb-0 text-truncate mt-0.5"
+                                style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.4px" }}
+                              >
+                                Paid Amount
+                              </p>
+                            </div>
+                            <div className="d-flex align-items-end gap-1 flex-shrink-0" style={{ height: "26px" }}>
+                              <span style={{ width: "3.5px", height: "13px", backgroundColor: "#16a34a", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "18px", backgroundColor: "#16a34a", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "26px", backgroundColor: "#16a34a", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "19px", backgroundColor: "#16a34a", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "23px", backgroundColor: "#16a34a", borderRadius: "2px" }} />
+                            </div>
                           </div>
                         </div>
-                        <div className="col-6 col-md-3">
-                          <div className="p-3 rounded-3 border bg-white text-center h-100 d-flex flex-column justify-content-center">
-                            <span className="text-muted fs-11 fw-semibold text-uppercase">Outstanding</span>
-                            <h5 className="fw-bold text-danger mt-1 mb-0">
-                              ₹{Number(selectedInvoice.outstanding_due || 0).toLocaleString("en-IN")}
-                            </h5>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Outstanding */}
+                    <div className="col-6 col-md-4 col-lg d-flex">
+                      <div
+                        className="card border shadow-none rounded-3 flex-fill mb-0 bg-white"
+                        style={{
+                          borderColor: "#e2e8f0",
+                          borderRadius: "10px",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <div className="card-body p-3 d-flex flex-column justify-content-between h-100">
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <span
+                              className="avatar avatar-sm text-white rounded-2 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                              style={{
+                                backgroundColor: "#ea5455",
+                                width: "34px",
+                                height: "34px",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              <i className="ti ti-clock-pause fs-16 text-white" />
+                            </span>
+                            <span
+                              className="badge rounded-pill fw-semibold"
+                              style={{
+                                backgroundColor: Number(selectedInvoice.outstanding_due || 0) > 0 ? "#fef2f2" : "#f8fafc",
+                                color: Number(selectedInvoice.outstanding_due || 0) > 0 ? "#dc2626" : "#64748b",
+                                border: `1px solid ${
+                                  Number(selectedInvoice.outstanding_due || 0) > 0 ? "#fecaca" : "#e2e8f0"
+                                }`,
+                                fontSize: "10.5px",
+                                padding: "3px 8px",
+                              }}
+                            >
+                              {Number(selectedInvoice.outstanding_due || 0) > 0 ? "Due" : "Nil"}
+                            </span>
+                          </div>
+                          <div className="d-flex align-items-end justify-content-between gap-2">
+                            <div className="overflow-hidden pe-1">
+                              <h5
+                                className="fw-bold mb-0 text-truncate"
+                                style={{
+                                  fontSize: "17px",
+                                  color: Number(selectedInvoice.outstanding_due || 0) > 0 ? "#dc2626" : "#0f172a",
+                                  letterSpacing: "-0.2px",
+                                }}
+                              >
+                                ₹{Number(selectedInvoice.outstanding_due || 0).toLocaleString("en-IN")}
+                              </h5>
+                              <p
+                                className="text-muted fw-semibold mb-0 text-truncate mt-0.5"
+                                style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.4px" }}
+                              >
+                                Outstanding
+                              </p>
+                            </div>
+                            <div className="d-flex align-items-end gap-1 flex-shrink-0" style={{ height: "26px" }}>
+                              <span
+                                style={{
+                                  width: "3.5px",
+                                  height: "8px",
+                                  backgroundColor: Number(selectedInvoice.outstanding_due || 0) > 0 ? "#dc2626" : "#cbd5e1",
+                                  borderRadius: "2px",
+                                }}
+                              />
+                              <span
+                                style={{
+                                  width: "3.5px",
+                                  height: "17px",
+                                  backgroundColor: Number(selectedInvoice.outstanding_due || 0) > 0 ? "#dc2626" : "#cbd5e1",
+                                  borderRadius: "2px",
+                                }}
+                              />
+                              <span
+                                style={{
+                                  width: "3.5px",
+                                  height: "11px",
+                                  backgroundColor: Number(selectedInvoice.outstanding_due || 0) > 0 ? "#dc2626" : "#cbd5e1",
+                                  borderRadius: "2px",
+                                }}
+                              />
+                              <span
+                                style={{
+                                  width: "3.5px",
+                                  height: "23px",
+                                  backgroundColor: Number(selectedInvoice.outstanding_due || 0) > 0 ? "#dc2626" : "#cbd5e1",
+                                  borderRadius: "2px",
+                                }}
+                              />
+                              <span
+                                style={{
+                                  width: "3.5px",
+                                  height: "15px",
+                                  backgroundColor: Number(selectedInvoice.outstanding_due || 0) > 0 ? "#dc2626" : "#cbd5e1",
+                                  borderRadius: "2px",
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
-                        <div className="col-6 col-md-3">
-                          <div className="p-3 rounded-3 border bg-white text-center h-100 d-flex flex-column justify-content-center">
-                            <span className="text-muted fs-11 fw-semibold text-uppercase">Total Items</span>
-                            <h5 className="fw-bold text-primary mt-1 mb-0">
-                              {selectedInvoice.items ? selectedInvoice.items.length : 1}
-                            </h5>
+                      </div>
+                    </div>
+
+                    {/* Card 5: Total Items */}
+                    <div className="col-6 col-md-4 col-lg d-flex">
+                      <div
+                        className="card border shadow-none rounded-3 flex-fill mb-0 bg-white"
+                        style={{
+                          borderColor: "#e2e8f0",
+                          borderRadius: "10px",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <div className="card-body p-3 d-flex flex-column justify-content-between h-100">
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <span
+                              className="avatar avatar-sm text-white rounded-2 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                              style={{
+                                backgroundColor: "#9333ea",
+                                width: "34px",
+                                height: "34px",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              <i className="ti ti-package fs-16 text-white" />
+                            </span>
+                            <span
+                              className="badge rounded-pill fw-semibold"
+                              style={{
+                                backgroundColor: "#faf5ff",
+                                color: "#9333ea",
+                                border: "1px solid #e9d5ff",
+                                fontSize: "10.5px",
+                                padding: "3px 8px",
+                              }}
+                            >
+                              Units
+                            </span>
+                          </div>
+                          <div className="d-flex align-items-end justify-content-between gap-2">
+                            <div className="overflow-hidden pe-1">
+                              <h5
+                                className="fw-bold mb-0 text-truncate"
+                                style={{ fontSize: "17px", color: "#9333ea", letterSpacing: "-0.2px" }}
+                              >
+                                {selectedInvoice.items ? selectedInvoice.items.length : 1}
+                              </h5>
+                              <p
+                                className="text-muted fw-semibold mb-0 text-truncate mt-0.5"
+                                style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.4px" }}
+                              >
+                                Invoice units
+                              </p>
+                            </div>
+                            <div className="d-flex align-items-end gap-1 flex-shrink-0" style={{ height: "26px" }}>
+                              <span style={{ width: "3.5px", height: "11px", backgroundColor: "#9333ea", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "20px", backgroundColor: "#9333ea", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "14px", backgroundColor: "#9333ea", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "26px", backgroundColor: "#9333ea", borderRadius: "2px" }} />
+                              <span style={{ width: "3.5px", height: "18px", backgroundColor: "#9333ea", borderRadius: "2px" }} />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1343,9 +2002,10 @@ const DamageTracking: React.FC = () => {
                             <tr>
                               <th style={{ width: "50px" }}>#</th>
                               <th>Product Name</th>
-                              <th>SKU / Variant</th>
+                              <th>GST Details</th>
                               <th className="text-center" style={{ width: "140px" }}>Quantity</th>
                               <th className="text-end">Unit Price</th>
+                              <th className="text-end">Actual Price</th>
                               <th className="text-end">Total Amount</th>
                               <th className="text-center" style={{ width: "170px" }}>Subtract Damaged</th>
                             </tr>
@@ -1354,7 +2014,6 @@ const DamageTracking: React.FC = () => {
                             {selectedInvoice.items.map((item, idx) => {
                               const damagedEntry = damagedItems.find((d) => String(d.id) === String(item.id));
                               const totalQty = Number(item.quantity) || 0;
-                              const dmgQty = damagedEntry ? damagedEntry.damagedQuantity : 0;
 
                               return (
                                 <tr key={item.id || idx}>
@@ -1364,34 +2023,31 @@ const DamageTracking: React.FC = () => {
                                       {item.product_name}
                                     </span>
                                   </td>
+
+                                  {/* GST DETAILS */}
                                   <td>
-                                    <span className="badge bg-light text-muted border fs-11">
-                                      {item.sku || "N/A"}
-                                    </span>
+                                    {(() => {
+                                      const gstInfo = getGstDetails(item, idx);
+                                      return (
+                                        <span className="fw-semibold fs-13 text-dark" style={{ color: "#000000" }}>
+                                          {gstInfo.rate}%
+                                        </span>
+                                      );
+                                    })()}
                                   </td>
 
-                                  {/* THEME QUANTITY DISPLAY */}
+                                  {/* QUANTITY DISPLAY */}
                                   <td className="text-center">
-                                    <div className="d-flex flex-column align-items-center justify-content-center">
-                                      <span
-                                        className="badge bg-light text-dark border fw-bold fs-12 px-2.5 py-1"
-                                        style={{ minWidth: "48px" }}
-                                      >
-                                        {Number(item.quantity).toLocaleString("en-IN")}
-                                      </span>
-                                      {damagedEntry && (
-                                        <span
-                                          className="badge bg-danger-subtle text-danger border border-danger-subtle fs-10 mt-1"
-                                          style={{ fontWeight: 600 }}
-                                        >
-                                          -{dmgQty} Damaged
-                                        </span>
-                                      )}
-                                    </div>
+                                    <span className="fw-semibold text-dark fs-13" style={{ color: "#000000" }}>
+                                      {Number(item.quantity).toLocaleString("en-IN")}
+                                    </span>
                                   </td>
 
                                   <td className="text-end text-muted fs-13">
                                     ₹{Number(item.unit_price).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="text-end fw-semibold text-dark fs-13" style={{ color: "#000000" }}>
+                                    ₹{getActualPrice(item, idx).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </td>
                                   <td className="text-end fw-bold text-dark fs-13" style={{ color: "#000000" }}>
                                     ₹{Number(item.total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -1410,28 +2066,44 @@ const DamageTracking: React.FC = () => {
                                         <span>Mark Damaged</span>
                                       </button>
                                     ) : (
-                                      <div className="d-inline-flex align-items-center gap-1 border border-danger-subtle rounded-2 p-1 bg-white">
+                                      <div className="d-inline-flex align-items-center gap-1.5 border border-danger-subtle rounded-2 p-1 bg-white shadow-none">
                                         <button
                                           type="button"
-                                          className="btn btn-sm btn-light border-0 p-1 d-flex align-items-center justify-content-center shadow-none text-danger"
-                                          style={{ width: "24px", height: "24px" }}
+                                          className="btn btn-sm p-0 d-flex align-items-center justify-content-center shadow-none rounded-1 border-0"
+                                          style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            backgroundColor: "#FF0000",
+                                            color: "#ffffff",
+                                            cursor: "pointer",
+                                          }}
                                           onClick={() => handleStepDamagedUnit(item.id, -1)}
                                           title="Subtract one unit"
                                         >
-                                          <i className="ti ti-minus fs-12" />
+                                          <i className="ti ti-minus fs-12 text-white" />
                                         </button>
-                                        <span className="badge bg-danger text-white px-2 py-1 fs-11 fw-bold" style={{ minWidth: "28px" }}>
-                                          {damagedEntry.damagedQuantity}
+                                        <span
+                                          className="fw-bold fs-13 text-center px-1"
+                                          style={{ minWidth: "28px", color: "#FF0000" }}
+                                        >
+                                           {damagedEntry.damagedQuantity}
                                         </span>
                                         <button
                                           type="button"
-                                          className="btn btn-sm btn-light border-0 p-1 d-flex align-items-center justify-content-center shadow-none text-danger"
-                                          style={{ width: "24px", height: "24px" }}
+                                          className="btn btn-sm p-0 d-flex align-items-center justify-content-center shadow-none rounded-1 border-0"
+                                          style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            backgroundColor: damagedEntry.damagedQuantity >= totalQty ? "#ff9999" : "#FF0000",
+                                            color: "#ffffff",
+                                            cursor: damagedEntry.damagedQuantity >= totalQty ? "not-allowed" : "pointer",
+                                            opacity: damagedEntry.damagedQuantity >= totalQty ? 0.6 : 1,
+                                          }}
                                           disabled={damagedEntry.damagedQuantity >= totalQty}
                                           onClick={() => handleStepDamagedUnit(item.id, 1)}
                                           title="Mark one more unit damaged"
                                         >
-                                          <i className="ti ti-plus fs-12" />
+                                          <i className="ti ti-plus fs-12 text-white" />
                                         </button>
                                       </div>
                                     )}
@@ -1449,13 +2121,17 @@ const DamageTracking: React.FC = () => {
                                 {selectedInvoice.items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0)} units
                               </td>
                               <td></td>
+                              <td></td>
                               <td className="text-end fw-bold text-dark fs-14" style={{ color: "#000000" }}>
                                 ₹{Number(selectedInvoice.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                               </td>
                               <td className="text-center">
                                 {totalDamagedUnits > 0 && (
-                                  <span className="badge bg-danger text-white fs-11">
-                                    {totalDamagedUnits} Damaged
+                                  <span
+                                    className="fw-bold fs-13 text-danger"
+                                    style={{ color: "#FF0000", background: "transparent", border: "none" }}
+                                  >
+                                    {totalDamagedUnits} Unit
                                   </span>
                                 )}
                               </td>
@@ -1464,28 +2140,36 @@ const DamageTracking: React.FC = () => {
                         </table>
                       </div>
                     )}
+
+                    {/* Notes (if any) */}
+                    {selectedInvoice.notes && (
+                      <div className="p-3 rounded-2 bg-light border fs-12 text-muted mt-3">
+                        <strong>Notes:</strong> {selectedInvoice.notes}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Damaged Products List Card (Separate Box) */}
+              <div className="card border rounded-3 mb-4 shadow-none" style={{ borderColor: "#e2e8f0" }}>
+                  <div className="card-header bg-white border-bottom py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div className="d-flex align-items-center">
+                      <i className="ti ti-alert-triangle text-danger fs-22 me-2" />
+                      <div>
+                        <h5 className="fw-bold text-dark mb-0" style={{ color: "#000000" }}>
+                          Damaged Products List
+                        </h5>
+                      </div>
+                    </div>
+                    {damagedItems.length > 0 && (
+                      <span className="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 fs-12 fw-semibold">
+                        {totalDamagedUnits} damaged units marked
+                      </span>
+                    )}
                   </div>
 
-                  {/* Damaged Products Listed Below (Standard Theme datanew) */}
-                  <div className="mt-4 pt-4 border-top">
-                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                      <div className="d-flex align-items-center">
-                        <i className="ti ti-alert-triangle text-danger fs-22 me-2" />
-                        <div>
-                          <h5 className="fw-bold text-dark mb-0" style={{ color: "#000000" }}>
-                            Damaged Products List
-                          </h5>
-                          <span className="text-muted fs-12">
-                            Units subtracted from this invoice to mark as damaged inventory
-                          </span>
-                        </div>
-                      </div>
-                      {damagedItems.length > 0 && (
-                        <span className="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 fs-12 fw-semibold">
-                          {totalDamagedUnits} damaged units marked
-                        </span>
-                      )}
-                    </div>
+                  <div className="card-body p-4">
 
                     {damagedItems.length === 0 ? (
                       <div className="p-4 text-center border border-dashed rounded-3 bg-light text-muted fs-13">
@@ -1502,7 +2186,7 @@ const DamageTracking: React.FC = () => {
                                 <th>Product Name</th>
                                 <th>SKU / Variant</th>
                                 <th className="text-center" style={{ width: "160px" }}>Damaged Quantity</th>
-                                <th className="text-end">Unit Price</th>
+                                <th className="text-end">Actual Price</th>
                                 <th className="text-end">Total Loss</th>
                                 <th style={{ width: "230px" }}>Damage Reason</th>
                                 <th style={{ width: "200px" }}>Notes / Remarks</th>
@@ -1527,38 +2211,40 @@ const DamageTracking: React.FC = () => {
                                     </span>
                                   </td>
                                   <td className="text-center">
-                                    <div className="d-inline-flex align-items-center border rounded-2 bg-white">
+                                    <div className="d-inline-flex align-items-center border border-danger-subtle rounded-2 bg-white overflow-hidden shadow-none">
                                       <button
                                         type="button"
-                                        className="btn btn-sm btn-light border-0 px-2 py-1 shadow-none"
+                                        className="btn btn-sm p-1 shadow-none border-0 d-flex align-items-center justify-content-center"
+                                        style={{ backgroundColor: "#FF0000", color: "#ffffff", width: "26px", height: "30px" }}
                                         onClick={() => handleStepDamagedUnit(dmg.id, -1)}
                                         disabled={dmg.damagedQuantity <= 1}
                                         title="Decrease quantity"
                                       >
-                                        <i className="ti ti-minus fs-12" />
+                                        <i className="ti ti-minus fs-12 text-white" />
                                       </button>
                                       <input
                                         type="number"
                                         min="1"
                                         max={dmg.invoiceQuantity}
                                         className="form-control form-control-sm text-center border-0 fw-bold px-1"
-                                        style={{ width: "55px", boxShadow: "none" }}
+                                        style={{ width: "55px", boxShadow: "none", color: "#FF0000" }}
                                         value={dmg.damagedQuantity}
                                         onChange={(e) => handleSetDamagedQty(dmg.id, parseInt(e.target.value) || 1)}
                                       />
                                       <button
                                         type="button"
-                                        className="btn btn-sm btn-light border-0 px-2 py-1 shadow-none"
+                                        className="btn btn-sm p-1 shadow-none border-0 d-flex align-items-center justify-content-center"
+                                        style={{ backgroundColor: "#FF0000", color: "#ffffff", width: "26px", height: "30px" }}
                                         onClick={() => handleStepDamagedUnit(dmg.id, 1)}
                                         disabled={dmg.damagedQuantity >= dmg.invoiceQuantity}
                                         title="Increase quantity"
                                       >
-                                        <i className="ti ti-plus fs-12" />
+                                        <i className="ti ti-plus fs-12 text-white" />
                                       </button>
                                     </div>
                                   </td>
-                                  <td className="text-end text-muted fs-13">
-                                    ₹{dmg.unitPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                  <td className="text-end fw-semibold text-dark fs-13" style={{ color: "#000000" }}>
+                                    ₹{dmg.unitPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </td>
                                   <td className="text-end fw-bold text-danger fs-13">
                                     ₹{dmg.totalLoss.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -1590,7 +2276,8 @@ const DamageTracking: React.FC = () => {
                                   <td className="text-center">
                                     <button
                                       type="button"
-                                      className="btn btn-sm p-1 text-danger border-0 bg-transparent shadow-none"
+                                      className="btn btn-sm p-1 text-dark border-0 bg-transparent shadow-none"
+                                      style={{ color: "#000000" }}
                                       onClick={() => handleRemoveDamaged(dmg.id)}
                                       title="Remove from damaged list"
                                     >
@@ -1657,18 +2344,11 @@ const DamageTracking: React.FC = () => {
                       </div>
                     )}
                   </div>
-
-                  {/* Notes (if any) */}
-                  {selectedInvoice.notes && (
-                    <div className="p-3 rounded-2 bg-light border fs-12 text-muted mt-3">
-                      <strong>Notes:</strong> {selectedInvoice.notes}
-                    </div>
-                  )}
                 </div>
-              </div>
+              </>
             ) : (
               /* Empty Placeholder State when no invoice is selected */
-              <div className="card border-0 shadow-sm rounded-3 text-center py-5 px-3">
+              <div className="card border rounded-3 text-center py-5 px-3 shadow-none" style={{ borderColor: "#e2e8f0" }}>
                 <i className="ti ti-file-invoice text-muted opacity-50 fs-48 mb-2 d-block mx-auto" />
                 <h5 className="fw-bold text-dark mb-1" style={{ color: "#000000" }}>
                   No Purchase Invoice Selected
@@ -1692,6 +2372,327 @@ const DamageTracking: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* VIEW 3: INVOICE DAMAGE DETAILS PAGE                            */}
+        {/* ============================================================== */}
+        {viewMode === "details" && viewingRecord && (
+          <div>
+            {/* Header: Title + Action Buttons */}
+            <div className="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+              <div className="page-title">
+                <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                  <span className="badge bg-dark text-white fs-12 fw-semibold px-2.5 py-1">
+                    {viewingRecord.recordNumber}
+                  </span>
+                  <h4 className="fw-bold mb-0 text-dark" style={{ color: "#000000" }}>
+                    Invoice Damage Details: {viewingRecord.supplierInvoiceNo || viewingRecord.invoicePoNumber}
+                  </h4>
+                </div>
+                <h6 className="text-muted fs-13 mb-0 d-flex align-items-center flex-wrap gap-2">
+                  <span className="d-inline-flex align-items-center gap-1">
+                    <i className="ti ti-calendar fs-14 text-muted" />
+                    Date: <strong className="text-dark" style={{ color: "#000000" }}>{viewingRecord.date}</strong>
+                  </span>
+                  <span>•</span>
+                  <span className="d-inline-flex align-items-center gap-1">
+                    <i className="ti ti-user fs-14 text-muted" />
+                    Supplier: <strong className="text-dark" style={{ color: "#000000" }}>{viewingRecord.supplierName}</strong>
+                  </span>
+                  <span>•</span>
+                  <span className="d-inline-flex align-items-center gap-1">
+                    <i className="ti ti-file-invoice fs-14 text-muted" />
+                    Invoice #: <strong className="text-dark" style={{ color: "#000000" }}>{viewingRecord.supplierInvoiceNo || viewingRecord.invoicePoNumber}</strong>
+                  </span>
+                  {viewingRecord.businessName && (
+                    <>
+                      <span>•</span>
+                      <span className="d-inline-flex align-items-center gap-1">
+                        <i className="ti ti-building fs-14 text-muted" />
+                        Store: <strong className="text-dark" style={{ color: "#000000" }}>{viewingRecord.businessName}</strong>
+                      </span>
+                    </>
+                  )}
+                </h6>
+              </div>
+
+              <div className="page-btn d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary d-inline-flex align-items-center gap-1.5 px-3 py-2 shadow-none rounded-2 fs-13"
+                  onClick={() => window.print()}
+                  title="Print Damage Report"
+                >
+                  <i className="ti ti-printer fs-15 me-1" />
+                  <span>Print</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary d-inline-flex align-items-center gap-1.5 px-3 py-2 shadow-none rounded-2 fs-13"
+                  onClick={handleBackToList}
+                >
+                  <i className="ti ti-arrow-left fs-15 me-1" />
+                  <span>Back to Damage Tracking</span>
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Summary Cards - Company Style with Colored Avatars & Sparklines */}
+            <div className="row">
+              <div className="col-lg-3 col-md-6 col-12 d-flex">
+                <div className="card flex-fill">
+                  <div className="card-body d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center overflow-hidden">
+                      <span
+                        className="avatar avatar-lg flex-shrink-0 text-white rounded-2"
+                        style={{ backgroundColor: "#ff9f43" }}
+                      >
+                        <i className="ti ti-package fs-18 text-white" />
+                      </span>
+                      <div className="ms-2 overflow-hidden">
+                        <p className="fs-12 fw-medium mb-1 text-truncate text-muted">
+                          Product Damaged
+                        </p>
+                        <h4 className="fw-bold mb-0 text-dark">
+                          {viewingRecord.items?.length || 1}
+                        </h4>
+                      </div>
+                    </div>
+                    <ReactApexChart
+                      options={chart1}
+                      series={chart1.series}
+                      type="area"
+                      width={50}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-lg-3 col-md-6 col-12 d-flex">
+                <div className="card flex-fill">
+                  <div className="card-body d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center overflow-hidden">
+                      <span
+                        className="avatar avatar-lg flex-shrink-0 text-white rounded-2"
+                        style={{ backgroundColor: "#28c76f" }}
+                      >
+                        <i className="ti ti-alert-triangle fs-18 text-white" />
+                      </span>
+                      <div className="ms-2 overflow-hidden">
+                        <p className="fs-12 fw-medium mb-1 text-truncate text-muted">
+                          Qty Damaged
+                        </p>
+                        <h4 className="fw-bold mb-0 text-dark">
+                          {viewingRecord.damagedQuantity}
+                        </h4>
+                      </div>
+                    </div>
+                    <ReactApexChart
+                      options={chart2}
+                      series={chart2.series}
+                      type="area"
+                      width={50}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-lg-3 col-md-6 col-12 d-flex">
+                <div className="card flex-fill">
+                  <div className="card-body d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center overflow-hidden">
+                      <span
+                        className="avatar avatar-lg flex-shrink-0 text-white rounded-2"
+                        style={{ backgroundColor: "#ea5455" }}
+                      >
+                        <i className="ti ti-currency-rupee fs-18 text-white" />
+                      </span>
+                      <div className="ms-2 overflow-hidden">
+                        <p className="fs-12 fw-medium mb-1 text-truncate text-muted">
+                           Financial Loss
+                        </p>
+                        <h4 className="fw-bold mb-0 text-dark">
+                          ₹{Number(viewingRecord.totalLoss).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </h4>
+                      </div>
+                    </div>
+                    <ReactApexChart
+                      options={chart3}
+                      series={chart3.series}
+                      type="area"
+                      width={50}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-lg-3 col-md-6 col-12 d-flex">
+                <div className="card flex-fill">
+                  <div className="card-body d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center overflow-hidden">
+                      <span
+                        className="avatar avatar-lg flex-shrink-0 text-white rounded-2"
+                        style={{ backgroundColor: "#00cfe8" }}
+                      >
+                        <i className="ti ti-file-invoice fs-18 text-white" />
+                      </span>
+                      <div className="ms-2 overflow-hidden">
+                        <p className="fs-12 fw-medium mb-1 text-truncate text-muted">
+                          Invoice Reference
+                        </p>
+                        <h4 className="fw-bold mb-0 text-dark text-truncate" style={{ maxWidth: "150px" }}>
+                          {viewingRecord.supplierInvoiceNo || viewingRecord.invoicePoNumber}
+                        </h4>
+                      </div>
+                    </div>
+                    <ReactApexChart
+                      options={chart4}
+                      series={chart4.series}
+                      type="area"
+                      width={50}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Optional Notes Card */}
+            {viewingRecord.notes && (
+              <div className="card border rounded-3 mb-4 shadow-none" style={{ borderColor: "#e2e8f0" }}>
+                <div className="card-body p-3 d-flex align-items-start gap-2 bg-light rounded-3">
+                  <i className="ti ti-file-text text-primary fs-18 mt-0.5" />
+                  <div>
+                    <span className="fw-semibold text-dark fs-13 d-block" style={{ color: "#000000" }}>
+                      Damage Record Notes:
+                    </span>
+                    <p className="text-muted fs-13 mb-0">{viewingRecord.notes}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Damaged Line Items Table Card */}
+            <div className="card table-list-card">
+              <div className="card-header pb-0 border-bottom">
+                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-3">
+                  <div>
+                    <h5 className="fw-bold text-dark mb-1" style={{ color: "#000000" }}>
+                      Damaged Line Items In This Invoice
+                    </h5>
+                    <p className="text-muted fs-12 mb-0">
+                      Breakdown of damaged quantities, unit cost, and recorded loss per product
+                    </p>
+                  </div>
+                  <span className="badge bg-danger-subtle text-danger border border-danger-subtle fs-12 px-2.5 py-1.5 fw-semibold">
+                    {(viewingRecord.items?.length || 1)} {(viewingRecord.items?.length || 1) === 1 ? "Product" : "Products"} Recorded
+                  </span>
+                </div>
+              </div>
+
+              <div className="card-body">
+                <div className="table-responsive">
+                  <table className="table table-hover mb-0 align-middle">
+                    <thead className="table-light fs-12">
+                      <tr>
+                        <th className="py-2.5 ps-3" style={{ width: "50px" }}>#</th>
+                        <th className="py-2.5">Product Name</th>
+                        <th className="py-2.5">SKU / Variant</th>
+                        <th className="py-2.5 text-center">Damaged Qty</th>
+                        <th className="py-2.5 text-end">Actual Price (Cost)</th>
+                        <th className="py-2.5 text-end">Total Loss</th>
+                        <th className="py-2.5">Reason</th>
+                        <th className="py-2.5 pe-3">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="fs-13">
+                      {(viewingRecord.items && viewingRecord.items.length > 0
+                        ? viewingRecord.items
+                        : [
+                          {
+                            id: viewingRecord.productId || "1",
+                            productName: viewingRecord.productName,
+                            sku: viewingRecord.sku,
+                            invoiceQuantity: viewingRecord.damagedQuantity,
+                            damagedQuantity: viewingRecord.damagedQuantity,
+                            unitPrice: viewingRecord.unitPrice,
+                            totalLoss: viewingRecord.totalLoss,
+                            reason: viewingRecord.reason,
+                            notes: viewingRecord.notes,
+                          },
+                        ]
+                      ).map((it, idx) => (
+                        <tr key={idx}>
+                          <td className="ps-3 text-muted fw-semibold">{idx + 1}</td>
+                          <td>
+                            <span className="fw-semibold text-dark d-block fs-13" style={{ color: "#000000" }}>
+                              {it.productName}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="badge bg-light text-muted border fs-11">
+                              {it.sku || "N/A"}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            <span className="badge bg-danger text-white fw-bold px-2 py-1 fs-12">
+                              {it.damagedQuantity} Units
+                            </span>
+                          </td>
+                          <td className="text-end text-dark fs-13" style={{ color: "#000000" }}>
+                            ₹{Number(it.unitPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="text-end fw-bold text-danger fs-13">
+                            ₹{Number(it.totalLoss).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td>
+                            <span
+                              className="badge bg-transparent text-danger border border-danger fs-11"
+                              style={{ backgroundColor: "transparent" }}
+                            >
+                              {it.reason}
+                            </span>
+                          </td>
+                          <td className="pe-3 text-muted fst-italic fs-12">
+                            {it.notes || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="table-light fw-bold fs-13" style={{ borderTop: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
+                        <td colSpan={3} className="ps-3 text-dark py-3" style={{ color: "#000000", borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
+                          Invoice Total
+                        </td>
+                        <td className="text-center py-3" style={{ borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
+                          <span className="badge bg-danger text-white fw-bold px-2 py-1 fs-12">
+                            {viewingRecord.damagedQuantity} Units
+                          </span>
+                        </td>
+                        <td className="py-3" style={{ borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}></td>
+                        <td className="text-end py-3 fs-15" style={{ color: "#ea5455", borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}>
+                          ₹{Number(viewingRecord.totalLoss).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td colSpan={2} className="py-3" style={{ borderBottom: "1px solid #e6eaed", borderColor: "#e6eaed" }}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                {/* Bottom Action Footer */}
+                <div className="d-flex align-items-center justify-content-end pt-3 mt-1 flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger d-inline-flex align-items-center gap-1.5 px-3 py-2 shadow-none rounded-2 fs-13"
+                    onClick={() => handleDeleteRecord(viewingRecord.id)}
+                  >
+                    <i className="ti ti-trash fs-15" />
+                    <span>Delete Record</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

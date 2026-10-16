@@ -18,27 +18,43 @@ export interface PurchaseItem {
   actualCost: number; // Calculated per unit based on batch expense %
 }
 
+export interface CustomExpenseItem {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 export interface ExpenseBreakdown {
   freight?: number;
   labour?: number;
   transport?: number;
   packaging?: number;
   other?: number;
+  customExpenses?: CustomExpenseItem[];
 }
 
 export interface BatchRecord {
   id: string;
-  batchNo: string; // Unique
-  purchaseDate: string;
+  batchNo: string; // Unique Branch ID / Batch Number
+  branchId?: string; // Branch ID (e.g. BRANCH-2026-001)
+  branchName?: string; // Branch Name (e.g. Main Branch, Warehouse A)
+  purchaseDate: string; // Branch Created Date / Purchase Date
   supplierId?: string;
   supplierName: string;
   invoiceNo: string;
+  invoiceId?: string;
+  invoiceIds?: string[];
+  invoiceNos?: string[];
+  invoiceDate?: string;
+  invoiceTotal?: number;
+  damageCost?: number; // Cost of Damage tracked from damage tracking
+  damageUnits?: number;
   notes?: string;
   items: PurchaseItem[];
   totalPurchaseValue: number;
   totalExpenseAmount: number;
   expenseBreakdown?: ExpenseBreakdown;
-  expensePercent: number; // (Expense ÷ Purchase Price) × 100
+  expensePercent: number; // (Total Expense ÷ Purchase Price) × 100
   createdAt: string;
 }
 

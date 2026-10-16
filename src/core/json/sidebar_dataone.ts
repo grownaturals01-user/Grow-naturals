@@ -37,13 +37,13 @@ export const SidebarData1 = [
     ],
   },
   {
-    tittle: "Purchases",
+    tittle: "Branch Management",
     hasSubRoute: true,
-    icon: "shopping-bag",
+    icon: "building-2",
     showSubRoute: false,
     subRoutes: [
       {
-        tittle: "Purchase & Batches",
+        tittle: "Branch Management",
         hasSubRoute: false,
         showSubRoute: false,
         route: "/purchase-list",
