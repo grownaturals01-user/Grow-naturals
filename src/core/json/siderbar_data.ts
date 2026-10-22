@@ -33,6 +33,13 @@ export const SidebarData = [
     showSubRoute: false,
     submenuItems: [
       {
+        label: "Sales List",
+        link: "/sales-list",
+        icon: "shopping-bag",
+        showSubRoute: false,
+        submenu: false,
+      },
+      {
         label: "Create Sales Invoice",
         link: "/create-sales-invoice",
         icon: "file-plus",

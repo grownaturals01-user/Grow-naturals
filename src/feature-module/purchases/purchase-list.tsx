@@ -9,6 +9,7 @@ import {
   CustomExpenseItem,
 } from "../../services/batchService";
 import "../../styles/purchase-batch.css";
+import { BranchInvoiceSelection } from "./BranchInvoiceSelection";
 import {
   Plus,
   Calculator,
@@ -37,6 +38,8 @@ import {
   Check,
   Layers,
   ChevronDown,
+  ChevronRight,
+  MoreVertical,
 } from "lucide-react";
 
 interface AvailableInvoice {
@@ -47,7 +50,11 @@ interface AvailableInvoice {
   order_date: string;
   total_amount: number;
   items?: any[];
-  source?: "database" | "batch" | "damage_tracking" | "default";
+  source?: "database" | "batch" | "damage_tracking" | "default" | "auto_product";
+  linkedBatch?: string;
+  linkedSalesInvoice?: string;
+  linkedProduct?: string;
+  isAutoMapped?: boolean;
 }
 
 const DEFAULT_EXPENSE_BREAKDOWN: ExpenseBreakdown = {
@@ -59,11 +66,13 @@ const DEFAULT_EXPENSE_BREAKDOWN: ExpenseBreakdown = {
   customExpenses: [],
 };
 
-const createEmptyItem = (index: number): PurchaseItem => ({
+const createEmptyItem = (index: number, invoiceId?: string, invoicePo?: string): PurchaseItem => ({
   id: `item-${Date.now()}-${index}`,
+  invoiceId,
+  invoicePo,
   productId: "",
   productName: "",
-  variantName: "",
+  variantName: invoicePo || "",
   sku: "",
   quantity: 1,
   remainingQty: 1,
@@ -82,7 +91,7 @@ const DEFAULT_PURCHASE_INVOICES: AvailableInvoice[] = [
     supplier_invoice_no: "INV-2026-081",
     supplier_name: "Green Harvest Agro Supplies",
     order_date: "2026-10-10",
-    total_amount: 45100,
+    total_amount: 45667.5,
     source: "default",
     items: [
       {
@@ -90,7 +99,7 @@ const DEFAULT_PURCHASE_INVOICES: AvailableInvoice[] = [
         productName: "Coco Peat 5kg Premium Block",
         variantName: "5kg Block",
         sku: "AGR-CP-5KG",
-        quantity: 100,
+        quantity: 189,
         purchasePrice: 180,
         sellingPrice: 240,
       },
@@ -99,18 +108,9 @@ const DEFAULT_PURCHASE_INVOICES: AvailableInvoice[] = [
         productName: "Organic Vermicompost 25kg",
         variantName: "25kg Bag",
         sku: "AGR-VC-25K",
-        quantity: 50,
-        purchasePrice: 350,
+        quantity: 100,
+        purchasePrice: 116.475,
         sellingPrice: 480,
-      },
-      {
-        productId: "prod-neem-03",
-        productName: "Neem Cake Organic Fertilizer 10kg",
-        variantName: "10kg Bag",
-        sku: "AGR-NC-10K",
-        quantity: 40,
-        purchasePrice: 240,
-        sellingPrice: 330,
       },
     ],
   },
@@ -269,9 +269,170 @@ const DEFAULT_PURCHASE_INVOICES: AvailableInvoice[] = [
 ];
 
 /**
+ * Invoices previously mapped to existing batches
+ */
+const DEFAULT_EXISTING_BATCH_INVOICES: AvailableInvoice[] = [
+  {
+    id: "inv-po-2026-006",
+    po_number: "PO-2026-006",
+    supplier_invoice_no: "INV-2026-301",
+    supplier_name: "Bio-Agro Chemical Supplies",
+    order_date: "2026-09-28",
+    total_amount: 84500,
+    source: "batch",
+    linkedBatch: "BAT-2026-001 (Main Branch)",
+    linkedSalesInvoice: "SI-2026-042",
+    items: [
+      {
+        productId: "prod-bio-01",
+        productName: "Bio-Neem Cold Pressed Oil 1L",
+        variantName: "1 Litre Bottle",
+        sku: "BIO-NEM-1L",
+        quantity: 120,
+        purchasePrice: 380,
+        sellingPrice: 550,
+      },
+      {
+        productId: "prod-tool-02",
+        productName: "Compression Pressure Sprayer 5L",
+        variantName: "5 Litre",
+        sku: "TOL-SPR-5L",
+        quantity: 70,
+        purchasePrice: 555,
+        sellingPrice: 850,
+      },
+    ],
+  },
+  {
+    id: "inv-po-2026-007",
+    po_number: "PO-2026-007",
+    supplier_invoice_no: "INV-2026-302",
+    supplier_name: "Highland Seeds & Nursery",
+    order_date: "2026-09-30",
+    total_amount: 62300,
+    source: "batch",
+    linkedBatch: "BAT-2026-002 (North Hub)",
+    linkedSalesInvoice: "SI-2026-049",
+    items: [
+      {
+        productId: "prod-seed-01",
+        productName: "Hybrid F1 Tomato Seeds 100g",
+        variantName: "100g Pack",
+        sku: "SED-TOM-100",
+        quantity: 110,
+        purchasePrice: 320,
+        sellingPrice: 450,
+      },
+      {
+        productId: "prod-plant-02",
+        productName: "Flowering Rose Plant Grafted Premium",
+        variantName: "Red / Yellow",
+        sku: "PLT-ROS-01",
+        quantity: 100,
+        purchasePrice: 271,
+        sellingPrice: 380,
+      },
+    ],
+  },
+];
+
+/**
+ * Invoices directly mapped to the product page without being mapped to a batch
+ */
+const DEFAULT_AUTO_INVOICES: AvailableInvoice[] = [
+  {
+    id: "inv-po-auto-01",
+    po_number: "PO-2026-AUTO-01",
+    supplier_invoice_no: "INV-AUTO-901",
+    supplier_name: "Direct Agro Seed Imports",
+    order_date: "2026-10-05",
+    total_amount: 64200,
+    source: "auto_product",
+    isAutoMapped: true,
+    linkedProduct: "Hybrid F1 Tomato Seeds 100g",
+    linkedSalesInvoice: "SI-2026-058",
+    items: [
+      {
+        productId: "prod-seed-01",
+        productName: "Hybrid F1 Tomato Seeds 100g",
+        variantName: "100g Pack",
+        sku: "SED-TOM-100",
+        quantity: 120,
+        purchasePrice: 320,
+        sellingPrice: 450,
+      },
+      {
+        productId: "prod-vermi-02",
+        productName: "Organic Vermicompost 25kg",
+        variantName: "25kg Bag",
+        sku: "AGR-VC-25K",
+        quantity: 60,
+        purchasePrice: 430,
+        sellingPrice: 580,
+      },
+    ],
+  },
+  {
+    id: "inv-po-auto-02",
+    po_number: "PO-2026-AUTO-02",
+    supplier_invoice_no: "INV-AUTO-902",
+    supplier_name: "Direct Plant Nursery Link",
+    order_date: "2026-10-08",
+    total_amount: 38700,
+    source: "auto_product",
+    isAutoMapped: true,
+    linkedProduct: "Indoor Air Purifying Areca Palm",
+    linkedSalesInvoice: "SI-2026-061",
+    items: [
+      {
+        productId: "prod-plant-03",
+        productName: "Indoor Air Purifying Areca Palm",
+        variantName: "2 Feet Potted",
+        sku: "PLT-ARC-02",
+        quantity: 90,
+        purchasePrice: 430,
+        sellingPrice: 620,
+      },
+    ],
+  },
+];
+
+/**
+ * Helper to generate initial item rows for pre-selected invoices
+ */
+const getInitialItemsForInvoices = (invoiceIds: string[]): PurchaseItem[] => {
+  const result: PurchaseItem[] = [];
+  invoiceIds.forEach((id) => {
+    const inv = DEFAULT_PURCHASE_INVOICES.find((i) => i.id === id || i.po_number === id);
+    if (inv && Array.isArray(inv.items)) {
+      inv.items.forEach((it: any, itIdx: number) => {
+        const qty = Number(it.quantity || 1);
+        const price = Number(it.purchasePrice || 0);
+        result.push({
+          id: `initial-${inv.id}-item-${itIdx}-${Date.now()}`,
+          invoiceId: inv.id,
+          invoicePo: inv.po_number,
+          productId: String(it.productId || ""),
+          productName: it.productName,
+          variantName: it.variantName || inv.po_number,
+          sku: it.sku || "",
+          quantity: qty,
+          remainingQty: qty,
+          purchasePrice: price,
+          sellingPrice: Number(it.sellingPrice || price * 1.3),
+          actualCost: price,
+        });
+      });
+    }
+  });
+  return result.length > 0 ? result : [createEmptyItem(1)];
+};
+
+
+/**
  * Helper to fetch tracked damage records from LocalStorage (recorded in Damage Tracking page)
  */
-const getInvoiceDamageInfo = (invoiceNoOrPo: string, invoiceId?: string) => {
+const getInvoiceDamageInfo = (invoiceNoOrPo: string, invoiceId?: string, supplierInvoiceNo?: string) => {
   try {
     const raw = localStorage.getItem("gn_damage_tracking_records");
     if (!raw) return { totalLoss: 0, damagedUnits: 0, records: [] };
@@ -280,6 +441,7 @@ const getInvoiceDamageInfo = (invoiceNoOrPo: string, invoiceId?: string) => {
 
     const cleanQuery = (invoiceNoOrPo || "").trim().toLowerCase();
     const cleanId = (invoiceId || "").trim().toLowerCase();
+    const cleanSuppInv = (supplierInvoiceNo || "").trim().toLowerCase();
 
     const matches = parsed.filter((r) => {
       const rInvoiceId = String(r.invoiceId || "").toLowerCase();
@@ -287,7 +449,8 @@ const getInvoiceDamageInfo = (invoiceNoOrPo: string, invoiceId?: string) => {
       const rSuppInv = String(r.supplierInvoiceNo || "").toLowerCase();
       return (
         (cleanId && rInvoiceId === cleanId) ||
-        (cleanQuery && (rPo === cleanQuery || rSuppInv === cleanQuery || rInvoiceId === cleanQuery))
+        (cleanQuery && (rPo === cleanQuery || rSuppInv === cleanQuery || rInvoiceId === cleanQuery)) ||
+        (cleanSuppInv && (rPo === cleanSuppInv || rSuppInv === cleanSuppInv || rInvoiceId === cleanSuppInv))
       );
     });
 
@@ -323,9 +486,39 @@ export const PurchasesList: React.FC = () => {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [showInvoiceDropdown, setShowInvoiceDropdown] = useState(false);
   const [invoiceFilterQuery, setInvoiceFilterQuery] = useState("");
-  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
-  const [items, setItems] = useState<PurchaseItem[]>([createEmptyItem(1)]);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([
+    "inv-po-2026-001",
+    "inv-po-2026-002",
+    "inv-po-2026-003",
+  ]);
+  const [items, setItems] = useState<PurchaseItem[]>(() =>
+    getInitialItemsForInvoices([
+      "inv-po-2026-001",
+      "inv-po-2026-002",
+      "inv-po-2026-003",
+    ])
+  );
   const invoiceDropdownRef = useRef<HTMLDivElement>(null);
+  const [expandedInvoiceIds, setExpandedInvoiceIds] = useState<string[]>([]);
+
+  // 4-Tab Invoice Selection State (Mockup UI)
+  type InvoiceSelectionTab = "recently_added" | "existing_batch" | "auto_batch" | "unbatched";
+  const [invoiceSelectionTab, setInvoiceSelectionTab] = useState<InvoiceSelectionTab>("recently_added");
+  const [filterSupplier, setFilterSupplier] = useState<string>("all");
+  const [filterDatePreset, setFilterDatePreset] = useState<string>("mockup_range");
+  const [showDateRangePicker, setShowDateRangePicker] = useState<boolean>(false);
+  const [customStartDate, setCustomStartDate] = useState<string>("2026-10-01");
+  const [customEndDate, setCustomEndDate] = useState<string>("2026-10-16");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterSearch, setFilterSearch] = useState<string>("");
+  const [openActionInvoiceId, setOpenActionInvoiceId] = useState<string | null>(null);
+
+  const toggleInvoiceExpand = (invId: string) => {
+    setExpandedInvoiceIds((prev) =>
+      prev.includes(invId) ? prev.filter((id) => id !== invId) : [...prev, invId]
+    );
+  };
+
 
   // 3rd Card: Expenses & Calculation Form State
   const [expenseBreakdown, setExpenseBreakdown] = useState<ExpenseBreakdown>({
@@ -342,6 +535,51 @@ export const PurchasesList: React.FC = () => {
   const [includeDamageInExpenses, setIncludeDamageInExpenses] = useState(true);
   const [showBreakdown, setShowBreakdown] = useState(true);
 
+  // Tab Navigation for Create / Edit Branch (Exact design from Category Page)
+  const CREATE_BRANCH_TABS = [
+    { id: "details", label: "1. Branch Details" },
+    { id: "invoices", label: "2. Select Invoice" },
+    { id: "expenses", label: "3. Expenses" },
+    { id: "landing", label: "4. Landing Cost" },
+  ] as const;
+
+  type CreateBranchTabId = "details" | "invoices" | "expenses" | "landing";
+
+  const [activeCreateTab, setActiveCreateTab] = useState<CreateBranchTabId>("details");
+  const createTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [tabIndicatorStyle, setTabIndicatorStyle] = useState<{
+    left: number;
+    width: number;
+    ready: boolean;
+  }>({
+    left: 0,
+    width: 0,
+    ready: false,
+  });
+
+  const updateTabIndicator = useCallback(() => {
+    const activeEl = createTabRefs.current[activeCreateTab];
+    if (activeEl && activeEl.offsetWidth > 0) {
+      setTabIndicatorStyle({
+        left: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+        ready: true,
+      });
+    }
+  }, [activeCreateTab]);
+
+  useEffect(() => {
+    if (viewMode === "create") {
+      const t = setTimeout(updateTabIndicator, 50);
+      return () => clearTimeout(t);
+    }
+  }, [viewMode, activeCreateTab, updateTabIndicator]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateTabIndicator);
+    return () => window.removeEventListener("resize", updateTabIndicator);
+  }, [updateTabIndicator]);
+
   // Status & Validation
   const [calcDone, setCalcDone] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -351,16 +589,24 @@ export const PurchasesList: React.FC = () => {
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
       if (
         invoiceDropdownRef.current &&
-        !invoiceDropdownRef.current.contains(e.target as Node)
+        !invoiceDropdownRef.current.contains(target as Node)
       ) {
         setShowInvoiceDropdown(false);
+      }
+      if (!target.closest(".pb-action-menu-dropdown") && !target.closest(".pb-action-btn")) {
+        setOpenActionInvoiceId(null);
+      }
+      if (!target.closest(".pb-date-picker-container")) {
+        setShowDateRangePicker(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
 
   // Load Branch Records
   const loadBatches = useCallback(() => {
@@ -459,6 +705,22 @@ export const PurchasesList: React.FC = () => {
       }
     });
 
+    // 5. Fill in sample existing batched invoices
+    DEFAULT_EXISTING_BATCH_INVOICES.forEach((defInv) => {
+      const key = defInv.po_number.toLowerCase();
+      if (!invoiceMap.has(key) && !invoiceMap.has(defInv.id.toLowerCase())) {
+        invoiceMap.set(key, defInv);
+      }
+    });
+
+    // 6. Fill in sample auto batch invoices (directly mapped to products)
+    DEFAULT_AUTO_INVOICES.forEach((defInv) => {
+      const key = defInv.po_number.toLowerCase();
+      if (!invoiceMap.has(key) && !invoiceMap.has(defInv.id.toLowerCase())) {
+        invoiceMap.set(key, defInv);
+      }
+    });
+
     const finalInvoices = Array.from(invoiceMap.values());
     setAvailableInvoices(finalInvoices);
     setLoadingInvoices(false);
@@ -499,7 +761,8 @@ export const PurchasesList: React.FC = () => {
     selectedInvoices.forEach((inv) => {
       const dmg = getInvoiceDamageInfo(
         inv.po_number || inv.supplier_invoice_no || "",
-        inv.id
+        inv.id,
+        inv.supplier_invoice_no
       );
       totalLoss += dmg.totalLoss;
       damagedUnits += dmg.damagedUnits;
@@ -520,29 +783,295 @@ export const PurchasesList: React.FC = () => {
     return suppliers.length > 0 ? suppliers.join(", ") : "No invoice selected";
   }, [selectedInvoices]);
 
-  // Multi-Invoice Toggle Handler
-  const handleToggleInvoice = (invoiceIdOrPo: string) => {
-    setSelectedInvoiceIds((prev) => {
-      const exists = prev.includes(invoiceIdOrPo);
-      let updatedIds: string[];
-      if (exists) {
-        updatedIds = prev.filter((id) => id !== invoiceIdOrPo);
-      } else {
-        updatedIds = [...prev, invoiceIdOrPo];
+  // Set of keys for invoices that are mapped to existing batches
+  const batchedInvoiceKeys = useMemo(() => {
+    const set = new Set<string>();
+    batches.forEach((b) => {
+      if (b.invoiceNo) {
+        b.invoiceNo.split(",").forEach((s) => s.trim() && set.add(s.trim().toLowerCase()));
+      }
+      if (b.invoiceId) set.add(b.invoiceId.toLowerCase().trim());
+      if (Array.isArray(b.invoiceNos)) {
+        b.invoiceNos.forEach((no) => no && set.add(no.toLowerCase().trim()));
+      }
+      if (Array.isArray(b.invoiceIds)) {
+        b.invoiceIds.forEach((id) => id && set.add(id.toLowerCase().trim()));
+      }
+      if (Array.isArray(b.items)) {
+        b.items.forEach((it) => {
+          if (it.invoiceId) set.add(it.invoiceId.toLowerCase().trim());
+          if (it.invoicePo) set.add(it.invoicePo.toLowerCase().trim());
+        });
+      }
+    });
+    return set;
+  }, [batches]);
+
+  // Determine invoice category (3 Tabs: Recently Added, Existing Batch, Auto Batch)
+  const getInvoiceCategory = useCallback(
+    (inv: AvailableInvoice): InvoiceSelectionTab => {
+      const keyId = (inv.id || "").toLowerCase().trim();
+      const keyPo = (inv.po_number || "").toLowerCase().trim();
+      const keySupp = (inv.supplier_invoice_no || "").toLowerCase().trim();
+
+      // If mapped to a saved batch, or explicitly flagged as batch
+      if (
+        batchedInvoiceKeys.has(keyId) ||
+        batchedInvoiceKeys.has(keyPo) ||
+        batchedInvoiceKeys.has(keySupp) ||
+        inv.source === "batch" ||
+        Boolean(inv.linkedBatch)
+      ) {
+        return "existing_batch";
       }
 
-      // Re-map items from the updated selected invoices
-      const newlySelectedInvoices = availableInvoices.filter(
-        (inv) => updatedIds.includes(inv.id) || updatedIds.includes(inv.po_number)
-      );
+      // If directly mapped to product page without being mapped to batch
+      if (inv.isAutoMapped || inv.source === "auto_product" || Boolean(inv.linkedProduct)) {
+        return "auto_batch";
+      }
 
-      if (newlySelectedInvoices.length === 0) {
-        setItems([createEmptyItem(1)]);
+      // Default: Recently added (not mapped to batches yet)
+      return "recently_added";
+    },
+    [batchedInvoiceKeys]
+  );
+
+  // Invoices partitioned by the active 3-tab
+  const tabInvoices = useMemo(() => {
+    return availableInvoices.filter((inv) => getInvoiceCategory(inv) === invoiceSelectionTab);
+  }, [availableInvoices, invoiceSelectionTab, getInvoiceCategory]);
+
+  // Tab Counts for badges
+  const tabCounts = useMemo(() => {
+    let recent = 0;
+    let existing = 0;
+    let auto = 0;
+    availableInvoices.forEach((inv) => {
+      const cat = getInvoiceCategory(inv);
+      if (cat === "recently_added") recent++;
+      else if (cat === "existing_batch") existing++;
+      else if (cat === "auto_batch") auto++;
+    });
+    return { recent, existing, auto };
+  }, [availableInvoices, getInvoiceCategory]);
+
+  // Unique suppliers within active tab
+  const uniqueSuppliersInTab = useMemo(() => {
+    const set = new Set<string>();
+    tabInvoices.forEach((inv) => {
+      if (inv.supplier_name) set.add(inv.supplier_name);
+    });
+    return Array.from(set).sort();
+  }, [tabInvoices]);
+
+  // Filtered invoices within active tab
+  const filteredTabInvoices = useMemo(() => {
+    return tabInvoices.filter((inv) => {
+      // 1. Supplier Filter
+      if (filterSupplier !== "all" && inv.supplier_name !== filterSupplier) {
+        return false;
+      }
+
+      // 2. Status Filter
+      const isSelected =
+        selectedInvoiceIds.includes(inv.id) || selectedInvoiceIds.includes(inv.po_number);
+      if (filterStatus === "selected" && !isSelected) return false;
+      if (filterStatus === "not_batched" && (invoiceSelectionTab !== "recently_added" || isSelected))
+        return false;
+      if (filterStatus === "batched" && invoiceSelectionTab !== "existing_batch") return false;
+      if (filterStatus === "auto_mapped" && invoiceSelectionTab !== "auto_batch") return false;
+
+      // 3. Date Filter
+      if (filterDatePreset === "mockup_range") {
+        const d = inv.order_date;
+        if (d && (d < "2026-10-01" || d > "2026-10-16")) return false;
+      } else if (filterDatePreset === "last_7") {
+        const d = new Date(inv.order_date).getTime();
+        const now = Date.now();
+        if (now - d > 7 * 24 * 60 * 60 * 1000) return false;
+      } else if (filterDatePreset === "last_30") {
+        const d = new Date(inv.order_date).getTime();
+        const now = Date.now();
+        if (now - d > 30 * 24 * 60 * 60 * 1000) return false;
+      } else if (filterDatePreset === "custom") {
+        if (customStartDate && inv.order_date < customStartDate) return false;
+        if (customEndDate && inv.order_date > customEndDate) return false;
+      }
+
+      // 4. Search Filter
+      if (filterSearch.trim()) {
+        const q = filterSearch.toLowerCase().trim();
+        const matchPo = (inv.po_number || "").toLowerCase().includes(q);
+        const matchSupp = (inv.supplier_name || "").toLowerCase().includes(q);
+        const matchSuppInv = (inv.supplier_invoice_no || "").toLowerCase().includes(q);
+        const matchAmt = String(inv.total_amount || "").includes(q);
+        const matchItems =
+          Array.isArray(inv.items) &&
+          inv.items.some(
+            (it: any) =>
+              (it.productName || it.product_name || "").toLowerCase().includes(q) ||
+              (it.sku || "").toLowerCase().includes(q)
+          );
+        if (!matchPo && !matchSupp && !matchSuppInv && !matchAmt && !matchItems) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [
+    tabInvoices,
+    filterSupplier,
+    filterStatus,
+    filterDatePreset,
+    customStartDate,
+    customEndDate,
+    filterSearch,
+    selectedInvoiceIds,
+    invoiceSelectionTab,
+  ]);
+
+  // Master selection for the active tab
+  const isAllTabSelected = useMemo(() => {
+    if (filteredTabInvoices.length === 0) return false;
+    return filteredTabInvoices.every(
+      (inv) => selectedInvoiceIds.includes(inv.id) || selectedInvoiceIds.includes(inv.po_number)
+    );
+  }, [filteredTabInvoices, selectedInvoiceIds]);
+
+  const handleToggleSelectAllTab = () => {
+    if (isAllTabSelected) {
+      const toRemove = new Set(filteredTabInvoices.flatMap((inv) => [inv.id, inv.po_number]));
+      setSelectedInvoiceIds((prev) => prev.filter((id) => !toRemove.has(id)));
+      setItems((prevItems) => {
+        const remaining = prevItems.filter((it) => {
+          if (it.invoiceId && toRemove.has(it.invoiceId)) return false;
+          if (it.invoicePo && toRemove.has(it.invoicePo)) return false;
+          return true;
+        });
+        return remaining.length > 0 ? remaining : [createEmptyItem(1)];
+      });
+    } else {
+      filteredTabInvoices.forEach((inv) => {
+        const isSel =
+          selectedInvoiceIds.includes(inv.id) || selectedInvoiceIds.includes(inv.po_number);
+        if (!isSel) {
+          handleToggleInvoice(inv.id || inv.po_number);
+        }
+      });
+    }
+  };
+
+  // Total amount of selected invoices
+  const totalSelectedAmount = useMemo(() => {
+    return selectedInvoices.reduce((acc, inv) => acc + (Number(inv.total_amount) || 0), 0);
+  }, [selectedInvoices]);
+
+  // Proceed to expenses / Create batch
+  const handleProceedCreateBatch = () => {
+    if (selectedInvoices.length === 0) {
+      setFormError("Please select at least one purchase invoice using the checkboxes to create a batch.");
+      return;
+    }
+    if (items.length === 0) {
+      setFormError("At least one purchase item is required to proceed with batch creation.");
+      return;
+    }
+    setFormError(null);
+    setActiveCreateTab("expenses");
+  };
+
+  // Handler when user selects unbatched sold items to create a branch batch
+  const handleBatchSoldItems = (soldBatchItems: PurchaseItem[], syntheticInvoice: AvailableInvoice) => {
+    setAvailableInvoices((prev) => {
+      const exists = prev.some((inv) => inv.id === syntheticInvoice.id || inv.po_number === syntheticInvoice.po_number);
+      return exists ? prev : [syntheticInvoice, ...prev];
+    });
+    setSelectedInvoiceIds([syntheticInvoice.id]);
+    setItems(soldBatchItems);
+    setCalcDone(false);
+    setFormError(null);
+    setActiveCreateTab("expenses");
+  };
+
+  // Dynamic Status Badge renderer (Updates dynamically based on state)
+  const renderInvoiceStatusBadge = (inv: AvailableInvoice) => {
+    const isSelected =
+      selectedInvoiceIds.includes(inv.id) || selectedInvoiceIds.includes(inv.po_number);
+
+    if (invoiceSelectionTab === "existing_batch") {
+      return (
+        <span className="pb-status-badge pb-status-batched">
+          <Check size={12} className="me-1" /> Batched
+        </span>
+      );
+    }
+
+    if (invoiceSelectionTab === "auto_batch") {
+      return (
+        <span className="pb-status-badge pb-status-auto-mapped">
+          <Layers size={12} className="me-1" /> Auto Mapped
+        </span>
+      );
+    }
+
+    // invoiceSelectionTab === "recently_added"
+    if (isSelected) {
+      return (
+        <span className="pb-status-badge pb-status-selected">
+          <CheckCircle2 size={12} className="me-1" /> Selected
+        </span>
+      );
+    }
+
+    return <span className="pb-status-badge pb-status-not-batched">Not Batched</span>;
+  };
+
+
+  // Multi-Invoice Toggle Handler
+  const handleToggleInvoice = (invoiceIdOrPo: string) => {
+    const targetInv = availableInvoices.find(
+      (inv) => inv.id === invoiceIdOrPo || inv.po_number === invoiceIdOrPo
+    );
+
+    setSelectedInvoiceIds((prev) => {
+      const isCurrentlySelected = prev.includes(invoiceIdOrPo) || (targetInv && prev.includes(targetInv.id));
+      let updatedIds: string[];
+
+      if (isCurrentlySelected) {
+        // Deselect invoice
+        updatedIds = prev.filter(
+          (id) => id !== invoiceIdOrPo && (!targetInv || id !== targetInv.id && id !== targetInv.po_number)
+        );
+
+        // Remove items belonging to this invoice
+        setItems((prevItems) => {
+          const remaining = prevItems.filter((it) => {
+            if (targetInv) {
+              if (it.invoiceId && (it.invoiceId === targetInv.id || it.invoiceId === targetInv.po_number)) return false;
+              if (it.invoicePo && (it.invoicePo === targetInv.po_number || it.invoicePo === targetInv.id)) return false;
+            }
+            if (it.invoiceId === invoiceIdOrPo || it.invoicePo === invoiceIdOrPo) return false;
+            return true;
+          });
+          return remaining.length > 0 ? remaining : [createEmptyItem(1)];
+        });
+
+        // Collapse removed invoice
+        setExpandedInvoiceIds((prevExp) =>
+          prevExp.filter(
+            (id) => id !== invoiceIdOrPo && (!targetInv || id !== targetInv.id && id !== targetInv.po_number)
+          )
+        );
       } else {
-        const combinedItems: PurchaseItem[] = [];
-        newlySelectedInvoices.forEach((inv) => {
-          if (Array.isArray(inv.items) && inv.items.length > 0) {
-            inv.items.forEach((it: any, itIdx: number) => {
+        // Select invoice
+        updatedIds = [...prev, invoiceIdOrPo];
+
+        // Add items for this invoice
+        if (targetInv) {
+          const newItemsForInv: PurchaseItem[] = [];
+          if (Array.isArray(targetInv.items) && targetInv.items.length > 0) {
+            targetInv.items.forEach((it: any, itIdx: number) => {
               const qty = Number(it.quantity || it.received_quantity || 1);
               const rawPrice = Number(
                 it.unit_price ||
@@ -551,11 +1080,13 @@ export const PurchasesList: React.FC = () => {
                   it.price ||
                   0
               );
-              combinedItems.push({
-                id: `inv-${inv.id}-item-${itIdx}-${Date.now()}`,
+              newItemsForInv.push({
+                id: `inv-${targetInv.id}-item-${itIdx}-${Date.now()}`,
+                invoiceId: targetInv.id,
+                invoicePo: targetInv.po_number,
                 productId: String(it.productId || it.product_id || ""),
                 productName: it.productName || it.product_name || it.name || `Item ${itIdx + 1}`,
-                variantName: it.variantName || it.variant_name || inv.po_number,
+                variantName: it.variantName || it.variant_name || targetInv.po_number,
                 sku: it.sku || "",
                 quantity: qty,
                 remainingQty: qty,
@@ -565,22 +1096,39 @@ export const PurchasesList: React.FC = () => {
               });
             });
           } else {
-            // Fallback line item for invoice
-            combinedItems.push({
-              id: `inv-${inv.id}-row-${Date.now()}`,
+            // Fallback row for this invoice
+            newItemsForInv.push({
+              id: `inv-${targetInv.id}-row-${Date.now()}`,
+              invoiceId: targetInv.id,
+              invoicePo: targetInv.po_number,
               productId: "",
-              productName: `Purchased Goods (${inv.po_number})`,
-              variantName: inv.po_number,
+              productName: `Purchased Goods (${targetInv.po_number})`,
+              variantName: targetInv.po_number,
               sku: "",
               quantity: 1,
               remainingQty: 1,
-              purchasePrice: Number(inv.total_amount) || 0,
-              sellingPrice: (Number(inv.total_amount) || 0) * 1.3,
-              actualCost: Number(inv.total_amount) || 0,
+              purchasePrice: Number(targetInv.total_amount) || 0,
+              sellingPrice: (Number(targetInv.total_amount) || 0) * 1.3,
+              actualCost: Number(targetInv.total_amount) || 0,
             });
           }
-        });
-        setItems(combinedItems);
+
+          setItems((prevItems) => {
+            // If previous items was only an untagged empty item, replace it
+            const isInitialEmpty =
+              prevItems.length === 1 &&
+              !prevItems[0].invoiceId &&
+              !prevItems[0].productName.trim();
+            return isInitialEmpty ? newItemsForInv : [...prevItems, ...newItemsForInv];
+          });
+
+          // Auto-expand newly selected invoice
+          setExpandedInvoiceIds((prevExp) =>
+            prevExp.includes(targetInv.id) || prevExp.includes(targetInv.po_number)
+              ? prevExp
+              : [...prevExp, targetInv.id]
+          );
+        }
       }
 
       setCalcDone(false);
@@ -592,6 +1140,7 @@ export const PurchasesList: React.FC = () => {
   const handleSelectAllInvoices = () => {
     const allIds = filteredAvailableInvoices.map((inv) => inv.id || inv.po_number);
     setSelectedInvoiceIds(allIds);
+    setExpandedInvoiceIds(allIds);
 
     const combinedItems: PurchaseItem[] = [];
     filteredAvailableInvoices.forEach((inv) => {
@@ -603,6 +1152,8 @@ export const PurchasesList: React.FC = () => {
           );
           combinedItems.push({
             id: `inv-${inv.id}-item-${itIdx}-${Date.now()}`,
+            invoiceId: inv.id,
+            invoicePo: inv.po_number,
             productId: String(it.productId || it.product_id || ""),
             productName: it.productName || it.product_name || it.name || `Item ${itIdx + 1}`,
             variantName: it.variantName || it.variant_name || inv.po_number,
@@ -614,6 +1165,21 @@ export const PurchasesList: React.FC = () => {
             actualCost: rawPrice,
           });
         });
+      } else {
+        combinedItems.push({
+          id: `inv-${inv.id}-row-${Date.now()}`,
+          invoiceId: inv.id,
+          invoicePo: inv.po_number,
+          productId: "",
+          productName: `Purchased Goods (${inv.po_number})`,
+          variantName: inv.po_number,
+          sku: "",
+          quantity: 1,
+          remainingQty: 1,
+          purchasePrice: Number(inv.total_amount) || 0,
+          sellingPrice: (Number(inv.total_amount) || 0) * 1.3,
+          actualCost: Number(inv.total_amount) || 0,
+        });
       }
     });
     setItems(combinedItems.length > 0 ? combinedItems : [createEmptyItem(1)]);
@@ -623,8 +1189,32 @@ export const PurchasesList: React.FC = () => {
   // Clear All selected invoices
   const handleClearAllInvoices = () => {
     setSelectedInvoiceIds([]);
+    setExpandedInvoiceIds([]);
     setItems([createEmptyItem(1)]);
     setCalcDone(false);
+  };
+
+  // Helper to get items belonging to a specific invoice
+  const getInvoiceItems = (inv: AvailableInvoice) => {
+    const matched = items.filter(
+      (it) =>
+        (it.invoiceId && (it.invoiceId === inv.id || it.invoiceId === inv.po_number)) ||
+        (it.invoicePo && (it.invoicePo === inv.po_number || it.invoicePo === inv.id))
+    );
+    if (matched.length > 0) return matched;
+    // Fallback: if only 1 invoice selected and items don't have tags yet
+    if (selectedInvoices.length === 1) return items;
+    return [];
+  };
+
+  // Add Item specifically to an invoice
+  const handleAddItemToInvoice = (invId: string, invPo: string) => {
+    const newItem = createEmptyItem(items.length + 1, invId, invPo);
+    setItems((prev) => [...prev, newItem]);
+    setCalcDone(false);
+    setExpandedInvoiceIds((prev) =>
+      prev.includes(invId) || prev.includes(invPo) ? prev : [...prev, invId]
+    );
   };
 
   // Calculations for Card 3
@@ -833,6 +1423,7 @@ export const PurchasesList: React.FC = () => {
     setCalcDone(false);
     setFormError(null);
     setFormSuccess(null);
+    setActiveCreateTab("details");
     setViewMode("create");
   };
 
@@ -846,8 +1437,14 @@ export const PurchasesList: React.FC = () => {
 
     const invIds = b.invoiceIds && b.invoiceIds.length > 0 ? b.invoiceIds : b.invoiceId ? [b.invoiceId] : b.invoiceNo ? [b.invoiceNo] : [];
     setSelectedInvoiceIds(invIds);
+    setExpandedInvoiceIds(invIds);
 
-    setItems(b.items && b.items.length > 0 ? b.items : [createEmptyItem(1)]);
+    const mappedItems = (b.items && b.items.length > 0 ? b.items : [createEmptyItem(1)]).map((it) => ({
+      ...it,
+      invoiceId: it.invoiceId || (invIds.length === 1 ? invIds[0] : undefined),
+      invoicePo: it.invoicePo || b.invoiceNo || (invIds.length === 1 ? invIds[0] : undefined),
+    }));
+    setItems(mappedItems);
     setExpenseBreakdown(b.expenseBreakdown || DEFAULT_EXPENSE_BREAKDOWN);
     setCustomExpenses(
       b.expenseBreakdown?.customExpenses && b.expenseBreakdown.customExpenses.length > 0
@@ -858,6 +1455,7 @@ export const PurchasesList: React.FC = () => {
     setCalcDone(true);
     setFormError(null);
     setFormSuccess(null);
+    setActiveCreateTab("details");
     setViewMode("create");
   };
 
@@ -866,31 +1464,32 @@ export const PurchasesList: React.FC = () => {
     e.preventDefault();
     setFormError(null);
 
-    // 1st Card Validations
+    // 1st Tab: Branch Details Validations
     if (!branchId.trim()) {
       setFormError("Branch ID is required.");
+      setActiveCreateTab("details");
       return;
     }
     if (!branchName.trim()) {
       setFormError("Branch Name is required.");
+      setActiveCreateTab("details");
       return;
     }
     if (!branchCreatedDate.trim()) {
       setFormError("Branch Created Date is required.");
+      setActiveCreateTab("details");
       return;
     }
 
-    // 2nd Card Validations: At least one invoice must be selected
+    // 2nd Tab: Select Invoice Validations
     if (selectedInvoices.length === 0) {
-      setFormError("Please select at least one Purchase Invoice in Card 2.");
+      setFormError("Please select at least one Purchase Invoice.");
+      setActiveCreateTab("invoices");
       return;
     }
 
     // Landed Cost Metrics Calculation Check
-    if (!calcDone) {
-      setFormError("Please click 'Continue' after entering expenses to calculate landed cost metrics before saving.");
-      return;
-    }
+    setCalcDone(true);
 
     // Items Validation
     if (items.length === 0) {
@@ -1008,161 +1607,158 @@ export const PurchasesList: React.FC = () => {
           </div>
         </div>
 
-        {/* Top Summary Stat Cards (Clean White with Solid Accents & Shadowless) */}
-        <div className="row g-3 mb-4">
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div
-              className="card border rounded-3 p-3 shadow-none mb-0 h-100 bg-white"
-              style={{
-                borderColor: "#e2e8f0",
-                borderLeft: "4px solid #2563eb",
-              }}
-            >
-              <div className="d-flex align-items-center gap-3">
-                <div
-                  className="d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{
-                    width: "46px",
-                    height: "46px",
-                    backgroundColor: "#2563eb",
-                    color: "#ffffff",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <Building2 size={24} />
-                </div>
-                <div className="flex-grow-1 min-w-0">
-                  <span
-                    className="fs-11 text-uppercase fw-bold d-block"
-                    style={{ color: "#2563eb", letterSpacing: "0.5px" }}
+        {/* Top Summary Stat Cards (Clean White with Solid Accents & Shadowless) - Shown in List View */}
+        {viewMode === "list" && (
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-sm-6 col-lg-3">
+              <div
+                className="card border rounded-3 p-3 shadow-none mb-0 h-100 bg-white"
+                style={{
+                  borderColor: "#e2e8f0",
+                  borderLeft: "4px solid #2563eb",
+                }}
+              >
+                <div className="d-flex align-items-center gap-3">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{
+                      width: "46px",
+                      height: "46px",
+                      backgroundColor: "#2563eb",
+                      color: "#ffffff",
+                      borderRadius: "10px",
+                    }}
                   >
-                    Total Branches
-                  </span>
-                  <h3 className="fw-bold mb-0 text-dark mt-0.5">{stats.count}</h3>
-                  <span className="badge bg-primary-subtle text-primary border border-primary-subtle fs-10 mt-1 fw-semibold">
-                    Active Branches
-                  </span>
+                    <Building2 size={24} />
+                  </div>
+                  <div className="flex-grow-1 min-w-0">
+                    <span
+                      className="fs-11 text-uppercase fw-bold d-block"
+                      style={{ color: "#2563eb", letterSpacing: "0.5px" }}
+                    >
+                      Total Branches
+                    </span>
+                    <h3 className="fw-bold mb-0 text-dark mt-0.5">{stats.count}</h3>
+                    <span className="fs-11 text-muted mt-1 d-block fw-medium">
+                      Active Branches
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div
-              className="card border rounded-3 p-3 shadow-none mb-0 h-100 bg-white"
-              style={{
-                borderColor: "#e2e8f0",
-                borderLeft: "4px solid #16a34a",
-              }}
-            >
-              <div className="d-flex align-items-center gap-3">
-                <div
-                  className="d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{
-                    width: "46px",
-                    height: "46px",
-                    backgroundColor: "#16a34a",
-                    color: "#ffffff",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <DollarSign size={24} />
-                </div>
-                <div className="flex-grow-1 min-w-0">
-                  <span
-                    className="fs-11 text-uppercase fw-bold d-block"
-                    style={{ color: "#16a34a", letterSpacing: "0.5px" }}
+            <div className="col-12 col-sm-6 col-lg-3">
+              <div
+                className="card border rounded-3 p-3 shadow-none mb-0 h-100 bg-white"
+                style={{
+                  borderColor: "#e2e8f0",
+                  borderLeft: "4px solid #16a34a",
+                }}
+              >
+                <div className="d-flex align-items-center gap-3">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{
+                      width: "46px",
+                      height: "46px",
+                      backgroundColor: "#16a34a",
+                      color: "#ffffff",
+                      borderRadius: "10px",
+                    }}
                   >
-                    Total Purchase Value
-                  </span>
-                  <h3 className="fw-bold mb-0 text-dark mt-0.5">₹{stats.totalPurchase.toLocaleString("en-IN")}</h3>
-                  <span className="badge bg-success-subtle text-success border border-success-subtle fs-10 mt-1 fw-semibold">
-                    Supplier Purchases
-                  </span>
+                    <DollarSign size={24} />
+                  </div>
+                  <div className="flex-grow-1 min-w-0">
+                    <span
+                      className="fs-11 text-uppercase fw-bold d-block"
+                      style={{ color: "#16a34a", letterSpacing: "0.5px" }}
+                    >
+                      Total Purchase Value
+                    </span>
+                    <h3 className="fw-bold mb-0 text-dark mt-0.5">₹{stats.totalPurchase.toLocaleString("en-IN")}</h3>
+                    <span className="fs-11 text-muted mt-1 d-block fw-medium">
+                      Supplier Purchases
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div
-              className="card border rounded-3 p-3 shadow-none mb-0 h-100 bg-white"
-              style={{
-                borderColor: "#e2e8f0",
-                borderLeft: "4px solid #ea580c",
-              }}
-            >
-              <div className="d-flex align-items-center gap-3">
-                <div
-                  className="d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{
-                    width: "46px",
-                    height: "46px",
-                    backgroundColor: "#ea580c",
-                    color: "#ffffff",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <Truck size={24} />
-                </div>
-                <div className="flex-grow-1 min-w-0">
-                  <span
-                    className="fs-11 text-uppercase fw-bold d-block"
-                    style={{ color: "#ea580c", letterSpacing: "0.5px" }}
+            <div className="col-12 col-sm-6 col-lg-3">
+              <div
+                className="card border rounded-3 p-3 shadow-none mb-0 h-100 bg-white"
+                style={{
+                  borderColor: "#e2e8f0",
+                  borderLeft: "4px solid #ea580c",
+                }}
+              >
+                <div className="d-flex align-items-center gap-3">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{
+                      width: "46px",
+                      height: "46px",
+                      backgroundColor: "#ea580c",
+                      color: "#ffffff",
+                      borderRadius: "10px",
+                    }}
                   >
-                    Total Expenses
-                  </span>
-                  <h3 className="fw-bold mb-0 text-dark mt-0.5">₹{stats.totalExp.toLocaleString("en-IN")}</h3>
-                  <span
-                    className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fs-10 mt-1 fw-semibold"
-                  >
-                    Freight &amp; Overheads
-                  </span>
+                    <Truck size={24} />
+                  </div>
+                  <div className="flex-grow-1 min-w-0">
+                    <span
+                      className="fs-11 text-uppercase fw-bold d-block"
+                      style={{ color: "#ea580c", letterSpacing: "0.5px" }}
+                    >
+                      Total Expenses
+                    </span>
+                    <h3 className="fw-bold mb-0 text-dark mt-0.5">₹{stats.totalExp.toLocaleString("en-IN")}</h3>
+                    <span className="fs-11 text-muted mt-1 d-block fw-medium">
+                      Freight &amp; Overheads
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div
-              className="card border rounded-3 p-3 shadow-none mb-0 h-100 bg-white"
-              style={{
-                borderColor: "#e2e8f0",
-                borderLeft: "4px solid #9333ea",
-              }}
-            >
-              <div className="d-flex align-items-center gap-3">
-                <div
-                  className="d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{
-                    width: "46px",
-                    height: "46px",
-                    backgroundColor: "#9333ea",
-                    color: "#ffffff",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <Percent size={24} />
-                </div>
-                <div className="flex-grow-1 min-w-0">
-                  <span
-                    className="fs-11 text-uppercase fw-bold d-block"
-                    style={{ color: "#9333ea", letterSpacing: "0.5px" }}
+            <div className="col-12 col-sm-6 col-lg-3">
+              <div
+                className="card border rounded-3 p-3 shadow-none mb-0 h-100 bg-white"
+                style={{
+                  borderColor: "#e2e8f0",
+                  borderLeft: "4px solid #9333ea",
+                }}
+              >
+                <div className="d-flex align-items-center gap-3">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{
+                      width: "46px",
+                      height: "46px",
+                      backgroundColor: "#9333ea",
+                      color: "#ffffff",
+                      borderRadius: "10px",
+                    }}
                   >
-                    Avg Expense %
-                  </span>
-                  <h3 className="fw-bold mb-0 text-dark mt-0.5">{stats.avgExpensePercent}%</h3>
-                  <span
-                    className="badge border fs-10 mt-1 fw-semibold"
-                    style={{ backgroundColor: "#f3e8ff", color: "#9333ea", borderColor: "#e9d5ff" }}
-                  >
-                    Average Markup
-                  </span>
+                    <Percent size={24} />
+                  </div>
+                  <div className="flex-grow-1 min-w-0">
+                    <span
+                      className="fs-11 text-uppercase fw-bold d-block"
+                      style={{ color: "#9333ea", letterSpacing: "0.5px" }}
+                    >
+                      Avg Expense %
+                    </span>
+                    <h3 className="fw-bold mb-0 text-dark mt-0.5">{stats.avgExpensePercent}%</h3>
+                    <span className="fs-11 text-muted mt-1 d-block fw-medium">
+                      Average Markup
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* ============================================================ */}
         {/* VIEW MODE 1: BRANCH LIST TABLE                               */}
@@ -1316,7 +1912,8 @@ export const PurchasesList: React.FC = () => {
         )}
 
         {/* ============================================================ */}
-        {/* VIEW MODE 2: CREATE BRANCH FORM (3 DISTINCT SHADOWLESS CARDS)*/}
+        {/* VIEW MODE 2: CREATE / EDIT BRANCH WITH TABBED UI            */}
+        {/* (Category-Page Style Sliding Underline Tabs)                */}
         {/* ============================================================ */}
         {viewMode === "create" && (
           <form onSubmit={handleSaveBranch}>
@@ -1334,793 +1931,549 @@ export const PurchasesList: React.FC = () => {
               </div>
             )}
 
-            {/* ======================================================== */}
-            {/* 1ST CARD: BRANCH DETAILS                                 */}
-            {/* ======================================================== */}
-            <div className="card border rounded-3 mb-4 shadow-none" style={{ borderColor: "#e2e8f0" }}>
-              <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center gap-2">
-                  <Building2 size={20} className="text-primary" />
-                  <h5 className="fw-bold mb-0 text-dark">1. Branch Details</h5>
-                </div>
-                <span className="badge bg-light text-muted border fs-12">Step 1 of 3</span>
-              </div>
-
-              <div className="card-body p-4">
-                <div className="row g-3">
-                  {/* Create Branch ID */}
-                  <div className="col-12 col-md-4">
-                    <label className="form-label fw-semibold text-dark fs-13 mb-1">
-                      Create Branch ID <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control shadow-none"
-                      placeholder="e.g. BRANCH-2026-001"
-                      value={branchId}
-                      onChange={(e) => setBranchId(e.target.value)}
-                      required
-                    />
-                    <small className="text-muted fs-11 mt-1 d-block">
-                      Unique identifier code for this branch.
-                    </small>
+            {/* Animated Sliding Underline Tabs (Exact Category Page Design) */}
+            <div className="card border rounded-3 mb-4 shadow-none bg-white" style={{ borderColor: "#e2e8f0" }}>
+              <div className="card-header bg-white border-bottom-0 pb-0 pt-3 px-4">
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <Building2 size={22} className="text-primary" />
+                    <div>
+                      <h5 className="fw-bold mb-0 text-dark">
+                        {editingBatchId ? `Edit Branch: ${branchName || branchId}` : "Create New Branch"}
+                      </h5>
+                      <small className="text-muted fs-12">
+                        Configure branch details, link purchase invoices, allocate expenses, and compute landed costs.
+                      </small>
+                    </div>
                   </div>
-
-                  {/* Branch Name */}
-                  <div className="col-12 col-md-4">
-                    <label className="form-label fw-semibold text-dark fs-13 mb-1">
-                      Branch Name <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control shadow-none"
-                      placeholder="e.g. Main Warehouse, Downtown Branch"
-                      value={branchName}
-                      onChange={(e) => setBranchName(e.target.value)}
-                      required
-                    />
-                    <small className="text-muted fs-11 mt-1 d-block">
-                      Official branch or store location name.
-                    </small>
-                  </div>
-
-                  {/* Branch Created Date */}
-                  <div className="col-12 col-md-4">
-                    <label className="form-label fw-semibold text-dark fs-13 mb-1">
-                      Branch Created Date <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control shadow-none"
-                      value={branchCreatedDate}
-                      onChange={(e) => setBranchCreatedDate(e.target.value)}
-                      required
-                    />
-                    <small className="text-muted fs-11 mt-1 d-block">
-                      Establishment or creation date of the branch.
-                    </small>
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="badge bg-light text-muted border fs-12">
+                      Step {activeCreateTab === "details" ? "1" : activeCreateTab === "invoices" ? "2" : activeCreateTab === "expenses" ? "3" : "4"} of 4
+                    </span>
                   </div>
                 </div>
 
-                {/* Optional Remarks */}
-                <div className="mt-3">
-                  <label className="form-label fw-semibold text-dark fs-13 mb-1">
-                    Branch Remarks / Notes (Optional)
-                  </label>
-                  <textarea
-                    rows={2}
-                    className="form-control shadow-none"
-                    placeholder="Enter location address, branch manager, or operational notes..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                {/* Tab Navigation with Animated Sliding Green Indicator */}
+                <div className="position-relative border-bottom">
+                  <ul className="nav border-bottom-0 gap-3 gap-sm-4" role="tablist">
+                    {CREATE_BRANCH_TABS.map((tab) => {
+                      const isSelected = activeCreateTab === tab.id;
+                      return (
+                        <li key={tab.id} className="nav-item">
+                          <button
+                            ref={(el) => {
+                              createTabRefs.current[tab.id] = el;
+                            }}
+                            type="button"
+                            className={`nav-link border-0 bg-transparent px-2 d-inline-flex align-items-center rounded-0 fs-14 ${
+                              isSelected ? "fw-bold" : "text-muted fw-medium"
+                            }`}
+                            style={{
+                              boxShadow: "none",
+                              background: "transparent",
+                              paddingTop: "2px",
+                              paddingBottom: "8px",
+                              color: isSelected ? "#127a3c" : undefined,
+                              cursor: "pointer",
+                              transition: "color 0.2s ease",
+                            }}
+                            onClick={() => {
+                              setFormError(null);
+                              setActiveCreateTab(tab.id);
+                              if (tab.id === "landing") {
+                                setCalcDone(true);
+                              }
+                            }}
+                          >
+                            <span>{tab.label}</span>
+                            {isSelected && !tabIndicatorStyle.ready && (
+                              <span
+                                style={{
+                                  position: "absolute",
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  height: "3px",
+                                  backgroundColor: "#127a3c",
+                                  borderRadius: "3px 3px 0 0",
+                                }}
+                              />
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  {/* Animated sliding underline indicator */}
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: `${tabIndicatorStyle.left}px`,
+                      width: `${tabIndicatorStyle.width}px`,
+                      height: "3px",
+                      backgroundColor: "#127a3c",
+                      borderRadius: "3px 3px 0 0",
+                      transition: tabIndicatorStyle.ready
+                        ? "left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1)"
+                        : "none",
+                      pointerEvents: "none",
+                      opacity: tabIndicatorStyle.ready && tabIndicatorStyle.width > 0 ? 1 : 0,
+                    }}
                   />
                 </div>
               </div>
             </div>
 
             {/* ======================================================== */}
-            {/* 2ND CARD: COMPACT SELECT INVOICE(S) DROPDOWN             */}
+            {/* SECTION 1: BRANCH DETAILS                                */}
             {/* ======================================================== */}
-            <div className="card border rounded-3 mb-4 shadow-none" style={{ borderColor: "#e2e8f0" }}>
-              <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div className="d-flex align-items-center gap-2">
-                  <FileText size={20} className="text-primary" />
-                  <h5 className="fw-bold mb-0 text-dark">2. Select Invoice</h5>
-                  {selectedInvoices.length > 0 && (
-                    <span className="badge bg-primary-subtle text-primary border border-primary-subtle fs-12 px-2 py-0.5">
-                      {selectedInvoices.length} Selected
-                    </span>
-                  )}
-                </div>
-                <div className="d-flex align-items-center gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 shadow-none"
-                    onClick={fetchInvoices}
-                    disabled={loadingInvoices}
-                    title="Reload available invoices"
-                  >
-                    <RefreshCw size={13} className={loadingInvoices ? "spinner-border spinner-border-sm" : ""} />
-                    <span>Refresh</span>
-                  </button>
-                  <span className="badge bg-light text-muted border fs-12">Step 2 of 3</span>
-                </div>
-              </div>
-
-              <div className="card-body p-4">
-                {/* Select Invoice Dropdown Input & Menu */}
-                <div className="mb-3 position-relative" ref={invoiceDropdownRef}>
-                  <label className="form-label fw-semibold text-dark fs-13 mb-1">
-                    Select Purchase Invoice <span className="text-danger">*</span>
-                  </label>
-
-                  {/* Dropdown Trigger Box */}
-                  <div
-                    className="form-control d-flex align-items-center justify-content-between cursor-pointer bg-white shadow-none"
-                    style={{ borderColor: "#e2e8f0", minHeight: "40px" }}
-                    onClick={() => setShowInvoiceDropdown((prev) => !prev)}
-                  >
-                    <div className="d-flex align-items-center gap-1.5 flex-wrap overflow-hidden me-2">
-                      {selectedInvoices.length === 0 ? (
-                        <span className="text-muted fs-13">
-                          -- Select an Invoice to link to this branch (Multiple supported) --
-                        </span>
-                      ) : (
-                        <span className="text-dark fs-13">
-                          <strong className="text-primary">{selectedInvoices.length} Invoice{selectedInvoices.length > 1 ? "s" : ""} Selected: </strong>
-                          <span>{selectedInvoices.map((inv) => inv.po_number).join(", ")}</span>
-                        </span>
-                      )}
-                    </div>
-                    <ChevronDown
-                      size={18}
-                      className="text-muted flex-shrink-0"
-                      style={{
-                        transform: showInvoiceDropdown ? "rotate(180deg)" : "rotate(0deg)",
-                        transition: "transform 0.2s ease",
-                      }}
-                    />
+            {activeCreateTab === "details" && (
+              <div className="card border rounded-3 mb-4 shadow-none bg-white" style={{ borderColor: "#e2e8f0" }}>
+                <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-2">
+                    <Building2 size={20} className="text-primary" />
+                    <h5 className="fw-bold mb-0 text-dark">1. Branch Details</h5>
                   </div>
-
-                  {/* Dropdown Menu Overlay */}
-                  {showInvoiceDropdown && (
-                    <div
-                      className="position-absolute start-0 end-0 bg-white border rounded-3 p-3 mt-1"
-                      style={{
-                        zIndex: 1050,
-                        borderColor: "#cbd5e1",
-                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-                        maxHeight: "320px",
-                      }}
-                    >
-                      {/* Search & Actions Bar inside dropdown */}
-                      <div className="d-flex align-items-center justify-content-between gap-2 mb-2 pb-2 border-bottom">
-                        <div className="input-group input-group-sm flex-grow-1">
-                          <span className="input-group-text bg-white border-end-0">
-                            <Search size={13} className="text-muted" />
-                          </span>
-                          <input
-                            type="text"
-                            className="form-control border-start-0 shadow-none fs-12"
-                            placeholder="Filter invoices by PO, supplier..."
-                            value={invoiceFilterQuery}
-                            onChange={(e) => setInvoiceFilterQuery(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            autoFocus
-                          />
-                        </div>
-
-                        <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-link text-decoration-none p-0 text-primary fs-11 fw-semibold"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectAllInvoices();
-                            }}
-                          >
-                            All
-                          </button>
-                          <span className="text-muted fs-11">•</span>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-link text-decoration-none p-0 text-secondary fs-11 fw-semibold"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleClearAllInvoices();
-                            }}
-                          >
-                            Clear
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-light border py-0.5 px-2 fs-11 shadow-none ms-1"
-                            onClick={() => setShowInvoiceDropdown(false)}
-                          >
-                            Done
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Invoices List Options */}
-                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
-                        {filteredAvailableInvoices.length === 0 ? (
-                          <div className="text-center py-3 text-muted fs-12">
-                            No invoices matching &quot;{invoiceFilterQuery}&quot;.
-                          </div>
-                        ) : (
-                          <div className="d-flex flex-column gap-1">
-                            {filteredAvailableInvoices.map((inv) => {
-                              const isSelected =
-                                selectedInvoiceIds.includes(inv.id) ||
-                                selectedInvoiceIds.includes(inv.po_number);
-                              const dmg = getInvoiceDamageInfo(
-                                inv.po_number || inv.supplier_invoice_no || "",
-                                inv.id
-                              );
-
-                              return (
-                                <div
-                                  key={inv.id}
-                                  className={`p-2 rounded-2 transition-all cursor-pointer d-flex align-items-center justify-content-between gap-2`}
-                                  style={{
-                                    backgroundColor: isSelected ? "#eff6ff" : "transparent",
-                                    border: isSelected ? "1px solid #bfdbfe" : "1px solid transparent",
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleInvoice(inv.id || inv.po_number);
-                                  }}
-                                >
-                                  <div className="d-flex align-items-center gap-2">
-                                    <input
-                                      type="checkbox"
-                                      className="form-check-input shadow-none mt-0 cursor-pointer"
-                                      checked={isSelected}
-                                      onChange={() => handleToggleInvoice(inv.id || inv.po_number)}
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                    <div>
-                                      <div className="d-flex align-items-center gap-1.5">
-                                        <strong className="fs-12 text-dark">{inv.po_number}</strong>
-                                        <span className="text-muted fs-11">• {inv.supplier_name}</span>
-                                      </div>
-                                      <span className="text-muted fs-11 d-block">
-                                        Date: {inv.order_date} • {inv.items?.length || 0} items
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  <div className="text-end">
-                                    <strong className="fs-12 text-dark d-block">
-                                      ₹{Number(inv.total_amount || 0).toLocaleString("en-IN")}
-                                    </strong>
-                                    {dmg.totalLoss > 0 ? (
-                                      <span
-                                        className="badge fw-semibold"
-                                        style={{
-                                          backgroundColor: "#fef2f2",
-                                          color: "#FF0000",
-                                          border: "1px solid #fecaca",
-                                          fontSize: "10px",
-                                        }}
-                                      >
-                                        ₹{dmg.totalLoss.toLocaleString("en-IN")} Damage
-                                      </span>
-                                    ) : (
-                                      <span className="badge bg-success-subtle text-success fs-10">
-                                        Nil Damage
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Selected Invoices Badges Bar */}
-                  {selectedInvoices.length > 0 && (
-                    <div className="mt-2 d-flex flex-wrap align-items-center gap-1.5">
-                      <span className="text-muted fs-11 fw-semibold text-uppercase">Selected:</span>
-                      {selectedInvoices.map((inv) => (
-                        <span
-                          key={inv.id}
-                          className="badge bg-light text-dark border d-inline-flex align-items-center gap-1 fs-11 py-1 px-2"
-                        >
-                          <strong className="text-primary">{inv.po_number}</strong>
-                          <span className="text-muted">({inv.supplier_name})</span>
-                          <span
-                            className="text-danger cursor-pointer ms-0.5 d-inline-flex align-items-center"
-                            onClick={() => handleToggleInvoice(inv.id || inv.po_number)}
-                            title="Remove invoice"
-                          >
-                            <X size={12} />
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <span className="badge bg-light text-muted border fs-12">Step 1 of 4</span>
                 </div>
 
-                {/* Displayed Invoice Values Grid & Details (When at least 1 invoice is selected) */}
-                {selectedInvoices.length > 0 ? (
-                  <div>
-                    {/* Invoice Value Metrics Boxes */}
-                    <div className="row g-3 mb-4">
-                      {/* Supplier Name */}
-                      <div className="col-12 col-md-4">
-                        <div className="p-3 rounded-3 bg-light border h-100" style={{ borderColor: "#e2e8f0" }}>
-                          <span className="text-muted fs-11 text-uppercase fw-semibold d-block">
-                            Supplier Name
-                          </span>
-                          <strong className="fs-14 text-dark d-block mt-1 text-truncate" title={combinedSuppliersText}>
-                            {combinedSuppliersText}
-                          </strong>
-                          <span className="text-muted fs-11 mt-1 d-block">
-                            {selectedInvoices.length} invoice(s) linked
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Invoice Number */}
-                      <div className="col-12 col-md-4">
-                        <div className="p-3 rounded-3 bg-light border h-100" style={{ borderColor: "#e2e8f0" }}>
-                          <span className="text-muted fs-11 text-uppercase fw-semibold d-block">
-                            Invoice Number
-                          </span>
-                          <strong className="fs-14 text-primary d-block mt-1 text-truncate">
-                            {selectedInvoices.map((i) => i.po_number).join(", ")}
-                          </strong>
-                          <span className="text-muted fs-11 mt-1 d-block">
-                            Total Bill: ₹{selectedInvoices.reduce((acc, i) => acc + (Number(i.total_amount) || 0), 0).toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Cost of Damage (Tracked in Damage Tracking page) */}
-                      <div className="col-12 col-md-4">
-                        <div className="p-3 rounded-3 bg-light border h-100" style={{ borderColor: "#e2e8f0" }}>
-                          <span className="text-muted fs-11 text-uppercase fw-semibold d-block">
-                            Cost of Damage
-                          </span>
-                          <div className="d-flex align-items-baseline gap-2 mt-1">
-                            <strong
-                              className="fs-16 fw-bold"
-                              style={{ color: combinedDamageData.totalLoss > 0 ? "#FF0000" : "#16a34a" }}
-                            >
-                              ₹{combinedDamageData.totalLoss.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                            </strong>
-                            {combinedDamageData.totalLoss > 0 ? (
-                              <span
-                                className="badge rounded-pill fw-semibold"
-                                style={{
-                                  backgroundColor: "#fef2f2",
-                                  color: "#FF0000",
-                                  border: "1px solid #fecaca",
-                                  fontSize: "11px",
-                                }}
-                              >
-                                {combinedDamageData.damagedUnits} Damaged Units
-                              </span>
-                            ) : (
-                              <span className="badge bg-success-subtle text-success border border-success-subtle fs-11">
-                                Nil Damage
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-muted fs-11 mt-1 d-block">
-                            {combinedDamageData.totalLoss > 0
-                              ? "✓ Automatically pulled from Damage Tracking page"
-                              : "No damaged goods recorded for selected invoices"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Invoice Products Breakdown */}
-                    <div className="border rounded-3 p-3 bg-white" style={{ borderColor: "#e2e8f0" }}>
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <h6 className="fw-bold fs-13 mb-0 text-dark d-flex align-items-center gap-1.5">
-                          <Package size={16} className="text-primary" />
-                          <span>Purchased Items in Selected Invoice(s) ({items.length})</span>
-                        </h6>
+                <div className="card-body p-4">
+                  <div className="row g-3">
+                    {/* Create Branch ID */}
+                    <div className="col-12 col-md-4">
+                      <div className="d-flex align-items-center justify-content-between mb-1">
+                        <label className="form-label fw-semibold text-dark fs-13 mb-0">
+                          Create Branch ID <span className="text-danger">*</span>
+                        </label>
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 shadow-none"
-                          onClick={handleAddItem}
+                          className="btn btn-link p-0 fs-11 text-decoration-none text-primary fw-medium"
+                          onClick={handleAutoGenerateBranchId}
                         >
-                          <Plus size={13} /> Add Row
+                          Auto-generate
                         </button>
                       </div>
-
-                      <div className="table-responsive">
-                        <table className="table datanew mb-0">
-                          <thead className="table-light">
-                            <tr>
-                              <th style={{ width: "40px" }}>#</th>
-                              <th>Product &amp; Variant</th>
-                              <th style={{ width: "120px" }}>SKU</th>
-                              <th style={{ width: "90px" }} className="text-center">Qty</th>
-                              <th style={{ width: "130px" }} className="text-end">Purchase Price (₹)</th>
-                              <th style={{ width: "130px" }} className="text-end">Line Total (₹)</th>
-                              <th style={{ width: "40px" }}></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {items.map((it, idx) => {
-                              const lineTotal = (Number(it.quantity) || 0) * (Number(it.purchasePrice) || 0);
-                              return (
-                                <tr key={it.id}>
-                                  <td className="text-muted fs-12">{idx + 1}</td>
-                                  <td>
-                                    <div className="d-flex flex-column gap-1">
-                                      <input
-                                        type="text"
-                                        className="form-control form-control-sm shadow-none"
-                                        placeholder="Product Name"
-                                        value={it.productName}
-                                        onChange={(e) => handleUpdateItem(it.id, "productName", e.target.value)}
-                                        required
-                                      />
-                                      {it.variantName && (
-                                        <span className="text-muted fs-11">
-                                          Ref: {it.variantName}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <input
-                                      type="text"
-                                      className="form-control form-control-sm shadow-none"
-                                      placeholder="SKU"
-                                      value={it.sku}
-                                      onChange={(e) => handleUpdateItem(it.id, "sku", e.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      className="form-control form-control-sm text-center shadow-none"
-                                      value={it.quantity || ""}
-                                      onChange={(e) => handleUpdateItem(it.id, "quantity", Number(e.target.value))}
-                                      required
-                                    />
-                                  </td>
-                                  <td>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      className="form-control form-control-sm text-end shadow-none"
-                                      value={it.purchasePrice || ""}
-                                      onChange={(e) => handleUpdateItem(it.id, "purchasePrice", Number(e.target.value))}
-                                      required
-                                    />
-                                  </td>
-                                  <td className="text-end fw-bold text-dark fs-13">
-                                    ₹{lineTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                                  </td>
-                                  <td className="text-center">
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm p-1 text-danger border-0 bg-transparent shadow-none"
-                                      onClick={() => handleRemoveItem(it.id)}
-                                      title="Remove Item"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                          <tfoot className="table-light">
-                            <tr>
-                              <td colSpan={3} className="fw-bold text-dark fs-13 text-end">
-                                Total Purchase (Bill Value):
-                              </td>
-                              <td className="text-center fw-bold text-dark fs-13">
-                                {items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0)} units
-                              </td>
-                              <td></td>
-                              <td className="text-end fw-bold text-dark fs-14">
-                                ₹{totalPurchaseValue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                              </td>
-                              <td></td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
+                      <input
+                        type="text"
+                        className="form-control shadow-none"
+                        placeholder="e.g. BRANCH-2026-001"
+                        value={branchId}
+                        onChange={(e) => setBranchId(e.target.value)}
+                        required
+                      />
+                      <small className="text-muted fs-11 mt-1 d-block">
+                        Unique identifier code for this branch.
+                      </small>
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-4 text-center border border-dashed rounded-3 bg-light text-muted fs-13">
-                    <FileText size={32} className="text-muted opacity-50 mb-1 d-block mx-auto" />
-                    <span>Please select an invoice from the dropdown above to display supplier name, invoice number, and tracked damage cost.</span>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* ======================================================== */}
-            {/* 3RD CARD: EXPENSES & CALCULATION (WITH DAMAGE COST INCLUDED) */}
-            {/* ======================================================== */}
-            <div className="card border rounded-3 mb-4 shadow-none" style={{ borderColor: "#e2e8f0" }}>
-              <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center gap-2">
-                  <Calculator size={20} className="text-primary" />
-                  <h5 className="fw-bold mb-0 text-dark">3. Expenses &amp; Landing Cost Calculation</h5>
-                </div>
-                <div className="d-flex align-items-center gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-link text-decoration-none p-0 text-primary fw-semibold"
-                    onClick={() => setShowBreakdown(!showBreakdown)}
-                  >
-                    {showBreakdown ? "- Hide Breakdown" : "+ Show Breakdown"}
-                  </button>
-                  <span className="badge bg-light text-muted border fs-12">Step 3 of 3</span>
-                </div>
-              </div>
-
-              <div className="card-body p-4">
-                {/* Standard Expense Breakdown */}
-                {showBreakdown && (
-                  <div className="mb-4">
-                    <h6 className="fw-bold fs-13 text-dark mb-2 text-uppercase">
-                      Standard Expense Breakdown
-                    </h6>
-                    <div className="row g-2">
-                      <div className="col-12 col-sm-6 col-md">
-                        <label className="form-label fs-11 text-muted fw-semibold mb-1">Freight (₹)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="form-control form-control-sm shadow-none"
-                          value={expenseBreakdown.freight || ""}
-                          onChange={(e) => handleUpdateBreakdown("freight", Number(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="col-12 col-sm-6 col-md">
-                        <label className="form-label fs-11 text-muted fw-semibold mb-1">Labour &amp; Loading (₹)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="form-control form-control-sm shadow-none"
-                          value={expenseBreakdown.labour || ""}
-                          onChange={(e) => handleUpdateBreakdown("labour", Number(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="col-12 col-sm-6 col-md">
-                        <label className="form-label fs-11 text-muted fw-semibold mb-1">Transport &amp; Toll (₹)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="form-control form-control-sm shadow-none"
-                          value={expenseBreakdown.transport || ""}
-                          onChange={(e) => handleUpdateBreakdown("transport", Number(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="col-12 col-sm-6 col-md">
-                        <label className="form-label fs-11 text-muted fw-semibold mb-1">Packaging &amp; Crates (₹)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="form-control form-control-sm shadow-none"
-                          value={expenseBreakdown.packaging || ""}
-                          onChange={(e) => handleUpdateBreakdown("packaging", Number(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="col-12 col-sm-6 col-md">
-                        <label className="form-label fs-11 text-muted fw-semibold mb-1">Other / Misc (₹)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="form-control form-control-sm shadow-none"
-                          value={expenseBreakdown.other || ""}
-                          onChange={(e) => handleUpdateBreakdown("other", Number(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
+                    {/* Branch Name */}
+                    <div className="col-12 col-md-4">
+                      <label className="form-label fw-semibold text-dark fs-13 mb-1">
+                        Branch Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control shadow-none"
+                        placeholder="e.g. Main Warehouse, Downtown Branch"
+                        value={branchName}
+                        onChange={(e) => setBranchName(e.target.value)}
+                        required
+                      />
+                      <small className="text-muted fs-11 mt-1 d-block">
+                        Official branch or store location name.
+                      </small>
                     </div>
-                  </div>
-                )}
 
-                {/* Option to Add Custom Expense Breakdown (Compact with + next to close icon) */}
-                <div className="mb-4 p-3 rounded-3 bg-light border" style={{ borderColor: "#e2e8f0" }}>
-                  <div className="mb-2">
-                    <h6 className="fw-bold fs-13 text-dark mb-0">
-                      Custom Expense Breakdown Items
-                    </h6>
-                    <small className="text-muted fs-11">
-                      Add any specific expense category needed for this branch or invoice.
-                    </small>
-                  </div>
-
-                  <div className="d-flex flex-column gap-2">
-                    {customExpenses.map((exp) => (
-                      <div
-                        key={exp.id}
-                        className="row g-2 align-items-center bg-white p-2 rounded-2 border"
-                        style={{ borderColor: "#e2e8f0" }}
-                      >
-                        <div className="col-12 col-sm-6 col-md-7">
-                          <input
-                            type="text"
-                            className="form-control form-control-sm shadow-none"
-                            placeholder="e.g. Cold Storage, Unloading Cess, Inspection..."
-                            value={exp.name}
-                            onChange={(e) => handleUpdateCustomExpense(exp.id, "name", e.target.value)}
-                          />
-                        </div>
-                        <div className="col-9 col-sm-4 col-md-4">
-                          <div className="input-group input-group-sm">
-                            <span className="input-group-text bg-light text-muted border-end-0">₹</span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              className="form-control shadow-none border-start-0"
-                              placeholder="Amount"
-                              value={exp.amount || ""}
-                              onChange={(e) => handleUpdateCustomExpense(exp.id, "amount", e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <div className="col-3 col-sm-2 col-md-1 text-center">
-                          <div className="d-inline-flex align-items-center gap-1">
-                            <button
-                              type="button"
-                              className="btn btn-sm p-1 border-0 bg-transparent shadow-none"
-                              style={{ color: "#FF0000" }}
-                              onClick={handleAddCustomExpense}
-                              title="Add another expense row"
-                            >
-                              <Plus size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm p-1 border-0 bg-transparent shadow-none"
-                              style={{ color: "#FF0000" }}
-                              onClick={() => handleRemoveCustomExpense(exp.id)}
-                              title="Remove this expense row"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Damage Cost Tracked Under Expenses Row */}
-                <div
-                  className="p-3 rounded-3 mb-4 border d-flex flex-wrap align-items-center justify-content-between gap-3"
-                  style={{
-                    backgroundColor: combinedDamageData.totalLoss > 0 ? "#fff5f5" : "#f8fafc",
-                    borderColor: combinedDamageData.totalLoss > 0 ? "#fecaca" : "#e2e8f0",
-                  }}
-                >
-                  <div className="d-flex align-items-center gap-2">
-                    <AlertTriangle
-                      size={20}
-                      style={{ color: combinedDamageData.totalLoss > 0 ? "#FF0000" : "#64748b" }}
-                    />
-                    <div>
-                      <h6 className="fw-bold fs-13 mb-0 text-dark">
-                        Damage Cost Tracked Under Expenses
-                      </h6>
-                      <small className="text-muted fs-11">
-                        Loss from damaged items across selected invoices is tracked under landing expenses for accurate cost calculation.
+                    {/* Branch Created Date */}
+                    <div className="col-12 col-md-4">
+                      <label className="form-label fw-semibold text-dark fs-13 mb-1">
+                        Branch Created Date <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="form-control shadow-none"
+                        value={branchCreatedDate}
+                        onChange={(e) => setBranchCreatedDate(e.target.value)}
+                        required
+                      />
+                      <small className="text-muted fs-11 mt-1 d-block">
+                        Establishment or creation date of the branch.
                       </small>
                     </div>
                   </div>
 
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="text-end">
-                      <span className="text-muted fs-11 d-block text-uppercase fw-semibold">Damage Amount</span>
-                      <strong className="fs-15" style={{ color: combinedDamageData.totalLoss > 0 ? "#FF0000" : "#64748b" }}>
-                        ₹{combinedDamageData.totalLoss.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </strong>
+                  {/* Optional Remarks */}
+                  <div className="mt-3">
+                    <label className="form-label fw-semibold text-dark fs-13 mb-1">
+                      Branch Remarks / Notes (Optional)
+                    </label>
+                    <textarea
+                      rows={3}
+                      className="form-control shadow-none"
+                      placeholder="Enter location address, branch manager, or operational notes..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Section Footer */}
+                <div className="card-footer bg-white border-top py-3 px-4 d-flex align-items-center justify-content-between">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary px-3 shadow-none rounded-2"
+                    onClick={() => setViewMode("list")}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2 shadow-none rounded-2 fw-semibold"
+                    onClick={() => {
+                      if (!branchId.trim()) {
+                        setFormError("Branch ID is required before proceeding.");
+                        return;
+                      }
+                      if (!branchName.trim()) {
+                        setFormError("Branch Name is required before proceeding.");
+                        return;
+                      }
+                      if (!branchCreatedDate.trim()) {
+                        setFormError("Branch Created Date is required before proceeding.");
+                        return;
+                      }
+                      setFormError(null);
+                      setActiveCreateTab("invoices");
+                    }}
+                  >
+                    <span>Next: Select Invoice</span>
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* SECTION 2: SELECT INVOICE(S)                             */}
+            {/* ======================================================== */}
+            {activeCreateTab === "invoices" && (
+              <BranchInvoiceSelection
+                availableInvoices={availableInvoices}
+                loadingInvoices={loadingInvoices}
+                onReloadInvoices={fetchInvoices}
+                selectedInvoiceIds={selectedInvoiceIds}
+                selectedInvoices={selectedInvoices}
+                onToggleInvoice={handleToggleInvoice}
+                onClearAllInvoices={handleClearAllInvoices}
+                batchedInvoiceKeys={batchedInvoiceKeys}
+                getInvoiceItems={getInvoiceItems}
+                getInvoiceDamageInfo={getInvoiceDamageInfo}
+                onBackToDetails={() => {
+                  setFormError(null);
+                  setActiveCreateTab("details");
+                }}
+                onCancel={() => setViewMode("list")}
+                onProceedToExpenses={handleProceedCreateBatch}
+                onBatchSoldItems={handleBatchSoldItems}
+              />
+            )}
+
+            {/* ======================================================== */}
+            {/* SECTION 3: EXPENSES                                      */}
+            {/* ======================================================== */}
+            {activeCreateTab === "expenses" && (
+              <div className="card border rounded-3 mb-4 shadow-none bg-white" style={{ borderColor: "#e2e8f0" }}>
+                <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-2">
+                    <Calculator size={20} className="text-primary" />
+                    <h5 className="fw-bold mb-0 text-dark">3. Expenses</h5>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link text-decoration-none p-0 text-primary fw-semibold"
+                      onClick={() => setShowBreakdown(!showBreakdown)}
+                    >
+                      {showBreakdown ? "- Hide Breakdown" : "+ Show Breakdown"}
+                    </button>
+                    <span className="badge bg-light text-muted border fs-12">Step 3 of 4</span>
+                  </div>
+                </div>
+
+                <div className="card-body p-4">
+                  {/* Standard Expense Breakdown */}
+                  {showBreakdown && (
+                    <div className="mb-4">
+                      <h6 className="fw-bold fs-13 text-dark mb-2 text-uppercase">
+                        Standard Expense Breakdown
+                      </h6>
+                      <div className="row g-2">
+                        <div className="col-12 col-sm-6 col-md">
+                          <label className="form-label fs-11 text-muted fw-semibold mb-1">Freight (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control form-control-sm shadow-none"
+                            value={expenseBreakdown.freight || ""}
+                            onChange={(e) => handleUpdateBreakdown("freight", Number(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="col-12 col-sm-6 col-md">
+                          <label className="form-label fs-11 text-muted fw-semibold mb-1">Labour &amp; Loading (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control form-control-sm shadow-none"
+                            value={expenseBreakdown.labour || ""}
+                            onChange={(e) => handleUpdateBreakdown("labour", Number(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="col-12 col-sm-6 col-md">
+                          <label className="form-label fs-11 text-muted fw-semibold mb-1">Transport &amp; Toll (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control form-control-sm shadow-none"
+                            value={expenseBreakdown.transport || ""}
+                            onChange={(e) => handleUpdateBreakdown("transport", Number(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="col-12 col-sm-6 col-md">
+                          <label className="form-label fs-11 text-muted fw-semibold mb-1">Packaging &amp; Crates (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control form-control-sm shadow-none"
+                            value={expenseBreakdown.packaging || ""}
+                            onChange={(e) => handleUpdateBreakdown("packaging", Number(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="col-12 col-sm-6 col-md">
+                          <label className="form-label fs-11 text-muted fw-semibold mb-1">Other / Misc (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control form-control-sm shadow-none"
+                            value={expenseBreakdown.other || ""}
+                            onChange={(e) => handleUpdateBreakdown("other", Number(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Option to Add Custom Expense Breakdown */}
+                  <div className="mb-4 p-3 rounded-3 bg-light border" style={{ borderColor: "#e2e8f0" }}>
+                    <div className="mb-2">
+                      <h6 className="fw-bold fs-13 text-dark mb-0">
+                        Custom Expense Breakdown Items
+                      </h6>
+                      <small className="text-muted fs-11">
+                        Add any specific expense category needed for this branch or invoice.
+                      </small>
                     </div>
 
-                    <div className="form-check form-switch mb-0">
-                      <input
-                        className="form-check-input shadow-none cursor-pointer"
-                        type="checkbox"
-                        role="switch"
-                        id="includeDamageSwitch"
-                        checked={includeDamageInExpenses}
-                        onChange={(e) => {
-                          setIncludeDamageInExpenses(e.target.checked);
-                          setCalcDone(false);
-                        }}
+                    <div className="d-flex flex-column gap-2">
+                      {customExpenses.map((exp) => (
+                        <div
+                          key={exp.id}
+                          className="row g-2 align-items-center bg-white p-2 rounded-2 border"
+                          style={{ borderColor: "#e2e8f0" }}
+                        >
+                          <div className="col-12 col-sm-6 col-md-7">
+                            <input
+                              type="text"
+                              className="form-control form-control-sm shadow-none"
+                              placeholder="e.g. Cold Storage, Unloading Cess, Inspection..."
+                              value={exp.name}
+                              onChange={(e) => handleUpdateCustomExpense(exp.id, "name", e.target.value)}
+                            />
+                          </div>
+                          <div className="col-9 col-sm-4 col-md-4">
+                            <div className="input-group input-group-sm">
+                              <span className="input-group-text bg-light text-muted border-end-0">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                className="form-control shadow-none border-start-0"
+                                placeholder="Amount"
+                                value={exp.amount || ""}
+                                onChange={(e) => handleUpdateCustomExpense(exp.id, "amount", e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="col-3 col-sm-2 col-md-1 text-center">
+                            <div className="d-inline-flex align-items-center gap-1">
+                              <button
+                                type="button"
+                                className="btn btn-sm p-1 border-0 bg-transparent shadow-none"
+                                style={{ color: "#FF0000" }}
+                                onClick={handleAddCustomExpense}
+                                title="Add another expense row"
+                              >
+                                <Plus size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm p-1 border-0 bg-transparent shadow-none"
+                                style={{ color: "#FF0000" }}
+                                onClick={() => handleRemoveCustomExpense(exp.id)}
+                                title="Remove this expense row"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Damage Cost Tracked Under Expenses Row */}
+                  <div
+                    className="p-3 rounded-3 mb-4 border d-flex flex-wrap align-items-center justify-content-between gap-3"
+                    style={{
+                      backgroundColor: combinedDamageData.totalLoss > 0 ? "#fff5f5" : "#f8fafc",
+                      borderColor: combinedDamageData.totalLoss > 0 ? "#fecaca" : "#e2e8f0",
+                    }}
+                  >
+                    <div className="d-flex align-items-center gap-2">
+                      <AlertTriangle
+                        size={20}
+                        style={{ color: combinedDamageData.totalLoss > 0 ? "#FF0000" : "#64748b" }}
                       />
-                      <label className="form-check-label fs-12 fw-semibold text-dark cursor-pointer" htmlFor="includeDamageSwitch">
-                        Include in Expenses
-                      </label>
+                      <div>
+                        <h6 className="fw-bold fs-13 mb-0 text-dark">
+                          Damage Cost Tracked Under Expenses
+                        </h6>
+                        <small className="text-muted fs-11">
+                          Loss from damaged items across selected invoices is tracked under landing expenses for accurate cost calculation.
+                        </small>
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="text-end">
+                        <span className="text-muted fs-11 d-block text-uppercase fw-semibold">Damage Amount</span>
+                        <strong className="fs-15" style={{ color: combinedDamageData.totalLoss > 0 ? "#FF0000" : "#64748b" }}>
+                          ₹{combinedDamageData.totalLoss.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </strong>
+                      </div>
+
+                      <div className="form-check form-switch mb-0">
+                        <input
+                          className="form-check-input shadow-none cursor-pointer"
+                          type="checkbox"
+                          role="switch"
+                          id="includeDamageSwitch"
+                          checked={includeDamageInExpenses}
+                          onChange={(e) => {
+                            setIncludeDamageInExpenses(e.target.checked);
+                            setCalcDone(false);
+                          }}
+                        />
+                        <label className="form-check-label fs-12 fw-semibold text-dark cursor-pointer" htmlFor="includeDamageSwitch">
+                          Include in Expenses
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Total Combined Expenses Summary Box */}
+                  <div
+                    className="p-3 rounded-3 bg-light border d-flex align-items-center justify-content-between flex-wrap gap-3 mt-3"
+                    style={{ borderColor: "#e2e8f0" }}
+                  >
+                    <div>
+                      <span className="text-muted fs-11 text-uppercase fw-semibold d-block">
+                        Total Combined Expenses
+                      </span>
+                      <h4 className="fw-bold text-dark mb-0 mt-0.5">
+                        ₹{totalCalculatedExpense.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </h4>
+                      <small className="text-muted fs-11">
+                        Operational: ₹{operationalExpenses.toLocaleString("en-IN")} + Damage: ₹{effectiveDamageCost.toLocaleString("en-IN")}
+                      </small>
+                    </div>
+                    <div className="text-end">
+                      <span className="text-muted fs-11 text-uppercase fw-semibold d-block">
+                        Estimated Expense Overhead %
+                      </span>
+                      <h3 className="fw-bold text-success mb-0 mt-0.5">
+                        {calculatedExpensePercent}%
+                      </h3>
+                      <small className="text-muted fs-11">
+                        Against ₹{totalPurchaseValue.toLocaleString("en-IN")} Total Bill
+                      </small>
                     </div>
                   </div>
                 </div>
 
-                {/* Bottom of Card 3: Continue Button to move to Calculated Landed Cost Metrics */}
-                {!calcDone ? (
-                  <div className="d-flex align-items-center justify-content-between pt-3 border-top mt-3 flex-wrap gap-2">
-                    <div className="text-muted fs-12 d-flex align-items-center gap-1.5">
-                      <Info size={15} className="text-primary flex-shrink-0" />
-                      <span>
-                        After entering expenses, click <strong>Continue</strong> to calculate and review landed cost metrics.
-                      </span>
-                    </div>
-                    <div className="d-flex align-items-center gap-2 ms-auto">
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary px-4 shadow-none rounded-2"
-                        onClick={() => setViewMode("list")}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2 shadow-none rounded-2 fw-semibold"
-                        onClick={handleContinue}
-                      >
-                        <span>Continue</span>
-                        <ArrowRight size={17} />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="d-flex align-items-center justify-content-between pt-3 border-top mt-3 bg-light p-2.5 rounded-2 flex-wrap gap-2">
-                    <div className="d-flex align-items-center gap-2 text-success fs-12 fw-semibold">
-                      <CheckCircle2 size={16} />
-                      <span>Expenses recorded. Calculated landed cost metrics data is shown below.</span>
-                    </div>
+                {/* Section Footer */}
+                <div className="card-footer bg-white border-top py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary px-3 shadow-none rounded-2 d-inline-flex align-items-center gap-1.5"
+                    onClick={() => {
+                      setFormError(null);
+                      setActiveCreateTab("invoices");
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back: Select Invoice</span>
+                  </button>
+                  <div className="d-flex align-items-center gap-2">
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5 shadow-none rounded-2"
-                      onClick={() => setCalcDone(false)}
-                      title="Modify entered expenses"
+                      className="btn btn-outline-secondary px-3 shadow-none rounded-2"
+                      onClick={() => setViewMode("list")}
                     >
-                      <Edit2 size={13} />
-                      <span>Edit Expenses</span>
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2 shadow-none rounded-2 fw-semibold"
+                      onClick={() => {
+                        setCalcDone(true);
+                        setFormError(null);
+                        setActiveCreateTab("landing");
+                      }}
+                    >
+                      <span>Continue to Landing Cost</span>
+                      <ArrowRight size={16} />
                     </button>
                   </div>
-                )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ======================================================== */}
-            {/* 4TH CARD: CALCULATED LANDED COST METRICS DATA             */}
-            {/* (Revealed ONLY after clicking Continue)                   */}
+            {/* SECTION 4: LANDING COST                                  */}
             {/* ======================================================== */}
-            {calcDone && (
+            {activeCreateTab === "landing" && (
               <div
                 ref={metricsRef}
-                className="card border rounded-3 mb-4 shadow-none"
+                className="card border rounded-3 mb-4 shadow-none bg-white"
                 style={{ borderColor: "#e2e8f0" }}
               >
                 <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
                   <div className="d-flex align-items-center gap-2">
                     <Sparkles size={20} className="text-primary" />
                     <div>
-                      <h5 className="fw-bold mb-0 text-dark">Calculated Landed Cost Metrics Data</h5>
+                      <h5 className="fw-bold mb-0 text-dark">4. Landing Cost</h5>
                       <small className="text-muted fs-11">
                         Final landed cost per unit calculated by distributing ₹{totalCalculatedExpense.toLocaleString("en-IN", { minimumFractionDigits: 2 })} total expenses ({calculatedExpensePercent}%) across purchase items.
                       </small>
@@ -2129,7 +2482,7 @@ export const PurchasesList: React.FC = () => {
                   <div className="d-flex align-items-center gap-2">
                     <span className="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fs-12 d-inline-flex align-items-center gap-1">
                       <Check size={14} />
-                      <span>Calculated &amp; Ready</span>
+                      <span>Calculated &amp; Ready to Save</span>
                     </span>
                   </div>
                 </div>
@@ -2223,36 +2576,126 @@ export const PurchasesList: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Per-Item Final Landed Cost Breakdown */}
+                  <div className="border rounded-3 p-3 bg-white mb-2" style={{ borderColor: "#e2e8f0" }}>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <h6 className="fw-bold fs-13 mb-0 text-dark d-flex align-items-center gap-1.5">
+                        <Package size={16} className="text-primary" />
+                        <span>Per-Item Final Landed Cost Breakdown ({items.length} Items)</span>
+                      </h6>
+                      <span className="badge bg-light text-muted border fs-11">
+                        +{calculatedExpensePercent}% Overhead
+                      </span>
+                    </div>
 
+                    <div className="table-responsive">
+                      <table className="table datanew mb-0">
+                        <thead className="table-light">
+                          <tr>
+                            <th style={{ width: "40px" }}>#</th>
+                            <th>Product &amp; Variant</th>
+                            <th style={{ width: "120px" }}>SKU</th>
+                            <th style={{ width: "80px" }} className="text-center">Qty</th>
+                            <th style={{ width: "120px" }} className="text-end">Base Price (₹)</th>
+                            <th style={{ width: "130px" }} className="text-end">Overhead/Unit (₹)</th>
+                            <th style={{ width: "130px" }} className="text-end">Landed Cost (₹)</th>
+                            <th style={{ width: "130px" }} className="text-end">Total Landed (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((it, idx) => {
+                            const qty = Number(it.quantity) || 0;
+                            const basePrice = Number(it.purchasePrice) || 0;
+                            const overheadPerUnit = calculatedExpensePercent > 0 ? (basePrice * calculatedExpensePercent) / 100 : 0;
+                            const landedUnitCost = Number((basePrice + overheadPerUnit).toFixed(2));
+                            const lineLandedTotal = Number((landedUnitCost * qty).toFixed(2));
 
-                  {/* Action Buttons on Revealed Metrics Card */}
-                  <div className="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+                            return (
+                              <tr key={it.id}>
+                                <td className="text-muted fs-12">{idx + 1}</td>
+                                <td>
+                                  <strong className="text-dark fs-13 d-block">{it.productName || "Unnamed Item"}</strong>
+                                  {it.variantName && (
+                                    <span className="text-muted fs-11">Ref: {it.variantName}</span>
+                                  )}
+                                </td>
+                                <td>
+                                  <span className="text-muted fs-12">{it.sku || "—"}</span>
+                                </td>
+                                <td className="text-center fs-13 text-dark fw-semibold">
+                                  {qty}
+                                </td>
+                                <td className="text-end fs-13 text-muted">
+                                  ₹{basePrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-end fs-13 text-warning-emphasis fw-medium">
+                                  +₹{overheadPerUnit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-end fs-13 fw-bold text-success">
+                                  ₹{landedUnitCost.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-end fs-13 fw-bold text-dark">
+                                  ₹{lineLandedTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot className="table-light">
+                          <tr>
+                            <td colSpan={3} className="fw-bold text-dark fs-13 text-end">
+                              Totals:
+                            </td>
+                            <td className="text-center fw-bold text-dark fs-13">
+                              {items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0)} units
+                            </td>
+                            <td className="text-end fw-bold text-dark fs-13">
+                              ₹{totalPurchaseValue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="text-end fw-bold text-warning-emphasis fs-13">
+                              ₹{totalCalculatedExpense.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </td>
+                            <td></td>
+                            <td className="text-end fw-bold text-primary fs-14">
+                              ₹{(totalPurchaseValue + totalCalculatedExpense).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section Footer */}
+                <div className="card-footer bg-white border-top py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary px-3 shadow-none rounded-2 d-inline-flex align-items-center gap-1.5"
+                    onClick={() => {
+                      setFormError(null);
+                      setActiveCreateTab("expenses");
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back: Edit Expenses</span>
+                  </button>
+
+                  <div className="d-flex align-items-center gap-2 ms-auto">
                     <button
                       type="button"
-                      className="btn btn-outline-secondary px-3 shadow-none rounded-2 d-inline-flex align-items-center gap-1.5"
-                      onClick={() => setCalcDone(false)}
+                      className="btn btn-outline-secondary px-4 shadow-none rounded-2"
+                      onClick={() => setViewMode("list")}
                     >
-                      <Edit2 size={14} />
-                      <span>Edit Expenses</span>
+                      Cancel
                     </button>
 
-                    <div className="d-flex align-items-center gap-2 ms-auto">
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary px-4 shadow-none rounded-2"
-                        onClick={() => setViewMode("list")}
-                      >
-                        Cancel
-                      </button>
-
-                      <button
-                        type="submit"
-                        className="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2 shadow-none rounded-2 fw-semibold"
-                      >
-                        <Save size={18} />
-                        <span>{editingBatchId ? "Update Branch" : "Save Branch"}</span>
-                      </button>
-                    </div>
+                    <button
+                      type="submit"
+                      className="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2 shadow-none rounded-2 fw-semibold"
+                    >
+                      <Save size={18} />
+                      <span>{editingBatchId ? "Update Branch" : "Save Branch"}</span>
+                    </button>
                   </div>
                 </div>
               </div>

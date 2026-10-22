@@ -160,6 +160,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
           <NavLink
+            to="/sales-list"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            onClick={handleLinkClick}
+            title="Sales List"
+          >
+            <ShoppingBag className="nav-icon" />
+            <span className="nav-label">Sales List</span>
+          </NavLink>
+          <NavLink
             to="/create-sales-invoice"
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             onClick={handleLinkClick}

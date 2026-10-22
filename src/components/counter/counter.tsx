@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import PropTypes from "prop-types";
 import { Tooltip } from "primereact/tooltip";
-import { MinusCircle, PlusCircle } from "react-feather";
+import { MinusCircle, PlusCircle } from "react-feather";  
 
 const CartCounter = () => {
   const [quantity, setQuantity] = useState(0);

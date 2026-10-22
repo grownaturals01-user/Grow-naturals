@@ -105,7 +105,24 @@ export async function seedDatabase(): Promise<void> {
     `);
   }
 
-  // 4. Clean out any legacy dump categories and products
+  // 4. Default Sample Sales Invoices
+  const invCount = await db.query(`SELECT COUNT(*) as count FROM invoices`);
+  if (Number(invCount.rows[0]?.count) === 0) {
+    console.log('[DB Seed] Seeding default sales invoices...');
+    await db.query(`
+      INSERT INTO invoices (id, business_id, invoice_number, customer_id, customer_name, customer_phone, subtotal, discount_amount, tax_amount, total_amount, payment_method, payment_status, created_at)
+      VALUES
+      ('inv-001', 'grow-naturals', 'INV-2026-081', 'cust-7', 'Oberoi Luxury Resorts', '+91 98700 11223', 411542.37, 0, 74077.63, 485620.00, 'upi', 'paid', NOW() - INTERVAL '2 days'),
+      ('inv-002', 'grow-naturals', 'INV-2026-079', 'cust-6', 'Anita Sharma', '+91 98112 23344', 205237.70, 0, 36942.79, 242180.49, 'bank_transfer', 'paid', NOW() - INTERVAL '4 days'),
+      ('inv-003', 'grow-naturals', 'INV-2026-077', 'cust-2', 'Aarsha Living Spaces', '+91 94432 10987', 159791.53, 0, 28762.47, 188554.00, 'upi', 'paid', NOW() - INTERVAL '6 days'),
+      ('inv-004', 'grow-naturals', 'INV-2026-074', 'cust-4', 'Abby Botanical Interiors', '+91 91234 56780', 122881.36, 0, 22118.64, 145000.00, 'card', 'paid', NOW() - INTERVAL '8 days'),
+      ('inv-005', 'grow-naturals', 'INV-2026-083', 'cust-9', 'MDA Pots and Plants', '+91 98420 12345', 148593.81, 0, 26746.88, 175340.69, 'credit', 'unpaid', NOW() - INTERVAL '1 day'),
+      ('inv-006', 'grow-naturals', 'INV-2026-072', 'cust-8', 'Gowtham Nursery', '+91 94430 12345', 71567.80, 0, 12882.20, 84450.00, 'credit', 'unpaid', NOW() - INTERVAL '10 days')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+  }
+
+  // 5. Clean out any legacy dump categories and products
   try {
     await db.query(`DELETE FROM products WHERE id LIKE 'prod-gn-%' OR id LIKE 'prod-nn-%';`);
     await db.query(`DELETE FROM categories WHERE id LIKE 'cat-gn-%' OR id LIKE 'cat-nn-%';`);

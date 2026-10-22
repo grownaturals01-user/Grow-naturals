@@ -28,6 +28,13 @@ export const SidebarData1 = [
     showSubRoute: false,
     subRoutes: [
       {
+        tittle: "Sales List",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/sales-list",
+        subRoutes: [],
+      },
+      {
         tittle: "Create Sales Invoice",
         hasSubRoute: false,
         showSubRoute: false,

@@ -7,12 +7,15 @@ import { string } from "prop-types";
 
 export interface PurchaseItem {
   id: string;
+  invoiceId?: string;
+  invoicePo?: string;
   productId?: string;
   productName: string;
   variantName?: string;
   sku: string;
   quantity: number;
   remainingQty: number; // Stock left in batch
+  unit?: string;
   purchasePrice: number; // Bill value per unit
   sellingPrice: number; // Selling price per unit
   actualCost: number; // Calculated per unit based on batch expense %
