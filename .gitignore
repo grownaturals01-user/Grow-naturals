@@ -8,8 +8,7 @@ dist-ssr/
 build/
 
 # Database data directory
-data/postgres/
-data/
+/data/
 
 # Logs
 npm-debug.log*
