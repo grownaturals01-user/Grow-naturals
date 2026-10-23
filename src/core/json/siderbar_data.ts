@@ -65,6 +65,22 @@ export const SidebarData = [
     ],
   },
   {
+    label: "Projects",
+    submenuOpen: true,
+    submenuHdr: "Projects",
+    submenu: false,
+    showSubRoute: false,
+    submenuItems: [
+      {
+        label: "Project",
+        link: "/projects",
+        icon: "briefcase",
+        showSubRoute: false,
+        submenu: false,
+      },
+    ],
+  },
+  {
     label: "Inventory",
     submenuOpen: true,
     showSubRoute: false,

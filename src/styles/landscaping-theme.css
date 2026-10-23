@@ -1,0 +1,687 @@
+/**
+ * GrowNaturals Billing — Landscaping Operating System Theme (landscaping-theme.css)
+ * Styled in full harmony with DreamsPOS Signature Design System & Design Tokens
+ */
+
+/* ==========================================================================
+   1. Root Tokens & Global Container
+   ========================================================================== */
+.landscaping-suite-root {
+  font-family: 'Nunito', 'Poppins', sans-serif !important;
+  color: #1e293b;
+  width: 100%;
+}
+
+.landscaping-suite-root * {
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   2. Existing Theme Specific Tab Bar (DreamsPOS Signature Pill Tabs)
+   ========================================================================== */
+.landscaping-nav-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+}
+
+.landscaping-theme-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.landscaping-theme-tabs::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.landscaping-theme-tab-item {
+  flex-shrink: 0;
+}
+
+.landscaping-theme-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.landscaping-theme-tab-btn:hover {
+  background-color: #fff6ee;
+  color: #fe9f43;
+  border-color: #ffdaba;
+  transform: translateY(-1px);
+}
+
+.landscaping-theme-tab-btn.active {
+  background: #fe9f43 !important;
+  color: #ffffff !important;
+  border-color: #fe9f43 !important;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(254, 159, 67, 0.35);
+  transform: translateY(-1px);
+}
+
+.landscaping-theme-tab-btn.active svg {
+  color: #ffffff !important;
+}
+
+.landscaping-theme-tab-btn.active .tab-badge {
+  background-color: rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.landscaping-theme-tab-btn .tab-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background-color: #e2e8f0;
+  color: #475569;
+  transition: all 0.2s ease;
+  line-height: 1.3;
+}
+
+.landscaping-theme-tab-btn .tab-badge.conflict {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.landscaping-theme-tab-btn.active .tab-badge.conflict {
+  background-color: #ffffff !important;
+  color: #e11d48 !important;
+}
+
+/* ==========================================================================
+   3. Header Action Buttons & Badges
+   ========================================================================== */
+.landscaping-top-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.landscaping-page-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.landscaping-brand-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background-color: #fe9f43;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(254, 159, 67, 0.35);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.landscaping-main-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #092c4c;
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.landscaping-sub-title {
+  font-size: 13px;
+  color: #64748b;
+  margin: 2px 0 0 0;
+  font-weight: 500;
+}
+
+.landscaping-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-theme-primary,
+.btn-added {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background-color: #fe9f43 !important;
+  border-color: #fe9f43 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 6px rgba(254, 159, 67, 0.3) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid transparent !important;
+}
+
+.btn-theme-primary:hover,
+.btn-added:hover {
+  background-color: #e58830 !important;
+  border-color: #e58830 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+.btn-theme-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-theme-success:hover {
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+  color: #047857;
+  transform: translateY(-1px);
+}
+
+.btn-theme-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-theme-outline:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* ==========================================================================
+   4. Universal Flex, Grid & Layout Utility Emulators (Full CSS Guarantee)
+   ========================================================================== */
+.landscaping-suite-root .flex { display: flex !important; }
+.landscaping-suite-root .inline-flex { display: inline-flex !important; }
+.landscaping-suite-root .flex-col { flex-direction: column !important; }
+.landscaping-suite-root .flex-row { flex-direction: row !important; }
+.landscaping-suite-root .flex-wrap { flex-wrap: wrap !important; }
+.landscaping-suite-root .flex-nowrap { flex-wrap: nowrap !important; }
+.landscaping-suite-root .items-center { align-items: center !important; }
+.landscaping-suite-root .items-start { align-items: flex-start !important; }
+.landscaping-suite-root .items-end { align-items: flex-end !important; }
+.landscaping-suite-root .justify-between { justify-content: space-between !important; }
+.landscaping-suite-root .justify-center { justify-content: center !important; }
+.landscaping-suite-root .justify-end { justify-content: flex-end !important; }
+.landscaping-suite-root .justify-start { justify-content: flex-start !important; }
+.landscaping-suite-root .flex-1 { flex: 1 1 0% !important; }
+.landscaping-suite-root .shrink-0 { flex-shrink: 0 !important; }
+
+/* Grid */
+.landscaping-suite-root .grid { display: grid !important; }
+.landscaping-suite-root .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+.landscaping-suite-root .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.landscaping-suite-root .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.landscaping-suite-root .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+.landscaping-suite-root .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+.landscaping-suite-root .grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+.landscaping-suite-root .grid-cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; }
+
+@media (min-width: 640px) {
+  .landscaping-suite-root .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .landscaping-suite-root .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .landscaping-suite-root .sm\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .landscaping-suite-root .sm\:flex-row { flex-direction: row !important; }
+  .landscaping-suite-root .sm\:items-center { align-items: center !important; }
+}
+
+/* Side-by-side Beginner Flow Grid */
+.landscaping-suite-root .beginner-flow-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+@media (max-width: 900px) {
+  .landscaping-suite-root .beginner-flow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .landscaping-suite-root .beginner-flow-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .landscaping-suite-root .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .landscaping-suite-root .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .landscaping-suite-root .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+}
+
+@media (min-width: 1024px) {
+  .landscaping-suite-root .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .landscaping-suite-root .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .landscaping-suite-root .lg\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+}
+
+/* Gap */
+.landscaping-suite-root .gap-1 { gap: 0.25rem !important; }
+.landscaping-suite-root .gap-1\.5 { gap: 0.375rem !important; }
+.landscaping-suite-root .gap-2 { gap: 0.5rem !important; }
+.landscaping-suite-root .gap-2\.5 { gap: 0.625rem !important; }
+.landscaping-suite-root .gap-3 { gap: 0.75rem !important; }
+.landscaping-suite-root .gap-4 { gap: 1rem !important; }
+.landscaping-suite-root .gap-5 { gap: 1.25rem !important; }
+.landscaping-suite-root .gap-6 { gap: 1.5rem !important; }
+
+/* Backgrounds & Cards */
+.landscaping-suite-root .bg-white { background-color: #ffffff !important; }
+.landscaping-suite-root .bg-neutral-50 { background-color: #fafaf9 !important; }
+.landscaping-suite-root .bg-neutral-100 { background-color: #f5f5f4 !important; }
+.landscaping-suite-root .bg-emerald-50 { background-color: #ecfdf5 !important; }
+.landscaping-suite-root .bg-emerald-100 { background-color: #d1fae5 !important; }
+.landscaping-suite-root .bg-emerald-600 { background-color: #059669 !important; }
+.landscaping-suite-root .bg-emerald-800 { background-color: #065f46 !important; }
+.landscaping-suite-root .bg-emerald-900 { background-color: #064e3b !important; }
+.landscaping-suite-root .bg-amber-50 { background-color: #fffbeb !important; }
+.landscaping-suite-root .bg-amber-100 { background-color: #fef3c7 !important; }
+.landscaping-suite-root .bg-rose-50 { background-color: #fff1f2 !important; }
+.landscaping-suite-root .bg-rose-100 { background-color: #ffe4e6 !important; }
+.landscaping-suite-root .bg-sky-50 { background-color: #f0f9ff !important; }
+.landscaping-suite-root .bg-blue-50 { background-color: #eff6ff !important; }
+.landscaping-suite-root .bg-purple-50 { background-color: #faf5ff !important; }
+
+/* Borders & Radius */
+.landscaping-suite-root .border { border-width: 1px !important; border-style: solid !important; }
+.landscaping-suite-root .border-b { border-bottom-width: 1px !important; border-bottom-style: solid !important; }
+.landscaping-suite-root .border-t { border-top-width: 1px !important; border-top-style: solid !important; }
+.landscaping-suite-root .border-neutral-200 { border-color: #e2e8f0 !important; }
+.landscaping-suite-root .border-neutral-300 { border-color: #cbd5e1 !important; }
+.landscaping-suite-root .border-emerald-200 { border-color: #a7f3d0 !important; }
+.landscaping-suite-root .border-emerald-300 { border-color: #6ee7b7 !important; }
+.landscaping-suite-root .border-amber-200 { border-color: #fde68a !important; }
+.landscaping-suite-root .border-rose-200 { border-color: #fecdd3 !important; }
+
+.landscaping-suite-root .rounded-lg { border-radius: 8px !important; }
+.landscaping-suite-root .rounded-xl { border-radius: 12px !important; }
+.landscaping-suite-root .rounded-2xl { border-radius: 16px !important; }
+.landscaping-suite-root .rounded-full { border-radius: 9999px !important; }
+
+/* Text colors */
+.landscaping-suite-root .text-neutral-900 { color: #0f172a !important; }
+.landscaping-suite-root .text-neutral-800 { color: #1e293b !important; }
+.landscaping-suite-root .text-neutral-700 { color: #334155 !important; }
+.landscaping-suite-root .text-neutral-600 { color: #475569 !important; }
+.landscaping-suite-root .text-neutral-500 { color: #64748b !important; }
+.landscaping-suite-root .text-neutral-400 { color: #94a3b8 !important; }
+.landscaping-suite-root .text-emerald-800 { color: #065f46 !important; }
+.landscaping-suite-root .text-emerald-700 { color: #047857 !important; }
+.landscaping-suite-root .text-emerald-600 { color: #059669 !important; }
+.landscaping-suite-root .text-amber-900 { color: #78350f !important; }
+.landscaping-suite-root .text-amber-800 { color: #92400e !important; }
+.landscaping-suite-root .text-rose-800 { color: #9f1239 !important; }
+.landscaping-suite-root .text-rose-700 { color: #be123c !important; }
+.landscaping-suite-root .text-white { color: #ffffff !important; }
+
+/* Padding & Margin */
+.landscaping-suite-root .p-1 { padding: 0.25rem !important; }
+.landscaping-suite-root .p-2 { padding: 0.5rem !important; }
+.landscaping-suite-root .p-3 { padding: 0.75rem !important; }
+.landscaping-suite-root .p-4 { padding: 1rem !important; }
+.landscaping-suite-root .p-5 { padding: 1.25rem !important; }
+.landscaping-suite-root .p-6 { padding: 1.5rem !important; }
+.landscaping-suite-root .px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+.landscaping-suite-root .px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+.landscaping-suite-root .px-5 { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+.landscaping-suite-root .px-6 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+.landscaping-suite-root .py-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+.landscaping-suite-root .py-2\.5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+.landscaping-suite-root .py-3 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+.landscaping-suite-root .py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+.landscaping-suite-root .py-6 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+
+.landscaping-suite-root .space-y-4 > * + * { margin-top: 1rem !important; }
+.landscaping-suite-root .space-y-6 > * + * { margin-top: 1.5rem !important; }
+
+/* Shadows */
+.landscaping-suite-root .shadow-2xs { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important; }
+.landscaping-suite-root .shadow-xs { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important; }
+.landscaping-suite-root .shadow-sm { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important; }
+.landscaping-suite-root .shadow-md { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important; }
+
+/* Dimensions */
+.landscaping-suite-root .w-full { width: 100% !important; }
+.landscaping-suite-root .h-full { height: 100% !important; }
+.landscaping-suite-root .max-w-6xl { max-width: 1180px !important; }
+.landscaping-suite-root .max-w-7xl { max-width: 1320px !important; }
+.landscaping-suite-root .mx-auto { margin-left: auto !important; margin-right: auto !important; }
+
+/* Typography */
+.landscaping-suite-root .text-xs { font-size: 0.75rem !important; line-height: 1rem !important; }
+.landscaping-suite-root .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
+.landscaping-suite-root .text-base { font-size: 1rem !important; line-height: 1.5rem !important; }
+.landscaping-suite-root .text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
+.landscaping-suite-root .text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+.landscaping-suite-root .text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+.landscaping-suite-root .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
+
+.landscaping-suite-root .font-medium { font-weight: 500 !important; }
+.landscaping-suite-root .font-semibold { font-weight: 600 !important; }
+.landscaping-suite-root .font-bold { font-weight: 700 !important; }
+.landscaping-suite-root .font-extrabold { font-weight: 800 !important; }
+
+/* Card hover animation */
+.landscaping-suite-root .hover\:-translate-y-0\.5:hover {
+  transform: translateY(-2px) !important;
+}
+.landscaping-suite-root .transition-all {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.landscaping-suite-root .transition-colors {
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* ==========================================================================
+   5. Enterprise DreamsPOS / Branch Management Table & Section Design System
+   ========================================================================== */
+
+/* Table Containers & Wrappers */
+.landscaping-suite-root .table-responsive,
+.landscaping-suite-root .overflow-x-auto {
+  border-radius: 12px !important;
+  background-color: #ffffff !important;
+  scrollbar-width: thin;
+}
+
+.landscaping-suite-root table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  font-family: 'Nunito', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  background-color: #ffffff !important;
+}
+
+/* Table Head Headers */
+.landscaping-suite-root table thead,
+.landscaping-suite-root table thead tr {
+  background-color: #f9fafb !important;
+}
+
+.landscaping-suite-root table thead th {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 12px 14px !important;
+  border-bottom: 1.5px solid #e5e7eb !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  line-height: 1.3 !important;
+}
+
+/* Table Body Cells */
+.landscaping-suite-root table tbody td {
+  padding: 12px 14px !important;
+  font-size: 13px !important;
+  color: #1e293b !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  vertical-align: middle !important;
+  background-color: #ffffff !important;
+  transition: background-color 0.15s ease !important;
+}
+
+/* Row Hover States */
+.landscaping-suite-root table tbody tr:hover td {
+  background-color: #fcfdfe !important;
+}
+
+/* Sticky First Column for Matrices / Roster */
+.landscaping-suite-root table th.sticky,
+.landscaping-suite-root table td.sticky {
+  position: sticky !important;
+  left: 0 !important;
+  background-color: #ffffff !important;
+  z-index: 10 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.03) !important;
+}
+
+.landscaping-suite-root table thead th.sticky {
+  background-color: #f9fafb !important;
+  z-index: 20 !important;
+}
+
+/* Strict Alignments */
+.landscaping-suite-root .text-right,
+.landscaping-suite-root .text-end,
+.landscaping-suite-root table th.text-right,
+.landscaping-suite-root table th.text-end,
+.landscaping-suite-root table td.text-right,
+.landscaping-suite-root table td.text-end {
+  text-align: right !important;
+}
+
+.landscaping-suite-root .text-left,
+.landscaping-suite-root .text-start,
+.landscaping-suite-root table th.text-left,
+.landscaping-suite-root table th.text-start,
+.landscaping-suite-root table td.text-left,
+.landscaping-suite-root table td.text-start {
+  text-align: left !important;
+}
+
+.landscaping-suite-root .text-center,
+.landscaping-suite-root table th.text-center,
+.landscaping-suite-root table td.text-center {
+  text-align: center !important;
+}
+
+/* Numeric & Financial Values */
+.landscaping-suite-root .tabular-nums,
+.landscaping-suite-root .font-mono {
+  font-variant-numeric: tabular-nums !important;
+  font-family: 'Nunito', 'SFMono-Regular', Consolas, monospace !important;
+}
+
+/* Form Controls & Inputs (Matching DreamsPOS standard 38px height) */
+.landscaping-suite-root input[type="text"],
+.landscaping-suite-root input[type="number"],
+.landscaping-suite-root input[type="date"],
+.landscaping-suite-root input[type="email"],
+.landscaping-suite-root input[type="tel"],
+.landscaping-suite-root input[type="search"],
+.landscaping-suite-root select,
+.landscaping-suite-root .form-control,
+.landscaping-suite-root .form-select {
+  height: 38px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  font-size: 13px !important;
+  padding: 6px 12px !important;
+  font-family: inherit !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+}
+
+.landscaping-suite-root input:focus,
+.landscaping-suite-root select:focus,
+.landscaping-suite-root .form-control:focus,
+.landscaping-suite-root .form-select:focus {
+  border-color: #fe9f43 !important;
+  box-shadow: 0 0 0 3px rgba(254, 159, 67, 0.18) !important;
+  outline: none !important;
+  background-color: #ffffff !important;
+}
+
+/* Cards & Section Boxes */
+.landscaping-suite-root .card,
+.landscaping-suite-root .section-card {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  margin-bottom: 20px !important;
+}
+
+.landscaping-suite-root .card-header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 14px 18px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  color: #092c4c !important;
+}
+
+/* Metric / Stat Cards */
+.landscaping-suite-root .stat-card,
+.landscaping-suite-root .kpi-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.landscaping-suite-root .stat-label,
+.landscaping-suite-root .kpi-label {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  color: #64748b !important;
+  letter-spacing: 0.5px !important;
+}
+
+.landscaping-suite-root .stat-value,
+.landscaping-suite-root .kpi-value {
+  font-size: 1.45rem !important;
+  font-weight: 800 !important;
+  color: #092c4c !important;
+  margin-top: 4px !important;
+  font-family: 'Nunito', sans-serif !important;
+}
+
+/* Status Badges */
+.landscaping-suite-root .badge-pill,
+.landscaping-suite-root .badge-status {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border-radius: 9999px !important;
+  line-height: 1.3 !important;
+}
+
+.landscaping-suite-root .badge-success {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+.landscaping-suite-root .badge-primary,
+.landscaping-suite-root .badge-info {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+.landscaping-suite-root .badge-warning {
+  background-color: #fffbeb !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a !important;
+}
+
+.landscaping-suite-root .badge-danger {
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+  border: 1px solid #fecdd3 !important;
+}
+
+/* Action Buttons */
+.landscaping-suite-root .btn-outline-primary {
+  border: 1px solid #fe9f43 !important;
+  color: #fe9f43 !important;
+  background-color: transparent !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  transition: all 0.15s ease !important;
+}
+
+.landscaping-suite-root .btn-outline-primary:hover {
+  background-color: #fe9f43 !important;
+  color: #ffffff !important;
+}
+
+.landscaping-suite-root .btn-outline-secondary {
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+  background-color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  transition: all 0.15s ease !important;
+}
+
+.landscaping-suite-root .btn-outline-secondary:hover {
+  background-color: #f8fafc !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+}
+

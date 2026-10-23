@@ -425,30 +425,38 @@ export const ProjectDetail: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--color-text-muted)' }}>
-        <div className="spinner" style={{ margin: '0 auto 16px auto' }} />
-        <p style={{ fontWeight: 600 }}>Loading project workspace...</p>
+      <div className="page-wrapper">
+        <div className="content">
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--color-text-muted)' }}>
+            <div className="spinner" style={{ margin: '0 auto 16px auto' }} />
+            <p style={{ fontWeight: 600 }}>Loading project workspace...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (fetchError || !project) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '480px', margin: '40px auto' }}>
-        <AlertCircle size={48} color="#ef4444" style={{ margin: '0 auto 16px auto' }} />
-        <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-          Unable to Load Project
-        </h3>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px' }}>
-          {fetchError || 'Project not found or failed to load data.'}
-        </p>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <Link to="/projects" className="btn btn-secondary">
-            <ArrowLeft size={15} /> Back to Projects
-          </Link>
-          <button type="button" onClick={fetchProject} className="btn btn-proj">
-            Retry
-          </button>
+      <div className="page-wrapper">
+        <div className="content">
+          <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '480px', margin: '40px auto' }}>
+            <AlertCircle size={48} color="#ef4444" style={{ margin: '0 auto 16px auto' }} />
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+              Unable to Load Project
+            </h3>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px' }}>
+              {fetchError || 'Project not found or failed to load data.'}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <Link to="/projects" className="btn btn-secondary">
+                <ArrowLeft size={15} /> Back to Projects
+              </Link>
+              <button type="button" onClick={fetchProject} className="btn btn-proj">
+                Retry
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -495,7 +503,9 @@ export const ProjectDetail: React.FC = () => {
   };
 
   return (
-    <div style={{ width: '100%', paddingBottom: '60px' }}>
+    <div className="page-wrapper">
+      <div className="content">
+        <div style={{ width: '100%', paddingBottom: '60px' }}>
       {/* Top Header & Breadcrumbs (Responsive) */}
       <div className="project-header-container">
         <div className="project-title-area">
@@ -2667,6 +2677,10 @@ export const ProjectDetail: React.FC = () => {
         expense={viewingReceiptExpense}
         onClose={() => setViewingReceiptExpense(null)}
       />
+        </div>
+      </div>
     </div>
   );
 };
+
+export default ProjectDetail;

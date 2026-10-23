@@ -73,7 +73,9 @@ export const ProjectsList: React.FC = () => {
   };
 
   return (
-    <div className="projects-page-wrap">
+    <div className="page-wrapper">
+      <div className="content">
+        <div className="projects-page-wrap">
       {/* Top Header */}
       <div className="proj-page-header">
         <div className="proj-title-group">
@@ -421,6 +423,10 @@ export const ProjectsList: React.FC = () => {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 };
+
+export default ProjectsList;

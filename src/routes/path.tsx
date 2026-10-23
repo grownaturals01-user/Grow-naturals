@@ -442,7 +442,10 @@ const TodoList = lazy(
 );
 const PagesList = lazy(() => import("../feature-module/content/pages"));
 const AllBlogs = lazy(() => import("../feature-module/content/blog/allBlogs"));
-const Projects = lazy(() => import("../feature-module/application/projects"));
+const LandscapingProjectsApp = lazy(() => import("../landscaping-suite/App"));
+const ProjectsList = lazy(() => import("../pages/ProjectsList"));
+const ProjectNew = lazy(() => import("../pages/ProjectNew"));
+const ProjectDetail = lazy(() => import("../pages/ProjectDetail"));
 const Searchlist = lazy(
   () => import("../feature-module/application/searchlist")
 );
@@ -1646,7 +1649,19 @@ export const authRoutes = [
   {
     path: routes.projects,
     name: "projects",
-    element: <Projects />,
+    element: <LandscapingProjectsApp />,
+    route: Route,
+  },
+  {
+    path: routes.projectnew,
+    name: "project-new",
+    element: <ProjectNew />,
+    route: Route,
+  },
+  {
+    path: routes.projectdetail,
+    name: "project-detail",
+    element: <ProjectDetail />,
     route: Route,
   },
   {

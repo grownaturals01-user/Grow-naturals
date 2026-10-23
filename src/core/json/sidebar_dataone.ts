@@ -59,6 +59,21 @@ export const SidebarData1 = [
     ],
   },
   {
+    tittle: "Projects",
+    hasSubRoute: true,
+    icon: "briefcase",
+    showSubRoute: false,
+    subRoutes: [
+      {
+        tittle: "Project",
+        hasSubRoute: false,
+        showSubRoute: false,
+        route: "/projects",
+        subRoutes: [],
+      },
+    ],
+  },
+  {
     tittle: "Inventory",
     hasSubRoute: true,
     icon: "box",

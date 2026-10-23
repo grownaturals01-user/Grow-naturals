@@ -48,6 +48,7 @@
     "jquery": "^3.7.1",
     "jsbarcode": "^3.11.6",
     "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
     "leaflet": "^1.9.4",
     "libphonenumber-js": "^1.12.26",
     "lucide-react": "^0.475.0",
@@ -92,6 +93,7 @@
     "yet-another-react-lightbox": "^3.25.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.0.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/cors": "^2.8.17",
@@ -106,6 +108,7 @@
     "@types/react-slick": "^0.23.13",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^10.0.5",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
     "vitest": "^2.0.0"

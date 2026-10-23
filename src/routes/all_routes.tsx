@@ -255,6 +255,8 @@ export const all_routes = {
   emailreply: "/email-replay",
   todolist: "/todo-list",
   projects: "/projects",
+  projectnew: "/projects/new",
+  projectdetail: "/projects/:id",
   searchlist: "/search-list",
   supplierduereport: "/supplier-due-report",
   customerduereport: "/customer-due-report",

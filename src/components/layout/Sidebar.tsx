@@ -179,6 +179,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </NavLink>
         </div>
 
+        {/* Section: PROJECTS */}
+        <div className="nav-section section-projects">
+          {!collapsed && (
+            <div className="nav-section-title">
+              <span className="nav-section-dot" />
+              <span>Projects</span>
+            </div>
+          )}
+          <NavLink
+            to="/projects"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            onClick={handleLinkClick}
+            title="Project"
+          >
+            <FolderKanban className="nav-icon" />
+            <span className="nav-label">Project</span>
+          </NavLink>
+        </div>
+
         {/* Section: INVENTORY */}
         <div className="nav-section section-inv">
           {!collapsed && (

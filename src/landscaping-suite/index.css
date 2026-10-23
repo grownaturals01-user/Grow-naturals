@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@import "../styles/landscaping-theme.css";
+
+.landscaping-suite-root {
+  font-family: 'Nunito', 'Poppins', sans-serif;
+  color: #1e293b;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}

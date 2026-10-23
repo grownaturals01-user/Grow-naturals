@@ -23,6 +23,7 @@ import "./assets/fonts/lucide/lucide.css";
 import "swiper/swiper-bundle.css";
 
 import "./styles/create-sales-invoice.css";
+import "./styles/landscaping-theme.css";
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -272,7 +272,9 @@ export const ProjectNew: React.FC = () => {
   };
 
   return (
-    <div style={{ width: '100%', fontFamily: "'Nunito', sans-serif", paddingBottom: '60px' }}>
+    <div className="page-wrapper">
+      <div className="content">
+        <div style={{ width: '100%', fontFamily: "'Nunito', sans-serif", paddingBottom: '60px' }}>
       {/* Header */}
       <div className="page-header" style={{ marginBottom: '22px' }}>
         <div className="page-title-group">
@@ -1655,6 +1657,10 @@ export const ProjectNew: React.FC = () => {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 };
+
+export default ProjectNew;
